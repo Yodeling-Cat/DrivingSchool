@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sk-sk",
+    "version": 1,
+    "country": "SK",
+    "language": "sk",
+    "questionCounts": {
+      "A": 805,
+      "B": 956,
+      "BE": 932,
+      "C": 886,
+      "CE": 884,
+      "D": 885,
+      "DE": 883,
+      "T": 827
+    }
+  },
+  {
+    "id": "sk-en",
+    "version": 1,
+    "country": "SK",
+    "language": "en",
+    "questionCounts": {
+      "A": 798,
+      "B": 940,
+      "BE": 916,
+      "C": 875,
+      "CE": 873,
+      "D": 874,
+      "DE": 872,
+      "T": 822
+    }
+  },
+  {
+    "id": "sk-hu",
+    "version": 1,
+    "country": "SK",
+    "language": "hu",
+    "questionCounts": {
+      "A": 808,
+      "B": 959,
+      "BE": 935,
+      "C": 892,
+      "CE": 890,
+      "D": 891,
+      "DE": 889,
+      "T": 833
+    }
+  }
+]

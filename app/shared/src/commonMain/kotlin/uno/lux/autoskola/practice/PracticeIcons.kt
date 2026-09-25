@@ -85,3 +85,18 @@ internal val IconMoreVert: ImageVector = ImageVector.Builder(
         close()
     }
 }.build()
+
+internal val IconArrowDropDown: ImageVector = ImageVector.Builder(
+    name = "ArrowDropDown",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f,
+).apply {
+    path(fill = SolidColor(Color.Black)) {
+        moveTo(7f, 10f)
+        lineToRelative(5f, 5f)
+        lineToRelative(5f, -5f)
+        close()
+    }
+}.build()

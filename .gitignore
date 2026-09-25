@@ -18,3 +18,8 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 .claude/settings.local.json
+
+# Question-bank importer
+tools/import/.venv/
+tools/import/cache/
+__pycache__/

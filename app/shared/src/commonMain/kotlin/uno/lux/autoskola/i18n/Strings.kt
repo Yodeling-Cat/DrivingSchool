@@ -1,0 +1,315 @@
+package uno.lux.autoskola.i18n
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.intl.Locale
+
+/**
+ * Languages the app UI is translated into. These are the languages we have tests in, plus Czech.
+ *
+ * UI strings are typed Kotlin tables (see [Strings]) rather than Compose resources so the
+ * language can be switched at runtime on every platform without per-platform locale hacks.
+ */
+enum class AppLanguage(val code: String, val nativeName: String, val strings: Strings) {
+    English("en", "English", EnglishStrings),
+    Slovak("sk", "Slovenčina", SlovakStrings),
+    Hungarian("hu", "Magyar", HungarianStrings),
+    Czech("cs", "Čeština", CzechStrings),
+    ;
+
+    companion object {
+        fun fromCode(code: String?): AppLanguage? = entries.firstOrNull { it.code == code }
+
+        /** The language for a device locale language code: that language if supported, else English. */
+        fun forLocale(languageCode: String): AppLanguage = fromCode(languageCode) ?: English
+
+        fun system(): AppLanguage = forLocale(Locale.current.language)
+    }
+}
+
+val LocalStrings = staticCompositionLocalOf<Strings> { EnglishStrings }
+
+/** Shorthand for the current language's strings. */
+val strings: Strings
+    @Composable @ReadOnlyComposable
+    get() = LocalStrings.current
+
+class Strings(
+    // Disclaimer
+    val disclaimerTitle: String,
+    val disclaimerIndependent: String,
+    val disclaimerSource: String,
+    val disclaimerAccept: String,
+    // Exam selection
+    val examSelectionTitle: String,
+    val examSelectionSubtitle: String,
+    val countryName: (code: String) -> String,
+    // Navigation
+    val navTests: String,
+    val navSettings: String,
+    val back: String,
+    // Home
+    val change: String,
+    val testsFinished: (finished: Int, total: Int) -> String,
+    val passed: String,
+    val failed: String,
+    val averageScore: String,
+    val randomTest: String,
+    val notDoneYet: String,
+    val allTests: String,
+    val notStarted: String,
+    val resultSummary: (score: Int, max: Int, passed: Boolean) -> String,
+    val testName: (number: Int) -> String,
+    val unfinishedTest: String,
+    val resumeSummary: (testName: String, answered: Int, total: Int) -> String,
+    val continueTest: String,
+    val discard: String,
+    val inProgress: String,
+    val practiceMistakes: String,
+    val mistakesToReview: (count: Int) -> String,
+    val mistakesTestName: String,
+    val questionsAnswered: String,
+    // Practice
+    val questionOutOf: (number: Int, total: Int) -> String,
+    val points: (count: Int) -> String,
+    val questionList: String,
+    val closeQuestionList: String,
+    val previousQuestion: String,
+    val nextQuestion: String,
+    val moreOptions: String,
+    val finishTest: String,
+    val yourAnswer: String,
+    val correctAnswer: String,
+    // Settings
+    val settingsTitle: String,
+    val settingsLanguage: String,
+    val settingsAnswers: String,
+    val settingsCheckImmediately: String,
+    val settingsCheckImmediatelyDescription: String,
+    val settingsExam: String,
+    val settingsChangeExam: String,
+)
+
+/** Slovak and Czech plurals: 1 / 2–4 / 5+ (and 0). */
+private fun westSlavicPlural(count: Int, one: String, few: String, many: String) = when (count) {
+    1 -> one
+    in 2..4 -> few
+    else -> many
+}
+
+private val EnglishStrings = Strings(
+    disclaimerTitle = "Before you start",
+    disclaimerIndependent = "Naj Autoškola is an independent app. It is not made by, affiliated with, " +
+        "or endorsed by any government authority.",
+    disclaimerSource = "The questions and pictures come from the official question bank published by " +
+        "the Ministry of Interior of the Slovak Republic (minv.sk). We copy them as published, but if " +
+        "anything differs, the official exam and current law apply.",
+    disclaimerAccept = "I understand",
+    examSelectionTitle = "Which exam are you taking?",
+    examSelectionSubtitle = "Choose the country, language and license group. You can change it later.",
+    countryName = { mapOf("SK" to "Slovakia", "CZ" to "Czechia")[it] ?: it },
+    navTests = "Tests",
+    navSettings = "Settings",
+    back = "Back",
+    change = "Change",
+    testsFinished = { finished, total -> "$finished of $total tests finished" },
+    passed = "Passed",
+    failed = "Failed",
+    averageScore = "Average score",
+    randomTest = "Random test",
+    notDoneYet = "Not done yet",
+    allTests = "All tests",
+    notStarted = "Not started",
+    resultSummary = { score, max, passed -> "$score / $max · ${if (passed) "Passed" else "Failed"}" },
+    testName = { "Test $it" },
+    unfinishedTest = "Unfinished test",
+    resumeSummary = { name, answered, total -> "$name · $answered of $total answered" },
+    continueTest = "Continue",
+    discard = "Discard",
+    inProgress = "In progress",
+    practiceMistakes = "Practice mistakes",
+    mistakesToReview = { if (it == 0) "No mistakes to review" else "$it to review" },
+    mistakesTestName = "Mistakes",
+    questionsAnswered = "Questions answered",
+    questionOutOf = { number, total -> "Question $number of $total" },
+    points = { if (it == 1) "1 point" else "$it points" },
+    questionList = "Question list",
+    closeQuestionList = "Close question list",
+    previousQuestion = "Previous question",
+    nextQuestion = "Next question",
+    moreOptions = "More options",
+    finishTest = "Finish test",
+    yourAnswer = "YOUR ANSWER",
+    correctAnswer = "CORRECT ANSWER",
+    settingsTitle = "Settings",
+    settingsLanguage = "App language",
+    settingsAnswers = "Answers",
+    settingsCheckImmediately = "Check answers immediately",
+    settingsCheckImmediatelyDescription = "See whether your answer is right as soon as you pick it. " +
+        "You can't change an answer after that.",
+    settingsExam = "Exam",
+    settingsChangeExam = "Change exam",
+)
+
+private val SlovakStrings = Strings(
+    disclaimerTitle = "Skôr než začnete",
+    disclaimerIndependent = "Naj Autoškola je nezávislá aplikácia. Nevytvoril ju žiadny štátny orgán, " +
+        "nie je s ním prepojená ani ním nie je schválená.",
+    disclaimerSource = "Otázky a obrázky pochádzajú z oficiálnej databázy otázok, ktorú zverejňuje " +
+        "Ministerstvo vnútra Slovenskej republiky (minv.sk). Preberáme ich v zverejnenom znení, ale ak sa " +
+        "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
+    disclaimerAccept = "Rozumiem",
+    examSelectionTitle = "Na akú skúšku sa pripravujete?",
+    examSelectionSubtitle = "Vyberte krajinu, jazyk a skupinu vodičského oprávnenia. Neskôr to môžete zmeniť.",
+    countryName = { mapOf("SK" to "Slovensko", "CZ" to "Česko")[it] ?: it },
+    navTests = "Testy",
+    navSettings = "Nastavenia",
+    back = "Späť",
+    change = "Zmeniť",
+    testsFinished = { finished, total -> "Dokončené testy: $finished z $total" },
+    passed = "Úspešné",
+    failed = "Neúspešné",
+    averageScore = "Priemerné skóre",
+    randomTest = "Náhodný test",
+    notDoneYet = "Ešte neurobený",
+    allTests = "Všetky testy",
+    notStarted = "Nezačatý",
+    resultSummary = { score, max, passed -> "$score / $max · ${if (passed) "Úspešný" else "Neúspešný"}" },
+    testName = { "Test $it" },
+    unfinishedTest = "Nedokončený test",
+    resumeSummary = { name, answered, total -> "$name · zodpovedané $answered z $total" },
+    continueTest = "Pokračovať",
+    discard = "Zahodiť",
+    inProgress = "Rozpracovaný",
+    practiceMistakes = "Precvičiť chyby",
+    mistakesToReview = { if (it == 0) "Žiadne chyby na zopakovanie" else "Na zopakovanie: $it" },
+    mistakesTestName = "Chyby",
+    questionsAnswered = "Zodpovedané otázky",
+    questionOutOf = { number, total -> "Otázka $number z $total" },
+    points = { "$it " + westSlavicPlural(it, "bod", "body", "bodov") },
+    questionList = "Zoznam otázok",
+    closeQuestionList = "Zavrieť zoznam otázok",
+    previousQuestion = "Predchádzajúca otázka",
+    nextQuestion = "Ďalšia otázka",
+    moreOptions = "Ďalšie možnosti",
+    finishTest = "Ukončiť test",
+    yourAnswer = "VAŠA ODPOVEĎ",
+    correctAnswer = "SPRÁVNA ODPOVEĎ",
+    settingsTitle = "Nastavenia",
+    settingsLanguage = "Jazyk aplikácie",
+    settingsAnswers = "Odpovede",
+    settingsCheckImmediately = "Hneď vyhodnotiť odpoveď",
+    settingsCheckImmediatelyDescription = "Po výbere odpovede hneď uvidíte, či je správna. " +
+        "Odpoveď potom už nemôžete zmeniť.",
+    settingsExam = "Skúška",
+    settingsChangeExam = "Zmeniť skúšku",
+)
+
+private val HungarianStrings = Strings(
+    disclaimerTitle = "Mielőtt elkezdené",
+    disclaimerIndependent = "A Naj Autoškola független alkalmazás. Nem állami szerv készítette, " +
+        "nem áll kapcsolatban egyetlen hatósággal sem, és egyetlen hatóság sem hagyta jóvá.",
+    disclaimerSource = "A kérdések és a képek a Szlovák Köztársaság Belügyminisztériuma által közzétett " +
+        "hivatalos kérdésbankból származnak (minv.sk). A közzétett formában vesszük át őket, de eltérés " +
+        "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
+    disclaimerAccept = "Értem",
+    examSelectionTitle = "Milyen vizsgára készül?",
+    examSelectionSubtitle = "Válassza ki az országot, a nyelvet és a jogosítványkategóriát. Később módosíthatja.",
+    countryName = { mapOf("SK" to "Szlovákia", "CZ" to "Csehország")[it] ?: it },
+    navTests = "Tesztek",
+    navSettings = "Beállítások",
+    back = "Vissza",
+    change = "Módosítás",
+    testsFinished = { finished, total -> "Befejezett tesztek: $finished / $total" },
+    passed = "Sikeres",
+    failed = "Sikertelen",
+    averageScore = "Átlagos eredmény",
+    randomTest = "Véletlen teszt",
+    notDoneYet = "Még nem kitöltött",
+    allTests = "Összes teszt",
+    notStarted = "Nincs elkezdve",
+    resultSummary = { score, max, passed -> "$score / $max · ${if (passed) "Sikeres" else "Sikertelen"}" },
+    testName = { "$it. teszt" },
+    unfinishedTest = "Befejezetlen teszt",
+    resumeSummary = { name, answered, total -> "$name · $answered / $total megválaszolva" },
+    continueTest = "Folytatás",
+    discard = "Elvetés",
+    inProgress = "Folyamatban",
+    practiceMistakes = "Hibák gyakorlása",
+    mistakesToReview = { if (it == 0) "Nincs ismétlendő hiba" else "Ismétlendő: $it" },
+    mistakesTestName = "Hibák",
+    questionsAnswered = "Megválaszolt kérdések",
+    questionOutOf = { number, total -> "$number. kérdés / $total" },
+    points = { "$it pont" },
+    questionList = "Kérdések listája",
+    closeQuestionList = "Kérdéslista bezárása",
+    previousQuestion = "Előző kérdés",
+    nextQuestion = "Következő kérdés",
+    moreOptions = "További lehetőségek",
+    finishTest = "Teszt befejezése",
+    yourAnswer = "AZ ÖN VÁLASZA",
+    correctAnswer = "HELYES VÁLASZ",
+    settingsTitle = "Beállítások",
+    settingsLanguage = "Az alkalmazás nyelve",
+    settingsAnswers = "Válaszok",
+    settingsCheckImmediately = "Válaszok azonnali értékelése",
+    settingsCheckImmediatelyDescription = "A válasz kiválasztása után azonnal látja, hogy helyes-e. " +
+        "A választ ezután nem módosíthatja.",
+    settingsExam = "Vizsga",
+    settingsChangeExam = "Vizsga módosítása",
+)
+
+private val CzechStrings = Strings(
+    disclaimerTitle = "Než začnete",
+    disclaimerIndependent = "Naj Autoškola je nezávislá aplikace. Nevytvořil ji žádný státní orgán, " +
+        "není s ním spojena ani jím není schválena.",
+    disclaimerSource = "Otázky a obrázky pocházejí z oficiální databáze otázek, kterou zveřejňuje " +
+        "Ministerstvo vnitra Slovenské republiky (minv.sk). Přebíráme je ve zveřejněném znění, ale pokud se " +
+        "něco liší, platí oficiální zkouška a aktuální předpisy.",
+    disclaimerAccept = "Rozumím",
+    examSelectionTitle = "Na jakou zkoušku se připravujete?",
+    examSelectionSubtitle = "Vyberte zemi, jazyk a skupinu řidičského oprávnění. Později to můžete změnit.",
+    countryName = { mapOf("SK" to "Slovensko", "CZ" to "Česko")[it] ?: it },
+    navTests = "Testy",
+    navSettings = "Nastavení",
+    back = "Zpět",
+    change = "Změnit",
+    testsFinished = { finished, total -> "Dokončené testy: $finished z $total" },
+    passed = "Úspěšné",
+    failed = "Neúspěšné",
+    averageScore = "Průměrné skóre",
+    randomTest = "Náhodný test",
+    notDoneYet = "Dosud neudělaný",
+    allTests = "Všechny testy",
+    notStarted = "Nezahájený",
+    resultSummary = { score, max, passed -> "$score / $max · ${if (passed) "Úspěšný" else "Neúspěšný"}" },
+    testName = { "Test $it" },
+    unfinishedTest = "Nedokončený test",
+    resumeSummary = { name, answered, total -> "$name · zodpovězeno $answered z $total" },
+    continueTest = "Pokračovat",
+    discard = "Zahodit",
+    inProgress = "Rozpracovaný",
+    practiceMistakes = "Procvičit chyby",
+    mistakesToReview = { if (it == 0) "Žádné chyby k zopakování" else "K zopakování: $it" },
+    mistakesTestName = "Chyby",
+    questionsAnswered = "Zodpovězené otázky",
+    questionOutOf = { number, total -> "Otázka $number z $total" },
+    points = { "$it " + westSlavicPlural(it, "bod", "body", "bodů") },
+    questionList = "Seznam otázek",
+    closeQuestionList = "Zavřít seznam otázek",
+    previousQuestion = "Předchozí otázka",
+    nextQuestion = "Další otázka",
+    moreOptions = "Další možnosti",
+    finishTest = "Ukončit test",
+    yourAnswer = "VAŠE ODPOVĚĎ",
+    correctAnswer = "SPRÁVNÁ ODPOVĚĎ",
+    settingsTitle = "Nastavení",
+    settingsLanguage = "Jazyk aplikace",
+    settingsAnswers = "Odpovědi",
+    settingsCheckImmediately = "Ihned vyhodnotit odpověď",
+    settingsCheckImmediatelyDescription = "Po výběru odpovědi hned uvidíte, zda je správná. " +
+        "Odpověď pak už nelze změnit.",
+    settingsExam = "Zkouška",
+    settingsChangeExam = "Změnit zkoušku",
+)

@@ -1,140 +1,394 @@
 package uno.lux.autoskola.practice
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+import uno.lux.autoskola.bank.Question
+import uno.lux.autoskola.bank.Section
+import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.HeightClass
+import uno.lux.autoskola.ui.LocalHeightClass
+import uno.lux.autoskola.ui.LoadingScreen
+import uno.lux.autoskola.ui.LocalWidthClass
+import uno.lux.autoskola.ui.WidthClass
 
-private val SelectedAnswerBg = Color(0xFFEEF5DA)
-private val SelectedAnswerAccent = Color(0xFF7CB342)
+private val SelectedAnswerBg = Color(0xFFEDE7F6)
+private val SelectedAnswerAccent = Color(0xFF5E35B1)
+private val CorrectAnswerBg = Color(0xFFE8F5E9)
+private val CorrectAnswerAccent = Color(0xFF388E3C)
+private val WrongAnswerBg = Color(0xFFFFEBEE)
+private val WrongAnswerAccent = Color(0xFFD32F2F)
 private val UnselectedLetter = Color(0xFFBDBDBD)
 private val CardBorder = Color(0xFFE0E0E0)
 private val Subdued = Color(0xFF757575)
 
+private val QuestionChipBg = Color(0xFFEEEEEE)
+private val QuestionChipAnsweredBg = Color(0xFFD1C4E9)
+private val QuestionChipCorrectBg = Color(0xFFC8E6C9)
+private val QuestionChipIncorrectBg = Color(0xFFFFCDD2)
+private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
+
+private val QuestionPanelWidth = 320.dp
+
+/** Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is closed. */
+@Composable
+fun PracticeRoute(
+    attemptId: String,
+    onClose: () -> Unit,
+    viewModel: PracticeViewModel = koinViewModel { parametersOf(attemptId) },
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    when (val current = state) {
+        PracticeUiState.Loading -> LoadingScreen()
+        PracticeUiState.Closed -> LaunchedEffect(Unit) { onClose() }
+        is PracticeUiState.Ready -> PracticeScreen(current, viewModel::onEvent, onBack = onClose)
+    }
+}
+
+/**
+ * Runs one practice test. With [checkImmediately], picking an answer reveals whether it's
+ * right (and which one is) and locks it; otherwise answers stay editable and are only
+ * scored when the test is finished.
+ *
+ * Answers come from [state]; every pick is sent as [PracticeUiEvent.Answer] so it's saved
+ * straight away.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PracticeScreen(
-    questions: List<Question> = sampleQuestions,
-    testName: String = "Test 1",
-    group: String = "Group A,B",
-    onBack: () -> Unit = {},
-) {
-    var currentIndex by remember { mutableStateOf(0) }
-    val selectedAnswers = remember { mutableStateMapOf<Int, Int>() }
+fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> Unit, onBack: () -> Unit) {
+    val questions = remember(state.questions) { state.questions.map { it.question } }
+    val sections = state.sections
+    val testName = attemptName(state.kind, state.testNumber)
+    val group = state.exam.name
+    val checkImmediately = state.checkImmediately
+    val selectedAnswers = state.answers
+    val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
+    val currentIndex = pagerState.currentPage
+    var showQuestionList by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
     val current = questions[currentIndex]
-    val selectedIndex = selectedAnswers[currentIndex]
+    // On wide screens the question list is always visible next to the question.
+    // Phones in landscape: one slim bar instead of two, and no side panel, so the question keeps
+    // most of the little height there is.
+    val compactHeight = LocalHeightClass.current == HeightClass.Compact
+    val showPanel = LocalWidthClass.current == WidthClass.Expanded && !compactHeight
+    // Resizing the window (desktop, split screen, rotation) mid-scroll can leave the pager
+    // between pages, so re-align it to the page it was heading to whenever its width changes.
+    var pagerWidth by remember { mutableStateOf(0) }
+    LaunchedEffect(pagerWidth) {
+        if (pagerWidth > 0) pagerState.scrollToPage(pagerState.targetPage)
+    }
+
+    fun goTo(index: Int) {
+        scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
+    }
+
+    fun dismissSheet() {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if (!sheetState.isVisible) showQuestionList = false
+        }
+    }
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
+            if (compactHeight) return@Scaffold
             CenterAlignedTopAppBar(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            testName,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
-                        )
-                        Text(
-                            group,
-                            color = Subdued,
-                            fontSize = 12.sp,
-                        )
+                        Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                        Text(group, color = Subdued, fontSize = 12.sp)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(IconArrowBack, contentDescription = "Back")
+                        Icon(IconArrowBack, contentDescription = strings.back)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
             )
         },
         bottomBar = {
-            BottomAppBar(containerColor = Color.White) {
-                IconButton(onClick = { /* TODO: open question list */ }) {
-                    Icon(IconMenu, contentDescription = "Question list")
+            BottomAppBar(
+                containerColor = Color.White,
+                modifier = if (compactHeight) Modifier.height(56.dp) else Modifier,
+                contentPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding,
+            ) {
+                if (compactHeight) {
+                    IconButton(onClick = onBack) {
+                        Icon(IconArrowBack, contentDescription = strings.back)
+                    }
+                }
+                if (!showPanel) {
+                    IconButton(onClick = { showQuestionList = true }) {
+                        Icon(IconMenu, contentDescription = strings.questionList)
+                    }
+                } else {
+                    Spacer(Modifier.width(16.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Question ${currentIndex + 1} out of ${questions.size}",
+                        if (compactHeight) "$testName · ${strings.questionOutOf(currentIndex + 1, questions.size)}"
+                        else strings.questionOutOf(currentIndex + 1, questions.size),
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
+                        maxLines = 1,
                     )
-                    Text(
-                        "${current.points} points",
-                        color = Subdued,
-                        fontSize = 12.sp,
-                    )
+                    Text(strings.points(current.points), color = Subdued, fontSize = 12.sp)
                 }
-                IconButton(onClick = { /* TODO: overflow menu */ }) {
-                    Icon(IconMoreVert, contentDescription = "More options")
+                // Swiping doesn't work with a mouse, so always offer buttons too.
+                IconButton(onClick = { goTo(currentIndex - 1) }, enabled = currentIndex > 0) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
+                }
+                IconButton(onClick = { goTo(currentIndex + 1) }, enabled = currentIndex < questions.lastIndex) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
+                }
+                Box {
+                    IconButton(onClick = { showOverflowMenu = true }) {
+                        Icon(IconMoreVert, contentDescription = strings.moreOptions)
+                    }
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = { showOverflowMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(strings.finishTest) },
+                            onClick = {
+                                showOverflowMenu = false
+                                onEvent(PracticeUiEvent.Finish)
+                            },
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize(),
+        Row(Modifier.padding(padding).fillMaxSize()) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .onSizeChanged { pagerWidth = it.width },
+                verticalAlignment = Alignment.Top,
+            ) { page ->
+                QuestionPage(
+                    question = questions[page],
+                    imageUri = state.questions[page].imageUri,
+                    selectedIndex = selectedAnswers[page],
+                    checkImmediately = checkImmediately,
+                    onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
+                )
+            }
+            if (showPanel) {
+                VerticalDivider(color = CardBorder)
+                Column(
+                    Modifier
+                        .width(QuestionPanelWidth)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    QuestionGrid(
+                        questions = questions,
+                        sections = sections,
+                        currentIndex = currentIndex,
+                        selectedAnswers = selectedAnswers,
+                        revealCorrectness = checkImmediately,
+                        onSelectQuestion = ::goTo,
+                    )
+                }
+            }
+        }
+    }
+
+    if (showQuestionList && !showPanel) {
+        ModalBottomSheet(
+            onDismissRequest = { showQuestionList = false },
+            sheetState = sheetState,
+            containerColor = Color.White,
+            dragHandle = null,
         ) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                current.text,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-            )
-            Spacer(Modifier.height(16.dp))
-            AnswerCard(
-                options = current.options,
-                selectedIndex = selectedIndex,
-                onSelect = { selectedAnswers[currentIndex] = it },
-            )
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                QuestionListHeader(
+                    title = strings.questionOutOf(currentIndex + 1, questions.size),
+                    subtitle = strings.points(current.points),
+                    onClose = ::dismissSheet,
+                )
+                QuestionGrid(
+                    questions = questions,
+                    sections = sections,
+                    currentIndex = currentIndex,
+                    selectedAnswers = selectedAnswers,
+                    revealCorrectness = checkImmediately,
+                    onSelectQuestion = ::goTo,
+                )
+            }
         }
     }
 }
 
 @Composable
+private fun QuestionPage(
+    question: Question,
+    imageUri: String?,
+    selectedIndex: Int?,
+    checkImmediately: Boolean,
+    onSelect: (Int) -> Unit,
+) {
+    val revealed = isAnswerLocked(checkImmediately, selectedIndex)
+    val answers: @Composable () -> Unit = {
+        AnswerCard(
+            options = question.answers,
+            selectedIndex = selectedIndex,
+            correct = question.correct,
+            revealed = revealed,
+            // Once checked, the answer is final.
+            onSelect = if (revealed) null else onSelect,
+        )
+    }
+    val questionText: @Composable () -> Unit = {
+        Text(question.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+    }
+    // With little height (phones in landscape) a stacked image would push the answers off
+    // screen, so show it next to the question and answers instead.
+    val sideBySide = imageUri != null && LocalHeightClass.current == HeightClass.Compact
+
+    Box(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        if (sideBySide) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = ContentWidth.Wide)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(Modifier.weight(3f)) {
+                    questionText()
+                    Spacer(Modifier.height(12.dp))
+                    answers()
+                    Spacer(Modifier.height(16.dp))
+                }
+                Box(Modifier.weight(2f)) {
+                    QuestionImage(uri = imageUri!!, maxHeight = 220.dp)
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = ContentWidth.Reading)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                questionText()
+                imageUri?.let { uri ->
+                    Spacer(Modifier.height(12.dp))
+                    QuestionImage(uri = uri)
+                }
+                Spacer(Modifier.height(16.dp))
+                answers()
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuestionImage(uri: String, maxHeight: Dp = 260.dp) {
+    val painter = rememberAsyncImagePainter(uri)
+    val imageState by painter.state.collectAsState()
+    if (imageState is AsyncImagePainter.State.Success) {
+        Image(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxHeight),
+        )
+    } else {
+        // Keep the space, so the answers don't jump when the image arrives.
+        Spacer(Modifier.height(maxHeight))
+    }
+}
+
+/** [onSelect] is null when the answer is locked. */
+@Composable
 private fun AnswerCard(
     options: List<String>,
     selectedIndex: Int?,
-    onSelect: (Int) -> Unit,
+    correct: Int,
+    revealed: Boolean,
+    onSelect: ((Int) -> Unit)?,
 ) {
     Column(
         modifier = Modifier
@@ -149,8 +403,9 @@ private fun AnswerCard(
             AnswerRow(
                 letter = ('A' + index).toString(),
                 text = option,
-                isSelected = selectedIndex == index,
-                onClick = { onSelect(index) },
+                state = answerState(index, selectedIndex, correct, revealed),
+                isUserAnswer = selectedIndex == index,
+                onClick = onSelect?.let { { it(index) } },
             )
         }
     }
@@ -160,14 +415,26 @@ private fun AnswerCard(
 private fun AnswerRow(
     letter: String,
     text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
+    state: AnswerState,
+    isUserAnswer: Boolean,
+    onClick: (() -> Unit)?,
 ) {
+    val (background, accent) = when (state) {
+        AnswerState.Neutral -> Color.White to UnselectedLetter
+        AnswerState.Selected -> SelectedAnswerBg to SelectedAnswerAccent
+        AnswerState.Correct -> CorrectAnswerBg to CorrectAnswerAccent
+        AnswerState.Wrong -> WrongAnswerBg to WrongAnswerAccent
+    }
+    val label = when {
+        state == AnswerState.Correct -> strings.correctAnswer
+        isUserAnswer -> strings.yourAnswer
+        else -> null
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isSelected) SelectedAnswerBg else Color.White)
-            .clickable(onClick = onClick)
+            .background(background)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.Start,
@@ -176,14 +443,14 @@ private fun AnswerRow(
             letter,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) SelectedAnswerAccent else UnselectedLetter,
+            color = accent,
             modifier = Modifier.width(40.dp),
         )
         Column(modifier = Modifier.weight(1f)) {
-            if (isSelected) {
+            if (label != null) {
                 Text(
-                    "YOUR ANSWER",
-                    color = Subdued,
+                    label,
+                    color = if (state == AnswerState.Selected) Subdued else accent,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp,
@@ -197,5 +464,103 @@ private fun AnswerRow(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
+    }
+}
+
+@Composable
+private fun QuestionListHeader(title: String, subtitle: String, onClose: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(IconMenu, contentDescription = strings.closeQuestionList)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            Text(subtitle, color = Subdued, fontSize = 12.sp)
+        }
+    }
+}
+
+/**
+ * Question numbers grouped by section. Answered questions are coloured by correctness only
+ * when [revealCorrectness] is set, so the list doesn't give answers away otherwise.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuestionGrid(
+    questions: List<Question>,
+    sections: List<Section>,
+    currentIndex: Int,
+    selectedAnswers: Map<Int, Int>,
+    revealCorrectness: Boolean,
+    onSelectQuestion: (Int) -> Unit,
+) {
+    val grouped: List<Pair<Section, List<Int>>> =
+        sections.mapNotNull { section ->
+            val indices = questions.withIndex()
+                .filter { it.value.section == section.id }
+                .map { it.index }
+            if (indices.isEmpty()) null else section to indices
+        }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        grouped.forEachIndexed { sectionIndex, (section, indices) ->
+            if (sectionIndex > 0) {
+                HorizontalDivider(color = CardBorder, thickness = 1.dp)
+            }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(section.title, color = Subdued, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    indices.forEach { idx ->
+                        QuestionChip(
+                            number = idx + 1,
+                            state = chipState(
+                                selected = selectedAnswers[idx],
+                                correct = questions[idx].correct,
+                                revealCorrectness = revealCorrectness,
+                            ),
+                            isCurrent = idx == currentIndex,
+                            onClick = { onSelectQuestion(idx) },
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun QuestionChip(
+    number: Int,
+    state: ChipState,
+    isCurrent: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = when (state) {
+        ChipState.Correct -> QuestionChipCorrectBg
+        ChipState.Incorrect -> QuestionChipIncorrectBg
+        ChipState.Answered -> QuestionChipAnsweredBg
+        ChipState.Unanswered -> QuestionChipBg
+    }
+    val shape = RoundedCornerShape(6.dp)
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(shape)
+            .background(bg)
+            .then(if (isCurrent) Modifier.border(2.dp, QuestionChipCurrentBorder, shape) else Modifier)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(number.toString(), fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }

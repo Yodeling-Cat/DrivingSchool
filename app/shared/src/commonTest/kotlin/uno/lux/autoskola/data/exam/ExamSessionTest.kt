@@ -150,6 +150,22 @@ class ExamSessionTest {
     }
 
     @Test
+    fun attemptIncludesFinishedButNotDiscardedAttempts() = runTest {
+        val session = session()
+        val finished = session.startOrResume(session.tests.first(), checkImmediately = false)
+        session.finish(finished.id)
+        val discarded = session.startOrResume(session.tests.first(), checkImmediately = false)
+        attempts.discard(discarded.id)
+
+        assertEquals(finished.id, session.attempt(finished.id).first()?.id)
+        assertNull(session.attempt(discarded.id).first())
+        assertNull(session.openAttempt(finished.id).first())
+
+        val otherGroup = session(LicenseCategory.C)
+        assertNull(otherGroup.attempt(finished.id).first())
+    }
+
+    @Test
     fun questionsOfAnAttemptKeepTheirOrder() = runTest {
         val session = session()
         val attempt = session.startOrResume(session.tests.first(), checkImmediately = false)

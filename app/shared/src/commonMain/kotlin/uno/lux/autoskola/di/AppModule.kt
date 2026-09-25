@@ -19,6 +19,7 @@ import uno.lux.autoskola.home.HomeViewModel
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
+import uno.lux.autoskola.results.ResultsViewModel
 import uno.lux.autoskola.settings.SettingsViewModel
 
 /** Data sources and repositories are app-wide singletons; ViewModels are scoped to their screen. */
@@ -41,6 +42,7 @@ val appModule = module {
     viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get()) }
+    viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
 }
 
 /**

@@ -24,3 +24,48 @@ fun TestAttempt.score(questions: List<Question>): TestResult {
         maxScore = asked.sumOf { it.points },
     )
 }
+
+/** Whether every question of the attempt has an answer. */
+val TestAttempt.isFullyAnswered: Boolean
+    get() = questionIds.all { answerFor(it) != null }
+
+/** How one attempt went, for the results screen. */
+data class AttemptSummary(
+    val result: TestResult,
+    val correct: Int,
+    val wrong: Int,
+    val unanswered: Int,
+    /** Sections in the order their first question was asked. */
+    val sections: List<SectionSummary>,
+)
+
+data class SectionSummary(
+    val section: Int,
+    val correct: Int,
+    val total: Int,
+    val score: Int,
+    val maxScore: Int,
+)
+
+/** Counts right, wrong and missing answers to [questions], overall and per section. */
+fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
+    val asked = questions.filter { it.id in questionIds }
+    fun isCorrect(question: Question) = answerFor(question.id)?.correct == true
+    val answered = asked.count { answerFor(it.id) != null }
+    val correct = asked.count(::isCorrect)
+    return AttemptSummary(
+        result = score(questions),
+        correct = correct,
+        wrong = answered - correct,
+        unanswered = asked.size - answered,
+        sections = asked.groupBy { it.section }.map { (section, inSection) ->
+            SectionSummary(
+                section = section,
+                correct = inSection.count(::isCorrect),
+                total = inSection.size,
+                score = inSection.sumOf { if (isCorrect(it)) it.points else 0 },
+                maxScore = inSection.sumOf { it.points },
+            )
+        },
+    )
+}

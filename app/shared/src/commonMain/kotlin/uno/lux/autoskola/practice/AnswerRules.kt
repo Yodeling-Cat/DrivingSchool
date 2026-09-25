@@ -6,9 +6,22 @@ internal enum class AnswerState { Neutral, Selected, Correct, Wrong }
 /** How a question number in the question list is shown. */
 internal enum class ChipState { Correct, Incorrect, Answered, Unanswered }
 
-/** In check-immediately mode the first pick is final. */
-internal fun isAnswerLocked(checkImmediately: Boolean, selected: Int?): Boolean =
-    checkImmediately && selected != null
+/** In check-immediately mode the first pick is final; once the test is finished, every answer is. */
+internal fun isAnswerLocked(checkImmediately: Boolean, finished: Boolean, selected: Int?): Boolean =
+    finished || (checkImmediately && selected != null)
+
+/** Whether answered questions may show if they're right. */
+internal fun revealsCorrectness(checkImmediately: Boolean, finished: Boolean): Boolean = checkImmediately || finished
+
+/** What the snackbar at the bottom of a test offers. */
+internal enum class FinishPrompt { Finish, ShowResults }
+
+/** Offer to finish once everything is answered, and to go back to the results once finished. */
+internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt? = when {
+    finished -> FinishPrompt.ShowResults
+    allAnswered -> FinishPrompt.Finish
+    else -> null
+}
 
 /**
  * State of option [index]. Once [revealed], the correct option and a wrong pick are marked;

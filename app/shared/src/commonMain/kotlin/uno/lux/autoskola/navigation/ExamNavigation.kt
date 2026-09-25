@@ -39,6 +39,7 @@ import uno.lux.autoskola.home.HomeRoute
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.onboarding.ExamSelectionRoute
 import uno.lux.autoskola.practice.PracticeRoute
+import uno.lux.autoskola.results.ResultsRoute
 import uno.lux.autoskola.settings.SettingsRoute
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
@@ -57,6 +58,9 @@ data object ChangeExamKey : NavKey
 @Serializable
 data class PracticeKey(val attemptId: String) : NavKey
 
+@Serializable
+data class ResultsKey(val attemptId: String) : NavKey
+
 /** Lets the back stack be saved on every platform, not just Android. */
 private val navConfiguration = SavedStateConfiguration {
     serializersModule = SerializersModule {
@@ -65,6 +69,7 @@ private val navConfiguration = SavedStateConfiguration {
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
             subclass(PracticeKey::class, PracticeKey.serializer())
+            subclass(ResultsKey::class, ResultsKey.serializer())
         }
     }
 }
@@ -113,7 +118,19 @@ fun ExamNavigation() {
                 }
             }
             entry<PracticeKey> { key ->
-                PracticeRoute(key.attemptId, onClose = { backStack.popIfTop(key) })
+                PracticeRoute(
+                    key.attemptId,
+                    onClose = { backStack.popIfTop(key) },
+                    onOpenResults = { if (backStack.lastOrNull() == key) backStack.add(ResultsKey(key.attemptId)) },
+                )
+            }
+            // Sits on top of its test, so going back from the results reviews the answers.
+            entry<ResultsKey> { key ->
+                ResultsRoute(
+                    key.attemptId,
+                    onReview = { backStack.popIfTop(key) },
+                    onDone = { while (backStack.size > 1) backStack.removeLastOrNull() },
+                )
             }
             entry<ChangeExamKey> {
                 ExamSelectionRoute(onBack = pop, onDone = { backStack.popIfTop(ChangeExamKey) })

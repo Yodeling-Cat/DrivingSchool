@@ -11,8 +11,10 @@ import uno.lux.autoskola.testing.ViewModelTest
 import uno.lux.autoskola.testing.currentSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class PracticeViewModelTest : ViewModelTest() {
 
@@ -83,15 +85,49 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun finishingScoresTheTestAndCloses() = runTest {
+    fun finishingScoresTheTestAndOpensTheResults() = runTest {
         val attempt = startTest()
         val (viewModel, state) = open(attempt)
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 0))
 
         viewModel.onEvent(PracticeUiEvent.Finish)
 
-        assertEquals(PracticeUiState.Closed, state.value)
+        assertTrue(state.ready.finished)
+        assertTrue(state.ready.openResults)
         assertNotNull(repositories.attempts.get(attempt.id)!!.result)
+
+        viewModel.onEvent(PracticeUiEvent.ResultsOpened)
+        assertFalse(state.ready.openResults)
+        assertTrue(state.ready.finished)
+    }
+
+    @Test
+    fun allAnsweredOnceEveryQuestionHasAnAnswer() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        assertFalse(state.ready.allAnswered)
+
+        state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+
+        assertTrue(state.ready.allAnswered)
+        assertFalse(state.ready.finished)
+    }
+
+    @Test
+    fun finishedAttemptOpensForReviewWithItsAnswers() = runTest {
+        val attempt = startTest()
+        val session = repositories.exams.currentSession()
+        session.answer(attempt.id, session.questionsOf(attempt)[1], chosen = 2)
+        session.finish(attempt.id)
+
+        val (viewModel, state) = open(attempt)
+
+        assertTrue(state.ready.finished)
+        assertFalse(state.ready.openResults)
+        assertEquals(mapOf(1 to 2), state.ready.answers)
+
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 1, answerIndex = 0))
+        assertEquals(mapOf(1 to 2), state.ready.answers) // locked once finished
     }
 
     @Test

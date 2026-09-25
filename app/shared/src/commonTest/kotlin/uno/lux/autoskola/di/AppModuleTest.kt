@@ -13,6 +13,7 @@ import uno.lux.autoskola.home.HomeViewModel
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
+import uno.lux.autoskola.results.ResultsViewModel
 import uno.lux.autoskola.settings.SettingsViewModel
 import uno.lux.autoskola.testing.ViewModelTest
 import kotlin.test.Test
@@ -37,5 +38,6 @@ class AppModuleTest : ViewModelTest() {
         koin.get<HomeViewModel>()
         koin.get<SettingsViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
+        koin.get<ResultsViewModel> { parametersOf("attempt-id") }
     }
 }

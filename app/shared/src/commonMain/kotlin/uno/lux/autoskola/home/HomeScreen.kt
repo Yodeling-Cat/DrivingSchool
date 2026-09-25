@@ -108,7 +108,7 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
         containerColor = Color.White,
         topBar = {
             TopAppBar(
-                title = { Text("Naj Autoškola", fontWeight = FontWeight.SemiBold) },
+                title = { Text(strings.appName, fontWeight = FontWeight.SemiBold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
             )
         },

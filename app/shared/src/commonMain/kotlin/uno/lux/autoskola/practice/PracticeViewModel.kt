@@ -3,8 +3,10 @@ package uno.lux.autoskola.practice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -20,6 +22,7 @@ import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.stats.answersByIndex
+import uno.lux.autoskola.stats.isFullyAnswered
 import uno.lux.autoskola.stats.resumeIndex
 
 data class PracticeQuestion(
@@ -31,7 +34,7 @@ data class PracticeQuestion(
 sealed interface PracticeUiState {
     data object Loading : PracticeUiState
 
-    /** The attempt is finished, discarded or gone, so the screen should close. */
+    /** The attempt was discarded or is gone, so the screen should close. */
     data object Closed : PracticeUiState
 
     data class Ready(
@@ -46,12 +49,21 @@ sealed interface PracticeUiState {
         val answers: Map<Int, Int>,
         /** Where to start: the first unanswered question when the test opened. */
         val initialPage: Int,
+        /** Every question has an answer, so the test can be finished. */
+        val allAnswered: Boolean,
+        /** The test is finished: every answer is revealed and locked. */
+        val finished: Boolean,
+        /** The test was just finished here, so the screen should show its results. */
+        val openResults: Boolean = false,
     ) : PracticeUiState
 }
 
 sealed interface PracticeUiEvent {
     data class Answer(val questionIndex: Int, val answerIndex: Int) : PracticeUiEvent
     data object Finish : PracticeUiEvent
+
+    /** The screen showed the results that [PracticeUiState.Ready.openResults] asked for. */
+    data object ResultsOpened : PracticeUiEvent
 }
 
 class PracticeViewModel(
@@ -68,12 +80,14 @@ class PracticeViewModel(
     private var questions: List<PracticeQuestion>? = null
     private var initialPage: Int? = null
 
+    private val openResults = MutableStateFlow(false)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PracticeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(PracticeUiState.Loading)
-            session.openAttempt(attemptId).map { attempt ->
-                if (attempt == null) PracticeUiState.Closed else ready(session, attempt)
+            combine(session.attempt(attemptId), openResults) { attempt, openResults ->
+                if (attempt == null) PracticeUiState.Closed else ready(session, attempt, openResults)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PracticeUiState.Loading)
@@ -85,11 +99,15 @@ class PracticeViewModel(
                 val question = questions?.getOrNull(event.questionIndex)?.question ?: return
                 viewModelScope.launch { session.answer(attemptId, question, event.answerIndex) }
             }
-            PracticeUiEvent.Finish -> viewModelScope.launch { session.finish(attemptId) }
+            PracticeUiEvent.Finish -> viewModelScope.launch {
+                session.finish(attemptId)
+                openResults.value = true
+            }
+            PracticeUiEvent.ResultsOpened -> openResults.value = false
         }
     }
 
-    private fun ready(session: ExamSession, attempt: TestAttempt): PracticeUiState.Ready {
+    private fun ready(session: ExamSession, attempt: TestAttempt, openResults: Boolean): PracticeUiState.Ready {
         val questions = questions ?: session.questionsOf(attempt)
             .map { PracticeQuestion(it, banks.imageUri(session.bank, it)) }
             .also { questions = it }
@@ -103,6 +121,9 @@ class PracticeViewModel(
             checkImmediately = attempt.checkImmediately,
             answers = attempt.answersByIndex(),
             initialPage = initialPage,
+            allAnswered = attempt.isFullyAnswered,
+            finished = attempt.isFinished,
+            openResults = openResults && attempt.isFinished,
         )
     }
 }

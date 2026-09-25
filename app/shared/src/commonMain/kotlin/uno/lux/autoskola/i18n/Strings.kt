@@ -36,6 +36,7 @@ val strings: Strings
     get() = LocalStrings.current
 
 class Strings(
+    val appName: String,
     // Disclaimer
     val disclaimerTitle: String,
     val disclaimerIndependent: String,
@@ -81,6 +82,21 @@ class Strings(
     val finishTest: String,
     val yourAnswer: String,
     val correctAnswer: String,
+    val allQuestionsAnswered: String,
+    val finish: String,
+    val testFinished: String,
+    val showResults: String,
+    // Results
+    val resultsTitle: String,
+    val youPassed: String,
+    val youFailed: String,
+    val correctCount: String,
+    val wrongCount: String,
+    val unansweredCount: String,
+    val passMark: (percent: Int) -> String,
+    val bySection: String,
+    val reviewAnswers: String,
+    val backToTests: String,
     // Settings
     val settingsTitle: String,
     val settingsLanguage: String,
@@ -99,6 +115,7 @@ private fun westSlavicPlural(count: Int, one: String, few: String, many: String)
 }
 
 private val EnglishStrings = Strings(
+    appName = "Naj Autoškola",
     disclaimerTitle = "Before you start",
     disclaimerIndependent = "Naj Autoškola is an independent app. It is not made by, affiliated with, " +
         "or endorsed by any government authority.",
@@ -142,6 +159,20 @@ private val EnglishStrings = Strings(
     finishTest = "Finish test",
     yourAnswer = "YOUR ANSWER",
     correctAnswer = "CORRECT ANSWER",
+    allQuestionsAnswered = "All questions answered",
+    finish = "Finish",
+    testFinished = "Test finished",
+    showResults = "Results",
+    resultsTitle = "Results",
+    youPassed = "You passed",
+    youFailed = "You didn't pass",
+    correctCount = "Correct",
+    wrongCount = "Wrong",
+    unansweredCount = "Unanswered",
+    passMark = { "You need $it % to pass" },
+    bySection = "By section",
+    reviewAnswers = "Review answers",
+    backToTests = "Back to tests",
     settingsTitle = "Settings",
     settingsLanguage = "App language",
     settingsAnswers = "Answers",
@@ -153,6 +184,7 @@ private val EnglishStrings = Strings(
 )
 
 private val SlovakStrings = Strings(
+    appName = "Naj Autoškola",
     disclaimerTitle = "Skôr než začnete",
     disclaimerIndependent = "Naj Autoškola je nezávislá aplikácia. Nevytvoril ju žiadny štátny orgán, " +
         "nie je s ním prepojená ani ním nie je schválená.",
@@ -196,6 +228,20 @@ private val SlovakStrings = Strings(
     finishTest = "Ukončiť test",
     yourAnswer = "VAŠA ODPOVEĎ",
     correctAnswer = "SPRÁVNA ODPOVEĎ",
+    allQuestionsAnswered = "Všetky otázky sú zodpovedané",
+    finish = "Dokončiť",
+    testFinished = "Test je dokončený",
+    showResults = "Výsledky",
+    resultsTitle = "Výsledky",
+    youPassed = "Uspeli ste",
+    youFailed = "Neuspeli ste",
+    correctCount = "Správne",
+    wrongCount = "Nesprávne",
+    unansweredCount = "Nezodpovedané",
+    passMark = { "Na úspech potrebujete $it %" },
+    bySection = "Podľa okruhov",
+    reviewAnswers = "Prezrieť odpovede",
+    backToTests = "Späť na testy",
     settingsTitle = "Nastavenia",
     settingsLanguage = "Jazyk aplikácie",
     settingsAnswers = "Odpovede",
@@ -207,8 +253,9 @@ private val SlovakStrings = Strings(
 )
 
 private val HungarianStrings = Strings(
+    appName = "Legjobb Autósiskola",
     disclaimerTitle = "Mielőtt elkezdené",
-    disclaimerIndependent = "A Naj Autoškola független alkalmazás. Nem állami szerv készítette, " +
+    disclaimerIndependent = "A Legjobb Autósiskola független alkalmazás. Nem állami szerv készítette, " +
         "nem áll kapcsolatban egyetlen hatósággal sem, és egyetlen hatóság sem hagyta jóvá.",
     disclaimerSource = "A kérdések és a képek a Szlovák Köztársaság Belügyminisztériuma által közzétett " +
         "hivatalos kérdésbankból származnak (minv.sk). A közzétett formában vesszük át őket, de eltérés " +
@@ -250,6 +297,20 @@ private val HungarianStrings = Strings(
     finishTest = "Teszt befejezése",
     yourAnswer = "AZ ÖN VÁLASZA",
     correctAnswer = "HELYES VÁLASZ",
+    allQuestionsAnswered = "Minden kérdést megválaszolt",
+    finish = "Befejezés",
+    testFinished = "A teszt befejeződött",
+    showResults = "Eredmények",
+    resultsTitle = "Eredmények",
+    youPassed = "Sikerült",
+    youFailed = "Nem sikerült",
+    correctCount = "Helyes",
+    wrongCount = "Helytelen",
+    unansweredCount = "Megválaszolatlan",
+    passMark = { "A sikerhez $it% szükséges" },
+    bySection = "Témakörönként",
+    reviewAnswers = "Válaszok áttekintése",
+    backToTests = "Vissza a tesztekhez",
     settingsTitle = "Beállítások",
     settingsLanguage = "Az alkalmazás nyelve",
     settingsAnswers = "Válaszok",
@@ -261,8 +322,9 @@ private val HungarianStrings = Strings(
 )
 
 private val CzechStrings = Strings(
+    appName = "Nej Autoškola",
     disclaimerTitle = "Než začnete",
-    disclaimerIndependent = "Naj Autoškola je nezávislá aplikace. Nevytvořil ji žádný státní orgán, " +
+    disclaimerIndependent = "Nej Autoškola je nezávislá aplikace. Nevytvořil ji žádný státní orgán, " +
         "není s ním spojena ani jím není schválena.",
     disclaimerSource = "Otázky a obrázky pocházejí z oficiální databáze otázek, kterou zveřejňuje " +
         "Ministerstvo vnitra Slovenské republiky (minv.sk). Přebíráme je ve zveřejněném znění, ale pokud se " +
@@ -304,6 +366,20 @@ private val CzechStrings = Strings(
     finishTest = "Ukončit test",
     yourAnswer = "VAŠE ODPOVĚĎ",
     correctAnswer = "SPRÁVNÁ ODPOVĚĎ",
+    allQuestionsAnswered = "Všechny otázky jsou zodpovězené",
+    finish = "Dokončit",
+    testFinished = "Test je dokončený",
+    showResults = "Výsledky",
+    resultsTitle = "Výsledky",
+    youPassed = "Uspěli jste",
+    youFailed = "Neuspěli jste",
+    correctCount = "Správně",
+    wrongCount = "Špatně",
+    unansweredCount = "Nezodpovězené",
+    passMark = { "K úspěchu potřebujete $it %" },
+    bySection = "Podle okruhů",
+    reviewAnswers = "Prohlédnout odpovědi",
+    backToTests = "Zpět na testy",
     settingsTitle = "Nastavení",
     settingsLanguage = "Jazyk aplikace",
     settingsAnswers = "Odpovědi",

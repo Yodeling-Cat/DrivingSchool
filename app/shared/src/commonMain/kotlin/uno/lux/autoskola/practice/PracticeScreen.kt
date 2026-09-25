@@ -41,6 +41,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
@@ -96,18 +100,30 @@ private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
 
-/** Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is closed. */
+/**
+ * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
+ * closed, and [onOpenResults] when the test is finished or the user asks for its results.
+ */
 @Composable
 fun PracticeRoute(
     attemptId: String,
     onClose: () -> Unit,
+    onOpenResults: () -> Unit,
     viewModel: PracticeViewModel = koinViewModel { parametersOf(attemptId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     when (val current = state) {
         PracticeUiState.Loading -> LoadingScreen()
         PracticeUiState.Closed -> LaunchedEffect(Unit) { onClose() }
-        is PracticeUiState.Ready -> PracticeScreen(current, viewModel::onEvent, onBack = onClose)
+        is PracticeUiState.Ready -> {
+            LaunchedEffect(current.openResults) {
+                if (current.openResults) {
+                    onOpenResults()
+                    viewModel.onEvent(PracticeUiEvent.ResultsOpened)
+                }
+            }
+            PracticeScreen(current, viewModel::onEvent, onBack = onClose, onOpenResults = onOpenResults)
+        }
     }
 }
 
@@ -117,16 +133,24 @@ fun PracticeRoute(
  * scored when the test is finished.
  *
  * Answers come from [state]; every pick is sent as [PracticeUiEvent.Answer] so it's saved
- * straight away.
+ * straight away. Once every question is answered, a snackbar offers to finish the test; once
+ * it's finished, every answer is revealed and the snackbar leads back to the results.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> Unit, onBack: () -> Unit) {
+fun PracticeScreen(
+    state: PracticeUiState.Ready,
+    onEvent: (PracticeUiEvent) -> Unit,
+    onBack: () -> Unit,
+    onOpenResults: () -> Unit,
+) {
     val questions = remember(state.questions) { state.questions.map { it.question } }
     val sections = state.sections
     val testName = attemptName(state.kind, state.testNumber)
     val group = state.exam.name
     val checkImmediately = state.checkImmediately
+    val finished = state.finished
+    val revealCorrectness = revealsCorrectness(checkImmediately, finished)
     val selectedAnswers = state.answers
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
     val currentIndex = pagerState.currentPage
@@ -157,8 +181,34 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
         }
     }
 
+    // Stays up until acted on: first to finish the test, then to get back to its results.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val prompt = finishPrompt(state.allAnswered, finished)
+    val promptMessage = when (prompt) {
+        FinishPrompt.Finish -> strings.allQuestionsAnswered
+        FinishPrompt.ShowResults -> strings.testFinished
+        null -> null
+    }
+    val promptAction = when (prompt) {
+        FinishPrompt.Finish -> strings.finish
+        FinishPrompt.ShowResults -> strings.showResults
+        null -> null
+    }
+    LaunchedEffect(prompt, promptMessage) {
+        snackbarHostState.currentSnackbarData?.dismiss()
+        if (prompt == null || promptMessage == null) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(promptMessage, promptAction, duration = SnackbarDuration.Indefinite)
+        if (result == SnackbarResult.ActionPerformed) {
+            when (prompt) {
+                FinishPrompt.Finish -> onEvent(PracticeUiEvent.Finish)
+                FinishPrompt.ShowResults -> onOpenResults()
+            }
+        }
+    }
+
     Scaffold(
         containerColor = Color.White,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             if (compactHeight) return@Scaffold
             CenterAlignedTopAppBar(
@@ -211,7 +261,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 IconButton(onClick = { goTo(currentIndex + 1) }, enabled = currentIndex < questions.lastIndex) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
                 }
-                Box {
+                // Finishing is the only option, so there's no menu once the test is finished.
+                if (!finished) Box {
                     IconButton(onClick = { showOverflowMenu = true }) {
                         Icon(IconMoreVert, contentDescription = strings.moreOptions)
                     }
@@ -244,7 +295,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     question = questions[page],
                     imageUri = state.questions[page].imageUri,
                     selectedIndex = selectedAnswers[page],
-                    checkImmediately = checkImmediately,
+                    locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
                     onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
                 )
             }
@@ -261,7 +312,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                         sections = sections,
                         currentIndex = currentIndex,
                         selectedAnswers = selectedAnswers,
-                        revealCorrectness = checkImmediately,
+                        revealCorrectness = revealCorrectness,
                         onSelectQuestion = ::goTo,
                     )
                 }
@@ -287,8 +338,11 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     sections = sections,
                     currentIndex = currentIndex,
                     selectedAnswers = selectedAnswers,
-                    revealCorrectness = checkImmediately,
-                    onSelectQuestion = ::goTo,
+                    revealCorrectness = revealCorrectness,
+                    onSelectQuestion = {
+                        goTo(it)
+                        dismissSheet()
+                    },
                 )
             }
         }
@@ -300,10 +354,11 @@ private fun QuestionPage(
     question: Question,
     imageUri: String?,
     selectedIndex: Int?,
-    checkImmediately: Boolean,
+    /** A locked answer is final, so it's shown as right or wrong. */
+    locked: Boolean,
     onSelect: (Int) -> Unit,
 ) {
-    val revealed = isAnswerLocked(checkImmediately, selectedIndex)
+    val revealed = locked
     val answers: @Composable () -> Unit = {
         AnswerCard(
             options = question.answers,

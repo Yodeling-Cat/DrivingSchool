@@ -47,4 +47,20 @@ class StringsTest {
         assertEquals("3. teszt", AppLanguage.Hungarian.strings.testName(3))
         assertEquals("Test 3", AppLanguage.Slovak.strings.testName(3))
     }
+
+    @Test
+    fun appNameIsTranslated() {
+        assertEquals("Naj Autoškola", AppLanguage.Slovak.strings.appName)
+        assertEquals("Naj Autoškola", AppLanguage.English.strings.appName)
+        assertEquals("Nej Autoškola", AppLanguage.Czech.strings.appName)
+        assertEquals("Legjobb Autósiskola", AppLanguage.Hungarian.strings.appName)
+    }
+
+    @Test
+    fun disclaimerUsesTheTranslatedAppName() {
+        AppLanguage.entries.forEach { language ->
+            val strings = language.strings
+            assert(strings.appName in strings.disclaimerIndependent) { "${language.name} disclaimer" }
+        }
+    }
 }

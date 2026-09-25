@@ -68,10 +68,14 @@ class ExamSession(
     }
 
     /** The attempt [id] while it's open and belongs to this exam, otherwise `null`. */
-    fun openAttempt(id: String?): Flow<TestAttempt?> =
+    fun openAttempt(id: String?): Flow<TestAttempt?> = attempt(id).map { it?.takeIf(TestAttempt::isOpen) }
+
+    /** The attempt [id], open or finished, if it belongs to this exam and wasn't discarded. */
+    fun attempt(id: String?): Flow<TestAttempt?> =
         if (id == null) flowOf(null) else attempts.attempt(id).map { attempt ->
             attempt?.takeIf {
-                it.isOpen && it.bankId == bank.id && it.bankVersion == bank.version && it.category == category
+                it.discardedAt == null && it.bankId == bank.id && it.bankVersion == bank.version &&
+                    it.category == category
             }
         }
 

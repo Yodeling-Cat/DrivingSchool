@@ -1,5 +1,15 @@
 root = true
 
 [*.{kt,kts}]
+# Matches the Kotlin coding conventions the code already follows (IntelliJ's default formatter).
+ktlint_code_style = intellij_idea
+max_line_length = 120
+# Keep longer parameter lists one per line, as the code already does.
+ktlint_function_signature_rule_force_multiline_when_parameter_count_greater_or_equal_than = 4
+ktlint_class_signature_rule_force_multiline_when_parameter_count_greater_or_equal_than = 4
 # Compose functions are PascalCase by convention
 ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Generated code (e.g. Compose resource accessors) isn't ours to format.
+[**/build/generated/**]
+ktlint_standard = disabled

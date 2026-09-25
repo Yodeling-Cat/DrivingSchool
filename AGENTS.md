@@ -153,6 +153,7 @@ See "Tests first" above for how we work. Commands:
 - Shared app code on other targets: `./gradlew :app:shared:iosSimulatorArm64Test`, `:app:shared:wasmJsTest` or `:app:shared:jsTest`.
 - Server: `./gradlew :server:test` (uses `ktor-server-test-host` + `kotlin-test-junit`).
 - Importer: `./tools/import/test.sh` (or `test.ps1`). `test_import_minv.py` covers parsing and matching with offline fixtures. `test_bank_output.py` checks the committed banks and images, so run it after every import.
+- Style: `./gradlew ktlintCheck` (ktlint, IntelliJ style, rules in `.editorconfig`). `./gradlew ktlintFormat` fixes most findings.
 - To run a single test, append `--tests "uno.lux.autoskola.SomeClassTest.someMethod"` to the Gradle task.
 
 ## Toolchain pinning

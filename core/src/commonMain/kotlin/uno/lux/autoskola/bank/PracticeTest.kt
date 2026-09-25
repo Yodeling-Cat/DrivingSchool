@@ -3,10 +3,7 @@ package uno.lux.autoskola.bank
 import kotlin.random.Random
 
 /** A numbered practice exam with the same structure as the official one. */
-data class PracticeTest(
-    val number: Int,
-    val questions: List<Question>,
-)
+data class PracticeTest(val number: Int, val questions: List<Question>)
 
 /**
  * Splits the questions available to [category] into numbered practice tests.

@@ -6,16 +6,15 @@ import kotlin.test.assertTrue
 
 class PracticeTestTest {
 
-    private fun question(id: Int, section: Int, groups: List<LicenseCategory> = LicenseCategory.entries) =
-        Question(
-            id = id,
-            section = section,
-            text = "Q$id",
-            answers = listOf("a", "b", "c"),
-            correct = 0,
-            points = section,
-            groups = groups,
-        )
+    private fun question(id: Int, section: Int, groups: List<LicenseCategory> = LicenseCategory.entries) = Question(
+        id = id,
+        section = section,
+        text = "Q$id",
+        answers = listOf("a", "b", "c"),
+        correct = 0,
+        points = section,
+        groups = groups,
+    )
 
     private val bank = QuestionBank(
         id = "test",
@@ -69,6 +68,9 @@ class PracticeTestTest {
         """.trimIndent()
 
         val decoded = QuestionBank.decode(json)
-        assertEquals(listOf(LicenseCategory.A, LicenseCategory.BE, LicenseCategory.T), decoded.questions.single().groups)
+        assertEquals(
+            listOf(LicenseCategory.A, LicenseCategory.BE, LicenseCategory.T),
+            decoded.questions.single().groups,
+        )
     }
 }

@@ -4,10 +4,10 @@ import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.TestResult
-import uno.lux.autoskola.data.attempts.AttemptRepository
-import uno.lux.autoskola.data.attempts.SettingsAttemptDataSource
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.bank.Question
+import uno.lux.autoskola.data.attempts.AttemptRepository
+import uno.lux.autoskola.data.attempts.SettingsAttemptDataSource
 import uno.lux.autoskola.data.banks.testBank
 import uno.lux.autoskola.stats.AttemptKind
 import kotlin.test.Test
@@ -73,7 +73,10 @@ class ExamSessionTest {
         session.finish(attempt.id)
 
         val maxScore = test.questions.sumOf { it.points }
-        assertEquals(TestResult(maxScore - wrongQuestion.points, maxScore), session.progress.first().results[test.number])
+        assertEquals(
+            TestResult(maxScore - wrongQuestion.points, maxScore),
+            session.progress.first().results[test.number],
+        )
         assertNull(session.progress.first().resumable)
     }
 

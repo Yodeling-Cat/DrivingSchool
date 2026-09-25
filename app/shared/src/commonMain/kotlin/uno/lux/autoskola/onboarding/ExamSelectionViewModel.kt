@@ -29,10 +29,8 @@ sealed interface ExamSelectionUiEvent {
     data class Select(val selection: TestSelection) : ExamSelectionUiEvent
 }
 
-class ExamSelectionViewModel(
-    private val preferences: PreferencesRepository,
-    banks: QuestionBankRepository,
-) : ViewModel() {
+class ExamSelectionViewModel(private val preferences: PreferencesRepository, banks: QuestionBankRepository) :
+    ViewModel() {
 
     private val done = MutableStateFlow(false)
 
@@ -52,6 +50,7 @@ class ExamSelectionViewModel(
     fun onEvent(event: ExamSelectionUiEvent) {
         when (event) {
             is ExamSelectionUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
+
             is ExamSelectionUiEvent.Select -> {
                 preferences.select(event.selection)
                 done.value = true

@@ -16,10 +16,7 @@ data class QuestionStats(
  * Aggregates for one bank version and license group. Build it from that scope's attempts
  * with [Statistics.of]; every figure is derived, nothing is stored separately.
  */
-class Statistics private constructor(
-    val attempts: List<TestAttempt>,
-    val questions: Map<Int, QuestionStats>,
-) {
+class Statistics private constructor(val attempts: List<TestAttempt>, val questions: Map<Int, QuestionStats>) {
     /** Latest finished result per practice-test number. */
     val latestResults: Map<Int, TestResult> =
         attempts

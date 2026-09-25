@@ -27,7 +27,12 @@ internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt
  * State of option [index]. Once [revealed], the correct option and a wrong pick are marked;
  * before that only the user's pick is.
  */
-internal fun answerState(index: Int, selected: Int?, correct: Int, revealed: Boolean): AnswerState = when {
+internal fun answerState(
+    index: Int,
+    selected: Int?,
+    correct: Int,
+    revealed: Boolean,
+): AnswerState = when {
     !revealed -> if (selected == index) AnswerState.Selected else AnswerState.Neutral
     index == correct -> AnswerState.Correct
     index == selected -> AnswerState.Wrong

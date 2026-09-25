@@ -12,6 +12,7 @@ import uno.lux.autoskola.data.preferences.PreferencesRepository
 sealed interface CurrentExam {
     data object NotSelected : CurrentExam
     data object Loading : CurrentExam
+
     /** The selected bank no longer exists, e.g. it was removed in an update. */
     data object Missing : CurrentExam
     data class Ready(val session: ExamSession) : CurrentExam
@@ -34,6 +35,14 @@ class ExamRepository(
             }
             emit(CurrentExam.Loading)
             val bank = banks.latestBank(selection.bankId)
-            emit(if (bank == null) CurrentExam.Missing else CurrentExam.Ready(ExamSession(bank, selection.category, attempts)))
+            emit(
+                if (bank ==
+                    null
+                ) {
+                    CurrentExam.Missing
+                } else {
+                    CurrentExam.Ready(ExamSession(bank, selection.category, attempts))
+                },
+            )
         }
 }

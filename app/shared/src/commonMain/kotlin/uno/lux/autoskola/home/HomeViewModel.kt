@@ -102,6 +102,7 @@ class HomeViewModel(
                 val test = session.tests.firstOrNull { it.number == event.testNumber } ?: return@launch
                 openAttemptId.value = session.startOrResume(test, checkImmediately).id
             }
+
             is HomeUiEvent.StartRandomTest -> {
                 val progress = shown?.progress ?: return
                 val candidates = session.tests.filter {
@@ -109,13 +110,17 @@ class HomeViewModel(
                 }
                 if (candidates.isNotEmpty()) onEvent(HomeUiEvent.StartTest(candidates.random(random).number))
             }
+
             HomeUiEvent.Resume -> openAttemptId.value = shown?.progress?.resumable?.attemptId
+
             HomeUiEvent.DiscardResumable -> shown?.progress?.resumable?.let {
                 viewModelScope.launch { session.discard(it.attemptId) }
             }
+
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
                 session.startMistakes(checkImmediately)?.let { openAttemptId.value = it.id }
             }
+
             HomeUiEvent.AttemptOpened -> openAttemptId.value = null
         }
     }

@@ -28,11 +28,7 @@ private val Accent = Color(0xFF5E35B1)
 
 /** Compact language switcher for the onboarding screens, e.g. "🌐 Slovenčina ▾". */
 @Composable
-fun LanguageMenu(
-    current: AppLanguage,
-    onSelect: (AppLanguage) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun LanguageMenu(current: AppLanguage, onSelect: (AppLanguage) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier) {
         TextButton(onClick = { expanded = true }) {

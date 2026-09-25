@@ -19,7 +19,10 @@ class QuestionBankRepositoryTest {
 
     @Test
     fun unknownBankIsNull() = runTest {
-        val repository = QuestionBankRepository(FakeQuestionBankDataSource(index = listOf(testBankInfo("sk-sk", 1)), banks = emptyList()))
+        val repository =
+            QuestionBankRepository(
+                FakeQuestionBankDataSource(index = listOf(testBankInfo("sk-sk", 1)), banks = emptyList()),
+            )
 
         assertNull(repository.latestBank("cz-cz"))
         assertNull(repository.latestBank("sk-sk")) // listed, but its file is missing
@@ -27,7 +30,8 @@ class QuestionBankRepositoryTest {
 
     @Test
     fun indexAndBanksAreReadOnce() = runTest {
-        val source = FakeQuestionBankDataSource(index = listOf(testBankInfo("sk-sk", 1)), banks = listOf(testBank("sk-sk", 1)))
+        val source =
+            FakeQuestionBankDataSource(index = listOf(testBankInfo("sk-sk", 1)), banks = listOf(testBank("sk-sk", 1)))
         val repository = QuestionBankRepository(source)
 
         repeat(3) { repository.latestBank("sk-sk") }

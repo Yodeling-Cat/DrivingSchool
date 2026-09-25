@@ -30,9 +30,12 @@ fun App() {
             ProvideWindowSizeClasses {
                 when (state.destination) {
                     AppDestination.Loading -> LoadingScreen()
+
                     AppDestination.Disclaimer -> DisclaimerRoute()
+
                     // Picking an exam here changes the destination, so there's nothing else to do when done.
                     AppDestination.ChooseExam -> ExamSelectionRoute(onBack = null, onDone = {})
+
                     AppDestination.Exam -> ExamNavigation()
                 }
             }

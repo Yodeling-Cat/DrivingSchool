@@ -6,8 +6,8 @@ import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.testing.TestRepositories
-import uno.lux.autoskola.testing.currentSession
 import uno.lux.autoskola.testing.ViewModelTest
+import uno.lux.autoskola.testing.currentSession
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -68,7 +68,10 @@ class HomeViewModelTest : ViewModelTest() {
         viewModel.onEvent(HomeUiEvent.AttemptOpened)
 
         val resumable = assertNotNull(state.ready.progress.resumable)
-        assertEquals(ResumableTest(started, AttemptKind.PracticeTest, testNumber = 1, answered = 0, total = 3), resumable)
+        assertEquals(
+            ResumableTest(started, AttemptKind.PracticeTest, testNumber = 1, answered = 0, total = 3),
+            resumable,
+        )
         viewModel.onEvent(HomeUiEvent.Resume)
         assertEquals(started, state.ready.openAttemptId)
 

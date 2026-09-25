@@ -108,7 +108,12 @@ class Strings(
 )
 
 /** Slovak and Czech plurals: 1 / 2–4 / 5+ (and 0). */
-private fun westSlavicPlural(count: Int, one: String, few: String, many: String) = when (count) {
+private fun westSlavicPlural(
+    count: Int,
+    one: String,
+    few: String,
+    many: String,
+) = when (count) {
     1 -> one
     in 2..4 -> few
     else -> many

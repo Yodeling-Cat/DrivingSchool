@@ -9,4 +9,13 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ktor) apply false
+    alias(libs.plugins.ktlint) apply false
+}
+
+// Style checks for every module: `./gradlew ktlintCheck`, or `ktlintFormat` to fix what it can.
+subprojects {
+    apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
+    extensions.configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set(rootProject.libs.versions.ktlint.get())
+    }
 }

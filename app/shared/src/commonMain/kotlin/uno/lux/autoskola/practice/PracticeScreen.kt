@@ -50,8 +50,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,8 +77,8 @@ import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.HeightClass
-import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LoadingScreen
+import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
 
@@ -114,7 +114,9 @@ fun PracticeRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     when (val current = state) {
         PracticeUiState.Loading -> LoadingScreen()
+
         PracticeUiState.Closed -> LaunchedEffect(Unit) { onClose() }
+
         is PracticeUiState.Ready -> {
             LaunchedEffect(current.openResults) {
                 if (current.openResults) {
@@ -206,6 +208,8 @@ fun PracticeScreen(
         }
     }
 
+    val bottomBarPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding
+
     Scaffold(
         containerColor = Color.White,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -230,7 +234,7 @@ fun PracticeScreen(
             BottomAppBar(
                 containerColor = Color.White,
                 modifier = if (compactHeight) Modifier.height(56.dp) else Modifier,
-                contentPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding,
+                contentPadding = bottomBarPadding,
             ) {
                 if (compactHeight) {
                     IconButton(onClick = onBack) {
@@ -246,8 +250,11 @@ fun PracticeScreen(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (compactHeight) "$testName · ${strings.questionOutOf(currentIndex + 1, questions.size)}"
-                        else strings.questionOutOf(currentIndex + 1, questions.size),
+                        if (compactHeight) {
+                            "$testName · ${strings.questionOutOf(currentIndex + 1, questions.size)}"
+                        } else {
+                            strings.questionOutOf(currentIndex + 1, questions.size)
+                        },
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         maxLines = 1,
@@ -262,21 +269,23 @@ fun PracticeScreen(
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
                 }
                 // Finishing is the only option, so there's no menu once the test is finished.
-                if (!finished) Box {
-                    IconButton(onClick = { showOverflowMenu = true }) {
-                        Icon(IconMoreVert, contentDescription = strings.moreOptions)
-                    }
-                    DropdownMenu(
-                        expanded = showOverflowMenu,
-                        onDismissRequest = { showOverflowMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(strings.finishTest) },
-                            onClick = {
-                                showOverflowMenu = false
-                                onEvent(PracticeUiEvent.Finish)
-                            },
-                        )
+                if (!finished) {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(IconMoreVert, contentDescription = strings.moreOptions)
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(strings.finishTest) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onEvent(PracticeUiEvent.Finish)
+                                },
+                            )
+                        }
                     }
                 }
             }

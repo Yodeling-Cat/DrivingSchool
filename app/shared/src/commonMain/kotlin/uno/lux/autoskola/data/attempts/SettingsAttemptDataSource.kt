@@ -17,7 +17,7 @@ class SettingsAttemptDataSource(private val settings: Settings) : AttemptDataSou
     private val attempts = MutableStateFlow(
         settings.getString(KEY_INDEX, "").split(",").filter { it.isNotEmpty() }.mapNotNull { id ->
             settings.getStringOrNull(attemptKey(id))?.let { runCatching { TestAttempt.decode(it) }.getOrNull() }
-        }
+        },
     )
 
     override fun observe(bankId: String, bankVersion: Int, category: LicenseCategory): Flow<List<TestAttempt>> =

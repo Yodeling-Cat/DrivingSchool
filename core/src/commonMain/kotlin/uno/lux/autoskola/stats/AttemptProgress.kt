@@ -4,10 +4,9 @@ import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.Question
 
 /** Recorded answers keyed by the question's position in the attempt (position → answer index). */
-fun TestAttempt.answersByIndex(): Map<Int, Int> =
-    questionIds.withIndex()
-        .mapNotNull { (index, id) -> answerFor(id)?.let { index to it.chosen } }
-        .toMap()
+fun TestAttempt.answersByIndex(): Map<Int, Int> = questionIds.withIndex()
+    .mapNotNull { (index, id) -> answerFor(id)?.let { index to it.chosen } }
+    .toMap()
 
 /** Where to reopen the attempt: the first unanswered question, or the last one if all are answered. */
 fun TestAttempt.resumeIndex(): Int {

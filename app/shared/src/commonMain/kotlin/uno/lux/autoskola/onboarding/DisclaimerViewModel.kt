@@ -20,7 +20,11 @@ class DisclaimerViewModel(private val preferences: PreferencesRepository) : View
 
     val uiState: StateFlow<DisclaimerUiState> = preferences.preferences
         .map { DisclaimerUiState(it.language) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DisclaimerUiState(preferences.preferences.value.language))
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            DisclaimerUiState(preferences.preferences.value.language),
+        )
 
     fun onEvent(event: DisclaimerUiEvent) {
         when (event) {

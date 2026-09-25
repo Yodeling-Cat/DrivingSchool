@@ -23,16 +23,34 @@ import uno.lux.autoskola.bank.LicenseCategory.T
 
 private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
     "sk" to mapOf(
-        A to "Motorka", B to "Auto", BE to "Auto s prívesom", C to "Nákladiak",
-        CE to "Nákladiak s prívesom", D to "Autobus", DE to "Autobus s prívesom", T to "Traktor",
+        A to "Motorka",
+        B to "Auto",
+        BE to "Auto s prívesom",
+        C to "Nákladiak",
+        CE to "Nákladiak s prívesom",
+        D to "Autobus",
+        DE to "Autobus s prívesom",
+        T to "Traktor",
     ),
     "hu" to mapOf(
-        A to "Motorkerékpár", B to "Autó", BE to "Autó utánfutóval", C to "Tehergépkocsi",
-        CE to "Tehergépkocsi pótkocsival", D to "Autóbusz", DE to "Autóbusz pótkocsival", T to "Traktor",
+        A to "Motorkerékpár",
+        B to "Autó",
+        BE to "Autó utánfutóval",
+        C to "Tehergépkocsi",
+        CE to "Tehergépkocsi pótkocsival",
+        D to "Autóbusz",
+        DE to "Autóbusz pótkocsival",
+        T to "Traktor",
     ),
     "en" to mapOf(
-        A to "Motorcycle", B to "Car", BE to "Car with trailer", C to "Truck",
-        CE to "Truck with trailer", D to "Bus", DE to "Bus with trailer", T to "Tractor",
+        A to "Motorcycle",
+        B to "Car",
+        BE to "Car with trailer",
+        C to "Truck",
+        CE to "Truck with trailer",
+        D to "Bus",
+        DE to "Bus with trailer",
+        T to "Tractor",
     ),
 )
 

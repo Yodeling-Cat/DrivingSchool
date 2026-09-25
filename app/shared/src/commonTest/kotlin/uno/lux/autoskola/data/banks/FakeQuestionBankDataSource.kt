@@ -7,10 +7,8 @@ import uno.lux.autoskola.bank.QuestionBankInfo
 import uno.lux.autoskola.bank.Section
 
 /** Serves [banks] from memory and records what was read. */
-class FakeQuestionBankDataSource(
-    private val index: List<QuestionBankInfo>,
-    private val banks: List<QuestionBank>,
-) : QuestionBankDataSource {
+class FakeQuestionBankDataSource(private val index: List<QuestionBankInfo>, private val banks: List<QuestionBank>) :
+    QuestionBankDataSource {
     val bankReads = mutableListOf<String>()
     var indexReads = 0
 
@@ -25,7 +23,8 @@ class FakeQuestionBankDataSource(
 
     companion object {
         /** A data source with just [bank], listed as the latest version. */
-        fun of(bank: QuestionBank) = FakeQuestionBankDataSource(listOf(testBankInfo(bank.id, bank.version)), listOf(bank))
+        fun of(bank: QuestionBank) =
+            FakeQuestionBankDataSource(listOf(testBankInfo(bank.id, bank.version)), listOf(bank))
     }
 }
 
@@ -63,14 +62,13 @@ fun testQuestion(
     section: Int,
     groups: List<LicenseCategory> = listOf(LicenseCategory.B, LicenseCategory.C),
     image: String? = null,
-) =
-    Question(
-        id = id,
-        section = section,
-        text = "Q$id",
-        answers = listOf("right", "wrong", "wrong"),
-        correct = 0,
-        points = section,
-        image = image,
-        groups = groups,
-    )
+) = Question(
+    id = id,
+    section = section,
+    text = "Q$id",
+    answers = listOf("right", "wrong", "wrong"),
+    correct = 0,
+    points = section,
+    image = image,
+    groups = groups,
+)

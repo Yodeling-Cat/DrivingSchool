@@ -37,10 +37,7 @@ sealed interface ResultsUiState {
 }
 
 /** Shows how a finished attempt went. Only reads, so it has no events. */
-class ResultsViewModel(
-    private val attemptId: String,
-    exams: ExamRepository,
-) : ViewModel() {
+class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<ResultsUiState> = exams.current

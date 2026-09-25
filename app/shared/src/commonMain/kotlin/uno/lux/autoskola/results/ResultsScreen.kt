@@ -173,7 +173,12 @@ private fun Counts(state: ResultsUiState.Ready) {
 }
 
 @Composable
-private fun CountTile(label: String, count: Int, color: Color, modifier: Modifier) {
+private fun CountTile(
+    label: String,
+    count: Int,
+    color: Color,
+    modifier: Modifier,
+) {
     val shape = RoundedCornerShape(12.dp)
     Column(
         modifier

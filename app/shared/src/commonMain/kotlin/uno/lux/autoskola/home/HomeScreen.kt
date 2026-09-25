@@ -40,8 +40,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,13 +47,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.PracticeTest
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.attemptName
-import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
 
@@ -81,6 +81,7 @@ fun HomeRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     when (val current = state) {
         HomeUiState.Loading -> LoadingScreen()
+
         is HomeUiState.Ready -> {
             LaunchedEffect(current.openAttemptId) {
                 current.openAttemptId?.let {
@@ -177,11 +178,13 @@ private fun Overview(
 ) {
     val unfinished = tests.filter { it.number !in progress.results && it.number !in progress.inProgress }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        progress.resumable?.let { ResumeCard(
+        progress.resumable?.let {
+            ResumeCard(
                 it,
                 onResume = { onEvent(HomeUiEvent.Resume) },
                 onDiscard = { onEvent(HomeUiEvent.DiscardResumable) },
-            ) }
+            )
+        }
         ProgressCard(
             examName = exam.name,
             examLanguage = exam.title,
@@ -333,7 +336,12 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TestTile(name: String, result: TestResult?, inProgress: Boolean, onClick: () -> Unit) {
+private fun TestTile(
+    name: String,
+    result: TestResult?,
+    inProgress: Boolean,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier

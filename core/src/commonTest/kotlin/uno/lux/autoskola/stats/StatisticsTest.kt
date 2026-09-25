@@ -43,7 +43,7 @@ class StatisticsTest {
                 attempt("a", finishedAt = 10, answers = arrayOf(answer(1, false, 5), answer(2, false, 6))),
                 // Question 1 was later answered correctly, so it's no longer a mistake.
                 attempt("b", testNumber = null, finishedAt = 20, answers = arrayOf(answer(1, true, 15))),
-            )
+            ),
         )
 
         assertEquals(listOf(2), stats.mistakes)
@@ -59,7 +59,7 @@ class StatisticsTest {
                 attempt("editable", answers = arrayOf(answer(1, false, 5))),
                 // Checked-immediately answers are final even before the test is finished.
                 attempt("locked", checkImmediately = true, answers = arrayOf(answer(2, false, 6))),
-            )
+            ),
         )
 
         assertEquals(listOf(2), stats.mistakes)
@@ -73,7 +73,7 @@ class StatisticsTest {
                 attempt("newer", testNumber = 2, startedAt = 2, answers = arrayOf(answer(1, true, 9))),
                 attempt("discarded", testNumber = 3, startedAt = 10, discardedAt = 11),
                 attempt("done", testNumber = 4, startedAt = 12, finishedAt = 13),
-            )
+            ),
         )
 
         assertEquals("newer", stats.resumable?.id)
@@ -87,7 +87,7 @@ class StatisticsTest {
             listOf(
                 attempt("first", finishedAt = 10, answers = arrayOf(answer(1, true, 5))),
                 attempt("second", finishedAt = 20, answers = arrayOf(answer(1, false, 15))),
-            )
+            ),
         )
 
         assertEquals(mapOf(1 to TestResult(0, 3)), stats.latestResults)

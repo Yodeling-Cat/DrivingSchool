@@ -54,5 +54,4 @@ class TestRepositories(bank: QuestionBank = testBank()) {
 }
 
 /** The session of the selected exam, once it has loaded. */
-suspend fun ExamRepository.currentSession(): ExamSession =
-    current.filterIsInstance<CurrentExam.Ready>().first().session
+suspend fun ExamRepository.currentSession(): ExamSession = current.filterIsInstance<CurrentExam.Ready>().first().session

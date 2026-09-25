@@ -34,11 +34,7 @@ data class ExamProgress(
  *
  * Reads are flows that follow changes to the attempts; writes suspend. See AGENTS.md, "Data access".
  */
-class ExamSession(
-    val bank: QuestionBank,
-    val category: LicenseCategory,
-    private val attempts: AttemptRepository,
-) {
+class ExamSession(val bank: QuestionBank, val category: LicenseCategory, private val attempts: AttemptRepository) {
     val tests: List<PracticeTest> = bank.practiceTests(category)
 
     private val questionsById = bank.questions.associateBy { it.id }
@@ -71,25 +67,30 @@ class ExamSession(
     fun openAttempt(id: String?): Flow<TestAttempt?> = attempt(id).map { it?.takeIf(TestAttempt::isOpen) }
 
     /** The attempt [id], open or finished, if it belongs to this exam and wasn't discarded. */
-    fun attempt(id: String?): Flow<TestAttempt?> =
-        if (id == null) flowOf(null) else attempts.attempt(id).map { attempt ->
+    fun attempt(id: String?): Flow<TestAttempt?> = if (id == null) {
+        flowOf(null)
+    } else {
+        attempts.attempt(id).map { attempt ->
             attempt?.takeIf {
                 it.discardedAt == null && it.bankId == bank.id && it.bankVersion == bank.version &&
                     it.category == category
             }
         }
+    }
 
     fun questionsOf(attempt: TestAttempt): List<Question> = attempt.questionIds.mapNotNull(questionsById::get)
 
     /** Continues [test] if it's already under way, otherwise starts a new attempt. */
     suspend fun startOrResume(test: PracticeTest, checkImmediately: Boolean): TestAttempt =
-        statistics.first().openAttemptFor(test.number) ?: start(AttemptKind.PracticeTest, test.number, test.questions, checkImmediately)
+        statistics.first().openAttemptFor(test.number)
+            ?: start(AttemptKind.PracticeTest, test.number, test.questions, checkImmediately)
 
     /** Starts a retest of [mistakes], or returns `null` when there's nothing to retest. */
     suspend fun startMistakes(checkImmediately: Boolean): TestAttempt? =
         mistakes.first().takeIf { it.isNotEmpty() }?.let { start(AttemptKind.Mistakes, null, it, checkImmediately) }
 
-    suspend fun answer(attemptId: String, question: Question, chosen: Int) = attempts.answer(attemptId, question, chosen)
+    suspend fun answer(attemptId: String, question: Question, chosen: Int) =
+        attempts.answer(attemptId, question, chosen)
 
     /** Finishes the attempt, scoring the answers that were recorded. */
     suspend fun finish(attemptId: String) {
@@ -99,14 +100,18 @@ class ExamSession(
 
     suspend fun discard(attemptId: String) = attempts.discard(attemptId)
 
-    private suspend fun start(kind: AttemptKind, testNumber: Int?, questions: List<Question>, checkImmediately: Boolean) =
-        attempts.start(
-            bankId = bank.id,
-            bankVersion = bank.version,
-            category = category,
-            kind = kind,
-            testNumber = testNumber,
-            questions = questions,
-            checkImmediately = checkImmediately,
-        )
+    private suspend fun start(
+        kind: AttemptKind,
+        testNumber: Int?,
+        questions: List<Question>,
+        checkImmediately: Boolean,
+    ) = attempts.start(
+        bankId = bank.id,
+        bankVersion = bank.version,
+        category = category,
+        kind = kind,
+        testNumber = testNumber,
+        questions = questions,
+        checkImmediately = checkImmediately,
+    )
 }

@@ -99,10 +99,12 @@ class PracticeViewModel(
                 val question = questions?.getOrNull(event.questionIndex)?.question ?: return
                 viewModelScope.launch { session.answer(attemptId, question, event.answerIndex) }
             }
+
             PracticeUiEvent.Finish -> viewModelScope.launch {
                 session.finish(attemptId)
                 openResults.value = true
             }
+
             PracticeUiEvent.ResultsOpened -> openResults.value = false
         }
     }

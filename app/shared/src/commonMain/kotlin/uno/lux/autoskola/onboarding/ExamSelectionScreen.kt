@@ -23,10 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,13 +34,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import uno.lux.autoskola.i18n.AppLanguage
-import uno.lux.autoskola.i18n.strings
-import uno.lux.autoskola.settings.LanguageMenu
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.bank.QuestionBankInfo
 import uno.lux.autoskola.data.preferences.TestSelection
+import uno.lux.autoskola.i18n.AppLanguage
+import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
+import uno.lux.autoskola.settings.LanguageMenu
 
 private val Background = Color(0xFFF5F5F5)
 private val Subdued = Color(0xFF616161)
@@ -96,7 +96,9 @@ fun ExamSelectionScreen(
                         IconButton(onClick = onBack) { Icon(IconArrowBack, contentDescription = strings.back) }
                     }
                     Spacer(Modifier.weight(1f))
-                    LanguageMenu(current = state.language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
+                    LanguageMenu(current = state.language, onSelect = {
+                        onEvent(ExamSelectionUiEvent.SelectLanguage(it))
+                    })
                 }
                 Text(
                     strings.examSelectionTitle,
@@ -137,11 +139,7 @@ fun ExamSelectionScreen(
 }
 
 @Composable
-private fun BankCard(
-    bank: QuestionBankInfo,
-    selectedCategory: LicenseCategory?,
-    onSelect: (LicenseCategory) -> Unit,
-) {
+private fun BankCard(bank: QuestionBankInfo, selectedCategory: LicenseCategory?, onSelect: (LicenseCategory) -> Unit) {
     Column(Modifier.padding(top = 16.dp)) {
         Text(
             bankTitle(bank.language),

@@ -9,10 +9,7 @@ import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.i18n.AppLanguage
 
 /** The exam the user is preparing for: a question bank (country + language) and a license group. */
-data class TestSelection(
-    val bankId: String,
-    val category: LicenseCategory,
-)
+data class TestSelection(val bankId: String, val category: LicenseCategory)
 
 data class Preferences(
     val disclaimerAccepted: Boolean,

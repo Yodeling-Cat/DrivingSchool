@@ -3,6 +3,7 @@ package uno.lux.autoskola
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,7 +24,9 @@ fun App() {
     MaterialTheme {
         val viewModel = koinViewModel<AppViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
-        CompositionLocalProvider(LocalStrings provides state.language.strings) {
+        val strings = state.language.strings
+        LaunchedEffect(strings.appName) { setWindowTitle(strings.appName) }
+        CompositionLocalProvider(LocalStrings provides strings) {
             ProvideWindowSizeClasses {
                 when (state.destination) {
                     AppDestination.Loading -> LoadingScreen()

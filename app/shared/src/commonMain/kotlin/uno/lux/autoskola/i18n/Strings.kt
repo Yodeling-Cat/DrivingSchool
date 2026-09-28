@@ -43,8 +43,12 @@ class Strings(
     val disclaimerSource: String,
     val disclaimerAccept: String,
     // Exam selection
-    val examSelectionTitle: String,
-    val examSelectionSubtitle: String,
+    val examSelectionCountryTitle: String,
+    val examSelectionCountrySubtitle: String,
+    val examSelectionCountryComingSoon: String,
+    val examSelectionLanguageTitle: String,
+    val examSelectionLanguageSubtitle: String,
+    val examSelectionCategoryTitle: String,
     val countryName: (code: String) -> String,
     // Navigation
     val navTests: String,
@@ -128,8 +132,13 @@ private val EnglishStrings = Strings(
         "the Ministry of Interior of the Slovak Republic (minv.sk). We copy them as published, but if " +
         "anything differs, the official exam and current law apply.",
     disclaimerAccept = "I understand",
-    examSelectionTitle = "Which exam are you taking?",
-    examSelectionSubtitle = "Choose the country, language and license group. You can change it later.",
+    examSelectionCountryTitle = "Which country's test are you taking?",
+    examSelectionCountrySubtitle = "You can change this later.",
+    examSelectionCountryComingSoon = "Coming soon",
+    examSelectionLanguageTitle = "Which language?",
+    examSelectionLanguageSubtitle = "The test is available in several languages. A translated version " +
+        "may be missing a few questions.",
+    examSelectionCategoryTitle = "Which license category?",
     countryName = { mapOf("SK" to "Slovakia", "CZ" to "Czechia")[it] ?: it },
     navTests = "Tests",
     navSettings = "Settings",
@@ -197,8 +206,13 @@ private val SlovakStrings = Strings(
         "Ministerstvo vnútra Slovenskej republiky (minv.sk). Preberáme ich v zverejnenom znení, ale ak sa " +
         "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
     disclaimerAccept = "Rozumiem",
-    examSelectionTitle = "Na akú skúšku sa pripravujete?",
-    examSelectionSubtitle = "Vyberte krajinu, jazyk a skupinu vodičského oprávnenia. Neskôr to môžete zmeniť.",
+    examSelectionCountryTitle = "Na skúšku ktorej krajiny sa pripravujete?",
+    examSelectionCountrySubtitle = "Neskôr to môžete zmeniť.",
+    examSelectionCountryComingSoon = "Čoskoro",
+    examSelectionLanguageTitle = "V akom jazyku?",
+    examSelectionLanguageSubtitle = "Test je dostupný vo viacerých jazykoch. V preloženej verzii môže " +
+        "chýbať niekoľko otázok.",
+    examSelectionCategoryTitle = "Akú skupinu vodičského oprávnenia?",
     countryName = { mapOf("SK" to "Slovensko", "CZ" to "Česko")[it] ?: it },
     navTests = "Testy",
     navSettings = "Nastavenia",
@@ -266,8 +280,13 @@ private val HungarianStrings = Strings(
         "hivatalos kérdésbankból származnak (minv.sk). A közzétett formában vesszük át őket, de eltérés " +
         "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
     disclaimerAccept = "Értem",
-    examSelectionTitle = "Milyen vizsgára készül?",
-    examSelectionSubtitle = "Válassza ki az országot, a nyelvet és a jogosítványkategóriát. Később módosíthatja.",
+    examSelectionCountryTitle = "Melyik ország vizsgájára készül?",
+    examSelectionCountrySubtitle = "Ezt később módosíthatja.",
+    examSelectionCountryComingSoon = "Hamarosan",
+    examSelectionLanguageTitle = "Milyen nyelven?",
+    examSelectionLanguageSubtitle = "A teszt több nyelven elérhető. A lefordított változatból hiányozhat " +
+        "néhány kérdés.",
+    examSelectionCategoryTitle = "Melyik jogosítványkategóriára?",
     countryName = { mapOf("SK" to "Szlovákia", "CZ" to "Csehország")[it] ?: it },
     navTests = "Tesztek",
     navSettings = "Beállítások",
@@ -335,8 +354,13 @@ private val CzechStrings = Strings(
         "Ministerstvo vnitra Slovenské republiky (minv.sk). Přebíráme je ve zveřejněném znění, ale pokud se " +
         "něco liší, platí oficiální zkouška a aktuální předpisy.",
     disclaimerAccept = "Rozumím",
-    examSelectionTitle = "Na jakou zkoušku se připravujete?",
-    examSelectionSubtitle = "Vyberte zemi, jazyk a skupinu řidičského oprávnění. Později to můžete změnit.",
+    examSelectionCountryTitle = "Na zkoušku které země se připravujete?",
+    examSelectionCountrySubtitle = "Později to můžete změnit.",
+    examSelectionCountryComingSoon = "Již brzy",
+    examSelectionLanguageTitle = "V jakém jazyce?",
+    examSelectionLanguageSubtitle = "Test je dostupný ve více jazycích. V přeložené verzi může chybět " +
+        "několik otázek.",
+    examSelectionCategoryTitle = "Jakou skupinu řidičského oprávnění?",
     countryName = { mapOf("SK" to "Slovensko", "CZ" to "Česko")[it] ?: it },
     navTests = "Testy",
     navSettings = "Nastavení",

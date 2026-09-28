@@ -2,11 +2,13 @@ package uno.lux.autoskola.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +18,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,7 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.bank.QuestionBankInfo
-import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
@@ -46,7 +52,7 @@ import uno.lux.autoskola.settings.LanguageMenu
 
 private val Background = Color(0xFFF5F5F5)
 private val Subdued = Color(0xFF616161)
-private val Selected = Color(0xFFEDE7F6)
+private val Disabled = Color(0xFFBDBDBD)
 
 /**
  * Connects [ExamSelectionScreen] to its [ExamSelectionViewModel]. Calls [onDone] once an exam
@@ -64,8 +70,8 @@ fun ExamSelectionRoute(
 }
 
 /**
- * Lets the user pick the exam they're preparing for: country + language (a question bank)
- * and license group. [onBack] is `null` during onboarding, where a choice is required.
+ * A three-step wizard for the exam to prepare for: country, then the language to take it in,
+ * then the license category. [onBack] is `null` during onboarding, where a choice is required.
  */
 @Composable
 fun ExamSelectionScreen(
@@ -74,7 +80,6 @@ fun ExamSelectionScreen(
     /** `null` when there's nothing to go back to, e.g. on first launch. */
     onBack: (() -> Unit)?,
 ) {
-    val banks = state.banks
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -82,92 +87,213 @@ fun ExamSelectionScreen(
             .safeDrawingPadding(),
         contentAlignment = Alignment.TopCenter,
     ) {
-        if (banks == null) {
+        if (state.banks == null) {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
             return@Box
         }
-        LazyColumn(
-            modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        ) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) { Icon(IconArrowBack, contentDescription = strings.back) }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    LanguageMenu(current = state.language, onSelect = {
-                        onEvent(ExamSelectionUiEvent.SelectLanguage(it))
-                    })
-                }
-                Text(
-                    strings.examSelectionTitle,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    strings.examSelectionSubtitle,
-                    color = Subdued,
-                    fontSize = 15.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
+        // Going back a step is handled here (it's pure navigation within the screen); only
+        // leaving the wizard entirely goes through onBack.
+        val onStepBack: (() -> Unit)? = when {
+            state.step != ExamSelectionStep.ChooseCountry -> {
+                { onEvent(ExamSelectionUiEvent.StepBack) }
             }
-            banks.groupBy { it.country }.forEach { (country, countryBanks) ->
-                item(key = country) {
-                    Text(
-                        strings.countryName(country),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(start = 4.dp, top = 24.dp),
-                    )
-                }
-                items(countryBanks, key = { it.id }) { bank ->
-                    BankCard(
-                        bank = bank,
-                        selectedCategory = state.current?.takeIf { it.bankId == bank.id }?.category,
-                        onSelect = { onEvent(ExamSelectionUiEvent.Select(TestSelection(bank.id, it))) },
-                    )
-                }
-            }
+
+            else -> onBack
+        }
+        when (val step = state.step) {
+            is ExamSelectionStep.ChooseCountry ->
+                CountryStep(state.countryOptions, state.language, onStepBack, onEvent)
+
+            is ExamSelectionStep.ChooseBankLanguage ->
+                LanguageStep(step.banks, state.language, onStepBack, onEvent)
+
+            is ExamSelectionStep.ChooseCategory ->
+                CategoryStep(step.bank, state.language, onStepBack, onEvent)
         }
     }
 }
 
 @Composable
-private fun BankCard(bank: QuestionBankInfo, selectedCategory: LicenseCategory?, onSelect: (LicenseCategory) -> Unit) {
-    Column(Modifier.padding(top = 16.dp)) {
-        Text(
-            bankTitle(bank.language),
-            color = Subdued,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-        )
-        val shape = RoundedCornerShape(16.dp)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(1.dp, shape)
-                .clip(shape)
-                .background(Color.White),
-        ) {
-            LicenseCategory.entries
-                .filter { (bank.questionCounts[it] ?: 0) > 0 }
-                .forEach { category ->
-                    CategoryRow(
-                        label = category.displayName(bank.language),
-                        category = category,
-                        questionCount = bank.questionCounts.getValue(category),
-                        selected = category == selectedCategory,
-                        onClick = { onSelect(category) },
-                    )
-                }
+private fun CountryStep(
+    options: List<CountryOption>,
+    language: AppLanguage,
+    onBack: (() -> Unit)?,
+    onEvent: (ExamSelectionUiEvent) -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(160.dp),
+        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        fullWidth {
+            StepHeader(
+                onBack,
+                language,
+                onEvent,
+                strings.examSelectionCountryTitle,
+                strings.examSelectionCountrySubtitle,
+            )
         }
+        items(options, key = { it.country }) { option ->
+            CountryCard(option, onClick = { onEvent(ExamSelectionUiEvent.ChooseCountry(option.country)) })
+        }
+    }
+}
+
+@Composable
+private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .aspectRatio(1.2f)
+            .shadow(if (option.available) 1.dp else 0.dp, shape)
+            .clip(shape)
+            .background(if (option.available) Color.White else Color(0xFFEEEEEE))
+            .clickable(enabled = option.available, onClick = onClick)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(flagEmoji(option.country), fontSize = 40.sp)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            strings.countryName(option.country),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (option.available) Color.Black else Disabled,
+            textAlign = TextAlign.Center,
+        )
+        if (!option.available) {
+            Spacer(Modifier.height(4.dp))
+            Text(strings.examSelectionCountryComingSoon, fontSize = 12.sp, color = Disabled)
+        }
+    }
+}
+
+@Composable
+private fun LanguageStep(
+    banks: List<QuestionBankInfo>,
+    language: AppLanguage,
+    onBack: (() -> Unit)?,
+    onEvent: (ExamSelectionUiEvent) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+    ) {
+        item {
+            StepHeader(
+                onBack,
+                language,
+                onEvent,
+                strings.examSelectionLanguageTitle,
+                strings.examSelectionLanguageSubtitle,
+            )
+        }
+        items(banks, key = { it.id }) { bank ->
+            BigOptionRow(
+                title = bankTitle(bank.language),
+                onClick = { onEvent(ExamSelectionUiEvent.ChooseBank(bank)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryStep(
+    bank: QuestionBankInfo,
+    language: AppLanguage,
+    onBack: (() -> Unit)?,
+    onEvent: (ExamSelectionUiEvent) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+    ) {
+        item {
+            StepHeader(onBack, language, onEvent, strings.examSelectionCategoryTitle, null)
+        }
+        item {
+            val shape = RoundedCornerShape(16.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, shape)
+                    .clip(shape)
+                    .background(Color.White),
+            ) {
+                LicenseCategory.entries
+                    .filter { (bank.questionCounts[it] ?: 0) > 0 }
+                    .forEach { category ->
+                        CategoryRow(
+                            label = category.displayName(bank.language),
+                            category = category,
+                            questionCount = bank.questionCounts.getValue(category),
+                            onClick = { onEvent(ExamSelectionUiEvent.ChooseCategory(category)) },
+                        )
+                    }
+            }
+        }
+    }
+}
+
+/** Back button + app-language switcher, then a step's title and optional subtitle. */
+@Composable
+private fun StepHeader(
+    onBack: (() -> Unit)?,
+    language: AppLanguage,
+    onEvent: (ExamSelectionUiEvent) -> Unit,
+    title: String,
+    subtitle: String?,
+) {
+    // A plain Column: a lazy grid's spanned item (unlike a lazy column's) doesn't stack bare
+    // sibling composables along the main axis on its own.
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onBack != null) {
+                IconButton(onClick = onBack) { Icon(IconArrowBack, contentDescription = strings.back) }
+            }
+            Spacer(Modifier.weight(1f))
+            LanguageMenu(current = language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
+        }
+        Text(
+            title,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        )
+        if (subtitle != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                subtitle,
+                color = Subdued,
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun BigOptionRow(title: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .shadow(1.dp, shape)
+            .clip(shape)
+            .background(Color.White)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 22.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, fontSize = 17.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
     }
 }
 
@@ -176,13 +302,11 @@ private fun CategoryRow(
     label: String,
     category: LicenseCategory,
     questionCount: Int,
-    selected: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) Selected else Color.White)
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -191,5 +315,23 @@ private fun CategoryRow(
         Spacer(Modifier.width(20.dp))
         Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
         Text("$questionCount", color = Subdued, fontSize = 14.sp)
+    }
+}
+
+private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
+    item(span = { GridItemSpan(maxLineSpan) }) { content() }
+}
+
+/**
+ * Regional-indicator flag emoji for an ISO 3166-1 alpha-2 country code, e.g. "SK" -> "🇸🇰".
+ * Regional indicators sit above U+FFFF, so each one needs a UTF-16 surrogate pair - [Char]
+ * alone can't hold a code point that high.
+ */
+private fun flagEmoji(countryCode: String): String = buildString {
+    countryCode.uppercase().forEach { letter ->
+        val codePoint = letter.code - 'A'.code + 0x1F1E6
+        val offset = codePoint - 0x10000
+        append(((offset shr 10) + 0xD800).toChar())
+        append(((offset and 0x3FF) + 0xDC00).toChar())
     }
 }

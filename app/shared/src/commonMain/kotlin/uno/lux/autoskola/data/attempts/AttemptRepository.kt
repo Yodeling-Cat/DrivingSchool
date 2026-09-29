@@ -77,11 +77,23 @@ class AttemptRepository(
         )
     }
 
-    suspend fun finish(attemptId: String, result: TestResult) = update(attemptId) { attempt ->
+    /** Updates the recorded elapsed time for an open attempt. */
+    suspend fun updateElapsed(attemptId: String, elapsedSeconds: Long) = update(attemptId) { attempt ->
         if (!attempt.isOpen) return@update attempt
-        val at = now()
-        attempt.copy(finishedAt = at, updatedAt = at, result = result)
+        attempt.copy(elapsedSeconds = elapsedSeconds)
     }
+
+    suspend fun finish(attemptId: String, result: TestResult, elapsedSeconds: Long? = null) =
+        update(attemptId) { attempt ->
+            if (!attempt.isOpen) return@update attempt
+            val at = now()
+            attempt.copy(
+                finishedAt = at,
+                updatedAt = at,
+                result = result,
+                elapsedSeconds = elapsedSeconds ?: attempt.elapsedSeconds,
+            )
+        }
 
     suspend fun discard(attemptId: String) = update(attemptId) { attempt ->
         if (!attempt.isOpen) return@update attempt

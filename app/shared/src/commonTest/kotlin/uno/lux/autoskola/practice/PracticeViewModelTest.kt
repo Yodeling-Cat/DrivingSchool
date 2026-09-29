@@ -3,6 +3,7 @@ package uno.lux.autoskola.practice
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.stats.TestAttempt
@@ -136,5 +137,120 @@ class PracticeViewModelTest : ViewModelTest() {
         repositories.attempts.discard(attempt.id)
 
         assertEquals(PracticeUiState.Closed, open(attempt).second.value)
+    }
+
+    @Test
+    fun elapsedTimeStartsAtZeroForNewAttempt() = runTest {
+        val attempt = startTest()
+        val (_, state) = open(attempt)
+
+        assertEquals(0L, state.ready.elapsedSeconds)
+        assertFalse(state.ready.showTimeLimitToast)
+    }
+
+    @Test
+    fun elapsedTimeRestoresFromSavedAttempt() = runTest {
+        val attempt = startTest()
+        repositories.attempts.updateElapsed(attempt.id, 120L)
+
+        val (_, state) = open(attempt)
+
+        assertEquals(120L, state.ready.elapsedSeconds)
+    }
+
+    @Test
+    fun elapsedTimeTicksOnlyWhileInForeground() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        // Does not tick in background
+        testScheduler.advanceTimeBy(3_000)
+        assertEquals(0L, state.ready.elapsedSeconds)
+
+        // Enter foreground: ticks
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(3_000)
+        assertEquals(3L, state.ready.elapsedSeconds)
+
+        // Leave foreground: stops ticking and saves to repository
+        viewModel.onEvent(PracticeUiEvent.Foreground(false))
+        testScheduler.advanceTimeBy(5_000)
+        assertEquals(3L, state.ready.elapsedSeconds)
+        assertEquals(3L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
+
+        // Re-enter foreground: resumes ticking
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(2_000)
+        assertEquals(5L, state.ready.elapsedSeconds)
+    }
+
+    @Test
+    fun triggersToastWhenAllottedTimeReachedWithoutStoppingTest() = runTest {
+        val attempt = startTest()
+        repositories.attempts.updateElapsed(attempt.id, 1798L)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(1_000)
+        assertEquals(1799L, state.ready.elapsedSeconds)
+        assertFalse(state.ready.showTimeLimitToast)
+        assertFalse(state.ready.finished)
+
+        // Reaches allotted time (1800s)
+        testScheduler.advanceTimeBy(1_000)
+        assertEquals(1800L, state.ready.elapsedSeconds)
+        assertTrue(state.ready.showTimeLimitToast)
+        assertFalse(state.ready.finished) // Test does not stop!
+
+        // Acknowledge toast
+        viewModel.onEvent(PracticeUiEvent.TimeLimitToastShown)
+        assertFalse(state.ready.showTimeLimitToast)
+
+        // Further ticks do not re-trigger toast
+        testScheduler.advanceTimeBy(2_000)
+        assertEquals(1802L, state.ready.elapsedSeconds)
+        assertFalse(state.ready.showTimeLimitToast)
+        assertFalse(state.ready.finished)
+    }
+
+    @Test
+    fun doesNotTriggerToastOnResumeIfAlreadyPastAllottedTime() = runTest {
+        val attempt = startTest()
+        repositories.attempts.updateElapsed(attempt.id, 1850L)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(1_000)
+        assertEquals(1851L, state.ready.elapsedSeconds)
+        assertFalse(state.ready.showTimeLimitToast)
+    }
+
+    @Test
+    fun elapsedTimeStopsTickingWhenFinished() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(5_000)
+        assertEquals(5L, state.ready.elapsedSeconds)
+
+        viewModel.onEvent(PracticeUiEvent.Finish)
+        assertTrue(state.ready.finished)
+
+        testScheduler.advanceTimeBy(5_000)
+        assertEquals(5L, state.ready.elapsedSeconds)
+        assertEquals(5L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
+    }
+
+    @Test
+    fun finishedAttemptOpenedForReviewDoesNotTick() = runTest {
+        val attempt = startTest()
+        repositories.attempts.finish(attempt.id, TestResult(100, 100), elapsedSeconds = 450L)
+
+        val (viewModel, state) = open(attempt)
+        assertEquals(450L, state.ready.elapsedSeconds)
+
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        testScheduler.advanceTimeBy(5_000)
+        assertEquals(450L, state.ready.elapsedSeconds)
     }
 }

@@ -115,4 +115,21 @@ class AttemptRepositoryTest {
         assertNull(repository.statistics("sk-sk", 2, LicenseCategory.B).first().resumable)
         assertNull(repository.statistics("sk-sk", 1, LicenseCategory.C).first().resumable)
     }
+
+    @Test
+    fun elapsedSecondsCanBeUpdatedWhileOpen() = runTest {
+        val repository = repository()
+        val attempt = repository.startTest()
+        assertEquals(0L, attempt.elapsedSeconds)
+
+        repository.updateElapsed(attempt.id, 45L)
+        assertEquals(45L, repository.get(attempt.id)!!.elapsedSeconds)
+
+        repository.finish(attempt.id, TestResult(0, 3), elapsedSeconds = 60L)
+        assertEquals(60L, repository.get(attempt.id)!!.elapsedSeconds)
+
+        // Once closed, updateElapsed does nothing
+        repository.updateElapsed(attempt.id, 99L)
+        assertEquals(60L, repository.get(attempt.id)!!.elapsedSeconds)
+    }
 }

@@ -68,3 +68,16 @@ fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
         },
     )
 }
+
+/** Formats [totalSeconds] as mm:ss (or h:mm:ss when an hour or more). */
+fun formatElapsedTime(totalSeconds: Long): String {
+    val seconds = totalSeconds.coerceAtLeast(0)
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return if (h > 0) {
+        "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+    } else {
+        "${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
+    }
+}

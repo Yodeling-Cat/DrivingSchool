@@ -43,6 +43,7 @@ data class TestAttempt(
     val answers: List<AnswerRecord> = emptyList(),
     /** Set once finished. */
     val result: TestResult? = null,
+    val elapsedSeconds: Long = 0L,
 ) {
     val isFinished: Boolean get() = finishedAt != null
     val isOpen: Boolean get() = finishedAt == null && discardedAt == null
@@ -59,6 +60,9 @@ data class TestAttempt(
     fun encode(): String = AttemptJson.encodeToString(serializer(), this)
 
     companion object {
+        /** Official allotted duration for an exam is 30 minutes (1,800 seconds). */
+        const val OFFICIAL_DURATION_SECONDS = 30 * 60L
+
         fun decode(json: String): TestAttempt = AttemptJson.decodeFromString(serializer(), json)
     }
 }

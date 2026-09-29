@@ -92,10 +92,13 @@ class ExamSession(val bank: QuestionBank, val category: LicenseCategory, private
     suspend fun answer(attemptId: String, question: Question, chosen: Int) =
         attempts.answer(attemptId, question, chosen)
 
+    suspend fun updateElapsed(attemptId: String, elapsedSeconds: Long) =
+        attempts.updateElapsed(attemptId, elapsedSeconds)
+
     /** Finishes the attempt, scoring the answers that were recorded. */
-    suspend fun finish(attemptId: String) {
+    suspend fun finish(attemptId: String, elapsedSeconds: Long? = null) {
         val attempt = openAttempt(attemptId).first() ?: return
-        attempts.finish(attemptId, attempt.score(questionsOf(attempt)))
+        attempts.finish(attemptId, attempt.score(questionsOf(attempt)), elapsedSeconds)
     }
 
     suspend fun discard(attemptId: String) = attempts.discard(attemptId)

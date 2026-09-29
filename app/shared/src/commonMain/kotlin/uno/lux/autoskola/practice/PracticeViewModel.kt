@@ -3,6 +3,8 @@ package uno.lux.autoskola.practice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +12,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.Section
@@ -55,6 +59,8 @@ sealed interface PracticeUiState {
         val finished: Boolean,
         /** The test was just finished here, so the screen should show its results. */
         val openResults: Boolean = false,
+        val elapsedSeconds: Long = 0L,
+        val showTimeLimitToast: Boolean = false,
     ) : PracticeUiState
 }
 
@@ -64,12 +70,19 @@ sealed interface PracticeUiEvent {
 
     /** The screen showed the results that [PracticeUiState.Ready.openResults] asked for. */
     data object ResultsOpened : PracticeUiEvent
+
+    /** Whether the screen is currently in the foreground and active. */
+    data class Foreground(val inForeground: Boolean) : PracticeUiEvent
+
+    /** The screen displayed the time limit toast that [PracticeUiState.Ready.showTimeLimitToast] asked for. */
+    data object TimeLimitToastShown : PracticeUiEvent
 }
 
 class PracticeViewModel(
     private val attemptId: String,
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
+    private val allottedTimeSeconds: Long = TestAttempt.OFFICIAL_DURATION_SECONDS,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -80,36 +93,139 @@ class PracticeViewModel(
     private var questions: List<PracticeQuestion>? = null
     private var initialPage: Int? = null
 
+    private var isForeground = false
+    private var isFinished = false
+    private var timeLimitNotified = false
+    private var timerJob: Job? = null
+
+    private val elapsedSeconds = MutableStateFlow<Long?>(null)
+    private val showTimeLimitToast = MutableStateFlow(false)
     private val openResults = MutableStateFlow(false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PracticeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(PracticeUiState.Loading)
-            combine(session.attempt(attemptId), openResults) { attempt, openResults ->
-                if (attempt == null) PracticeUiState.Closed else ready(session, attempt, openResults)
+            val attemptFlow = session.attempt(attemptId).onEach { attempt ->
+                if (attempt != null) {
+                    onAttemptLoaded(attempt)
+                }
+            }
+            combine(attemptFlow, openResults, elapsedSeconds, showTimeLimitToast) {
+                    attempt,
+                    openResults,
+                    elapsed,
+                    showToast,
+                ->
+                if (attempt == null) {
+                    PracticeUiState.Closed
+                } else {
+                    val effectiveElapsed = elapsed ?: attempt.elapsedSeconds
+                    ready(session, attempt, openResults, effectiveElapsed, showToast)
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PracticeUiState.Loading)
+
+    private fun onAttemptLoaded(attempt: TestAttempt) {
+        if (elapsedSeconds.value == null) {
+            val initial = attempt.elapsedSeconds
+            elapsedSeconds.value = initial
+            if (initial >= allottedTimeSeconds) {
+                timeLimitNotified = true
+            }
+        }
+        isFinished = attempt.isFinished
+        updateTimer()
+    }
+
+    private fun updateTimer() {
+        val canTick = isForeground && !isFinished && elapsedSeconds.value != null
+        if (canTick) {
+            if (timerJob == null) {
+                timerJob = viewModelScope.launch {
+                    while (isActive) {
+                        delay(1_000)
+                        tick()
+                    }
+                }
+            }
+        } else {
+            stopTimer()
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    private fun tick() {
+        if (isFinished) return
+        val current = (elapsedSeconds.value ?: 0L) + 1
+        elapsedSeconds.value = current
+        if (!timeLimitNotified && current >= allottedTimeSeconds) {
+            timeLimitNotified = true
+            showTimeLimitToast.value = true
+        }
+        if (current % 5 == 0L) {
+            saveElapsed(current)
+        }
+    }
+
+    private fun saveElapsed(seconds: Long) {
+        val session = session.value ?: return
+        viewModelScope.launch {
+            session.updateElapsed(attemptId, seconds)
+        }
+    }
 
     fun onEvent(event: PracticeUiEvent) {
         val session = session.value ?: return
         when (event) {
             is PracticeUiEvent.Answer -> {
                 val question = questions?.getOrNull(event.questionIndex)?.question ?: return
-                viewModelScope.launch { session.answer(attemptId, question, event.answerIndex) }
+                viewModelScope.launch {
+                    session.answer(attemptId, question, event.answerIndex)
+                    elapsedSeconds.value?.let { session.updateElapsed(attemptId, it) }
+                }
             }
 
             PracticeUiEvent.Finish -> viewModelScope.launch {
-                session.finish(attemptId)
+                isFinished = true
+                stopTimer()
+                val finalElapsed = elapsedSeconds.value ?: 0L
+                session.finish(attemptId, finalElapsed)
                 openResults.value = true
             }
 
             PracticeUiEvent.ResultsOpened -> openResults.value = false
+
+            is PracticeUiEvent.Foreground -> {
+                isForeground = event.inForeground
+                updateTimer()
+                if (!event.inForeground) {
+                    elapsedSeconds.value?.let { saveElapsed(it) }
+                }
+            }
+
+            PracticeUiEvent.TimeLimitToastShown -> showTimeLimitToast.value = false
         }
     }
 
-    private fun ready(session: ExamSession, attempt: TestAttempt, openResults: Boolean): PracticeUiState.Ready {
+    override fun onCleared() {
+        super.onCleared()
+        stopTimer()
+        elapsedSeconds.value?.let { saveElapsed(it) }
+    }
+
+    private fun ready(
+        session: ExamSession,
+        attempt: TestAttempt,
+        openResults: Boolean,
+        elapsedSeconds: Long,
+        showTimeLimitToast: Boolean,
+    ): PracticeUiState.Ready {
         val questions = questions ?: session.questionsOf(attempt)
             .map { PracticeQuestion(it, banks.imageUri(session.bank, it)) }
             .also { questions = it }
@@ -126,6 +242,8 @@ class PracticeViewModel(
             allAnswered = attempt.isFullyAnswered,
             finished = attempt.isFinished,
             openResults = openResults && attempt.isFinished,
+            elapsedSeconds = elapsedSeconds,
+            showTimeLimitToast = showTimeLimitToast,
         )
     }
 }

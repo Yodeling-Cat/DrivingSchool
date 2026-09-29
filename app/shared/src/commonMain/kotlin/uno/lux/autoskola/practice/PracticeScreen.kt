@@ -1,6 +1,5 @@
 package uno.lux.autoskola.practice
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +23,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -71,6 +74,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -108,6 +112,9 @@ private val QuestionChipIncorrectBg = Color(0xFFFFCDD2)
 private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
+
+/** How far the question list sheet is dragged before the arrows are gone. */
+private val ExpandFadeDistance = 96.dp
 
 /**
  * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
@@ -184,6 +191,22 @@ fun PracticeScreen(
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
     }
 
+    val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val barHeight = if (compactHeight) 56.dp else 80.dp
+    val density = LocalDensity.current
+    var scaffoldHeight by remember { mutableStateOf(0) }
+    // 0 while the sheet is collapsed, 1 once it has been dragged (or has animated) far enough up.
+    val expandFraction: () -> Float = {
+        if (showPanel || scaffoldHeight == 0) {
+            0f
+        } else {
+            val collapsedOffset = scaffoldHeight - with(density) { (barHeight + navBarInset).toPx() }
+            val offset = runCatching { sheetState.requireOffset() }.getOrDefault(collapsedOffset)
+            ((collapsedOffset - offset) / with(density) { ExpandFadeDistance.toPx() }).coerceIn(0f, 1f)
+        }
+    }
+    val sideInsets =
+        WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
     val listExpanded = !showPanel && sheetState.targetValue == SheetValue.Expanded
 
     fun toggleList() {
@@ -216,7 +239,6 @@ fun PracticeScreen(
     }
 
     val bottomBarPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding
-    val barHeight = if (compactHeight) 56.dp else 80.dp
 
     val topBar: @Composable () -> Unit = {
         if (!compactHeight) {
@@ -251,6 +273,7 @@ fun PracticeScreen(
             onToggleList = ::toggleList,
             onPrevious = { goTo(currentIndex - 1) },
             onNext = { goTo(currentIndex + 1) },
+            arrowAlpha = { 1f - expandFraction() },
             onFinish = { onEvent(PracticeUiEvent.Finish) },
         )
     }
@@ -306,43 +329,49 @@ fun PracticeScreen(
         )
     } else {
         // The question list is a sheet pinned to the bottom: collapsed it shows just the bar.
-        val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        val expandProgress by animateFloatAsState(if (listExpanded) 1f else 0f)
-        BottomSheetScaffold(
-            scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
-            containerColor = Color.White,
-            sheetContainerColor = Color.White,
-            sheetPeekHeight = barHeight + navBarInset,
-            sheetDragHandle = null,
-            topBar = topBar,
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            sheetContent = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(barHeight)
-                        .padding(horizontal = if (compactHeight) 4.dp else 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = barContent,
-                )
-                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                    QuestionGrid(
-                        questions = questions,
-                        sections = sections,
-                        currentIndex = currentIndex,
-                        selectedAnswers = selectedAnswers,
-                        revealCorrectness = revealCorrectness,
-                        onSelectQuestion = {
-                            goTo(it)
-                            scope.launch { sheetState.partialExpand() }
-                        },
+        Box(
+            Modifier
+                .fillMaxSize()
+                // The scaffold doesn't inset its content, and without a top bar the expanded sheet
+                // would reach under the status bar.
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets))
+                .onSizeChanged { scaffoldHeight = it.height },
+        ) {
+            BottomSheetScaffold(
+                scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
+                containerColor = Color.White,
+                sheetContainerColor = Color.White,
+                sheetPeekHeight = barHeight + navBarInset,
+                sheetDragHandle = null,
+                topBar = topBar,
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                sheetContent = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(barHeight + navBarInset * (1f - expandFraction()))
+                            .padding(horizontal = if (compactHeight) 4.dp else 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = barContent,
                     )
-                    // Room for the navigation bar under the grid; collapsed, the peek height covers it.
-                    Spacer(Modifier.height(navBarInset * expandProgress))
-                }
-            },
-            content = pagerContent,
-        )
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                        QuestionGrid(
+                            questions = questions,
+                            sections = sections,
+                            currentIndex = currentIndex,
+                            selectedAnswers = selectedAnswers,
+                            revealCorrectness = revealCorrectness,
+                            onSelectQuestion = {
+                                goTo(it)
+                                scope.launch { sheetState.partialExpand() }
+                            },
+                        )
+                        Spacer(Modifier.height(navBarInset))
+                    }
+                },
+                content = pagerContent,
+            )
+        }
     }
 }
 
@@ -360,6 +389,7 @@ private fun RowScope.PracticeBarContent(
     onToggleList: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    arrowAlpha: () -> Float,
     onFinish: () -> Unit,
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -388,14 +418,13 @@ private fun RowScope.PracticeBarContent(
     }
     // Swiping doesn't work with a mouse, so always offer buttons too. They make no sense while
     // the question list covers the questions.
-    AnimatedVisibility(!listExpanded) {
-        Row {
-            IconButton(onClick = onPrevious, enabled = currentIndex > 0) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
-            }
-            IconButton(onClick = onNext, enabled = currentIndex < questionCount - 1) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
-            }
+    Row(Modifier.graphicsLayer { alpha = arrowAlpha() }) {
+        val usable = arrowAlpha() > 0.5f
+        IconButton(onClick = onPrevious, enabled = usable && currentIndex > 0) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
+        }
+        IconButton(onClick = onNext, enabled = usable && currentIndex < questionCount - 1) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
         }
     }
     // Finishing is the only option, so there's no menu once the test is finished.

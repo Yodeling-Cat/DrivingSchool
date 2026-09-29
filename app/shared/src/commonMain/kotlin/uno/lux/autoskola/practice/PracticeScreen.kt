@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.BottomSheetScaffold
@@ -58,6 +59,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberBottomSheetScaffoldState
@@ -81,6 +83,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
@@ -173,6 +178,29 @@ fun PracticeScreen(
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = true)
     val scope = rememberCoroutineScope()
     val current = questions[currentIndex]
+    // The question list is pinned to the bottom and covers the questions once it's open.
+    val listExpanded = sheetState.targetValue == SheetValue.Expanded
+
+    /** Set while we're asking whether the user really wants to leave an unfinished test. */
+    var confirmingLeave by remember { mutableStateOf(false) }
+
+    /** Back closes the question list first, and asks before dropping an unfinished test. */
+    fun handleBack() {
+        when (backAction(listExpanded, finished)) {
+            BackAction.CloseQuestionList -> scope.launch { sheetState.partialExpand() }
+            BackAction.Leave -> onBack()
+            BackAction.ConfirmLeave -> confirmingLeave = true
+        }
+    }
+
+    // A finished test with its list closed is left by the navigation library's own handler, so
+    // that path keeps its back animation and, on Android, its predictive gesture.
+    val backState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
+    NavigationBackHandler(
+        state = backState,
+        isBackEnabled = backAction(listExpanded, finished) != BackAction.Leave,
+        onBackCompleted = ::handleBack,
+    )
     // On wide screens the question list is always visible next to the question.
     // Phones in landscape: one slim bar instead of two, and no side panel, so the question keeps
     // most of the little height there is.
@@ -235,7 +263,7 @@ fun PracticeScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = ::handleBack) {
                         Icon(IconArrowBack, contentDescription = strings.back)
                     }
                 },
@@ -259,7 +287,7 @@ fun PracticeScreen(
             showListToggle = !showPanel,
             listExpanded = listExpanded,
             canFinish = !finished,
-            onBack = onBack,
+            onBack = ::handleBack,
             onToggleList = onToggleList,
             onPrevious = { goTo(currentIndex - 1) },
             onNext = { goTo(currentIndex + 1) },
@@ -339,7 +367,6 @@ fun PracticeScreen(
             // The bar is as tall as the collapsed peek, and the list runs up to the status bar. The
             // navigation bar's room is at the end of the list, so it takes no height away from it.
             val gridHeight = (maxHeight - topReserved - barHeight - navBarInset).coerceAtLeast(0.dp)
-            val listExpanded = sheetState.targetValue == SheetValue.Expanded
             val arrowsHidden by animateFloatAsState(if (listExpanded) 1f else 0f)
 
             fun toggleList() {
@@ -384,6 +411,29 @@ fun PracticeScreen(
                 content = pagerContent,
             )
         }
+    }
+
+    if (confirmingLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmingLeave = false },
+            title = { Text(strings.leaveTestTitle) },
+            text = { Text(strings.leaveTestMessage) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingLeave = false
+                        onBack()
+                    },
+                ) {
+                    Text(strings.leaveTest)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingLeave = false }) {
+                    Text(strings.keepTesting)
+                }
+            },
+        )
     }
 }
 

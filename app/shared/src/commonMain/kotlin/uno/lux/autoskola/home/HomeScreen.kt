@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -162,6 +163,8 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
             }
         }
     }
+
+    state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
 }
 
 private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
@@ -236,6 +239,28 @@ private fun ResumeCard(test: ResumableTest, onResume: () -> Unit, onDiscard: () 
             TextButton(onClick = onResume) { Text(strings.continueTest, color = InProgressColor) }
         }
     }
+}
+
+/** Asks what to do with a test that's already under way: continue it, or start over. */
+@Composable
+private fun ResumePromptDialog(prompt: ResumePrompt, onEvent: (HomeUiEvent) -> Unit) {
+    AlertDialog(
+        onDismissRequest = { onEvent(HomeUiEvent.DismissResumePrompt) },
+        title = { Text(strings.resumePromptTitle) },
+        text = {
+            Text(strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total))
+        },
+        confirmButton = {
+            TextButton(onClick = { onEvent(HomeUiEvent.ContinueTest) }) {
+                Text(strings.continueTest)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onEvent(HomeUiEvent.StartOver) }) {
+                Text(strings.startOver)
+            }
+        },
+    )
 }
 
 @Composable

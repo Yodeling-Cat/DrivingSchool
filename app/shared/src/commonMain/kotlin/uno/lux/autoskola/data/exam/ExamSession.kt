@@ -80,10 +80,18 @@ class ExamSession(val bank: QuestionBank, val category: LicenseCategory, private
 
     fun questionsOf(attempt: TestAttempt): List<Question> = attempt.questionIds.mapNotNull(questionsById::get)
 
+    /** The attempt for [test] that's still under way, or `null` if the test can simply be started. */
+    suspend fun openAttemptFor(test: PracticeTest): TestAttempt? = statistics.first().openAttemptFor(test.number)
+
     /** Continues [test] if it's already under way, otherwise starts a new attempt. */
-    suspend fun startOrResume(test: PracticeTest, checkImmediately: Boolean): TestAttempt =
-        statistics.first().openAttemptFor(test.number)
-            ?: start(AttemptKind.PracticeTest, test.number, test.questions, checkImmediately)
+    suspend fun startOrResume(test: PracticeTest, checkImmediately: Boolean): TestAttempt = openAttemptFor(test)
+        ?: start(AttemptKind.PracticeTest, test.number, test.questions, checkImmediately)
+
+    /** Starts [test] from the beginning, throwing away the attempt that's under way. */
+    suspend fun restart(test: PracticeTest, checkImmediately: Boolean): TestAttempt {
+        openAttemptFor(test)?.let { attempts.discard(it.id) }
+        return start(AttemptKind.PracticeTest, test.number, test.questions, checkImmediately)
+    }
 
     /** Starts a retest of [mistakes], or returns `null` when there's nothing to retest. */
     suspend fun startMistakes(checkImmediately: Boolean): TestAttempt? =

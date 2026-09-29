@@ -63,6 +63,40 @@ class ExamSessionTest {
     }
 
     @Test
+    fun restartingThrowsAwayTheAttemptUnderWayAndStartsAFreshOne() = runTest {
+        val session = session()
+        val test = session.tests.first()
+        val started = session.startOrResume(test, checkImmediately = false)
+        session.answer(started.id, test.questions.first(), 0)
+
+        val restarted = session.restart(test, checkImmediately = true)
+
+        assertNotEquals(started.id, restarted.id)
+        assertEquals(test.questions.map { it.id }, restarted.questionIds)
+        assertTrue(restarted.answers.isEmpty())
+        assertTrue(restarted.checkImmediately)
+        assertNotNull(attempts.get(started.id)!!.discardedAt)
+        assertEquals(restarted.id, session.openAttemptFor(test)?.id)
+    }
+
+    @Test
+    fun restartingATestThatWasNeverStartedJustStartsIt() = runTest {
+        val session = session()
+        val test = session.tests.first()
+
+        val restarted = session.restart(test, checkImmediately = false)
+
+        assertEquals(test.number, restarted.testNumber)
+        assertEquals(restarted.id, session.openAttemptFor(test)?.id)
+    }
+
+    @Test
+    fun aTestThatWasNeverStartedHasNoAttemptUnderWay() = runTest {
+        val session = session()
+        assertNull(session.openAttemptFor(session.tests.first()))
+    }
+
+    @Test
     fun finishingScoresTheRecordedAnswers() = runTest {
         val session = session()
         val test = session.tests.first()

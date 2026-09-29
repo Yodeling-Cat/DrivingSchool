@@ -81,6 +81,68 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun pickingATestUnderWayAsksInsteadOfContinuingIt() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val started = state.ready.openAttemptId!!
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        assertNull(state.ready.openAttemptId)
+        assertEquals(
+            ResumePrompt(started, testNumber = 1, answered = 0, total = 3),
+            state.ready.resumePrompt,
+        )
+    }
+
+    @Test
+    fun continuingOpensTheAttemptThatWasAlreadyUnderWay() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val started = state.ready.openAttemptId!!
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.ContinueTest)
+
+        assertEquals(started, state.ready.openAttemptId)
+        assertNull(state.ready.resumePrompt)
+    }
+
+    @Test
+    fun startingOverDiscardsTheUnfinishedAttemptAndStartsAFreshOne() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val started = state.ready.openAttemptId!!
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.StartOver)
+
+        assertNull(state.ready.resumePrompt)
+        val restarted = assertNotNull(repositories.attempts.get(assertNotNull(state.ready.openAttemptId)))
+        assertEquals(1, restarted.testNumber)
+        assertTrue(restarted.answers.isEmpty())
+        assertNotNull(repositories.attempts.get(started)!!.discardedAt)
+    }
+
+    @Test
+    fun dismissingThePromptLeavesTheTestUnderWay() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val started = state.ready.openAttemptId!!
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.DismissResumePrompt)
+
+        assertNull(state.ready.resumePrompt)
+        assertNull(state.ready.openAttemptId)
+        assertNull(repositories.attempts.get(started)!!.discardedAt)
+    }
+
+    @Test
     fun practisingMistakesOpensARetestOnlyWhenThereAreMistakes() = runTest {
         val state = observe(viewModel.uiState)
         viewModel.onEvent(HomeUiEvent.PracticeMistakes)

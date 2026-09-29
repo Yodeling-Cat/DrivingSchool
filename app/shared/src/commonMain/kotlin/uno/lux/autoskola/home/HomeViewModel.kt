@@ -32,6 +32,17 @@ data class ResumableTest(
     val total: Int,
 )
 
+/**
+ * A test the user picked that already has an attempt under way, so the screen asks whether to
+ * continue it or start over instead of choosing for them.
+ */
+data class ResumePrompt(
+    val attemptId: String,
+    val testNumber: Int,
+    val answered: Int,
+    val total: Int,
+)
+
 /** Everything the home screen shows about the user's progress. */
 data class HomeProgress(
     val results: Map<Int, TestResult>,
@@ -52,6 +63,8 @@ sealed interface HomeUiState {
         val progress: HomeProgress,
         /** An attempt to open; the screen navigates to it and then sends [HomeUiEvent.AttemptOpened]. */
         val openAttemptId: String? = null,
+        /** Set when the picked test is already under way, so the screen asks what to do. */
+        val resumePrompt: ResumePrompt? = null,
     ) : HomeUiState
 }
 
@@ -62,6 +75,15 @@ sealed interface HomeUiEvent {
     data class StartRandomTest(val notDoneYet: Boolean) : HomeUiEvent
     data object Resume : HomeUiEvent
     data object DiscardResumable : HomeUiEvent
+
+    /** Opens the attempt the [HomeUiState.Ready.resumePrompt] is about. */
+    data object ContinueTest : HomeUiEvent
+
+    /** Throws the unfinished attempt away and starts the same test from the beginning. */
+    data object StartOver : HomeUiEvent
+
+    /** The user closed the prompt, leaving the test as it was. */
+    data object DismissResumePrompt : HomeUiEvent
     data object PracticeMistakes : HomeUiEvent
     data object AttemptOpened : HomeUiEvent
 }
@@ -77,17 +99,19 @@ class HomeViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val openAttemptId = MutableStateFlow<String?>(null)
+    private val resumePrompt = MutableStateFlow<ResumePrompt?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<HomeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(HomeUiState.Loading)
-            combine(session.progress, openAttemptId) { progress, open ->
+            combine(session.progress, openAttemptId, resumePrompt) { progress, open, prompt ->
                 HomeUiState.Ready(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
                     progress = progress.toHomeProgress(),
                     openAttemptId = open,
+                    resumePrompt = prompt,
                 )
             }
         }
@@ -100,7 +124,19 @@ class HomeViewModel(
         when (event) {
             is HomeUiEvent.StartTest -> viewModelScope.launch {
                 val test = session.tests.firstOrNull { it.number == event.testNumber } ?: return@launch
-                openAttemptId.value = session.startOrResume(test, checkImmediately).id
+                // A test that's already under way could be picked up or started again; only the
+                // user knows which, so ask instead of choosing for them.
+                val underWay = session.openAttemptFor(test)
+                if (underWay == null) {
+                    openAttemptId.value = session.startOrResume(test, checkImmediately).id
+                } else {
+                    resumePrompt.value = ResumePrompt(
+                        attemptId = underWay.id,
+                        testNumber = test.number,
+                        answered = underWay.answers.size,
+                        total = underWay.questionIds.size,
+                    )
+                }
             }
 
             is HomeUiEvent.StartRandomTest -> {
@@ -117,11 +153,27 @@ class HomeViewModel(
                 viewModelScope.launch { session.discard(it.attemptId) }
             }
 
+            HomeUiEvent.ContinueTest -> {
+                openAttemptId.value = resumePrompt.value?.attemptId
+                resumePrompt.value = null
+            }
+
+            HomeUiEvent.StartOver -> resumePrompt.value?.let { prompt ->
+                val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
+                resumePrompt.value = null
+                viewModelScope.launch { openAttemptId.value = session.restart(test, checkImmediately).id }
+            }
+
+            HomeUiEvent.DismissResumePrompt -> resumePrompt.value = null
+
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
                 session.startMistakes(checkImmediately)?.let { openAttemptId.value = it.id }
             }
 
-            HomeUiEvent.AttemptOpened -> openAttemptId.value = null
+            HomeUiEvent.AttemptOpened -> {
+                openAttemptId.value = null
+                resumePrompt.value = null
+            }
         }
     }
 

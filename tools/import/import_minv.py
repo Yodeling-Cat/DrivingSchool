@@ -39,6 +39,8 @@ PDF_URLS = {
 GROUPS = ["A", "B", "BE", "C", "CE", "D", "DE", "T"]
 # Order of the language arrays inside data5.js (see runTest() in test_mini.js).
 LANGUAGES = ["sk", "en", "hu"]
+# Order the PDFs are matched in: Slovak is the reference, so it overrides Hungarian.
+PDF_MATCH_ORDER = ["hu", "sk"]
 
 
 def log(*args):
@@ -65,6 +67,45 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def section_starts(test):
+    """(section id, position of its first question, title) of every "okruh", in exam order."""
+    return sorted((int(key), value[0]["zacina"], value[0]["txt"]) for key, value in test["okruhy"].items())
+
+
+def section_of(starts, position):
+    """The section of the question asked at [position]."""
+    return max(section for section, start, _ in starts if start <= int(position))
+
+
+def parse_question(data5_question, answers, position, starts):
+    """One question of data5.js, in the shape the bank file uses."""
+    return {
+        "id": data5_question["id"],
+        "section": section_of(starts, position),
+        "text": clean(data5_question["text"]),
+        "answers": [clean(answer["odpoved"]) for answer in answers],
+        "correct": data5_question["platna"] - 1,
+        "points": data5_question["body"],
+        "image": data5_question["obrazok"] or None,
+    }
+
+
+def parse_test(test):
+    """The sections and the questions of one test in data5.js."""
+    starts = section_starts(test)
+    sections = {}
+    for index, (section, start, title) in enumerate(starts):
+        end = starts[index + 1][1] if index + 1 < len(starts) else test["pocet"] + 1
+        sections[section] = {"id": section, "title": clean(title), "questionsPerTest": end - start}
+    questions = {}
+    for position, entries in test["otazky"].items():
+        question = parse_question(entries[0], test["odpovede"][position], position, starts)
+        # A section's points are those of its questions.
+        sections[question["section"]]["points"] = question["points"]
+        questions[question["id"]] = question
+    return sections, questions
+
+
 def load_data5(path):
     raw = path.read_text(encoding="utf-8")
     data = json.loads(raw[raw.index("["):].rstrip().rstrip(";"))
@@ -72,23 +113,9 @@ def load_data5(path):
     for lang, tests in zip(LANGUAGES, data):
         questions, sections = {}, {}
         for test in tests:
-            starts = sorted((int(k), v[0]["zacina"], v[0]["txt"]) for k, v in test["okruhy"].items())
-            for i, (section, start, title) in enumerate(starts):
-                end = starts[i + 1][1] if i + 1 < len(starts) else test["pocet"] + 1
-                sections[section] = {"id": section, "title": clean(title), "questionsPerTest": end - start}
-            for position, entries in test["otazky"].items():
-                q = entries[0]
-                section = max(s for s, start, _ in starts if start <= int(position))
-                sections[section]["points"] = q["body"]
-                questions[q["id"]] = {
-                    "id": q["id"],
-                    "section": section,
-                    "text": clean(q["text"]),
-                    "answers": [clean(a["odpoved"]) for a in test["odpovede"][position]],
-                    "correct": q["platna"] - 1,
-                    "points": q["body"],
-                    "image": q["obrazok"] or None,
-                }
+            test_sections, test_questions = parse_test(test)
+            sections.update(test_sections)
+            questions.update(test_questions)
         banks[lang] = {"questions": questions, "sections": [sections[k] for k in sorted(sections)]}
     return banks
 
@@ -132,6 +159,97 @@ def match_groups(questions, rows):
     return result, fuzzy, missing
 
 
+def fetch_sources(refresh):
+    """Downloads data5.js and the PDFs unless they're cached, and returns their paths."""
+    log("Fetching sources")
+    data_path = download(DATA_URL, CACHE / "data5.js", refresh)
+    pdf_paths = {lang: download(url, CACHE / f"otazky-{lang}.pdf", refresh) for lang, url in PDF_URLS.items()}
+    return data_path, pdf_paths
+
+
+def learn_groups(banks, pdf_paths):
+    """Maps data5 question id -> license groups, matching every PDF against its own language."""
+    groups_by_id = {}
+    for lang in PDF_MATCH_ORDER:
+        _, rows = minv_pdf.parse(pdf_paths[lang])
+        matched, fuzzy, missing = match_groups(banks[lang]["questions"], rows)
+        log(f"  {lang}: {len(rows)} PDF rows, matched {len(matched)} "
+            f"({fuzzy} fuzzy), unmatched {len(missing)}")
+        for q in missing:
+            log(f"    unmatched {q['id']}: {q['text'][:70]}")
+        groups_by_id.update(matched)
+    return groups_by_id
+
+
+def bank_document(lang, bank, groups_by_id, version):
+    """The contents of one bank file: its sections, and the questions that learned their groups."""
+    questions = [
+        {**q, "groups": groups_by_id[q["id"]]}
+        for q in sorted(bank["questions"].values(), key=lambda q: (q["section"], q["id"]))
+        if q["id"] in groups_by_id
+    ]
+    return {
+        "id": f"sk-{lang}",
+        "version": version,
+        "country": "SK",
+        "language": lang,
+        "imageDir": IMAGES_OUT.name,
+        "sections": bank["sections"],
+        "questions": questions,
+    }
+
+
+def write_banks(banks, groups_by_id, version):
+    """Writes one bank file per language and refreshes the shared index.
+
+    Returns the images the newly written banks reference.
+    """
+    BANKS_OUT.mkdir(parents=True, exist_ok=True)
+    manifest, images = [], set()
+    for lang in LANGUAGES:
+        bank = banks[lang]
+        document = bank_document(lang, bank, groups_by_id, version)
+        (BANKS_OUT / f"{document['id']}-v{version}.json").write_text(
+            json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        questions = document["questions"]
+        images.update(q["image"] for q in questions if q["image"])
+        counts = {group: sum(1 for q in questions if group in q["groups"]) for group in GROUPS}
+        manifest.append({"id": document["id"], "version": version, "country": "SK", "language": lang,
+                         "questionCounts": counts})
+        log(f"  {document['id']}: {len(questions)} questions "
+            f"({len(bank['questions']) - len(questions)} without groups dropped), {counts}")
+    # Keep other importers' banks in the shared index.
+    index_path = BANKS_OUT / "index.json"
+    others = [b for b in json.loads(index_path.read_text(encoding="utf-8")) if b["country"] != "SK"] \
+        if index_path.exists() else []
+    index_path.write_text(json.dumps(others + manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return images
+
+
+def bundled_images():
+    """Every image the bundled banks reference. Older versions stay bundled, so theirs count too."""
+    images = set()
+    for path in BANKS_OUT.glob("sk-*-v*.json"):
+        bank = json.loads(path.read_text(encoding="utf-8"))
+        images.update(q["image"] for q in bank["questions"] if q["image"])
+    return images
+
+
+def sync_images(new_images, refresh):
+    """Downloads the images the new banks need, and deletes the files no bundled bank references."""
+    to_download = [image for image in sorted(new_images) if refresh or not (IMAGES_OUT / image).exists()]
+    bundled = bundled_images()
+    log(f"Fetching images: {len(bundled)} referenced, {len(to_download)} to download")
+    for image in to_download:
+        download(IMAGE_URL + image, IMAGES_OUT / image, refresh, quiet=True)
+    stale = [p for p in IMAGES_OUT.rglob("*")
+             if p.is_file() and p.relative_to(IMAGES_OUT).as_posix() not in bundled]
+    for path in stale:
+        path.unlink()
+    if stale:
+        log(f"  removed {len(stale)} images no longer referenced")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="re-download sources and images even if cached")
@@ -140,57 +258,13 @@ def main():
                              "see docs/importing-questions.md)")
     args = parser.parse_args()
 
-    log("Fetching sources")
-    data_path = download(DATA_URL, CACHE / "data5.js", args.refresh)
-    pdf_paths = {lang: download(url, CACHE / f"otazky-{lang}.pdf", args.refresh) for lang, url in PDF_URLS.items()}
+    data_path, pdf_paths = fetch_sources(args.refresh)
 
     log("Parsing")
     banks = load_data5(data_path)
-    groups_by_id = {}
-    for lang in ("hu", "sk"):  # Slovak is the reference, so it overrides Hungarian.
-        _, rows = minv_pdf.parse(pdf_paths[lang])
-        matched, fuzzy, missing = match_groups(banks[lang]["questions"], rows)
-        log(f"  {lang}: {len(rows)} PDF rows, matched {len(matched)} "
-            f"({fuzzy} fuzzy), unmatched {len(missing)}")
-        for q in missing:
-            log(f"    unmatched {q['id']}: {q['text'][:70]}")
-        groups_by_id.update(matched)
+    groups_by_id = learn_groups(banks, pdf_paths)
 
-    BANKS_OUT.mkdir(parents=True, exist_ok=True)
-    manifest, images = [], set()
-    for lang in LANGUAGES:
-        bank = banks[lang]
-        questions = []
-        for q in sorted(bank["questions"].values(), key=lambda q: (q["section"], q["id"])):
-            if q["id"] not in groups_by_id:
-                continue
-            questions.append({**q, "groups": groups_by_id[q["id"]]})
-            if q["image"]:
-                images.add(q["image"])
-        bank_id = f"sk-{lang}"
-        out = {"id": bank_id, "version": args.version, "country": "SK", "language": lang, "imageDir": IMAGES_OUT.name, "sections": bank["sections"], "questions": questions}
-        (BANKS_OUT / f"{bank_id}-v{args.version}.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-        counts = {g: sum(1 for q in questions if g in q["groups"]) for g in GROUPS}
-        manifest.append({"id": bank_id, "version": args.version, "country": "SK", "language": lang, "questionCounts": counts})
-        log(f"  {bank_id}: {len(questions)} questions ({len(bank['questions']) - len(questions)} without groups dropped), {counts}")
-    # Keep other importers' banks in the shared index.
-    index_path = BANKS_OUT / "index.json"
-    others = [b for b in json.loads(index_path.read_text(encoding="utf-8")) if b["country"] != "SK"] if index_path.exists() else []
-    index_path.write_text(json.dumps(others + manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    missing = [i for i in sorted(images) if args.refresh or not (IMAGES_OUT / i).exists()]
-    # Older bank versions stay bundled (see docs/importing-questions.md), so keep their images too.
-    for older in BANKS_OUT.glob("sk-*-v*.json"):
-        bank = json.loads(older.read_text(encoding="utf-8"))
-        images.update(q["image"] for q in bank["questions"] if q["image"])
-    log(f"Fetching images: {len(images)} referenced, {len(missing)} to download")
-    for image in missing:
-        download(IMAGE_URL + image, IMAGES_OUT / image, args.refresh, quiet=True)
-    stale = [p for p in IMAGES_OUT.rglob("*") if p.is_file() and p.relative_to(IMAGES_OUT).as_posix() not in images]
-    for path in stale:
-        path.unlink()
-    if stale:
-        log(f"  removed {len(stale)} images no longer referenced")
+    sync_images(write_banks(banks, groups_by_id, args.version), args.refresh)
     log("Done")
 
 

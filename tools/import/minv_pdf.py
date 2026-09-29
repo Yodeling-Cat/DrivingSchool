@@ -25,6 +25,26 @@ def _groups(text):
     return [g for g in re.split(r"[,\s]+", text or "") if g]
 
 
+def _page_images(page):
+    """(bbox, xref) of every question-sized image drawn on the page."""
+    return [
+        (info["bbox"], info["xref"])
+        for info in page.get_image_info(xrefs=True)
+        if info["xref"] and info["bbox"][2] - info["bbox"][0] < 400
+    ]
+
+
+def _cell_images(cell, page_index, images):
+    """The tracked images whose centre falls inside the table [cell]."""
+    inside = []
+    for bbox, xref in images:
+        cx = (bbox[0] + bbox[2]) / 2
+        cy = (bbox[1] + bbox[3]) / 2
+        if cell[0] <= cx <= cell[2] and cell[1] <= cy <= cell[3]:
+            inside.append((page_index, xref))
+    return inside
+
+
 def parse(path):
     """Returns (document, questions in PDF order)."""
     doc = pymupdf.open(path)
@@ -33,11 +53,7 @@ def parse(path):
     # Page 0 is the title page, page 1 the table of contents.
     for page_index in range(2, doc.page_count):
         page = doc[page_index]
-        images = [
-            (info["bbox"], info["xref"])
-            for info in page.get_image_info(xrefs=True)
-            if info["xref"] and info["bbox"][2] - info["bbox"][0] < 400
-        ]
+        images = _page_images(page)
         for table in page.find_tables().tables:
             for row, cells in zip(table.rows, table.extract()):
                 number, question, answer, groups = (cells + [None] * 4)[:4]
@@ -58,12 +74,7 @@ def parse(path):
                 current.answer = _clean(f"{current.answer} {answer}")
                 current.groups += _groups(groups)
                 # Images drawn inside the question cell belong to this row.
-                qcell = row.cells[1]
-                if qcell is None:
-                    continue
-                for bbox, xref in images:
-                    cy = (bbox[1] + bbox[3]) / 2
-                    cx = (bbox[0] + bbox[2]) / 2
-                    if qcell[1] <= cy <= qcell[3] and qcell[0] <= cx <= qcell[2]:
-                        current.images.append((page_index, xref))
+                question_cell = row.cells[1]
+                if question_cell is not None:
+                    current.images += _cell_images(question_cell, page_index, images)
     return doc, rows

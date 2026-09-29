@@ -10,7 +10,7 @@ import uno.lux.autoskola.bank.QuestionBankInfo
 class QuestionBankRepository(private val dataSource: QuestionBankDataSource) {
     private val mutex = Mutex()
     private var index: List<QuestionBankInfo>? = null
-    private val banks = mutableMapOf<String, QuestionBank?>()
+    private val banks = mutableMapOf<String, QuestionBank>()
 
     suspend fun index(): List<QuestionBankInfo> = mutex.withLock {
         index ?: dataSource.readIndex().also { index = it }
@@ -22,10 +22,14 @@ class QuestionBankRepository(private val dataSource: QuestionBankDataSource) {
         return bank(id, version)
     }
 
-    /** A specific version, e.g. to show an old attempt; older versions stay bundled. */
+    /**
+     * A specific version, e.g. to show an old attempt; older versions stay bundled. Only banks that
+     * were read successfully are remembered: a read that failed or was cancelled is tried again
+     * next time, so a hiccup while loading can't leave the exam "missing" for the whole process.
+     */
     suspend fun bank(id: String, version: Int): QuestionBank? = mutex.withLock {
         val key = "$id-v$version"
-        if (key in banks) banks[key] else dataSource.readBank(id, version).also { banks[key] = it }
+        banks[key] ?: dataSource.readBank(id, version)?.also { banks[key] = it }
     }
 
     /** URI of the image of [question], for the image loader, or `null` for text-only questions. */

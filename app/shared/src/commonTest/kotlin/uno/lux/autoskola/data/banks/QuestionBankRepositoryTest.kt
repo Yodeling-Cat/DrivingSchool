@@ -1,6 +1,8 @@
 package uno.lux.autoskola.data.banks
 
 import kotlinx.coroutines.test.runTest
+import uno.lux.autoskola.bank.QuestionBank
+import uno.lux.autoskola.bank.QuestionBankInfo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -40,4 +42,32 @@ class QuestionBankRepositoryTest {
         assertEquals(1, source.indexReads)
         assertEquals(listOf("sk-sk-v1"), source.bankReads)
     }
+
+    @Test
+    fun bankIsReadAgainAfterAFailedRead() = runTest {
+        // A read can fail once - or be cancelled - without the bank being gone. Remembering the
+        // failure would keep the exam "missing" for the rest of the process, which drops the user
+        // into onboarding and never lets them out.
+        val repository = QuestionBankRepository(FailingOnceBankDataSource(testBank("sk-sk")))
+
+        assertNull(repository.bank("sk-sk", 1))
+        assertEquals("sk-sk", repository.bank("sk-sk", 1)?.id)
+    }
+}
+
+/** Fails the first read of [bank], then serves it, as an interrupted read would. */
+private class FailingOnceBankDataSource(private val bank: QuestionBank) : QuestionBankDataSource {
+    private var failuresLeft = 1
+
+    override suspend fun readIndex(): List<QuestionBankInfo> = listOf(testBankInfo(bank.id, bank.version))
+
+    override suspend fun readBank(id: String, version: Int): QuestionBank? {
+        if (failuresLeft > 0) {
+            failuresLeft--
+            return null
+        }
+        return bank.takeIf { it.id == id && it.version == version }
+    }
+
+    override fun imageUri(imageDir: String, path: String): String = "test://$imageDir/$path"
 }

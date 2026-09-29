@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -112,6 +113,8 @@ private val QuestionChipIncorrectBg = Color(0xFFFFCDD2)
 private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
+
+private val TopAppBarHeight = 64.dp
 
 /** How far the question list sheet is dragged before the arrows are gone. */
 private val ExpandFadeDistance = 96.dp
@@ -205,6 +208,11 @@ fun PracticeScreen(
             ((collapsedOffset - offset) / with(density) { ExpandFadeDistance.toPx() }).coerceIn(0f, 1f)
         }
     }
+    // Keep the expanded sheet below the status bar (and the top app bar, when there is one).
+    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topReserved = if (compactHeight) 0.dp else statusBarInset + TopAppBarHeight
+    val maxGridHeight =
+        (with(density) { scaffoldHeight.toDp() } - topReserved - barHeight - navBarInset).coerceAtLeast(0.dp)
     val sideInsets =
         WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
     val listExpanded = !showPanel && sheetState.targetValue == SheetValue.Expanded
@@ -354,7 +362,7 @@ fun PracticeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         content = barContent,
                     )
-                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                    Column(Modifier.heightIn(max = maxGridHeight).verticalScroll(rememberScrollState())) {
                         QuestionGrid(
                             questions = questions,
                             sections = sections,

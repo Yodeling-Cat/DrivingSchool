@@ -100,15 +100,18 @@ fun ExamSelectionScreen(
 
             else -> onBack
         }
+        // Only onboarding offers the app-language picker; when the user opened this from another
+        // screen, the language is changed in settings.
+        val pickerLanguage = state.language.takeIf { onBack == null }
         when (val step = state.step) {
             is ExamSelectionStep.ChooseCountry ->
-                CountryStep(state.countryOptions, state.language, onStepBack, onEvent)
+                CountryStep(state.countryOptions, pickerLanguage, onStepBack, onEvent)
 
             is ExamSelectionStep.ChooseBankLanguage ->
-                LanguageStep(step.banks, state.language, onStepBack, onEvent)
+                LanguageStep(step.banks, pickerLanguage, onStepBack, onEvent)
 
             is ExamSelectionStep.ChooseCategory ->
-                CategoryStep(step.bank, state.language, onStepBack, onEvent)
+                CategoryStep(step.bank, pickerLanguage, onStepBack, onEvent)
         }
     }
 }
@@ -116,7 +119,7 @@ fun ExamSelectionScreen(
 @Composable
 private fun CountryStep(
     options: List<CountryOption>,
-    language: AppLanguage,
+    language: AppLanguage?,
     onBack: (() -> Unit)?,
     onEvent: (ExamSelectionUiEvent) -> Unit,
 ) {
@@ -175,7 +178,7 @@ private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
 @Composable
 private fun LanguageStep(
     banks: List<QuestionBankInfo>,
-    language: AppLanguage,
+    language: AppLanguage?,
     onBack: (() -> Unit)?,
     onEvent: (ExamSelectionUiEvent) -> Unit,
 ) {
@@ -204,7 +207,7 @@ private fun LanguageStep(
 @Composable
 private fun CategoryStep(
     bank: QuestionBankInfo,
-    language: AppLanguage,
+    language: AppLanguage?,
     onBack: (() -> Unit)?,
     onEvent: (ExamSelectionUiEvent) -> Unit,
 ) {
@@ -238,11 +241,11 @@ private fun CategoryStep(
     }
 }
 
-/** Back button + app-language switcher, then a step's title and optional subtitle. */
+/** Back button + app-language switcher (hidden when [language] is `null`), then a step's title and optional subtitle. */
 @Composable
 private fun StepHeader(
     onBack: (() -> Unit)?,
-    language: AppLanguage,
+    language: AppLanguage?,
     onEvent: (ExamSelectionUiEvent) -> Unit,
     title: String,
     subtitle: String?,
@@ -255,7 +258,9 @@ private fun StepHeader(
                 IconButton(onClick = onBack) { Icon(IconArrowBack, contentDescription = strings.back) }
             }
             Spacer(Modifier.weight(1f))
-            LanguageMenu(current = language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
+            if (language != null) {
+                LanguageMenu(current = language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
+            }
         }
         Text(
             title,

@@ -230,7 +230,6 @@ private fun CategoryStep(
                         CategoryRow(
                             label = category.displayName(bank.language),
                             category = category,
-                            questionCount = bank.questionCounts.getValue(category),
                             onClick = { onEvent(ExamSelectionUiEvent.ChooseCategory(category)) },
                         )
                     }
@@ -301,7 +300,6 @@ private fun BigOptionRow(title: String, onClick: () -> Unit) {
 private fun CategoryRow(
     label: String,
     category: LicenseCategory,
-    questionCount: Int,
     onClick: () -> Unit,
 ) {
     Row(
@@ -314,7 +312,6 @@ private fun CategoryRow(
         Icon(category.icon, contentDescription = null, tint = category.tint, modifier = Modifier.size(28.dp))
         Spacer(Modifier.width(20.dp))
         Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-        Text("$questionCount", color = Subdued, fontSize = 14.sp)
     }
 }
 

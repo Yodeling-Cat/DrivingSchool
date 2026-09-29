@@ -36,14 +36,14 @@ class PreferencesRepositoryTest {
     fun settingsSurviveRestart() {
         val settings = MapSettings()
         PreferencesRepository(settings).apply {
-            assertFalse(preferences.value.checkAnswersImmediately)
+            assertTrue(preferences.value.checkAnswersImmediately)
             selectLanguage(AppLanguage.Hungarian)
-            setCheckAnswersImmediately(true)
+            setCheckAnswersImmediately(false)
         }
 
         val restored = PreferencesRepository(settings).preferences.value
         assertEquals(AppLanguage.Hungarian, restored.language)
-        assertTrue(restored.checkAnswersImmediately)
+        assertFalse(restored.checkAnswersImmediately)
     }
 
     @Test

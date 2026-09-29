@@ -24,7 +24,7 @@ class SettingsViewModelTest : ViewModelTest() {
         val state = observe(viewModel.uiState).value
 
         assertEquals(ExamLabel(LicenseCategory.C, "sk"), state.exam)
-        assertFalse(state.checkAnswersImmediately)
+        assertTrue(state.checkAnswersImmediately)
     }
 
     @Test
@@ -32,10 +32,10 @@ class SettingsViewModelTest : ViewModelTest() {
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SettingsUiEvent.SelectLanguage(AppLanguage.Hungarian))
-        viewModel.onEvent(SettingsUiEvent.SetCheckAnswersImmediately(true))
+        viewModel.onEvent(SettingsUiEvent.SetCheckAnswersImmediately(false))
 
         assertEquals(AppLanguage.Hungarian, state.value.language)
-        assertTrue(state.value.checkAnswersImmediately)
-        assertTrue(repositories.preferences.preferences.value.checkAnswersImmediately)
+        assertFalse(state.value.checkAnswersImmediately)
+        assertFalse(repositories.preferences.preferences.value.checkAnswersImmediately)
     }
 }

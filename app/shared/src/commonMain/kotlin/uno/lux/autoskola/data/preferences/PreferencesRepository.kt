@@ -55,7 +55,7 @@ class PreferencesRepository(private val settings: Settings) {
         disclaimerAccepted = settings.getBoolean(KEY_DISCLAIMER, false),
         selection = readSelection(),
         language = AppLanguage.fromCode(settings.getStringOrNull(KEY_LANGUAGE)) ?: AppLanguage.system(),
-        checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, false),
+        checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
     )
 
     private fun readSelection(): TestSelection? {

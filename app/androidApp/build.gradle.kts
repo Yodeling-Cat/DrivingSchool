@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -46,4 +47,21 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+}
+
+/** adb from the SDK in local.properties (or ANDROID_HOME), falling back to PATH. */
+fun adbExecutable(): String {
+    val properties = Properties()
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { properties.load(it) }
+    val sdk = properties.getProperty("sdk.dir") ?: System.getenv("ANDROID_HOME")
+    val name = if (System.getProperty("os.name").startsWith("Windows")) "adb.exe" else "adb"
+    return if (sdk == null) name else "${sdk.trim()}/platform-tools/$name"
+}
+
+// Builds, installs and launches the debug build on the connected device.
+tasks.register<Exec>("runDebug") {
+    group = "install"
+    description = "Installs the Debug build and starts it on the connected device."
+    dependsOn("installDebug")
+    commandLine(adbExecutable(), "shell", "am", "start", "-n", "uno.lux.autoskola/.MainActivity")
 }

@@ -55,9 +55,45 @@ class AnswerRulesTest {
 
     @Test
     fun questionListOnlyRevealsCorrectnessWhenCheckingImmediately() {
-        assertEquals(ChipState.Unanswered, chipState(selected = null, correct = 0, revealCorrectness = true))
-        assertEquals(ChipState.Answered, chipState(selected = 1, correct = 0, revealCorrectness = false))
-        assertEquals(ChipState.Incorrect, chipState(selected = 1, correct = 0, revealCorrectness = true))
-        assertEquals(ChipState.Correct, chipState(selected = 0, correct = 0, revealCorrectness = true))
+        assertEquals(
+            ChipState.Unanswered,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = false),
+        )
+        assertEquals(
+            ChipState.Answered,
+            chipState(selected = 1, correct = 0, revealCorrectness = false, finished = false),
+        )
+        assertEquals(
+            ChipState.Incorrect,
+            chipState(selected = 1, correct = 0, revealCorrectness = true, finished = false),
+        )
+        assertEquals(
+            ChipState.Correct,
+            chipState(selected = 0, correct = 0, revealCorrectness = true, finished = false),
+        )
+    }
+
+    @Test
+    fun aQuestionLeftOpenInAFinishedTestIsSkipped() {
+        assertTrue(questionSkipped(selected = null, finished = true))
+        assertFalse(questionSkipped(selected = 1, finished = true))
+    }
+
+    @Test
+    fun aQuestionTheUserHasNotReachedYetIsNotSkipped() {
+        assertFalse(questionSkipped(selected = null, finished = false))
+        assertFalse(questionSkipped(selected = 1, finished = false))
+    }
+
+    @Test
+    fun questionListMarksSkippedQuestionsOnlyOnceTheTestIsFinished() {
+        assertEquals(
+            ChipState.Skipped,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = true),
+        )
+        assertEquals(
+            ChipState.Unanswered,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = false),
+        )
     }
 }

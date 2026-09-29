@@ -107,6 +107,8 @@ private val CorrectAnswerBg = Color(0xFFE8F5E9)
 private val CorrectAnswerAccent = Color(0xFF388E3C)
 private val WrongAnswerBg = Color(0xFFFFEBEE)
 private val WrongAnswerAccent = Color(0xFFD32F2F)
+private val SkippedAnswerBg = Color(0xFFFFF8E1)
+private val SkippedAnswerAccent = Color(0xFFC2410C)
 private val UnselectedLetter = Color(0xFFBDBDBD)
 private val CardBorder = Color(0xFFE0E0E0)
 private val Subdued = Color(0xFF757575)
@@ -115,6 +117,7 @@ private val QuestionChipBg = Color(0xFFEEEEEE)
 private val QuestionChipAnsweredBg = Color(0xFFD1C4E9)
 private val QuestionChipCorrectBg = Color(0xFFC8E6C9)
 private val QuestionChipIncorrectBg = Color(0xFFFFCDD2)
+private val QuestionChipSkippedBg = Color(0xFFFFECB3)
 private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
@@ -311,6 +314,7 @@ fun PracticeScreen(
                     imageUri = state.questions[page].imageUri,
                     selectedIndex = selectedAnswers[page],
                     locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
+                    skipped = questionSkipped(selectedAnswers[page], finished),
                     onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
                 )
             }
@@ -328,6 +332,7 @@ fun PracticeScreen(
                         currentIndex = currentIndex,
                         selectedAnswers = selectedAnswers,
                         revealCorrectness = revealCorrectness,
+                        finished = finished,
                         onSelectQuestion = ::goTo,
                     )
                 }
@@ -400,6 +405,7 @@ fun PracticeScreen(
                             currentIndex = currentIndex,
                             selectedAnswers = selectedAnswers,
                             revealCorrectness = revealCorrectness,
+                            finished = finished,
                             onSelectQuestion = {
                                 goTo(it)
                                 scope.launch { sheetState.partialExpand() }
@@ -544,6 +550,8 @@ private fun QuestionPage(
     selectedIndex: Int?,
     /** A locked answer is final, so it's shown as right or wrong. */
     locked: Boolean,
+    /** The user left this question open in a finished test. */
+    skipped: Boolean,
     onSelect: (Int) -> Unit,
 ) {
     val revealed = locked
@@ -579,6 +587,10 @@ private fun QuestionPage(
                 Column(Modifier.weight(3f)) {
                     questionText()
                     Spacer(Modifier.height(12.dp))
+                    if (skipped) {
+                        SkippedNotice()
+                        Spacer(Modifier.height(8.dp))
+                    }
                     answers()
                     Spacer(Modifier.height(16.dp))
                 }
@@ -599,10 +611,38 @@ private fun QuestionPage(
                     QuestionImage(uri = uri)
                 }
                 Spacer(Modifier.height(16.dp))
+                if (skipped) {
+                    SkippedNotice()
+                    Spacer(Modifier.height(8.dp))
+                }
                 answers()
                 Spacer(Modifier.height(16.dp))
             }
         }
+    }
+}
+
+/**
+ * States that the question was left open, above the answers that are revealed anyway. The correct
+ * answer still shows as correct: this only says that none of them was the user's.
+ */
+@Composable
+private fun SkippedNotice() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SkippedAnswerBg)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            strings.skippedQuestion,
+            color = SkippedAnswerAccent,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 1.sp,
+        )
     }
 }
 
@@ -722,6 +762,7 @@ private fun QuestionGrid(
     currentIndex: Int,
     selectedAnswers: Map<Int, Int>,
     revealCorrectness: Boolean,
+    finished: Boolean,
     onSelectQuestion: (Int) -> Unit,
 ) {
     val grouped: List<Pair<Section, List<Int>>> =
@@ -751,6 +792,7 @@ private fun QuestionGrid(
                                 selected = selectedAnswers[idx],
                                 correct = questions[idx].correct,
                                 revealCorrectness = revealCorrectness,
+                                finished = finished,
                             ),
                             isCurrent = idx == currentIndex,
                             onClick = { onSelectQuestion(idx) },
@@ -773,6 +815,7 @@ private fun QuestionChip(
     val bg = when (state) {
         ChipState.Correct -> QuestionChipCorrectBg
         ChipState.Incorrect -> QuestionChipIncorrectBg
+        ChipState.Skipped -> QuestionChipSkippedBg
         ChipState.Answered -> QuestionChipAnsweredBg
         ChipState.Unanswered -> QuestionChipBg
     }

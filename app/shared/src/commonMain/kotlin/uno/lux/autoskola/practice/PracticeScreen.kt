@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -114,8 +115,6 @@ private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
 
-private val TopAppBarHeight = 64.dp
-
 /** How far the question list sheet is dragged before the arrows are gone. */
 private val ExpandFadeDistance = 96.dp
 
@@ -197,29 +196,12 @@ fun PracticeScreen(
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val barHeight = if (compactHeight) 56.dp else 80.dp
     val density = LocalDensity.current
-    var scaffoldHeight by remember { mutableStateOf(0) }
-    // 0 while the sheet is collapsed, 1 once it has been dragged (or has animated) far enough up.
-    val expandFraction: () -> Float = {
-        if (showPanel || scaffoldHeight == 0) {
-            0f
-        } else {
-            val collapsedOffset = scaffoldHeight - with(density) { (barHeight + navBarInset).toPx() }
-            val offset = runCatching { sheetState.requireOffset() }.getOrDefault(collapsedOffset)
-            ((collapsedOffset - offset) / with(density) { ExpandFadeDistance.toPx() }).coerceIn(0f, 1f)
-        }
-    }
-    // Keep the expanded sheet below the status bar (and the top app bar, when there is one).
+    // The open sheet covers the top app bar, so it only has to stay below the status bar. Phones in
+    // landscape are inset below the status bar by the box the sheet lives in instead.
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topReserved = if (compactHeight) 0.dp else statusBarInset + TopAppBarHeight
-    val maxGridHeight =
-        (with(density) { scaffoldHeight.toDp() } - topReserved - barHeight - navBarInset).coerceAtLeast(0.dp)
+    val topReserved = if (compactHeight) 0.dp else statusBarInset
     val sideInsets =
         WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
-    val listExpanded = !showPanel && sheetState.targetValue == SheetValue.Expanded
-
-    fun toggleList() {
-        scope.launch { if (listExpanded) sheetState.partialExpand() else sheetState.expand() }
-    }
 
     // Stays up until acted on: first to finish the test, then to get back to its results.
     val snackbarHostState = remember { SnackbarHostState() }
@@ -267,7 +249,12 @@ fun PracticeScreen(
         }
     }
 
-    val barContent: @Composable RowScope.() -> Unit = {
+    /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
+    val barContent: @Composable RowScope.(
+        listExpanded: Boolean,
+        onToggleList: () -> Unit,
+        arrowAlpha: () -> Float,
+    ) -> Unit = { listExpanded, onToggleList, arrowAlpha ->
         PracticeBarContent(
             compactHeight = compactHeight,
             testName = testName,
@@ -278,10 +265,10 @@ fun PracticeScreen(
             listExpanded = listExpanded,
             canFinish = !finished,
             onBack = onBack,
-            onToggleList = ::toggleList,
+            onToggleList = onToggleList,
             onPrevious = { goTo(currentIndex - 1) },
             onNext = { goTo(currentIndex + 1) },
-            arrowAlpha = { 1f - expandFraction() },
+            arrowAlpha = arrowAlpha,
             onFinish = { onEvent(PracticeUiEvent.Finish) },
         )
     }
@@ -331,25 +318,53 @@ fun PracticeScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = topBar,
             bottomBar = {
-                BottomAppBar(containerColor = Color.White, contentPadding = bottomBarPadding, content = barContent)
+                // The list is always visible next to the question here, so the toggle is inert and
+                // the arrows never fade.
+                BottomAppBar(
+                    containerColor = Color.White,
+                    contentPadding = bottomBarPadding,
+                    content = { barContent(false, {}, { 1f }) },
+                )
             },
             content = pagerContent,
         )
     } else {
         // The question list is a sheet pinned to the bottom: collapsed it shows just the bar.
-        Box(
+        BoxWithConstraints(
             Modifier
                 .fillMaxSize()
                 // The scaffold doesn't inset its content, and without a top bar the expanded sheet
                 // would reach under the status bar.
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets))
-                .onSizeChanged { scaffoldHeight = it.height },
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets)),
         ) {
+            // Both the sheet's room and its drag position are measured against the box it sits in,
+            // which is known before the sheet is laid out. Deriving them from the sheet's own size
+            // would leave the grid without a height on the first pass, and a sheet exactly as tall
+            // as its peek height has no collapsed state to start from: it opens over the question.
+            val availableHeight = maxHeight
+            // 0 while the sheet is collapsed, 1 once it has been dragged (or has animated) far enough up.
+            val expandFraction: () -> Float = {
+                val collapsedOffset = with(density) { (availableHeight - barHeight - navBarInset).toPx() }
+                val offset = runCatching { sheetState.requireOffset() }.getOrDefault(collapsedOffset)
+                ((collapsedOffset - offset) / with(density) { ExpandFadeDistance.toPx() }).coerceIn(0f, 1f)
+            }
+            // The list scrolls up to the status bar; the navigation bar's room is part of the list,
+            // so it doesn't take any height away from it.
+            val maxGridHeight = (availableHeight - topReserved - barHeight).coerceAtLeast(0.dp)
+            val listExpanded = sheetState.targetValue == SheetValue.Expanded
+
+            fun toggleList() {
+                scope.launch { if (listExpanded) sheetState.partialExpand() else sheetState.expand() }
+            }
+
             BottomSheetScaffold(
                 scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
                 containerColor = Color.White,
                 sheetContainerColor = Color.White,
                 sheetPeekHeight = barHeight + navBarInset,
+                // The sheet and the screen behind it are both white, so the shadow is what separates
+                // them: the Material default is barely visible.
+                sheetShadowElevation = 24.dp,
                 sheetDragHandle = null,
                 topBar = topBar,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -360,7 +375,9 @@ fun PracticeScreen(
                             .height(barHeight + navBarInset * (1f - expandFraction()))
                             .padding(horizontal = if (compactHeight) 4.dp else 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        content = barContent,
+                        content = {
+                            barContent(listExpanded, ::toggleList, { 1f - expandFraction() })
+                        },
                     )
                     Column(Modifier.heightIn(max = maxGridHeight).verticalScroll(rememberScrollState())) {
                         QuestionGrid(

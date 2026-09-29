@@ -13,18 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -43,12 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
-import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.ContentWidth
 
 private val Background = Color(0xFFF5F5F5)
-private val CardBorder = Color(0xFFE0E0E0)
 private val Subdued = Color(0xFF616161)
 private val Accent = Color(0xFF5E35B1)
 
@@ -67,6 +60,12 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
         topBar = {
             TopAppBar(
                 title = { Text(strings.settingsTitle, fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    LanguageMenu(
+                        current = state.language,
+                        onSelect = { onEvent(SettingsUiEvent.SelectLanguage(it)) },
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Background),
             )
         },
@@ -131,31 +130,6 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
                     }
                 }
 
-                SectionTitle(strings.settingsLanguage)
-                Card(Modifier.selectableGroup()) {
-                    AppLanguage.entries.forEachIndexed { index, option ->
-                        if (index > 0) HorizontalDivider(color = CardBorder)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = option == state.language,
-                                    onClick = { onEvent(SettingsUiEvent.SelectLanguage(option)) },
-                                    role = Role.RadioButton,
-                                )
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = option == state.language,
-                                onClick = null,
-                                colors = RadioButtonDefaults.colors(selectedColor = Accent),
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Text(option.nativeName, fontSize = 16.sp)
-                        }
-                    }
-                }
                 Spacer(Modifier.height(24.dp))
             }
         }

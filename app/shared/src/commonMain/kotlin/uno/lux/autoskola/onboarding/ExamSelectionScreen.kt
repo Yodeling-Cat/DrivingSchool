@@ -297,11 +297,7 @@ private fun BigOptionRow(title: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CategoryRow(
-    label: String,
-    category: LicenseCategory,
-    onClick: () -> Unit,
-) {
+private fun CategoryRow(label: String, category: LicenseCategory, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

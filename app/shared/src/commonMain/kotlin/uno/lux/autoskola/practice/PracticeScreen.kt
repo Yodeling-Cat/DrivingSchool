@@ -231,48 +231,18 @@ fun PracticeScreen(
 
     // Stays up until acted on: first to finish the test, then to get back to its results.
     val snackbarHostState = remember { SnackbarHostState() }
-    val prompt = finishPrompt(state.allAnswered, finished)
-    val promptMessage = when (prompt) {
-        FinishPrompt.Finish -> strings.allQuestionsAnswered
-        FinishPrompt.ShowResults -> strings.testFinished
-        null -> null
-    }
-    val promptAction = when (prompt) {
-        FinishPrompt.Finish -> strings.finish
-        FinishPrompt.ShowResults -> strings.showResults
-        null -> null
-    }
-    LaunchedEffect(prompt, promptMessage) {
-        snackbarHostState.currentSnackbarData?.dismiss()
-        if (prompt == null || promptMessage == null) return@LaunchedEffect
-        val result = snackbarHostState.showSnackbar(promptMessage, promptAction, duration = SnackbarDuration.Indefinite)
-        if (result == SnackbarResult.ActionPerformed) {
-            when (prompt) {
-                FinishPrompt.Finish -> onEvent(PracticeUiEvent.Finish)
-                FinishPrompt.ShowResults -> onOpenResults()
-            }
-        }
-    }
+    FinishPromptEffect(
+        prompt = finishPrompt(state.allAnswered, finished),
+        snackbarHostState = snackbarHostState,
+        onFinish = { onEvent(PracticeUiEvent.Finish) },
+        onShowResults = onOpenResults,
+    )
 
     val bottomBarPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding
 
+    // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
-        if (!compactHeight) {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                        Text(group, color = Subdued, fontSize = 12.sp)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = ::handleBack) {
-                        Icon(IconArrowBack, contentDescription = strings.back)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-            )
-        }
+        if (!compactHeight) PracticeTopBar(testName, group, onBack = ::handleBack)
     }
 
     /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
@@ -420,27 +390,80 @@ fun PracticeScreen(
     }
 
     if (confirmingLeave) {
-        AlertDialog(
-            onDismissRequest = { confirmingLeave = false },
-            title = { Text(strings.leaveTestTitle) },
-            text = { Text(strings.leaveTestMessage) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmingLeave = false
-                        onBack()
-                    },
-                ) {
-                    Text(strings.leaveTest)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmingLeave = false }) {
-                    Text(strings.keepTesting)
-                }
+        LeaveTestDialog(
+            onDismiss = { confirmingLeave = false },
+            onConfirm = {
+                confirmingLeave = false
+                onBack()
             },
         )
     }
+}
+
+/**
+ * Keeps the prompt that offers to finish the test - and later to show its results - up until the
+ * user acts on it.
+ */
+@Composable
+private fun FinishPromptEffect(
+    prompt: FinishPrompt?,
+    snackbarHostState: SnackbarHostState,
+    onFinish: () -> Unit,
+    onShowResults: () -> Unit,
+) {
+    val message = when (prompt) {
+        FinishPrompt.Finish -> strings.allQuestionsAnswered
+        FinishPrompt.ShowResults -> strings.testFinished
+        null -> null
+    }
+    val action = when (prompt) {
+        FinishPrompt.Finish -> strings.finish
+        FinishPrompt.ShowResults -> strings.showResults
+        null -> null
+    }
+    LaunchedEffect(prompt, message) {
+        snackbarHostState.currentSnackbarData?.dismiss()
+        if (prompt == null || message == null) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(message, action, duration = SnackbarDuration.Indefinite)
+        if (result == SnackbarResult.ActionPerformed) {
+            when (prompt) {
+                FinishPrompt.Finish -> onFinish()
+                FinishPrompt.ShowResults -> onShowResults()
+            }
+        }
+    }
+}
+
+/** The title of a test: its name above the exam it belongs to. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PracticeTopBar(testName: String, group: String, onBack: () -> Unit) {
+    CenterAlignedTopAppBar(
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text(group, color = Subdued, fontSize = 12.sp)
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(IconArrowBack, contentDescription = strings.back)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+    )
+}
+
+/** Asks whether to leave an unfinished test, whose answers would be lost. */
+@Composable
+private fun LeaveTestDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.leaveTestTitle) },
+        text = { Text(strings.leaveTestMessage) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(strings.leaveTest) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.keepTesting) } },
+    )
 }
 
 @Composable

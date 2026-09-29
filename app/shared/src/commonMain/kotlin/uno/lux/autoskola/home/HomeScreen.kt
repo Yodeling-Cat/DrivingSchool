@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
@@ -59,6 +57,7 @@ import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.fullWidthItem
 
 private val CardBorder = Color(0xFFE0E0E0)
 private val Subdued = Color(0xFF757575)
@@ -142,8 +141,8 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (!twoPane) fullWidth { overview() }
-                    fullWidth {
+                    if (!twoPane) fullWidthItem { overview() }
+                    fullWidthItem {
                         Text(
                             strings.allTests,
                             fontWeight = FontWeight.SemiBold,
@@ -165,10 +164,6 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
     }
 
     state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
-}
-
-private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
-    item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
 
 @Composable

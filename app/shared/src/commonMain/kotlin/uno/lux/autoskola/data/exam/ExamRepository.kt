@@ -35,14 +35,10 @@ class ExamRepository(
             }
             emit(CurrentExam.Loading)
             val bank = banks.latestBank(selection.bankId)
-            emit(
-                if (bank ==
-                    null
-                ) {
-                    CurrentExam.Missing
-                } else {
-                    CurrentExam.Ready(ExamSession(bank, selection.category, attempts))
-                },
-            )
+            if (bank == null) {
+                emit(CurrentExam.Missing)
+                return@transformLatest
+            }
+            emit(CurrentExam.Ready(ExamSession(bank, selection.category, attempts)))
         }
 }

@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -49,6 +47,7 @@ import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.settings.LanguageMenu
+import uno.lux.autoskola.ui.fullWidthItem
 
 private val Background = Color(0xFFF5F5F5)
 private val Subdued = Color(0xFF616161)
@@ -130,7 +129,7 @@ private fun CountryStep(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        fullWidth {
+        fullWidthItem {
             StepHeader(
                 onBack,
                 language,
@@ -314,10 +313,6 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
         Spacer(Modifier.width(20.dp))
         Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
     }
-}
-
-private fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
-    item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
 
 /**

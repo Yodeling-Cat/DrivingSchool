@@ -309,8 +309,6 @@ fun PracticeScreen(
     /** The bar's place in the sheet: the pill plus the room it floats in. */
     val barSlotHeight = pillHeight + pillGap * 2
 
-    /** How far a question's content has to clear the pinned bar to be readable to its last line. */
-    val questionBottomRoom = barSlotHeight + navBarInset + 16.dp
     // The open sheet covers the top app bar, so it only has to stay below the status bar. Phones in
     // landscape are inset below the status bar by the box the sheet lives in instead.
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -324,6 +322,15 @@ fun PracticeScreen(
 
     // Stays up until acted on: first to finish the test, then to get back to its results.
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // A message bar sits over the questions too, so while one is up the content under it needs the
+    // height the host takes up on top of the bar's slot - otherwise the last answer can't be
+    // scrolled out from under it.
+    val snackbarUp = snackbarHostState.currentSnackbarData != null
+    val messageRoom = if (snackbarUp) SnackbarHeight + SnackbarHostInset * 2 + SnackbarAboveSheet else 0.dp
+
+    /** How far a question's content has to clear the pinned bar to be readable to its last line. */
+    val questionBottomRoom = barSlotHeight + navBarInset + 16.dp + messageRoom
     OverTimeNoticeEffect(
         show = state.showTimeLimitToast,
         message = strings.overTime((state.allottedSeconds / 60).toInt()),
@@ -981,6 +988,9 @@ private fun RowScope.PracticeBarContent(
 
 /** The room Material's own SnackbarHost keeps under the Snackbar it shows. */
 private val SnackbarHostInset = 12.dp
+
+/** How tall Material's Snackbar is, whatever its text. */
+private val SnackbarHeight = 48.dp
 
 /**
  * Material's own message bar: as wide as the box it is placed in, and sitting [lift] above that

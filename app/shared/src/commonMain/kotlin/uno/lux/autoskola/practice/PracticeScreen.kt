@@ -40,6 +40,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -760,7 +761,11 @@ private fun QuestionPage(
         )
     }
     val questionText: @Composable () -> Unit = {
-        Text(displayText(question.text), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+        // Selectable, so a question can be copied out — to look up the rule it's about, say. The
+        // answers aren't: a tap on one of those picks an answer.
+        SelectionContainer {
+            Text(displayText(question.text), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+        }
     }
     // With little height (phones in landscape) a stacked image would push the answers off
     // screen, so show it next to the question and answers instead.

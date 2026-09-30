@@ -24,8 +24,13 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
             .sortedBy { it.finishedAt }
             .associate { it.testNumber!! to it.result!! }
 
-    /** Most recently touched attempt that is neither finished nor discarded. */
-    val resumable: TestAttempt? = attempts.filter { it.isOpen }.maxByOrNull { it.updatedAt }
+    /**
+     * Most recently touched attempt that is neither finished nor discarded, and can be continued:
+     * only a numbered practice test. A repeat of the questions the user got wrong is left where it
+     * was, so the home screen doesn't offer to continue a drill they walked away from.
+     */
+    val resumable: TestAttempt? =
+        attempts.filter { it.isOpen && it.kind == AttemptKind.PracticeTest }.maxByOrNull { it.updatedAt }
 
     /** Questions whose most recent final answer was wrong, most recently missed first. */
     val mistakes: List<Int> =

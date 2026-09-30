@@ -82,6 +82,25 @@ class StatisticsTest {
     }
 
     @Test
+    fun aMistakesTestIsNotOfferedToContinue() {
+        val stats = Statistics.of(
+            listOf(
+                attempt("test", startedAt = 1),
+                attempt("mistakes", testNumber = null, startedAt = 2, answers = arrayOf(answer(1, false, 9))),
+            ),
+        )
+
+        assertEquals("test", stats.resumable?.id)
+    }
+
+    @Test
+    fun onlyAMistakesTestLeftOpenLeavesNothingToContinue() {
+        val stats = Statistics.of(listOf(attempt("mistakes", testNumber = null, startedAt = 1)))
+
+        assertNull(stats.resumable)
+    }
+
+    @Test
     fun latestResultPerTestWins() {
         val stats = Statistics.of(
             listOf(

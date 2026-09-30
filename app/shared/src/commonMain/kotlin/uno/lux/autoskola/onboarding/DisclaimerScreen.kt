@@ -93,12 +93,14 @@ fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> U
                     Paragraph(strings.disclaimerSource)
                 }
             }
-            Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp)) {
+            Box(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 PrimaryPill(
                     text = strings.disclaimerAccept,
                     onClick = { onEvent(DisclaimerUiEvent.Accept) },
                     height = 56.dp,
-                    fillWidth = true,
                 )
             }
         }

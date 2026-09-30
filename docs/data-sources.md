@@ -85,6 +85,39 @@ Recommended before a public release:
 2. Keep the disclaimer screen (`DisclaimerScreen.kt`). It says the app is independent and names minv.sk as the source.
 3. Record the answer here.
 
+## Slovakia: the road-sign catalogue (príloha č. 1 of vyhláška 30/2020 Z. z.)
+
+The learning tab's road-sign list is not built from the question bank: it is the catalogue in
+príloha č. 1 of **vyhláška MV SR č. 30/2020 Z. z. o dopravnom značení** (the traffic-sign
+regulation, in force since 1 April 2020), read by `tools/import/import_znacky.py`.
+
+- Source: <https://www.slov-lex.sk/static/pdf/2020/30/ZZ_2020_30_20200401.pdf> (Zbierka zákonov,
+  5.9 MB). The annex holds one table row per sign: its row number, its number and picture, its
+  name, and what it means. `znacky_pdf.py` reads those rows back by the x of each table column.
+- Pictures are **not** taken from the regulation. The app matches the catalogue to the images it
+  already bundles for the question bank (minv.sk's `obr3/dz` set, see above), whose file names are
+  the signs' numbers: `140.jpg` is sign 140.
+- Language: Slovak only. The regulation is published in Slovak and there is no official English or
+  Hungarian wording, so the list is in Slovak whatever language the app's UI is in — as question
+  content follows its bank. The UI around it (titles, search, counts) is translated as usual.
+- Coverage (2026-09-30): **120 signs**, every one with a bundled picture. What the list does not
+  have:
+  - The pictograms the regulation calls *symboly* (`1-1.png` … `5-2.png` in the bank's images):
+    symbols for additional panels rather than signs a driver meets on the road. They are laid out
+    two to a row in the regulation and are skipped by the importer.
+  - Signs 323 and 324, whose numbers are from the previous regulation (9/2009 Z. z.) and which the
+    2020 catalogue numbers differently.
+  - The composite pictures (`401-409.jpg`, `411-419.jpg`, …) that show a whole group of signs at
+    once: a group is not a sign, so no row claims them.
+  - Signs the catalogue lists but minv.sk ships no picture of.
+
+### Terms of use
+
+The catalogue text is the **text of a legal regulation**, which zákon 185/2015 Z. z. § 5(b) leaves
+out of copyright protection (the same argument as for road-sign designs, above). Reusing it is
+therefore safe; what the app adds is only the match between the regulation's numbers and pictures
+it already ships. The pictures themselves come from minv.sk and fall under the disclaimer below.
+
 ## Czechia: Ministry of Transport (etesty.md.gov.cz)
 
 Status: **not imported yet.**

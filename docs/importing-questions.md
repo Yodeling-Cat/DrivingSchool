@@ -32,8 +32,11 @@ The output goes to `app/shared/src/commonMain/composeResources/files/`, and it i
 | `banks/index.json` | The latest version of every bank, with its question count per license group. The exam-selection screen reads this. |
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
 | `images/minv-sk/...` | The images the questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
+| `signs/index.json` | The latest version of every sign catalogue, with its sign count. |
+| `signs/<id>-v<version>.json` | One version of one sign catalogue, such as `sk-v1.json`: every sign with its number, name, meaning and picture. It is decoded by `SignCatalogue` in `:core`. |
 
-The app loads these files with `QuestionBankRepository`, in `app/shared/.../data/`.
+The app loads these files with `QuestionBankRepository` and `SignCatalogueRepository`, in
+`app/shared/.../data/`.
 
 ## How it works
 
@@ -45,6 +48,12 @@ The app loads these files with `QuestionBankRepository`, in `app/shared/.../data
 
 The importer prints how many questions it matched and dropped. Compare those numbers with the table in `data-sources.md`, and update the table when they change.
 
+`import_znacky.py` then reads the sign catalogue out of the traffic-sign regulation, matches it to
+the sign images the banks bundle (by the sign's number), and writes `signs/`. It reports how many
+catalogue entries it read, how many images found an entry, and every image that found none. The two
+importers are independent: the sign catalogue only needs the images, so it runs after the banks.
+Both are run by `import.sh`, and both can be run on their own.
+
 ## Updating to new data
 
 There are two kinds of update:
@@ -55,7 +64,8 @@ Steps:
 
 1. Run `./tools/import/import.sh --refresh`, adding `--version N` for a new question set.
 2. Check the output for unmatched questions or big changes in the counts.
-   Then run `./tools/import/test.sh`. `test_bank_output.py` fails if a question is malformed, an image is missing, or a group can no longer fill a full exam.
+   Then run `./tools/import/test.sh`. `test_bank_output.py` fails if a question is malformed, an image is missing, or a group can no longer fill a full exam; `test_znacky_output.py` fails if a sign has no meaning or no bundled picture, and when the number of signs changes — re-importing the
+   regulation is what moves it, so update the count there when it does.
 3. If the PDF links changed (they are `subor=<id>` links on <https://www.minv.sk/?elektronicke-testy>), update `PDF_URLS` in `import_minv.py`.
 4. Build and try the app. Test numbers are generated from the bank, so changing a bank's questions reshuffles its practice tests. This is another reason to put a new question set in a new version.
 5. Update "Last imported" and the counts in `data-sources.md`, then commit the regenerated resources.

@@ -74,7 +74,6 @@ sealed interface HomeUiEvent {
     /** Starts a random test, or with [notDoneYet] a random one that hasn't been started or finished. */
     data class StartRandomTest(val notDoneYet: Boolean) : HomeUiEvent
     data object Resume : HomeUiEvent
-    data object DiscardResumable : HomeUiEvent
 
     /** Opens the attempt the [HomeUiState.Ready.resumePrompt] is about. */
     data object ContinueTest : HomeUiEvent
@@ -148,10 +147,6 @@ class HomeViewModel(
             }
 
             HomeUiEvent.Resume -> openAttemptId.value = shown?.progress?.resumable?.attemptId
-
-            HomeUiEvent.DiscardResumable -> shown?.progress?.resumable?.let {
-                viewModelScope.launch { session.discard(it.attemptId) }
-            }
 
             HomeUiEvent.ContinueTest -> {
                 openAttemptId.value = resumePrompt.value?.attemptId

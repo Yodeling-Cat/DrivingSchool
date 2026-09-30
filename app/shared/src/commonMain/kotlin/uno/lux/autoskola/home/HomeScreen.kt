@@ -176,13 +176,7 @@ private fun Overview(
 ) {
     val unfinished = tests.filter { it.number !in progress.results && it.number !in progress.inProgress }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        progress.resumable?.let {
-            ResumeCard(
-                it,
-                onResume = { onEvent(HomeUiEvent.Resume) },
-                onDiscard = { onEvent(HomeUiEvent.DiscardResumable) },
-            )
-        }
+        progress.resumable?.let { ResumeCard(it, onResume = { onEvent(HomeUiEvent.Resume) }) }
         ProgressCard(
             examName = exam.name,
             examLanguage = exam.title,
@@ -212,7 +206,7 @@ private fun Overview(
 }
 
 @Composable
-private fun ResumeCard(test: ResumableTest, onResume: () -> Unit, onDiscard: () -> Unit) {
+private fun ResumeCard(test: ResumableTest, onResume: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Column(
         modifier = Modifier
@@ -230,7 +224,6 @@ private fun ResumeCard(test: ResumableTest, onResume: () -> Unit, onDiscard: () 
             fontWeight = FontWeight.Medium,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onDiscard) { Text(strings.discard, color = Subdued) }
             TextButton(onClick = onResume) { Text(strings.continueTest, color = InProgressColor) }
         }
     }

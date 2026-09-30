@@ -61,7 +61,7 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun unfinishedTestCanBeResumedOrDiscarded() = runTest {
+    fun unfinishedTestCanBeResumed() = runTest {
         val state = observe(viewModel.uiState)
         viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
         val started = state.ready.openAttemptId!!
@@ -74,10 +74,6 @@ class HomeViewModelTest : ViewModelTest() {
         )
         viewModel.onEvent(HomeUiEvent.Resume)
         assertEquals(started, state.ready.openAttemptId)
-
-        viewModel.onEvent(HomeUiEvent.AttemptOpened)
-        viewModel.onEvent(HomeUiEvent.DiscardResumable)
-        assertNull(state.ready.progress.resumable)
     }
 
     @Test

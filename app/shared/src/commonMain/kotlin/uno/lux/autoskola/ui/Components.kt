@@ -594,8 +594,8 @@ private fun PillPreview() {
             OutlinePill(strings.randomTest, onClick = {}, icon = Icons.Filled.Shuffle)
             OutlinePill(strings.randomTest, onClick = {}, icon = Icons.Filled.Shuffle, enabled = false)
             PreviewLabel("PRIMARY: ENABLED, DISABLED, FULL WIDTH, SMALL")
-            PrimaryPill(strings.notDoneYet, onClick = {}, iconContent = { DashedCircleIcon(Color.White) })
-            PrimaryPill(strings.notDoneYet, onClick = {}, enabled = false)
+            PrimaryPill(strings.notPassed, onClick = {}, iconContent = { DashedCircleIcon(Color.White) })
+            PrimaryPill(strings.notPassed, onClick = {}, enabled = false)
             PrimaryPill(strings.continueTest, onClick = {}, fillWidth = true)
             PrimaryPill(strings.finish, onClick = {}, height = 40.dp)
         }

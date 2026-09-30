@@ -7,35 +7,35 @@ import uno.lux.autoskola.data.banks.testBank
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class NotDoneYetTest {
+class NotPassedTest {
 
     private val tests = testBank().practiceTests(LicenseCategory.B)
 
     private fun result(passed: Boolean) = TestResult(score = if (passed) 38 else 30, maxScore = 40)
 
     @Test
-    fun testsThatWereNeverTakenAreNotDoneYet() {
-        assertEquals(tests, notDoneTests(tests, results = emptyMap()))
+    fun testsThatWereNeverTakenAreNotPassed() {
+        assertEquals(tests, notPassedTests(tests, results = emptyMap()))
     }
 
     @Test
-    fun aPassedTestIsDoneAndLeavesTheList() {
+    fun aPassedTestLeavesTheList() {
         val results = mapOf(1 to result(passed = true))
 
-        assertEquals(listOf(2), notDoneTests(tests, results).map { it.number })
+        assertEquals(listOf(2), notPassedTests(tests, results).map { it.number })
     }
 
     @Test
-    fun aFailedTestIsStillNotDoneYet() {
+    fun aFailedTestIsStillNotPassed() {
         val results = mapOf(1 to result(passed = false))
 
-        assertEquals(listOf(1, 2), notDoneTests(tests, results).map { it.number })
+        assertEquals(listOf(1, 2), notPassedTests(tests, results).map { it.number })
     }
 
     @Test
-    fun passingEveryTestLeavesNothingToDo() {
+    fun passingEveryTestLeavesNothingUnpassed() {
         val results = tests.associate { it.number to result(passed = true) }
 
-        assertEquals(emptyList(), notDoneTests(tests, results))
+        assertEquals(emptyList(), notPassedTests(tests, results))
     }
 }

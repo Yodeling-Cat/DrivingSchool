@@ -161,46 +161,46 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun notDoneYetStaysLiveUntilEveryTestIsPassed() = runTest {
+    fun notPassedStaysLiveUntilEveryTestIsPassed() = runTest {
         val state = observe(viewModel.uiState)
-        assertTrue(state.ready.canStartNotDoneYet)
+        assertTrue(state.ready.hasNotPassedTests)
 
-        // A test that was taken and failed is not done yet, so it can be taken again.
+        // A test that was taken and failed has not been passed, so it can be taken again.
         finishTest(testNumber = 1, passed = false)
-        assertTrue(state.ready.canStartNotDoneYet)
+        assertTrue(state.ready.hasNotPassedTests)
 
         finishTest(testNumber = 1, passed = true)
-        assertTrue(state.ready.canStartNotDoneYet)
+        assertTrue(state.ready.hasNotPassedTests)
 
         finishTest(testNumber = 2, passed = true)
-        assertFalse(state.ready.canStartNotDoneYet)
+        assertFalse(state.ready.hasNotPassedTests)
     }
 
     @Test
-    fun randomNotDoneYetRetakesAFailedTest() = runTest {
+    fun randomNotPassedRetakesAFailedTest() = runTest {
         val state = observe(viewModel.uiState)
         finishTest(testNumber = 1, passed = true)
         finishTest(testNumber = 2, passed = false)
 
-        // Only the failed test is left, so that's the one it opens.
-        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
+        // Only the failed test is left unpassed, so that's the one it opens.
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notPassed = true))
 
         assertEquals(2, repositories.attempts.get(assertNotNull(state.ready.openAttemptId))!!.testNumber)
     }
 
     @Test
-    fun randomNotDoneYetPicksNothingOnceEveryTestIsPassed() = runTest {
+    fun randomNotPassedPicksNothingOnceEveryTestIsPassed() = runTest {
         val state = observe(viewModel.uiState)
         finishTest(testNumber = 1, passed = true)
         finishTest(testNumber = 2, passed = true)
 
-        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notPassed = true))
 
         assertNull(state.ready.openAttemptId)
     }
 
     @Test
-    fun randomNotDoneYetPicksATestThatIsUnderWay() = runTest {
+    fun randomNotPassedPicksATestThatIsUnderWay() = runTest {
         val state = observe(viewModel.uiState)
         finishTest(testNumber = 2, passed = true)
         viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
@@ -208,7 +208,7 @@ class HomeViewModelTest : ViewModelTest() {
         viewModel.onEvent(HomeUiEvent.AttemptOpened)
 
         // Half-done test 1 is the only one left, and picking it asks what to do with it.
-        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notPassed = true))
 
         assertEquals(ResumePrompt(started, testNumber = 1, answered = 0, total = 3), state.ready.resumePrompt)
     }

@@ -61,8 +61,8 @@ sealed interface HomeUiState {
         val exam: ExamLabel,
         val tests: List<PracticeTest>,
         val progress: HomeProgress,
-        /** Whether any test is still not done, which is what the "not done yet" pill acts on. */
-        val canStartNotDoneYet: Boolean,
+        /** Whether any test has not been passed yet, which is what the "not passed" pill acts on. */
+        val hasNotPassedTests: Boolean,
         /** An attempt to open; the screen navigates to it and then sends [HomeUiEvent.AttemptOpened]. */
         val openAttemptId: String? = null,
         /** Set when the picked test is already under way, so the screen asks what to do. */
@@ -73,8 +73,8 @@ sealed interface HomeUiState {
 sealed interface HomeUiEvent {
     data class StartTest(val testNumber: Int) : HomeUiEvent
 
-    /** Starts a random test, or with [notDoneYet] a random one that hasn't been passed yet. */
-    data class StartRandomTest(val notDoneYet: Boolean) : HomeUiEvent
+    /** Starts a random test, or with [notPassed] a random one that hasn't been passed yet. */
+    data class StartRandomTest(val notPassed: Boolean) : HomeUiEvent
     data object Resume : HomeUiEvent
 
     /** Opens the attempt the [HomeUiState.Ready.resumePrompt] is about. */
@@ -111,7 +111,7 @@ class HomeViewModel(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
                     progress = progress.toHomeProgress(),
-                    canStartNotDoneYet = notDoneTests(session.tests, progress.results).isNotEmpty(),
+                    hasNotPassedTests = notPassedTests(session.tests, progress.results).isNotEmpty(),
                     openAttemptId = open,
                     resumePrompt = prompt,
                 )
@@ -143,7 +143,7 @@ class HomeViewModel(
 
             is HomeUiEvent.StartRandomTest -> {
                 val progress = shown?.progress ?: return
-                val candidates = if (event.notDoneYet) notDoneTests(session.tests, progress.results) else session.tests
+                val candidates = if (event.notPassed) notPassedTests(session.tests, progress.results) else session.tests
                 if (candidates.isNotEmpty()) onEvent(HomeUiEvent.StartTest(candidates.random(random).number))
             }
 

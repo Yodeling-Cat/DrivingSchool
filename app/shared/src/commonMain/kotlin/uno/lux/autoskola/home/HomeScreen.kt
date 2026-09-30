@@ -225,7 +225,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         fullWidthItem {
             ActionRow(
                 tests = tests,
-                notDoneYetEnabled = state.canStartNotDoneYet,
+                notPassedEnabled = state.hasNotPassedTests,
                 onEvent = onEvent,
             )
         }
@@ -268,7 +268,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ActionRow(
                     tests = tests,
-                    notDoneYetEnabled = state.canStartNotDoneYet,
+                    notPassedEnabled = state.hasNotPassedTests,
                     onEvent = onEvent,
                     stacked = true,
                 )
@@ -542,16 +542,16 @@ private fun ContinuePill() {
 }
 
 /**
- * The two ways to start a test: a random one, or one that hasn't been done yet. They sit side by
- * side on a phone and stack on a wide window, where a row of two half-width buttons on a band this
- * wide leaves both of them oddly long - and the one that starts a test comes first there. The
- * "not done yet" pill is live for as long as a test is still unpassed: a failed one counts, because
- * it can be taken again.
+ * The two ways to start a test: a random one, or one that has not been passed. They sit side by side
+ * on a phone and stack on a wide window, where a row of two half-width buttons on a band this wide
+ * leaves both of them oddly long - and the one that starts a test comes first there. The "not
+ * passed" pill is live for as long as a test is still unpassed: a failed one counts, because it can
+ * be taken again.
  */
 @Composable
 private fun ActionRow(
     tests: List<PracticeTest>,
-    notDoneYetEnabled: Boolean,
+    notPassedEnabled: Boolean,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
     stacked: Boolean = false,
@@ -559,31 +559,31 @@ private fun ActionRow(
     val randomTest = @Composable { pillModifier: Modifier ->
         OutlinePill(
             text = strings.randomTest,
-            onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = false)) },
+            onClick = { onEvent(HomeUiEvent.StartRandomTest(notPassed = false)) },
             modifier = pillModifier,
             icon = Icons.Filled.Shuffle,
             enabled = tests.isNotEmpty(),
         )
     }
-    val notDoneYet = @Composable { pillModifier: Modifier ->
+    val notPassed = @Composable { pillModifier: Modifier ->
         PrimaryPill(
-            text = strings.notDoneYet,
-            onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
+            text = strings.notPassed,
+            onClick = { onEvent(HomeUiEvent.StartRandomTest(notPassed = true)) },
             modifier = pillModifier,
             iconContent = { DashedCircleIcon(Color.White) },
-            enabled = notDoneYetEnabled,
+            enabled = notPassedEnabled,
         )
     }
 
     if (stacked) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            notDoneYet(Modifier.fillMaxWidth())
+            notPassed(Modifier.fillMaxWidth())
             randomTest(Modifier.fillMaxWidth())
         }
     } else {
         Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             randomTest(Modifier.weight(1f))
-            notDoneYet(Modifier.weight(1f))
+            notPassed(Modifier.weight(1f))
         }
     }
 }
@@ -802,7 +802,7 @@ private fun homeState(
         exam = previewExam,
         tests = tests,
         progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
-        canStartNotDoneYet = notDoneTests(tests, results).isNotEmpty(),
+        hasNotPassedTests = notPassedTests(tests, results).isNotEmpty(),
         resumePrompt = resumePrompt,
     )
 }
@@ -854,7 +854,7 @@ private fun HomeScreenExpertPreview() {
     }
 }
 
-/** Every test taken but one failed, so the "not done yet" pill still has a test to offer. */
+/** Every test taken but one failed, so the "not passed" pill still has a test to offer. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun HomeScreenTestsLeftPreview() {

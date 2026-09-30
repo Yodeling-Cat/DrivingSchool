@@ -223,7 +223,11 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
             }
         }
         fullWidthItem {
-            ActionRow(tests = tests, progress = progress, onEvent = onEvent)
+            ActionRow(
+                tests = tests,
+                notDoneYetEnabled = state.canStartNotDoneYet,
+                onEvent = onEvent,
+            )
         }
         fullWidthItem {
             MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
@@ -262,7 +266,12 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             LicenceCard(totalTests = tests.size, progress = progress)
             Spacer(Modifier.height(28.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ActionRow(tests = tests, progress = progress, onEvent = onEvent, stacked = true)
+                ActionRow(
+                    tests = tests,
+                    notDoneYetEnabled = state.canStartNotDoneYet,
+                    onEvent = onEvent,
+                    stacked = true,
+                )
                 MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
             }
         }
@@ -535,18 +544,18 @@ private fun ContinuePill() {
 /**
  * The two ways to start a test: a random one, or one that hasn't been done yet. They sit side by
  * side on a phone and stack on a wide window, where a row of two half-width buttons on a band this
- * wide leaves both of them oddly long - and the one that starts a test comes first there.
+ * wide leaves both of them oddly long - and the one that starts a test comes first there. The
+ * "not done yet" pill is live for as long as a test is still unpassed: a failed one counts, because
+ * it can be taken again.
  */
 @Composable
 private fun ActionRow(
     tests: List<PracticeTest>,
-    progress: HomeProgress,
+    notDoneYetEnabled: Boolean,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
     stacked: Boolean = false,
 ) {
-    val anyUnfinished = tests.any { it.number !in progress.results && it.number !in progress.inProgress }
-
     val randomTest = @Composable { pillModifier: Modifier ->
         OutlinePill(
             text = strings.randomTest,
@@ -562,7 +571,7 @@ private fun ActionRow(
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
             modifier = pillModifier,
             iconContent = { DashedCircleIcon(Color.White) },
-            enabled = anyUnfinished,
+            enabled = notDoneYetEnabled,
         )
     }
 
@@ -770,7 +779,8 @@ private fun twoLines(label: String): String {
 
 /**
  * The home screen's state over the sample profile: six of eight tests done, the seventh under way,
- * and the yellow resume card offering the one that was left half finished.
+ * and the yellow resume card offering the one that was left half finished. Whether the tests can be
+ * started is the same rule the app uses, so a preview can't drift from it.
  */
 private fun homeState(
     results: Map<Int, TestResult> = previewResults(
@@ -786,12 +796,16 @@ private fun homeState(
     mistakeCount: Int = 12,
     questionsAnswered: Int = 236,
     resumePrompt: ResumePrompt? = null,
-) = HomeUiState.Ready(
-    exam = previewExam,
-    tests = previewTests(),
-    progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
-    resumePrompt = resumePrompt,
-)
+): HomeUiState.Ready {
+    val tests = previewTests()
+    return HomeUiState.Ready(
+        exam = previewExam,
+        tests = tests,
+        progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
+        canStartNotDoneYet = notDoneTests(tests, results).isNotEmpty(),
+        resumePrompt = resumePrompt,
+    )
+}
 
 /** The phone layout, with the progress card, the resume card and the test grid. */
 @Preview(widthDp = 400, heightDp = 860)
@@ -832,6 +846,25 @@ private fun HomeScreenExpertPreview() {
                 inProgress = emptySet(),
                 resumable = null,
                 mistakeCount = 3,
+                questionsAnswered = 861,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
+    }
+}
+
+/** Every test taken but one failed, so the "not done yet" pill still has a test to offer. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenTestsLeftPreview() {
+    AppPreview {
+        HomeScreen(
+            homeState(
+                results = (1..8).associateWith { TestResult(if (it == 4) 30 else 38, 40) },
+                inProgress = emptySet(),
+                resumable = null,
+                mistakeCount = 5,
                 questionsAnswered = 861,
             ),
             onEvent = {},

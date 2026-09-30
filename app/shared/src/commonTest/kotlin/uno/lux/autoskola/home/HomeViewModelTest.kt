@@ -11,6 +11,7 @@ import uno.lux.autoskola.testing.currentSession
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -160,17 +161,67 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun randomTestCanBeLimitedToTestsNotDoneYet() = runTest {
+    fun notDoneYetStaysLiveUntilEveryTestIsPassed() = runTest {
         val state = observe(viewModel.uiState)
-        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
-        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        assertTrue(state.ready.canStartNotDoneYet)
+
+        // A test that was taken and failed is not done yet, so it can be taken again.
+        finishTest(testNumber = 1, passed = false)
+        assertTrue(state.ready.canStartNotDoneYet)
+
+        finishTest(testNumber = 1, passed = true)
+        assertTrue(state.ready.canStartNotDoneYet)
+
+        finishTest(testNumber = 2, passed = true)
+        assertFalse(state.ready.canStartNotDoneYet)
+    }
+
+    @Test
+    fun randomNotDoneYetRetakesAFailedTest() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        finishTest(testNumber = 2, passed = false)
+
+        // Only the failed test is left, so that's the one it opens.
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
+
+        assertEquals(2, repositories.attempts.get(assertNotNull(state.ready.openAttemptId))!!.testNumber)
+    }
+
+    @Test
+    fun randomNotDoneYetPicksNothingOnceEveryTestIsPassed() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        finishTest(testNumber = 2, passed = true)
 
         viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
-        assertEquals(2, repositories.attempts.get(state.ready.openAttemptId!!)!!.testNumber)
-        viewModel.onEvent(HomeUiEvent.AttemptOpened)
 
-        // Both tests are under way now, so there's nothing left to pick.
-        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
         assertNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun randomNotDoneYetPicksATestThatIsUnderWay() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 2, passed = true)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val started = state.ready.openAttemptId!!
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+
+        // Half-done test 1 is the only one left, and picking it asks what to do with it.
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true))
+
+        assertEquals(ResumePrompt(started, testNumber = 1, answered = 0, total = 3), state.ready.resumePrompt)
+    }
+
+    /** Takes [testNumber] from the beginning and finishes it with every answer right, or with one
+     * wrong: three questions worth four points means any mistake is below the 90 % pass mark. */
+    private suspend fun finishTest(testNumber: Int, passed: Boolean) {
+        val session = repositories.exams.currentSession()
+        val attempt = session.startOrResume(session.tests.first { it.number == testNumber }, checkImmediately = false)
+        session.questionsOf(attempt).forEach { question ->
+            val chosen = if (passed) question.correct else question.answers.indices.first { it != question.correct }
+            session.answer(attempt.id, question, chosen)
+        }
+        session.finish(attempt.id)
     }
 }

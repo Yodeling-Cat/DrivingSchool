@@ -61,6 +61,8 @@ sealed interface HomeUiState {
         val exam: ExamLabel,
         val tests: List<PracticeTest>,
         val progress: HomeProgress,
+        /** Whether any test is still not done, which is what the "not done yet" pill acts on. */
+        val canStartNotDoneYet: Boolean,
         /** An attempt to open; the screen navigates to it and then sends [HomeUiEvent.AttemptOpened]. */
         val openAttemptId: String? = null,
         /** Set when the picked test is already under way, so the screen asks what to do. */
@@ -71,7 +73,7 @@ sealed interface HomeUiState {
 sealed interface HomeUiEvent {
     data class StartTest(val testNumber: Int) : HomeUiEvent
 
-    /** Starts a random test, or with [notDoneYet] a random one that hasn't been started or finished. */
+    /** Starts a random test, or with [notDoneYet] a random one that hasn't been passed yet. */
     data class StartRandomTest(val notDoneYet: Boolean) : HomeUiEvent
     data object Resume : HomeUiEvent
 
@@ -109,6 +111,7 @@ class HomeViewModel(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
                     progress = progress.toHomeProgress(),
+                    canStartNotDoneYet = notDoneTests(session.tests, progress.results).isNotEmpty(),
                     openAttemptId = open,
                     resumePrompt = prompt,
                 )
@@ -140,9 +143,7 @@ class HomeViewModel(
 
             is HomeUiEvent.StartRandomTest -> {
                 val progress = shown?.progress ?: return
-                val candidates = session.tests.filter {
-                    !event.notDoneYet || (it.number !in progress.results && it.number !in progress.inProgress)
-                }
+                val candidates = if (event.notDoneYet) notDoneTests(session.tests, progress.results) else session.tests
                 if (candidates.isNotEmpty()) onEvent(HomeUiEvent.StartTest(candidates.random(random).number))
             }
 

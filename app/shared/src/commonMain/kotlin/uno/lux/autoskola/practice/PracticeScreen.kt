@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -77,11 +76,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -113,6 +117,9 @@ private val UnselectedLetter = Color(0xFFBDBDBD)
 private val CardBorder = Color(0xFFE0E0E0)
 private val Subdued = Color(0xFF757575)
 
+/** Over the page behind an enlarged picture, which is drawn on top of it. */
+private val EnlargedImageScrim = Color(0xB3000000)
+
 private val QuestionChipBg = Color(0xFFEEEEEE)
 private val QuestionChipAnsweredBg = Color(0xFFD1C4E9)
 private val QuestionChipCorrectBg = Color(0xFFC8E6C9)
@@ -121,6 +128,9 @@ private val QuestionChipSkippedBg = Color(0xFFFFECB3)
 private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
 
 private val QuestionPanelWidth = 320.dp
+
+/** How far an enlarged picture stays away from the edges of the screen it's shown on. */
+private val EnlargedImageMargin = 24.dp
 
 /**
  * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
@@ -605,21 +615,53 @@ private fun QuestionPage(
     // screen, so show it next to the question and answers instead.
     val sideBySide = imageUri != null && LocalHeightClass.current == HeightClass.Compact
 
-    Box(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        if (sideBySide) {
-            Row(
-                modifier = Modifier
-                    .widthIn(max = ContentWidth.Wide)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(Modifier.weight(3f)) {
+    // Measured here, outside the scroll, so a picture can be kept within the page it's on: a sign
+    // is never drawn bigger than the screen showing it.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val page = DpSize(maxWidth, maxHeight)
+        Box(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            if (sideBySide) {
+                Row(
+                    modifier = Modifier
+                        .widthIn(max = ContentWidth.Wide)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Column(Modifier.weight(3f)) {
+                        questionText()
+                        Spacer(Modifier.height(12.dp))
+                        if (skipped) {
+                            SkippedNotice()
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        answers()
+                        Spacer(Modifier.height(16.dp))
+                    }
+                    Box(Modifier.weight(2f)) {
+                        QuestionImage(
+                            uri = imageUri,
+                            maxHeight = QuestionImageSideBySideMaxHeight,
+                            page = page,
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = ContentWidth.Reading)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
                     questionText()
-                    Spacer(Modifier.height(12.dp))
+                    imageUri?.let { uri ->
+                        Spacer(Modifier.height(12.dp))
+                        QuestionImage(uri = uri, page = page)
+                    }
+                    Spacer(Modifier.height(16.dp))
                     if (skipped) {
                         SkippedNotice()
                         Spacer(Modifier.height(8.dp))
@@ -627,29 +669,6 @@ private fun QuestionPage(
                     answers()
                     Spacer(Modifier.height(16.dp))
                 }
-                Box(Modifier.weight(2f)) {
-                    QuestionImage(uri = imageUri!!, maxHeight = 220.dp)
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = ContentWidth.Reading)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                questionText()
-                imageUri?.let { uri ->
-                    Spacer(Modifier.height(12.dp))
-                    QuestionImage(uri = uri)
-                }
-                Spacer(Modifier.height(16.dp))
-                if (skipped) {
-                    SkippedNotice()
-                    Spacer(Modifier.height(8.dp))
-                }
-                answers()
-                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -679,21 +698,79 @@ private fun SkippedNotice() {
     }
 }
 
+/**
+ * The picture of a question: drawn [QUESTION_IMAGE_SCALE] times its own size so a sign is readable,
+ * and tapping it opens a copy that's twice as big. [page] is the room the page has and [maxHeight]
+ * how tall the picture may get in it, so no picture is ever drawn bigger than the screen.
+ */
 @Composable
-private fun QuestionImage(uri: String, maxHeight: Dp = 260.dp) {
+private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionImageMaxHeight) {
     val painter = rememberAsyncImagePainter(uri)
     val imageState by painter.state.collectAsState()
-    if (imageState is AsyncImagePainter.State.Success) {
-        Image(
-            painter = painter,
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = maxHeight),
-        )
+    val density = LocalDensity.current
+
+    /** Whether the enlarged copy is open. */
+    var enlarged by remember(uri) { mutableStateOf(false) }
+
+    val loaded = imageState
+    if (loaded is AsyncImagePainter.State.Success) {
+        val intrinsic = with(density) { painter.intrinsicSize.toDpSize() }
+        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val height = minOf(maxHeight, page.height)
+            val size = questionImageSize(intrinsic, maxWidth = maxWidth, maxHeight = height)
+            Image(
+                painter = painter,
+                contentDescription = strings.enlargeImage,
+                modifier = Modifier
+                    .size(size)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { enlarged = true },
+            )
+            if (enlarged) {
+                // The picture has been decoded already, so the copy draws the bitmap the inline
+                // one does, at the size the screen has room for.
+                EnlargedQuestionImage(
+                    painter = loaded.painter,
+                    drawn = size,
+                    onDismiss = { enlarged = false },
+                )
+            }
+        }
     } else {
         // Keep the space, so the answers don't jump when the image arrives.
-        Spacer(Modifier.height(maxHeight))
+        Spacer(Modifier.height(minOf(maxHeight, page.height)))
+    }
+}
+
+/**
+ * One picture, as large as the screen allows, over the test it belongs to. It's closed by tapping
+ * anywhere - including the picture itself - or with the button in the corner.
+ */
+@Composable
+private fun EnlargedQuestionImage(painter: Painter, drawn: DpSize, onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(EnlargedImageScrim)
+                .clickable(onClick = onDismiss)
+                .padding(EnlargedImageMargin),
+            contentAlignment = Alignment.Center,
+        ) {
+            BoxWithConstraints(contentAlignment = Alignment.Center) {
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    modifier = Modifier.size(enlargedImageSize(drawn, DpSize(maxWidth, maxHeight))),
+                )
+            }
+            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd)) {
+                Icon(IconClose, contentDescription = strings.closeImage, tint = Color.White)
+            }
+        }
     }
 }
 

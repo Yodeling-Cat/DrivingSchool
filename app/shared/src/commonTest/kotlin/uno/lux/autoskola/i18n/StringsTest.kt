@@ -19,17 +19,27 @@ class StringsTest {
     }
 
     @Test
-    fun slovakAndCzechPointsUseThreePluralForms() {
-        val sk = AppLanguage.Slovak.strings.points
-        assertEquals(listOf("1 bod", "2 body", "4 body", "5 bodov", "0 bodov"), listOf(1, 2, 4, 5, 0).map(sk))
-        val cs = AppLanguage.Czech.strings.points
-        assertEquals(listOf("1 bod", "3 body", "5 bodů"), listOf(1, 3, 5).map(cs))
+    fun pointsAreNamedAsWhatTheQuestionIsWorth() {
+        assertEquals(
+            listOf("Worth 1 point", "Worth 2 points"),
+            listOf(1, 2).map(AppLanguage.English.strings.points),
+        )
     }
 
     @Test
-    fun englishAndHungarianPoints() {
-        assertEquals(listOf("1 point", "2 points"), listOf(1, 2).map(AppLanguage.English.strings.points))
-        assertEquals(listOf("1 pont", "4 pont"), listOf(1, 4).map(AppLanguage.Hungarian.strings.points))
+    fun slovakAndCzechPointsUseThreePluralForms() {
+        val sk = AppLanguage.Slovak.strings.points
+        assertEquals(
+            listOf("za 1 bod", "za 2 body", "za 4 body", "za 5 bodov", "za 0 bodov"),
+            listOf(1, 2, 4, 5, 0).map(sk),
+        )
+        val cs = AppLanguage.Czech.strings.points
+        assertEquals(listOf("za 1 bod", "za 3 body", "za 5 bodů"), listOf(1, 3, 5).map(cs))
+    }
+
+    @Test
+    fun hungarianPointsReadAsWhatTheAnswerIsWorth() {
+        assertEquals(listOf("1 pontot ér", "4 pontot ér"), listOf(1, 4).map(AppLanguage.Hungarian.strings.points))
     }
 
     @Test

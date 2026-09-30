@@ -56,8 +56,14 @@ internal val ImageMaxHeight = 260.dp * IMAGE_SCALE
  */
 internal val ImageSideBySideMaxHeight = 220.dp * IMAGE_SCALE
 
-/** How round a picture is, where it sits on a plain background rather than running to its edges. */
-internal val ImageCornerRadius = 12.dp
+/**
+ * How round a picture is, where it sits on a plain background rather than running to its edges.
+ *
+ * A bank picture is a photograph of a sign on white, so its corners are the corners of the white
+ * around it, and the room it is drawn in is small: 12 dp reads as a soft card on a 390 dp question
+ * and as a blob on a 52 dp sign in a list. Half that is still rounded, without eating the picture.
+ */
+internal val ImageCornerRadius = 6.dp
 
 /** Over the page behind an enlarged picture, which is drawn on top of it. */
 private val EnlargedImageScrim = Color(0xB3000000)

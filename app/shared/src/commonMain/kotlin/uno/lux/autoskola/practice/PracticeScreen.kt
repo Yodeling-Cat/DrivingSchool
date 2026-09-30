@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -74,6 +75,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -81,6 +84,13 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -274,6 +284,13 @@ fun PracticeScreen(
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
     }
 
+    // Arrow keys step through the questions on a desktop keyboard, the way the arrows beside the
+    // question and in the bar do. The page takes the focus on the way in, so the keys work without
+    // having to click the question first; a child that takes focus by being clicked still hands its
+    // key events up to here, because they are asked for as preview events.
+    val pageFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { pageFocus.requestFocus() }
+
     // Auto-advance: the ViewModel decides when answering moves the test on and asks for the page
     // here. Reporting the move back is what lets the same question ask for it again later.
     LaunchedEffect(state.advanceToPage) {
@@ -454,7 +471,25 @@ fun PracticeScreen(
         }
     }
 
-    Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .paperBackground(paperGlows(colors, mintY = 0.7f))
+            .focusRequester(pageFocus)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                // A modified arrow key belongs to the platform, not to the questions.
+                val plainKeyDown = event.type == KeyEventType.KeyDown &&
+                    !event.isCtrlPressed &&
+                    !event.isAltPressed &&
+                    !event.isMetaPressed
+                if (!plainKeyDown) return@onPreviewKeyEvent false
+                val target = questionArrowTarget(event.key, currentIndex, questions.size)
+                    ?: return@onPreviewKeyEvent false
+                goTo(target)
+                true
+            },
+    ) {
         if (showPanel) {
             // The bar is the bottom sheet a phone shows, over the questions alone: the list has a
             // panel of its own here, and the sheet's width is the question column's, so it lines up

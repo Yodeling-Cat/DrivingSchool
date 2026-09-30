@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.List
@@ -47,6 +49,9 @@ enum class LearnSection(val icon: ImageVector, val title: (Strings) -> String, v
 /**
  * Learning material: the subjects the app teaches, each opening its own screen. The screen decides
  * nothing itself — it reports which subject was picked, and the navigation callback opens it.
+ *
+ * The hub scrolls: the three cards are taller than a phone held sideways, where the navigation bar
+ * takes its share of the little height there is.
  */
 @Composable
 fun LearnScreen(onOpenSection: (LearnSection) -> Unit) {
@@ -57,6 +62,7 @@ fun LearnScreen(onOpenSection: (LearnSection) -> Unit) {
                 modifier = Modifier
                     .widthIn(max = ContentWidth.Narrow)
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
                     .padding(top = 52.dp, bottom = 24.dp + LocalNavBarInset.current),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -125,4 +131,14 @@ private fun LearnScreenWidePreview() {
 @Composable
 private fun LearnScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) { LearnScreen(onOpenSection = {}) }
+}
+
+/**
+ * A phone held sideways, which is the case the hub scrolls for: the three cards are taller than the
+ * height there is, so the last one is reached by scrolling rather than not at all.
+ */
+@Preview(widthDp = 800, heightDp = 420)
+@Composable
+private fun LearnScreenLandscapePreview() {
+    AppPreview { LearnScreen(onOpenSection = {}) }
 }

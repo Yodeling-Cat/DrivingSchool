@@ -30,8 +30,8 @@ Where tests live:
 
 Four Gradle modules are wired via `settings.gradle.kts` with typesafe project accessors (`projects.core`, `projects.app.shared`, etc.):
 
-- **`:core`** — pure-Kotlin shared logic for **all** targets including the server (iosArm64, iosSimulatorArm64, jvm, js, wasmJs, androidLibrary). No Compose dependency. This is the only module the server can depend on alongside `:app:shared`.
-- **`:app:shared`** — Compose Multiplatform UI shared across Android/iOS/Web. Targets iOS, JS, Wasm, and `androidLibrary` (no JVM target — server cannot consume it). Exposes `api(projects.core)`. iOS framework is built as a static framework named `Shared`.
+- **`:core`** — pure-Kotlin shared logic for **all** targets including the server (iosArm64, iosSimulatorArm64, jvm, js, wasmJs, android). No Compose dependency. This is the only module the server can depend on alongside `:app:shared`.
+- **`:app:shared`** — Compose Multiplatform UI shared across Android/iOS/Web. Targets iOS, JS, Wasm, and `android` (the Android library target; no JVM target — the server cannot consume it). Exposes `api(projects.core)`. iOS framework is built as a static framework named `Shared`.
 - **`:app:androidApp`** — Android `com.android.application` entry. `MainActivity` just calls `App()` from `:app:shared`.
 - **`:app:webApp`** — Compose Multiplatform web entry; produces both JS and Wasm executables that mount `App()` via `ComposeViewport`.
 - **`:server`** — Ktor Netty server (`uno.lux.autoskola.ApplicationKt`), depends on `:core`.

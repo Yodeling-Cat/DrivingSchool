@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +38,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.practice.IconClose
 import uno.lux.autoskola.ui.theme.GRAIN_CARD
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.NajColors
@@ -508,4 +515,212 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
         color = Naj.colors.muted,
         modifier = modifier.defaultMinSize(minHeight = 32.dp).padding(top = 24.dp, bottom = 10.dp),
     )
+}
+
+// ── Previews ──
+
+@Preview(widthDp = 400, heightDp = 400)
+@Composable
+private fun NajCardPreview() {
+    AppPreview {
+        val colors = Naj.colors
+        PreviewBoard {
+            PreviewLabel("PLAIN, TINTED, TAPPABLE")
+            NajCard(Modifier.fillMaxWidth()) {
+                CardRow("White card", "The default everywhere")
+                CardDivider()
+                CardRow("Grain", "A card that carries its own texture")
+            }
+            NajCard(
+                Modifier.fillMaxWidth(),
+                tint = listOf(colors.resumeTop, colors.resumeBottom),
+                grain = GRAIN_CARD,
+                onClick = {},
+            ) {
+                CardRow("Tinted", "The yellow resume card")
+            }
+            NajCard(Modifier.fillMaxWidth(), tint = listOf(colors.mistakesTop, colors.mistakesBottom)) {
+                CardRow("Tinted again", "Any two colours make the gradient")
+            }
+        }
+    }
+}
+
+/** One line inside a previewed card: a name, and what the variant is for. */
+@Composable
+private fun CardRow(title: String, subtitle: String) {
+    val colors = Naj.colors
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text(title, style = Naj.type.rowTitle, color = colors.ink)
+        Text(subtitle, style = Naj.type.rowSubtitle, color = colors.muted)
+    }
+}
+
+@Preview(widthDp = 300, heightDp = 160)
+@Composable
+private fun RoundButtonPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("ROUND BUTTON")
+            PreviewRow {
+                RoundButton(IconClose, "Close", onClick = {})
+                RoundButton(IconClose, "Close", onClick = {}, size = 36.dp, iconSize = 18.dp)
+                RoundButton(IconClose, "On ink", onClick = {}, background = Naj.colors.ink, tint = Color.White)
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 300, heightDp = 160)
+@Composable
+private fun BarIconButtonPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("BAR ICON BUTTON, ENABLED AND NOT")
+            NavyPill(Modifier.fillMaxWidth(), height = 56.dp) {
+                BarIconButton(IconClose, "Close", onClick = {})
+                BarIconButton(Icons.Filled.Shuffle, "Disabled", onClick = {}, enabled = false)
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 360, heightDp = 300)
+@Composable
+private fun PillPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("OUTLINE, ENABLED AND DISABLED")
+            OutlinePill(strings.randomTest, onClick = {}, icon = Icons.Filled.Shuffle)
+            OutlinePill(strings.randomTest, onClick = {}, icon = Icons.Filled.Shuffle, enabled = false)
+            PreviewLabel("PRIMARY: ENABLED, DISABLED, FULL WIDTH, SMALL")
+            PrimaryPill(strings.notDoneYet, onClick = {}, iconContent = { DashedCircleIcon(Color.White) })
+            PrimaryPill(strings.notDoneYet, onClick = {}, enabled = false)
+            PrimaryPill(strings.continueTest, onClick = {}, fillWidth = true)
+            PrimaryPill(strings.finish, onClick = {}, height = 40.dp)
+        }
+    }
+}
+
+@Preview(widthDp = 360, heightDp = 200)
+@Composable
+private fun PillBarsPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("NAVY PILL")
+            NavyPill(Modifier.fillMaxWidth(), height = 72.dp) {
+                BarIconButton(IconClose, "Close", onClick = {})
+                Text("Bar content", style = Naj.type.barNumber, color = Color.White)
+            }
+            PreviewLabel("WHITE PILL")
+            PreviewRow {
+                WhitePill {
+                    Icon(Icons.Filled.Timer, null, tint = Naj.colors.primaryDeep, modifier = Modifier.size(16.dp))
+                }
+                WhitePill(height = 44.dp, tint = Naj.colors.passedBottom) {
+                    Text("07:42", style = Naj.type.tileStatus, color = Naj.colors.passedOn)
+                }
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 300, heightDp = 220)
+@Composable
+private fun IconTilePreview() {
+    AppPreview {
+        val colors = Naj.colors
+        PreviewBoard {
+            PreviewLabel("ICON TILE")
+            PreviewRow {
+                IconTile(background = Brush.linearGradient(listOf(colors.mistakesTop, colors.mistakesBottom))) {
+                    Text("4", style = Naj.type.badgeNumber, color = Color.White)
+                }
+                IconTile(size = 40.dp, background = Brush.linearGradient(listOf(colors.mintGlow, colors.mintGlow))) {
+                    Icon(Icons.Filled.Check, null, tint = colors.primaryDeep, modifier = Modifier.size(22.dp))
+                }
+            }
+            PreviewLabel("ANSWER LETTER")
+            PreviewRow {
+                AnswerLetter("A", selected = true)
+                AnswerLetter("B", selected = false)
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 320, heightDp = 140)
+@Composable
+private fun LabelsPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("EYEBROW LABEL")
+            EyebrowLabel("DRIVER IN TRAINING")
+            EyebrowLabel("YOUR ANSWER", color = Naj.colors.primaryDeep)
+            SectionLabel("ANSWERS")
+        }
+    }
+}
+
+@Preview(widthDp = 400, heightDp = 420)
+@Composable
+private fun TestTilePreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("PASSED, FAILED, IN PROGRESS, NOT STARTED")
+            TestStatus.entries.chunked(2).forEach { row ->
+                PreviewRow {
+                    row.forEach { status ->
+                        TestTile(
+                            number = "${TestStatus.entries.indexOf(status) + 1}",
+                            status = status,
+                            statusLabel = when (status) {
+                                TestStatus.Passed -> strings.resultSummary(36, 40, true)
+                                TestStatus.Failed -> strings.resultSummary(31, 40, false)
+                                TestStatus.InProgress -> strings.inProgress
+                                TestStatus.NotStarted -> strings.notStarted
+                            },
+                            onClick = {},
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 360, heightDp = 340)
+@Composable
+private fun QuestionChipPreview() {
+    AppPreview {
+        val colors = Naj.colors
+        PreviewBoard {
+            // The five states the question list draws a number in, plus the current one.
+            PreviewLabel("CORRECT, INCORRECT, SKIPPED, ANSWERED, UNANSWERED, CURRENT")
+            PreviewRow {
+                QuestionChip("1", colors.correctTint, colors.correctOn, colors.correctTint, onClick = {})
+                QuestionChip("2", colors.wrongBottom, colors.wrongOn, colors.wrongBottom, onClick = {})
+                QuestionChip("3", colors.skippedTint, colors.skippedOn, colors.skippedTint, onClick = {})
+                QuestionChip("4", colors.selectedTint, colors.ink, colors.selectedTint, onClick = {})
+                QuestionChip("5", colors.card, colors.muted, colors.emptyOutline, onClick = {}, outlined = true)
+                QuestionChip("6", colors.ink, colors.roadYellow, colors.ink, onClick = {}, shadowed = true)
+            }
+        }
+    }
+}
+
+@Preview(widthDp = 320, heightDp = 200)
+@Composable
+private fun NajSwitchPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("ON, OFF, DISABLED")
+            PreviewRow {
+                NajSwitch(checked = true, onCheckedChange = {})
+                NajSwitch(checked = false, onCheckedChange = {})
+                NajSwitch(checked = true, onCheckedChange = {}, enabled = false)
+            }
+        }
+    }
 }

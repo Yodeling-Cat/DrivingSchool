@@ -11,6 +11,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
+import uno.lux.autoskola.ui.AppPreview
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
 
 /**
  * Splits a label into text runs, marking the first number so a title can set it in the accent
@@ -89,4 +93,22 @@ fun brandParts(appName: String): List<Pair<String, Boolean>> {
         appName.substring(0, lastSpace + 1) to false,
         appName.substring(lastSpace + 1) to true,
     )
+}
+
+// ── Previews ──
+
+/** The three ways a title carries its accent: a word, a number, and the wordmark. */
+@Preview(widthDp = 400, heightDp = 280)
+@Composable
+private fun AccentedTextPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("ONE WORD IN CORAL ITALIC")
+            AccentedText(accentWord("Which license", "category?"), style = Naj.type.stepTitle)
+            PreviewLabel("THE FIRST NUMBER IN CORAL ITALIC")
+            AccentedText(accentNumber("Test 7"), style = Naj.type.barTitle)
+            PreviewLabel("THE WORDMARK")
+            AccentedText(brandParts("Naj Autoškola"), style = Naj.type.brand)
+        }
+    }
 }

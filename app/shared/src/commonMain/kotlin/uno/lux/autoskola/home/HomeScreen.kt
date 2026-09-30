@@ -52,15 +52,18 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.PracticeTest
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.attemptName
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.CardRadius
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.DashedCircleIcon
@@ -81,6 +84,12 @@ import uno.lux.autoskola.ui.TestTile
 import uno.lux.autoskola.ui.TileRadius
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.fullWidthItem
+import uno.lux.autoskola.ui.previewExam
+import uno.lux.autoskola.ui.previewProgress
+import uno.lux.autoskola.ui.previewResults
+import uno.lux.autoskola.ui.previewResumable
+import uno.lux.autoskola.ui.previewResumePrompt
+import uno.lux.autoskola.ui.previewTests
 import uno.lux.autoskola.ui.theme.GRAIN_CARD
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.grain
@@ -755,4 +764,105 @@ private fun twoLines(label: String): String {
     if (words.size < 2) return label
     val fold = (words.size + 1) / 2
     return words.take(fold).joinToString(" ") + "\n" + words.drop(fold).joinToString(" ")
+}
+
+// ── Previews ──
+
+/**
+ * The home screen's state over the sample profile: six of eight tests done, the seventh under way,
+ * and the yellow resume card offering the one that was left half finished.
+ */
+private fun homeState(
+    results: Map<Int, TestResult> = previewResults(
+        1 to TestResult(36, 40),
+        2 to TestResult(31, 40),
+        3 to TestResult(40, 40),
+        4 to TestResult(38, 40),
+        5 to TestResult(33, 40),
+        6 to TestResult(37, 40),
+    ),
+    inProgress: Set<Int> = setOf(7),
+    resumable: ResumableTest? = previewResumable(),
+    mistakeCount: Int = 12,
+    questionsAnswered: Int = 236,
+    resumePrompt: ResumePrompt? = null,
+) = HomeUiState.Ready(
+    exam = previewExam,
+    tests = previewTests(),
+    progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
+    resumePrompt = resumePrompt,
+)
+
+/** The phone layout, with the progress card, the resume card and the test grid. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenPreview() {
+    AppPreview {
+        HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** The first launch: nothing done, nothing under way, and no mistakes to practise. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenFreshPreview() {
+    AppPreview {
+        HomeScreen(
+            homeState(
+                results = emptyMap(),
+                inProgress = emptySet(),
+                resumable = null,
+                mistakeCount = 0,
+                questionsAnswered = 0,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
+    }
+}
+
+/** Every test passed, so the card names the stage the driver reached instead. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenExpertPreview() {
+    AppPreview {
+        HomeScreen(
+            homeState(
+                results = (1..8).associateWith { TestResult(38, 40) },
+                inProgress = emptySet(),
+                resumable = null,
+                mistakeCount = 3,
+                questionsAnswered = 861,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
+    }
+}
+
+/** A medium window, where the grid takes as many tiles per row as they allow. */
+@Preview(widthDp = 700, heightDp = 900)
+@Composable
+private fun HomeScreenMediumPreview() {
+    AppPreview {
+        HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** A desktop window: the overview in a band, the grid and the resume banner beside it. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun HomeScreenExpandedPreview() {
+    AppPreview {
+        HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** What the screen asks when the picked test is already under way. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenResumePromptPreview() {
+    AppPreview {
+        HomeScreen(homeState(resumePrompt = previewResumePrompt()), onEvent = {}, onChangeExam = {})
+    }
 }

@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +50,9 @@ import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.practice.attemptName
+import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.stats.AttemptSummary
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EyebrowLabel
@@ -61,6 +64,9 @@ import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PrimaryPill
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.previewExam
+import uno.lux.autoskola.ui.previewSections
+import uno.lux.autoskola.ui.previewSummary
 import uno.lux.autoskola.ui.theme.AccentedText
 import uno.lux.autoskola.ui.theme.GRAIN_CARD
 import uno.lux.autoskola.ui.theme.Naj
@@ -491,5 +497,43 @@ private fun DrawScope.leftGlow() {
                 size = Size(2f, 2f),
             )
         }
+    }
+}
+
+// ── Previews ──
+
+/** A finished attempt over the sample sections, with the pass mark where the summary puts it. */
+private fun resultsState(summary: AttemptSummary = previewSummary()) = ResultsUiState.Ready(
+    exam = previewExam,
+    kind = AttemptKind.PracticeTest,
+    testNumber = 7,
+    summary = summary,
+    sections = summary.sections.mapIndexed { index, section -> ResultSection(previewSections[index].title, section) },
+)
+
+/** A passed test on a phone: the poster, the three counts, the actions and the breakdown. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun ResultsScreenPreview() {
+    AppPreview {
+        ResultsScreen(resultsState(), onReview = {}, onDone = {})
+    }
+}
+
+/** A failed test: 75 %, under the 90 % the stamp turns on. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun ResultsScreenFailedPreview() {
+    AppPreview {
+        ResultsScreen(resultsState(previewSummary(correct = 30, wrong = 9)), onReview = {}, onDone = {})
+    }
+}
+
+/** A desktop window, where the breakdown sits beside the score instead of below it. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun ResultsScreenExpandedPreview() {
+    AppPreview {
+        ResultsScreen(resultsState(), onReview = {}, onDone = {})
     }
 }

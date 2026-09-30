@@ -30,17 +30,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.onboarding.LicenceIcon
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.NajCard
 import uno.lux.autoskola.ui.NajSwitch
 import uno.lux.autoskola.ui.SectionLabel
+import uno.lux.autoskola.ui.previewExam
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.paperBackground
 import uno.lux.autoskola.ui.theme.paperGlows
@@ -171,5 +175,61 @@ private fun SettingsSwitchRow(
         }
         Spacer(Modifier.width(4.dp))
         NajSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+    }
+}
+
+// ── Previews ──
+
+/** Answers scored at the end, so moving on after an answer is available. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun SettingsScreenPreview() {
+    AppPreview {
+        SettingsScreen(
+            state = SettingsUiState(
+                language = AppLanguage.English,
+                checkAnswersImmediately = false,
+                advanceAfterAnswer = true,
+                exam = previewExam,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
+    }
+}
+
+/** Checking answers as they're picked, which greys out the setting it rules out. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun SettingsScreenCheckingPreview() {
+    AppPreview {
+        SettingsScreen(
+            state = SettingsUiState(
+                language = AppLanguage.Slovak,
+                checkAnswersImmediately = true,
+                advanceAfterAnswer = false,
+                exam = previewExam,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
+    }
+}
+
+/** No exam yet: the row keeps its place without a category to name. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun SettingsScreenNoExamPreview() {
+    AppPreview {
+        SettingsScreen(
+            state = SettingsUiState(
+                language = AppLanguage.English,
+                checkAnswersImmediately = false,
+                advanceAfterAnswer = false,
+                exam = null,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+        )
     }
 }

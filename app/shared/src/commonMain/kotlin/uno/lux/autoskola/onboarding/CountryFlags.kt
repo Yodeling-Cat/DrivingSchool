@@ -1,10 +1,21 @@
 package uno.lux.autoskola.onboarding
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import uno.lux.autoskola.ui.AppPreview
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
+import uno.lux.autoskola.ui.PreviewRow
 
 /**
  * The flag of an ISO 3166-1 alpha-2 [countryCode], or `null` when we haven't drawn one.
@@ -188,3 +199,28 @@ private fun ImageVector.Builder.addOutline(path: String, strokeWidth: Float) = a
     stroke = SolidColor(Color(0x40000000)),
     strokeLineWidth = strokeWidth,
 )
+
+// ── Previews ──
+
+/** Every flag we have drawn, at the height the country cards give them. */
+@Preview(widthDp = 400, heightDp = 200)
+@Composable
+private fun CountryFlagsPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("40DP TALL, EACH AS WIDE AS ITS OWN PROPORTIONS")
+            PreviewRow {
+                countriesWithFlags.sorted().forEach { code ->
+                    val flag = countryFlag(code) ?: return@forEach
+                    Image(
+                        painter = rememberVectorPainter(flag),
+                        contentDescription = code,
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(40.dp * (flag.defaultWidth / flag.defaultHeight)),
+                    )
+                }
+            }
+        }
+    }
+}

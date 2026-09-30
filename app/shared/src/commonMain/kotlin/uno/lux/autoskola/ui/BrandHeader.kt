@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.theme.AccentedText
@@ -28,5 +29,22 @@ fun ScreenHeader(trailing: @Composable (() -> Unit)? = null, modifier: Modifier 
     ) {
         BrandTitle(Modifier.weight(1f))
         trailing?.invoke()
+    }
+}
+
+// ── Previews ──
+
+@Preview(widthDp = 400, heightDp = 200)
+@Composable
+private fun ScreenHeaderPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("WORDMARK")
+            BrandTitle()
+            PreviewLabel("HEADER WITH A TRAILING PILL")
+            ScreenHeader(trailing = { PickerPill(text = "Auto · SK", contentDescription = "Change", onClick = {}) })
+            PreviewLabel("AN EMPTY HEADER")
+            ScreenHeader()
+        }
     }
 }

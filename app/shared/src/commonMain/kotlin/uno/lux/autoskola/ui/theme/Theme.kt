@@ -1,16 +1,31 @@
 package uno.lux.autoskola.ui.theme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import uno.lux.autoskola.ui.AppPreview
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
+import uno.lux.autoskola.ui.PreviewRow
 
 /** Reads the theme the way screens read `MaterialTheme`: `Naj.colors.ink`, `Naj.type.body`. */
 object Naj {
@@ -97,3 +112,73 @@ private fun najTypography(t: NajType) = Typography(
 
 /** Pushes a style to another weight without restating its size. */
 fun TextStyle.bold(): TextStyle = copy(fontWeight = FontWeight.Bold, fontSize = fontSize, lineHeight = lineHeight)
+
+// ── Previews ──
+
+/**
+ * The two tables a screen reads: a line of sample text in each type token, and a swatch per colour
+ * token. A new token is checked here before it goes into a screen.
+ */
+@Preview(widthDp = 420, heightDp = 900)
+@Composable
+private fun NajAutoskolaThemePreview() {
+    AppPreview {
+        val colors = Naj.colors
+        PreviewBoard {
+            PreviewLabel("TYPE")
+            listOf(
+                "stepTitle" to Naj.type.stepTitle,
+                "screenTitle" to Naj.type.screenTitle,
+                "barTitle" to Naj.type.barTitle,
+                "sectionHeading" to Naj.type.sectionHeading,
+                "heroNumber" to Naj.type.heroNumber,
+                "question" to Naj.type.question,
+                "body" to Naj.type.body,
+                "rowTitle" to Naj.type.rowTitle,
+                "rowSubtitle" to Naj.type.rowSubtitle,
+                "eyebrow" to Naj.type.eyebrow,
+            ).forEach { (name, style) ->
+                Text(name, style = Naj.type.capsLabel, color = colors.muted)
+                Text("Road signs and rules", style = style, color = colors.ink)
+            }
+            PreviewLabel("COLOURS")
+            listOf(
+                "paper" to colors.paper,
+                "card" to colors.card,
+                "sheet" to colors.sheet,
+                "divider" to colors.divider,
+                "ink" to colors.ink,
+                "muted" to colors.muted,
+                "coral" to colors.coral,
+                "roadYellow" to colors.roadYellow,
+                "primary" to colors.primary,
+                "primaryDeep" to colors.primaryDeep,
+                "navy" to colors.navy,
+                "selectedTint" to colors.selectedTint,
+                "passedOn" to colors.passedOn,
+                "passedBottom" to colors.passedBottom,
+                "wrongOn" to colors.wrongOn,
+                "wrongBottom" to colors.wrongBottom,
+                "skippedOn" to colors.skippedOn,
+                "skippedTint" to colors.skippedTint,
+                "notStartedOn" to colors.notStartedOn,
+                "notStartedTint" to colors.notStartedTint,
+            ).chunked(4).forEach { swatches ->
+                PreviewRow {
+                    swatches.forEach { (name, color) ->
+                        Column(Modifier.weight(1f)) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(color),
+                            )
+                            Text(name, style = Naj.type.tiny, color = colors.muted, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

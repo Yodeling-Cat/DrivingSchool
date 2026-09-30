@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +45,23 @@ fun PickerPill(
                 tint = colors.ink,
                 modifier = Modifier.size(18.dp),
             )
+        }
+    }
+}
+
+// ── Previews ──
+
+@Preview(widthDp = 320, heightDp = 140)
+@Composable
+private fun PickerPillPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("AT THE USUAL HEIGHT, AND TALLER")
+            PreviewRow {
+                PickerPill(text = "Auto · SK", contentDescription = "Change exam", onClick = {})
+                PickerPill(text = "Slovenčina", contentDescription = "Language", onClick = {}, height = 44.dp)
+                PickerPill(text = "Nákladiak · SK", contentDescription = "Change exam", onClick = {})
+            }
         }
     }
 }

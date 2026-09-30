@@ -29,11 +29,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.settings.LanguageMenu
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.PrimaryPill
 import uno.lux.autoskola.ui.ScreenHeader
@@ -143,4 +146,24 @@ private fun Paragraph(text: String) {
         color = Naj.colors.muted,
         textAlign = TextAlign.Center,
     )
+}
+
+// ── Previews ──
+
+/** The first screen after install, in the English UI it starts in. */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun DisclaimerScreenPreview() {
+    AppPreview {
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.English), onEvent = {})
+    }
+}
+
+/** The same screen with the longest of the four translations, to check the page still fits. */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun DisclaimerScreenSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.Slovak), onEvent = {})
+    }
 }

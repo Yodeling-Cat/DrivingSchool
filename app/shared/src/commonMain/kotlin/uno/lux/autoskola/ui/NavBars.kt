@@ -34,10 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uno.lux.autoskola.i18n.Strings
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.paperBackground
 
 /** The top-level destinations of the app bar. */
 enum class NavTab(val icon: ImageVector, val label: (Strings) -> String) {
@@ -185,6 +187,30 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
                     color = if (isActive) colors.roadYellow else active,
                 )
             }
+        }
+    }
+}
+
+// ── Previews ──
+
+/** The phone bar. The preview's width is what picks it: under 600dp is [WidthClass.Compact]. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun NavigationPillPreview() {
+    AppPreview {
+        NavigationShell(selected = NavTab.Tests, onSelect = {}) {
+            Box(Modifier.fillMaxSize().paperBackground())
+        }
+    }
+}
+
+/** The tablet and desktop rail, with the second tab active. */
+@Preview(widthDp = 1000, heightDp = 700)
+@Composable
+private fun NavigationRailPreview() {
+    AppPreview {
+        NavigationShell(selected = NavTab.Learn, onSelect = {}) {
+            Box(Modifier.fillMaxSize().paperBackground())
         }
     }
 }

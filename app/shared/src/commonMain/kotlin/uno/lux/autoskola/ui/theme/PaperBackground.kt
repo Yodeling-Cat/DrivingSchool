@@ -1,5 +1,9 @@
 package uno.lux.autoskola.ui.theme
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -18,9 +22,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.tooling.preview.Preview
 import najautoskola.app.shared.generated.resources.Res
 import najautoskola.app.shared.generated.resources.grain
 import org.jetbrains.compose.resources.imageResource
+import uno.lux.autoskola.ui.AppPreview
 
 /** Grain over the page, as the design system draws it. */
 const val GRAIN_PAGE = 0.28f
@@ -111,6 +117,24 @@ private fun DrawScope.drawGlow(glow: PaperGlow) {
                 topLeft = Offset(-1f, -1f),
                 size = Size(2f, 2f),
             )
+        }
+    }
+}
+
+// ── Previews ──
+
+/**
+ * The page the screens sit on, with the default corner glows on the left and the mint pulled up the
+ * page on the right - the variant settings and results ask for.
+ */
+@Preview(widthDp = 400, heightDp = 600)
+@Composable
+private fun PaperBackgroundPreview() {
+    AppPreview {
+        val colors = Naj.colors
+        Row(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f).fillMaxHeight().paperBackground(paperGlows(colors)))
+            Box(Modifier.weight(1f).fillMaxHeight().paperBackground(paperGlows(colors, mintY = 0.6f)))
         }
     }
 }

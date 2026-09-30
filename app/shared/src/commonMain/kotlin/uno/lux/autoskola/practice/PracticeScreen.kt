@@ -96,6 +96,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -115,6 +116,9 @@ import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.isDebugBuild
+import uno.lux.autoskola.stats.AttemptKind
+import uno.lux.autoskola.stats.TestAttempt
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.BarIconButton
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.HeightClass
@@ -129,6 +133,9 @@ import uno.lux.autoskola.ui.WhitePill
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.contentGutter
 import uno.lux.autoskola.ui.displayText
+import uno.lux.autoskola.ui.previewExam
+import uno.lux.autoskola.ui.previewPracticeQuestions
+import uno.lux.autoskola.ui.previewSections
 import uno.lux.autoskola.ui.theme.AccentedText
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.accentNumber
@@ -1414,4 +1421,125 @@ private fun QuestionChipRow(
         outlined = background == colors.card,
         onClick = onClick,
     )
+}
+
+// ── Previews ──
+
+/**
+ * One test as the screen receives it: the sample questions, the answers given so far (question index
+ * → answer index), and which page the pager opens on. The four questions are enough to fill the
+ * question list with two sections and to leave one open for the finished test.
+ */
+private fun practiceState(
+    questions: List<PracticeQuestion> = previewPracticeQuestions(),
+    checkImmediately: Boolean = false,
+    answers: Map<Int, Int> = emptyMap(),
+    initialPage: Int = 0,
+    allAnswered: Boolean = false,
+    finished: Boolean = false,
+    elapsedSeconds: Long = 412L,
+    showTimeLimitToast: Boolean = false,
+) = PracticeUiState.Ready(
+    exam = previewExam,
+    kind = AttemptKind.PracticeTest,
+    testNumber = 7,
+    sections = previewSections,
+    questions = questions,
+    checkImmediately = checkImmediately,
+    answers = answers,
+    initialPage = initialPage,
+    allAnswered = allAnswered,
+    finished = finished,
+    elapsedSeconds = elapsedSeconds,
+    allottedSeconds = TestAttempt.OFFICIAL_DURATION_SECONDS,
+    showTimeLimitToast = showTimeLimitToast,
+)
+
+/** A test just opened: nothing answered, nothing revealed, the clock running. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun PracticeScreenPreview() {
+    AppPreview {
+        PracticeScreen(practiceState(), onEvent = {}, onBack = {}, onOpenResults = {})
+    }
+}
+
+/** An answer picked, marked as the user's own but not yet as right or wrong. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun PracticeScreenAnsweredPreview() {
+    AppPreview {
+        PracticeScreen(
+            practiceState(answers = mapOf(0 to 1)),
+            onEvent = {},
+            onBack = {},
+            onOpenResults = {},
+        )
+    }
+}
+
+/** Check-immediately mode: the picked option is final, so the wrong one is marked and the right
+ * one is shown beside it. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun PracticeScreenCheckedPreview() {
+    AppPreview {
+        PracticeScreen(
+            practiceState(checkImmediately = true, answers = mapOf(0 to 0, 1 to 2), initialPage = 1),
+            onEvent = {},
+            onBack = {},
+            onOpenResults = {},
+        )
+    }
+}
+
+/** A finished test being reviewed, opened on the question the user left open. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun PracticeScreenFinishedPreview() {
+    AppPreview {
+        PracticeScreen(
+            practiceState(finished = true, answers = mapOf(0 to 0, 1 to 2), initialPage = 2),
+            onEvent = {},
+            onBack = {},
+            onOpenResults = {},
+        )
+    }
+}
+
+/** Past the time a test is given: the clock warns, and the notice says why. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun PracticeScreenOverTimePreview() {
+    AppPreview {
+        PracticeScreen(
+            practiceState(elapsedSeconds = 1_900L, showTimeLimitToast = true),
+            onEvent = {},
+            onBack = {},
+            onOpenResults = {},
+        )
+    }
+}
+
+/** A desktop window: the question list has a panel of its own beside the question. */
+@Preview(widthDp = 1200, heightDp = 860)
+@Composable
+private fun PracticeScreenExpandedPreview() {
+    AppPreview {
+        PracticeScreen(
+            practiceState(answers = mapOf(0 to 1), initialPage = 1),
+            onEvent = {},
+            onBack = {},
+            onOpenResults = {},
+        )
+    }
+}
+
+/** A phone in landscape: the top bar goes and the test runs on one slim bar. */
+@Preview(widthDp = 800, heightDp = 420)
+@Composable
+private fun PracticeScreenLandscapePreview() {
+    AppPreview {
+        PracticeScreen(practiceState(), onEvent = {}, onBack = {}, onOpenResults = {})
+    }
 }

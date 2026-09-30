@@ -1,10 +1,20 @@
 package uno.lux.autoskola.practice
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import uno.lux.autoskola.ui.AppPreview
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
+import uno.lux.autoskola.ui.PreviewRow
+import uno.lux.autoskola.ui.theme.Naj
 
 internal val IconArrowBack: ImageVector = ImageVector.Builder(
     name = "ArrowBack",
@@ -124,3 +134,21 @@ internal val IconClose: ImageVector = ImageVector.Builder(
         close()
     }
 }.build()
+
+// ── Previews ──
+
+/** The icons the practice screen draws itself, at the size the bars give them. */
+@Preview(widthDp = 360, heightDp = 160)
+@Composable
+private fun PracticeIconsPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("ARROW BACK, MENU, MORE, DROP DOWN, CLOSE")
+            PreviewRow {
+                listOf(IconArrowBack, IconMenu, IconMoreVert, IconArrowDropDown, IconClose).forEach { icon ->
+                    Icon(icon, contentDescription = null, tint = Naj.colors.ink, modifier = Modifier.size(28.dp))
+                }
+            }
+        }
+    }
+}

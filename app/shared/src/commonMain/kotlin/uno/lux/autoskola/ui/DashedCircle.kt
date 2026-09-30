@@ -8,8 +8,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import uno.lux.autoskola.ui.theme.Naj
 
 /**
  * The design's dashed ring, in the proportions of the 24-unit box its SVG is drawn in: a circle of
@@ -48,5 +50,22 @@ fun DashedCircleIcon(color: Color, modifier: Modifier = Modifier, diameter: Dp =
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(circle.dash, circle.gap)),
             ),
         )
+    }
+}
+
+// ── Previews ──
+
+@Preview(widthDp = 280, heightDp = 160)
+@Composable
+private fun DashedCircleIconPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("AT 20DP, AT 32DP, AND IN INK")
+            PreviewRow {
+                DashedCircleIcon(Color.White)
+                DashedCircleIcon(Color.White, diameter = 32.dp)
+                DashedCircleIcon(Naj.colors.ink)
+            }
+        }
     }
 }

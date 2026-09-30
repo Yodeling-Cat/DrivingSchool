@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
@@ -46,10 +47,13 @@ import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.settings.LanguageMenu
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.NajCard
 import uno.lux.autoskola.ui.RoundButton
+import uno.lux.autoskola.ui.previewBankInfo
+import uno.lux.autoskola.ui.previewBanks
 import uno.lux.autoskola.ui.theme.AccentedText
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.accentWord
@@ -352,5 +356,82 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
     ) {
         LicenceIcon(category)
         Text(label, style = Naj.type.rowTitle, color = colors.ink, modifier = Modifier.weight(1f))
+    }
+}
+
+// ── Previews ──
+
+/** A step of the wizard with the sample banks behind it. */
+private fun selectionState(step: ExamSelectionStep) = ExamSelectionUiState(
+    banks = previewBanks(),
+    step = step,
+    language = AppLanguage.English,
+)
+
+/** The wizard's three steps, plus the flash of the spinner while the banks are read. */
+
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionCountryStepPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseCountry),
+            onEvent = {},
+            // Onboarding: there is nothing behind this screen, and the language is picked here.
+            onBack = null,
+        )
+    }
+}
+
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionLanguageStepPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseBankLanguage("SK", previewBanks())),
+            onEvent = {},
+            onBack = null,
+        )
+    }
+}
+
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionCategoryStepPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseCategory(previewBankInfo("sk-sk"))),
+            onEvent = {},
+            onBack = null,
+        )
+    }
+}
+
+/** Opened from settings: the back button is there, and the language moves out of the header. */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionChangeExamPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseCountry),
+            onEvent = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionLoadingPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = ExamSelectionUiState(
+                banks = null,
+                step = ExamSelectionStep.ChooseCountry,
+                language = AppLanguage.English,
+            ),
+            onEvent = {},
+            onBack = null,
+        )
     }
 }

@@ -21,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.theme.Naj
@@ -78,4 +80,13 @@ fun LearnScreen() {
             }
         }
     }
+}
+
+// ── Previews ──
+
+/** The placeholder tab, which will hold the learning material. */
+@Preview(widthDp = 400, heightDp = 600)
+@Composable
+private fun LearnScreenPreview() {
+    AppPreview { LearnScreen() }
 }

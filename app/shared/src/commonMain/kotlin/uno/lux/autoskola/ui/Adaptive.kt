@@ -1,11 +1,18 @@
 package uno.lux.autoskola.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import uno.lux.autoskola.ui.theme.Naj
 
 /**
  * Material window size classes by width: phones are [Compact], small tablets and phones in
@@ -77,6 +84,39 @@ fun ProvideWindowSizeClasses(content: @Composable () -> Unit) {
             LocalHeightClass provides HeightClass.of(maxHeight),
         ) {
             content()
+        }
+    }
+}
+
+// ── Previews ──
+
+/**
+ * What [ProvideWindowSizeClasses] hands the window it measures: each box below is one of the
+ * screen sizes we support, with the classes it comes out as. The width is what a preview's own
+ * `widthDp` sets, so this is also the quickest way to see which layout a preview will pick.
+ */
+@Preview(widthDp = 900, heightDp = 900)
+@Composable
+private fun WindowSizeClassesPreview() {
+    AppPreview {
+        PreviewBoard {
+            listOf(
+                Triple(360.dp, 640.dp, "Phone"),
+                Triple(700.dp, 400.dp, "Phone in landscape"),
+                Triple(700.dp, 900.dp, "Small tablet"),
+                Triple(1200.dp, 800.dp, "Desktop"),
+            ).forEach { (width, height, name) ->
+                PreviewLabel("$name · $width x $height")
+                Box(Modifier.width(width).height(height)) {
+                    ProvideWindowSizeClasses {
+                        Text(
+                            "${LocalWidthClass.current} width · ${LocalHeightClass.current} height",
+                            style = Naj.type.rowTitle,
+                            color = Naj.colors.ink,
+                        )
+                    }
+                }
+            }
         }
     }
 }

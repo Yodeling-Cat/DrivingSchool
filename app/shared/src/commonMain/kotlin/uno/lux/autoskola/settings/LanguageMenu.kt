@@ -24,7 +24,8 @@ fun LanguageMenu(current: AppLanguage, onSelect: (AppLanguage) -> Unit, modifier
     var expanded by remember { mutableStateOf(false) }
     Box(modifier) {
         PickerPill(
-            text = current.code.uppercase(),
+            // The language's own name for itself, as the menu below lists them: "Slovenčina", not "SK".
+            text = current.nativeName,
             contentDescription = strings.settingsLanguage,
             onClick = { expanded = true },
         )

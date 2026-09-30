@@ -16,7 +16,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import uno.lux.autoskola.home.HomeRoute
+import uno.lux.autoskola.learn.LearnPlaceholderScreen
 import uno.lux.autoskola.learn.LearnScreen
+import uno.lux.autoskola.learn.LearnSection
+import uno.lux.autoskola.learn.SignsRoute
 import uno.lux.autoskola.onboarding.ExamSelectionRoute
 import uno.lux.autoskola.practice.PracticeRoute
 import uno.lux.autoskola.results.ResultsRoute
@@ -29,6 +32,16 @@ data object HomeKey : NavKey
 
 @Serializable
 data object LearnKey : NavKey
+
+/** The learning subjects, each its own screen on top of the learn tab. */
+@Serializable
+data object SignsKey : NavKey
+
+@Serializable
+data object IntersectionsKey : NavKey
+
+@Serializable
+data object LegislationKey : NavKey
 
 @Serializable
 data object SettingsKey : NavKey
@@ -48,6 +61,9 @@ private val navConfiguration = SavedStateConfiguration {
         polymorphic(NavKey::class) {
             subclass(HomeKey::class, HomeKey.serializer())
             subclass(LearnKey::class, LearnKey.serializer())
+            subclass(SignsKey::class, SignsKey.serializer())
+            subclass(IntersectionsKey::class, IntersectionsKey.serializer())
+            subclass(LegislationKey::class, LegislationKey.serializer())
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
             subclass(PracticeKey::class, PracticeKey.serializer())
@@ -97,8 +113,13 @@ fun ExamNavigation() {
                 }
             }
             entry<LearnKey>(metadata = tabMetadata) {
-                NavigationShell(NavTab.Learn, selectTab) { LearnScreen() }
+                NavigationShell(NavTab.Learn, selectTab) {
+                    LearnScreen(onOpenSection = { section -> backStack.add(section.key()) })
+                }
             }
+            entry<SignsKey> { SignsRoute(onBack = pop) }
+            entry<IntersectionsKey> { LearnPlaceholderScreen(LearnSection.Intersections, onBack = pop) }
+            entry<LegislationKey> { LearnPlaceholderScreen(LearnSection.Legislation, onBack = pop) }
             entry<SettingsKey>(metadata = tabMetadata) {
                 NavigationShell(NavTab.Settings, selectTab) {
                     SettingsRoute(onChangeExam = { backStack.add(ChangeExamKey) })
@@ -126,7 +147,14 @@ fun ExamNavigation() {
     )
 }
 
-/** Pops [key] only if it's still on top, so a repeated close can't pop the screen below. */
+/** Popping [key] only if it's still on top, so a repeated close can't pop the screen below. */
 private fun NavBackStack<NavKey>.popIfTop(key: NavKey) {
     if (lastOrNull() == key) removeLastOrNull()
+}
+
+/** The screen a learning subject opens. Every subject has one, so the hub never hits a dead end. */
+internal fun LearnSection.key(): NavKey = when (this) {
+    LearnSection.RoadSigns -> SignsKey
+    LearnSection.Intersections -> IntersectionsKey
+    LearnSection.Legislation -> LegislationKey
 }

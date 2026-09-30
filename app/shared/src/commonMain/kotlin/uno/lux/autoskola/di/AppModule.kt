@@ -15,7 +15,11 @@ import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.banks.ResourceQuestionBankDataSource
 import uno.lux.autoskola.data.exam.ExamRepository
 import uno.lux.autoskola.data.preferences.PreferencesRepository
+import uno.lux.autoskola.data.signs.ResourceSignCatalogueDataSource
+import uno.lux.autoskola.data.signs.SignCatalogueDataSource
+import uno.lux.autoskola.data.signs.SignCatalogueRepository
 import uno.lux.autoskola.home.HomeViewModel
+import uno.lux.autoskola.learn.SignsViewModel
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
@@ -28,10 +32,12 @@ val appModule = module {
     single<Settings> { Settings() }
     single<AttemptDataSource> { SettingsAttemptDataSource(get()) }
     single<QuestionBankDataSource> { ResourceQuestionBankDataSource() }
+    single<SignCatalogueDataSource> { ResourceSignCatalogueDataSource() }
 
     // Repositories
     single { AttemptRepository(get()) }
     single { QuestionBankRepository(get()) }
+    single { SignCatalogueRepository(get()) }
     single { PreferencesRepository(get()) }
     single { ExamRepository(get(), get(), get()) }
 
@@ -40,6 +46,7 @@ val appModule = module {
     viewModelOf(::DisclaimerViewModel)
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get(), get()) }
+    viewModelOf(::SignsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }

@@ -9,6 +9,7 @@ import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.home.HomeProgress
 import uno.lux.autoskola.home.ResumableTest
 import uno.lux.autoskola.home.ResumePrompt
+import uno.lux.autoskola.learn.SignItem
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.PracticeQuestion
 import uno.lux.autoskola.stats.AttemptKind
@@ -30,6 +31,34 @@ internal val previewExam = ExamLabel(LicenseCategory.B, "sk")
 
 /** The exam label of the English question bank, for the previews that show a bank's own name. */
 internal val previewExamHungarian = ExamLabel(LicenseCategory.B, "hu")
+
+/**
+ * The signs the road-sign previews list. The pictures are not loadable from a preview, so their
+ * URIs point nowhere: the row draws the same box it draws while an image is still loading.
+ */
+internal val previewSignItems = listOf(
+    previewSignItem("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov na vozovke."),
+    previewSignItem(
+        "141",
+        "Deti",
+        "Značka upozorňuje na zvýšený pohyb detí a zvýšené riziko ich neočakávaného vstupu do vozovky.",
+    ),
+    previewSignItem("142", "Priechod pre chodcov", "Značka upozorňuje na priechod pre chodcov."),
+    previewSignItem(
+        "145",
+        "Zver",
+        "Značka upozorňuje na zvýšené nebezpečenstvo neočakávaného pohybu voľne žijúcej zveri cez cestu.",
+    ),
+    previewSignItem("230", "Zákaz vjazdu", "Značka zakazuje vjazd všetkými vozidlami."),
+    previewSignItem("350", "", "Značka informuje o čísle cesty I. triedy alebo o čísle cesty II. triedy."),
+)
+
+internal fun previewSignItem(number: String, name: String, description: String) = SignItem(
+    number = number,
+    name = name,
+    description = description,
+    imageUri = "preview://minv-sk/obr3/dz/$number.jpg",
+)
 
 /** The sections the sample questions belong to, as the question list groups them. */
 internal val previewSections = listOf(

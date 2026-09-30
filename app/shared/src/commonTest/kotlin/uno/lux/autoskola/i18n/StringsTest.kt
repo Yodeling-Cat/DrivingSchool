@@ -66,6 +66,21 @@ class StringsTest {
     }
 
     @Test
+    fun everyLanguageCountsTheSigns() {
+        assertEquals("1 sign", AppLanguage.English.strings.signsCount(1))
+        assertEquals("120 signs", AppLanguage.English.strings.signsCount(120))
+        assertEquals("120 tábla", AppLanguage.Hungarian.strings.signsCount(120))
+    }
+
+    @Test
+    fun slovakAndCzechSignCountsUseThreePluralForms() {
+        val sk = AppLanguage.Slovak.strings.signsCount
+        assertEquals(listOf("1 značka", "2 značky", "5 značiek"), listOf(1, 2, 5).map(sk))
+        val cs = AppLanguage.Czech.strings.signsCount
+        assertEquals(listOf("1 značka", "3 značky", "120 značek"), listOf(1, 3, 120).map(cs))
+    }
+
+    @Test
     fun appNameIsTranslated() {
         assertEquals("Naj Autoškola", AppLanguage.Slovak.strings.appName)
         assertEquals("Naj Autoškola", AppLanguage.English.strings.appName)

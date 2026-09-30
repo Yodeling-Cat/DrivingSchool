@@ -9,7 +9,11 @@ import uno.lux.autoskola.AppViewModel
 import uno.lux.autoskola.data.banks.FakeQuestionBankDataSource
 import uno.lux.autoskola.data.banks.QuestionBankDataSource
 import uno.lux.autoskola.data.banks.testBank
+import uno.lux.autoskola.data.signs.FakeSignCatalogueDataSource
+import uno.lux.autoskola.data.signs.SignCatalogueDataSource
+import uno.lux.autoskola.data.signs.testSignCatalogue
 import uno.lux.autoskola.home.HomeViewModel
+import uno.lux.autoskola.learn.SignsViewModel
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
@@ -28,6 +32,7 @@ class AppModuleTest : ViewModelTest() {
                 module {
                     single<Settings> { MapSettings() }
                     single<QuestionBankDataSource> { FakeQuestionBankDataSource.of(testBank()) }
+                    single<SignCatalogueDataSource> { FakeSignCatalogueDataSource.of(testSignCatalogue()) }
                 },
             )
         }.koin
@@ -36,6 +41,7 @@ class AppModuleTest : ViewModelTest() {
         koin.get<DisclaimerViewModel>()
         koin.get<ExamSelectionViewModel>()
         koin.get<HomeViewModel>()
+        koin.get<SignsViewModel>()
         koin.get<SettingsViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }

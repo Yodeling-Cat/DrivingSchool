@@ -253,7 +253,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             LicenceCard(totalTests = tests.size, progress = progress)
             Spacer(Modifier.height(28.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ActionRow(tests = tests, progress = progress, onEvent = onEvent)
+                ActionRow(tests = tests, progress = progress, onEvent = onEvent, stacked = true)
                 MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
             }
         }
@@ -523,31 +523,50 @@ private fun ContinuePill() {
     }
 }
 
-/** The two ways to start a test: a random one, or one that hasn't been done yet. */
+/**
+ * The two ways to start a test: a random one, or one that hasn't been done yet. They sit side by
+ * side on a phone and stack on a wide window, where a row of two half-width buttons on a band this
+ * wide leaves both of them oddly long - and the one that starts a test comes first there.
+ */
 @Composable
 private fun ActionRow(
     tests: List<PracticeTest>,
     progress: HomeProgress,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
+    stacked: Boolean = false,
 ) {
     val anyUnfinished = tests.any { it.number !in progress.results && it.number !in progress.inProgress }
 
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    val randomTest = @Composable { pillModifier: Modifier ->
         OutlinePill(
             text = strings.randomTest,
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = false)) },
-            modifier = Modifier.weight(1f),
+            modifier = pillModifier,
             icon = Icons.Filled.Shuffle,
             enabled = tests.isNotEmpty(),
         )
+    }
+    val notDoneYet = @Composable { pillModifier: Modifier ->
         PrimaryPill(
             text = strings.notDoneYet,
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
-            modifier = Modifier.weight(1f),
+            modifier = pillModifier,
             iconContent = { DashedCircleIcon(Color.White) },
             enabled = anyUnfinished,
         )
+    }
+
+    if (stacked) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            notDoneYet(Modifier.fillMaxWidth())
+            randomTest(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            randomTest(Modifier.weight(1f))
+            notDoneYet(Modifier.weight(1f))
+        }
     }
 }
 

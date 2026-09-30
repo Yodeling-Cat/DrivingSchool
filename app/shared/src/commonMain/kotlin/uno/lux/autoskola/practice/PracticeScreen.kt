@@ -355,7 +355,8 @@ fun PracticeScreen(
         )
     }
 
-    val pagerContent: @Composable (PaddingValues) -> Unit = { padding ->
+    /** The questions themselves: the pager, with the arrows beside it where there's room. */
+    val questionsPane: @Composable (PaddingValues) -> Unit = { padding ->
         Row(Modifier.padding(padding).fillMaxSize()) {
             // Compose's scrollable ignores drags made with a mouse (its own canDrag says so), so a
             // page is dragged by hand here. A touch drag never reaches this: the pager consumes it
@@ -403,59 +404,75 @@ fun PracticeScreen(
                 }
                 if (arrowsBeside) besideArrows()
             }
-            if (showPanel) {
-                VerticalDivider(color = CardBorder)
-                Column(
-                    Modifier
-                        .width(QuestionPanelWidth)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    QuestionGrid(
-                        questions = questions,
-                        sections = sections,
-                        currentIndex = currentIndex,
-                        selectedAnswers = selectedAnswers,
-                        revealCorrectness = revealCorrectness,
-                        finished = finished,
-                        onSelectQuestion = ::goTo,
-                    )
-                }
-            }
+        }
+    }
+
+    /** The question list, which has a panel of its own beside the question on a wide screen. */
+    val questionPanel: @Composable () -> Unit = {
+        Column(
+            Modifier
+                .width(QuestionPanelWidth)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            QuestionGrid(
+                questions = questions,
+                sections = sections,
+                currentIndex = currentIndex,
+                selectedAnswers = selectedAnswers,
+                revealCorrectness = revealCorrectness,
+                finished = finished,
+                onSelectQuestion = ::goTo,
+            )
+            // The list runs to the bottom of the window; the navigation bar's room is the last row.
+            Spacer(Modifier.height(navBarInset))
         }
     }
 
     if (showPanel) {
-        // The bar is the same bottom sheet a phone shows, without a list to hold: on a tall window
-        // the list has its own panel beside the question, so this sheet is pinned — nothing drags or
-        // expands it — and the shadow under it is what separates it from the question above.
-        BottomSheetScaffold(
-            scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
-            containerColor = Color.White,
-            sheetContainerColor = Color.White,
-            sheetPeekHeight = barHeight + navBarInset,
-            // A header spans the window, as the bar it replaces did; the sheet's default is a
-            // 640dp-wide panel, which reads as a floating card on a wide screen.
-            sheetMaxWidth = Dp.Unspecified,
-            sheetShadowElevation = QuestionSheetShadow,
-            sheetDragHandle = null,
-            sheetSwipeEnabled = false,
-            topBar = topBar,
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            sheetContent = {
-                // The list is always visible next to the question here, so the toggle is inert and
-                // the arrows never fade.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(barHeight + navBarInset)
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = { barContent(false, {}, { 1f }) },
+        // The bar is the bottom sheet a phone shows, over the questions alone: the list has a panel
+        // of its own here, and the sheet's width is the question column's, so it lines up with the
+        // question and the answers instead of running on under the list. It is pinned — nothing
+        // drags or expands it — and its shadow is what separates it from the page above.
+        Column(
+            Modifier
+                .fillMaxSize()
+                // The sheet's peek already makes room for the navigation bar, as on a phone.
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+        ) {
+            // The app bar stays over both panes, so it sits outside the sheet's scaffold.
+            topBar()
+            Row(Modifier.fillMaxWidth().weight(1f)) {
+                BottomSheetScaffold(
+                    modifier = Modifier.weight(1f),
+                    scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
+                    containerColor = Color.White,
+                    sheetContainerColor = Color.White,
+                    sheetPeekHeight = barHeight + navBarInset,
+                    // The reading column's width: what holds the question and its answers.
+                    sheetMaxWidth = ContentWidth.Reading,
+                    sheetShadowElevation = QuestionSheetShadow,
+                    sheetDragHandle = null,
+                    sheetSwipeEnabled = false,
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    sheetContent = {
+                        // The list is always visible next to the question here, so the toggle is
+                        // inert and the arrows never fade.
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(barHeight + navBarInset)
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            content = { barContent(false, {}, { 1f }) },
+                        )
+                    },
+                    content = questionsPane,
                 )
-            },
-            content = pagerContent,
-        )
+                VerticalDivider(color = CardBorder)
+                questionPanel()
+            }
+        }
     } else {
         // The question list is a sheet pinned to the bottom: collapsed it shows just the bar. Its
         // content has a fixed height — a bar over a list tall enough to reach the status bar — so
@@ -512,7 +529,7 @@ fun PracticeScreen(
                         Spacer(Modifier.height(navBarInset))
                     }
                 },
-                content = pagerContent,
+                content = questionsPane,
             )
         }
     }
@@ -675,8 +692,6 @@ private fun RowScope.PracticeBarContent(
     }
     if (showListToggle) {
         QuestionListToggle(expanded = listExpanded, onClick = onToggleList)
-    } else {
-        Spacer(Modifier.width(16.dp))
     }
     Column(modifier = Modifier.weight(1f)) {
         Text(

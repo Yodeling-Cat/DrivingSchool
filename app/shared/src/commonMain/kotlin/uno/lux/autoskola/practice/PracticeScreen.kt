@@ -46,8 +46,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
@@ -148,6 +146,12 @@ private val EnlargedImageMargin = 24.dp
 private val QuestionArrowSize = 56.dp
 
 /**
+ * The shadow the bar throws on the question behind it. The sheet and the page are both white, so
+ * the shadow is the only thing separating them — the Material default is barely visible.
+ */
+private val QuestionSheetShadow = 24.dp
+
+/**
  * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
  * closed, and [onOpenResults] when the test is finished or the user asks for its results.
  */
@@ -213,10 +217,23 @@ fun PracticeScreen(
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
     val currentIndex = pagerState.currentPage
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = true)
+    // The same bar on a tall window, where the list has a panel of its own: nothing expands or
+    // drags this sheet, it's the bar with a shadow under it.
+    val pinnedSheetState = rememberStandardBottomSheetState(
+        initialValue = SheetValue.PartiallyExpanded,
+        skipHiddenState = true,
+        confirmValueChange = { it == SheetValue.PartiallyExpanded },
+    )
     val scope = rememberCoroutineScope()
     val current = questions[currentIndex]
-    // The question list is pinned to the bottom and covers the questions once it's open.
-    val listExpanded = sheetState.targetValue == SheetValue.Expanded
+    // On wide screens the question list is always visible next to the question.
+    // Phones in landscape: one slim bar instead of two, and no side panel, so the question keeps
+    // most of the little height there is.
+    val compactHeight = LocalHeightClass.current == HeightClass.Compact
+    val showPanel = LocalWidthClass.current == WidthClass.Expanded && !compactHeight
+    // The question list is pinned to the bottom and covers the questions once it's open. Where the
+    // list has its own panel it never covers anything, so it can't be open or closed either.
+    val listExpanded = !showPanel && sheetState.targetValue == SheetValue.Expanded
 
     /** Set while we're asking whether the user really wants to leave an unfinished test. */
     var confirmingLeave by remember { mutableStateOf(false) }
@@ -238,11 +255,6 @@ fun PracticeScreen(
         isBackEnabled = backAction(listExpanded, finished) != BackAction.Leave,
         onBackCompleted = ::handleBack,
     )
-    // On wide screens the question list is always visible next to the question.
-    // Phones in landscape: one slim bar instead of two, and no side panel, so the question keeps
-    // most of the little height there is.
-    val compactHeight = LocalHeightClass.current == HeightClass.Compact
-    val showPanel = LocalWidthClass.current == WidthClass.Expanded && !compactHeight
     // Resizing the window (desktop, split screen, rotation) mid-scroll can leave the pager
     // between pages, so re-align it to the page it was heading to whenever its width changes.
     var pagerWidth by remember { mutableStateOf(0) }
@@ -292,8 +304,6 @@ fun PracticeScreen(
         onFinish = { onEvent(PracticeUiEvent.Finish) },
         onShowResults = onOpenResults,
     )
-
-    val bottomBarPadding = if (compactHeight) PaddingValues(horizontal = 4.dp) else BottomAppBarDefaults.ContentPadding
 
     // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
@@ -416,16 +426,31 @@ fun PracticeScreen(
     }
 
     if (showPanel) {
-        Scaffold(
+        // The bar is the same bottom sheet a phone shows, without a list to hold: on a tall window
+        // the list has its own panel beside the question, so this sheet is pinned — nothing drags or
+        // expands it — and the shadow under it is what separates it from the question above.
+        BottomSheetScaffold(
+            scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
             containerColor = Color.White,
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            sheetContainerColor = Color.White,
+            sheetPeekHeight = barHeight + navBarInset,
+            // A header spans the window, as the bar it replaces did; the sheet's default is a
+            // 640dp-wide panel, which reads as a floating card on a wide screen.
+            sheetMaxWidth = Dp.Unspecified,
+            sheetShadowElevation = QuestionSheetShadow,
+            sheetDragHandle = null,
+            sheetSwipeEnabled = false,
             topBar = topBar,
-            bottomBar = {
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            sheetContent = {
                 // The list is always visible next to the question here, so the toggle is inert and
                 // the arrows never fade.
-                BottomAppBar(
-                    containerColor = Color.White,
-                    contentPadding = bottomBarPadding,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(barHeight + navBarInset)
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     content = { barContent(false, {}, { 1f }) },
                 )
             },
@@ -458,9 +483,7 @@ fun PracticeScreen(
                 containerColor = Color.White,
                 sheetContainerColor = Color.White,
                 sheetPeekHeight = barHeight + navBarInset,
-                // The sheet and the screen behind it are both white, so the shadow is what separates
-                // them: the Material default is barely visible.
-                sheetShadowElevation = 24.dp,
+                sheetShadowElevation = QuestionSheetShadow,
                 sheetDragHandle = null,
                 topBar = topBar,
                 snackbarHost = { SnackbarHost(snackbarHostState) },

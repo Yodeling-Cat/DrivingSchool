@@ -542,11 +542,12 @@ private fun ContinuePill() {
 }
 
 /**
- * The two ways to start a test: a random one, or one that has not been passed. They sit side by side
- * on a phone and stack on a wide window, where a row of two half-width buttons on a band this wide
- * leaves both of them oddly long - and the one that starts a test comes first there. The "not
- * passed" pill is live for as long as a test is still unpassed: a failed one counts, because it can
- * be taken again.
+ * The two ways to start a test: a random one, or one that has not been passed. They stack on a wide
+ * window, where a row of two half-width buttons on a band this wide leaves both of them oddly long.
+ * On a phone they sit side by side at their own widths, because the two labels differ by half a word
+ * per language: the short one is only as wide as its label, and the one that spells out what it
+ * starts takes the rest of the row. The "not passed" pill is live for as long as a test is still
+ * unpassed: a failed one counts, because it can be taken again.
  */
 @Composable
 private fun ActionRow(
@@ -582,7 +583,7 @@ private fun ActionRow(
         }
     } else {
         Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            randomTest(Modifier.weight(1f))
+            randomTest(Modifier)
             notPassed(Modifier.weight(1f))
         }
     }

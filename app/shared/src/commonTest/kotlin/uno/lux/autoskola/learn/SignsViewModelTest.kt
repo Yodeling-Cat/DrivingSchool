@@ -31,21 +31,38 @@ class SignsViewModelTest : ViewModelTest() {
         val state = observe(viewModel.uiState)
 
         val ready = assertIs<SignsUiState.Ready>(state.value)
-        assertEquals(listOf("140", "142", "601"), ready.signs.map { it.number })
+        assertEquals(listOf("140", "142", "601"), ready.groups.flatMap { group -> group.signs.map { it.number } })
         assertEquals(3, ready.total)
-        assertEquals("test://minv-sk/obr3/dz/140.jpg", ready.signs.first().imageUri)
-        assertEquals("Chodci", ready.signs.first().name)
+        assertEquals(3, ready.shown)
+        assertEquals("test://minv-sk/obr3/dz/140.jpg", ready.groups.first().signs.first().imageUri)
+        assertEquals("Chodci", ready.groups.first().signs.first().name)
     }
 
     @Test
-    fun aSearchKeepsOnlyTheMatchingSigns() = runTest {
+    fun theSignsAreListedUnderTheHeadingsTheyBelongTo() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+
+        assertEquals(2, ready.groups.size)
+        assertEquals("VÝSTRAŽNÉ ZNAČKY", ready.groups[0].kind)
+        assertEquals("I. 4. Pohyb na ceste", ready.groups[0].group)
+        assertEquals(listOf("140", "142"), ready.groups[0].signs.map { it.number })
+        assertEquals("VODOROVNÉ ZNAČKY", ready.groups[1].kind)
+        assertEquals(listOf("601"), ready.groups[1].signs.map { it.number })
+    }
+
+    @Test
+    fun aSearchKeepsTheHeadingsOfTheSignsItLeaves() = runTest {
         val viewModel = viewModel()
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SignsUiEvent.Search("vozovk"))
 
         val ready = assertIs<SignsUiState.Ready>(state.value)
-        assertEquals(listOf("140", "601"), ready.signs.map { it.number })
+        assertEquals(listOf("140", "601"), ready.groups.flatMap { group -> group.signs.map { it.number } })
+        assertEquals(listOf("I. 4. Pohyb na ceste", "I. Pozdĺžne čiary"), ready.groups.map { it.group })
         assertEquals(3, ready.total)
         assertEquals("vozovk", ready.query)
     }
@@ -58,7 +75,8 @@ class SignsViewModelTest : ViewModelTest() {
         viewModel.onEvent(SignsUiEvent.Search("vrtuľník"))
 
         val ready = assertIs<SignsUiState.Ready>(state.value)
-        assertTrue(ready.signs.isEmpty())
+        assertTrue(ready.groups.isEmpty())
+        assertEquals(0, ready.shown)
         assertEquals(3, ready.total)
     }
 
@@ -70,6 +88,8 @@ class SignsViewModelTest : ViewModelTest() {
         viewModel.onEvent(SignsUiEvent.Search("vozovk"))
         viewModel.onEvent(SignsUiEvent.Search(""))
 
-        assertEquals(3, assertIs<SignsUiState.Ready>(state.value).signs.size)
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+        assertEquals(3, ready.shown)
+        assertEquals(2, ready.groups.size)
     }
 }

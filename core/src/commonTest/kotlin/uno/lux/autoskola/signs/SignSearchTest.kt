@@ -66,6 +66,13 @@ class SignSearchTest {
     }
 
     @Test
+    fun aSearchDoesNotMatchTheHeadingASignIsListedUnder() {
+        val grouped = listOf(sign("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov."))
+
+        assertTrue(searchSigns(grouped, "VÝSTRAŽNÉ ZNAČKY").isEmpty())
+    }
+
+    @Test
     fun foldsEveryDiacriticWeTranslateInto() {
         // Slovak, Czech and Hungarian, which the app is written in.
         assertEquals("aacdeeiillnoooouuuursstzz", foldSignText("áäčďéěííĺľňóôöőúůüűřššťžź"))
@@ -76,6 +83,12 @@ class SignSearchTest {
         assertEquals("zakaz vjazdu", foldSignText("Zákaz  vJAZDU!"))
     }
 
-    private fun sign(number: String, name: String, description: String) =
-        Sign(number = number, name = name, description = description, section = "I. Výstražné", image = "x.jpg")
+    private fun sign(number: String, name: String, description: String) = Sign(
+        number = number,
+        name = name,
+        description = description,
+        kind = "VÝSTRAŽNÉ ZNAČKY",
+        group = "I. 1. Stavebno-technické vlastnosti cesty",
+        image = "obr3/dz/$number.jpg",
+    )
 }

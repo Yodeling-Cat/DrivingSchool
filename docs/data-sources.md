@@ -94,6 +94,15 @@ regulation, in force since 1 April 2020), read by `tools/import/import_znacky.py
 - Source: <https://www.slov-lex.sk/static/pdf/2020/30/ZZ_2020_30_20200401.pdf> (Zbierka zákonov,
   5.9 MB). The annex holds one table row per sign: its row number, its number and picture, its
   name, and what it means. `znacky_pdf.py` reads those rows back by the x of each table column.
+- Grouping: each sign records the part of the annex it is listed in (its **kind**) and the heading
+  inside it (its **group**), which is what the list's sticky headings are drawn from. There are six
+  kinds — VÝSTRAŽNÉ ZNAČKY (25), REGULAČNÉ ZNAČKY (31), INFORMAČNÉ ZNAČKY (44), DODATKOVÉ TABUĽKY
+  (5), VODOROVNÉ ZNAČKY (10) and DOPRAVNÉ ZARIADENIA (5) — and the 120 signs fall into 27 headings,
+  such as "I. 4. Pohyb na ceste", "II. 3. Zákazy vjazdu" or "III. Doplnkové zariadenia k svetelným
+  signálom". The kind and the group are read from the text the tables set in bold: the road markings
+  draw their headings past the meaning column's own left edge, so a heading is recognised by its
+  being bold, not by which column it lands in. A kind whose signs carried no heading would leave the
+  group empty and be named by the kind alone; no kind does today.
 - Pictures are **not** taken from the regulation. The app matches the catalogue to the images it
   already bundles for the question bank (minv.sk's `obr3/dz` set, see above), whose file names are
   the signs' numbers: `140.jpg` is sign 140.

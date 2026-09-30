@@ -1,6 +1,7 @@
 package uno.lux.autoskola.learn
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,8 +47,10 @@ import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
 import uno.lux.autoskola.ui.RoundButton
-import uno.lux.autoskola.ui.previewSignItems
+import uno.lux.autoskola.ui.previewSignGroups
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.paperBackground
 
@@ -87,10 +90,10 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
                         SignsUiState.Loading -> SignsLoading(Modifier.weight(1f))
 
                         is SignsUiState.Ready ->
-                            if (state.signs.isEmpty()) {
+                            if (state.groups.isEmpty()) {
                                 SignListEmpty(Modifier.weight(1f))
                             } else {
-                                SignList(state.signs, page, Modifier.weight(1f))
+                                SignList(state.groups, page, Modifier.weight(1f))
                             }
                     }
                 }
@@ -116,7 +119,7 @@ private fun SignsHeader(state: SignsUiState, onBack: () -> Unit) {
                     text = if (ready.query.isBlank()) {
                         strings.signsCount(ready.total)
                     } else {
-                        strings.signsMatches(ready.signs.size, ready.total)
+                        strings.signsMatches(ready.shown, ready.total)
                     },
                     style = Naj.type.secondary,
                     color = colors.muted,
@@ -126,15 +129,48 @@ private fun SignsHeader(state: SignsUiState, onBack: () -> Unit) {
     }
 }
 
-/** The catalogue, one sign a row, in the regulation's own order. */
+/**
+ * The catalogue, one sign a row, in the regulation's own order, under the headings it lists them
+ * in. The heading stays on screen while its signs scroll past, so it is always clear which group
+ * the signs belong to - including while a search has left signs of several groups in the list.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SignList(signs: List<SignItem>, page: DpSize, modifier: Modifier = Modifier) {
+private fun SignList(groups: List<SignGroupItem>, page: DpSize, modifier: Modifier = Modifier) {
     LazyColumn(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp)) {
-        items(signs, key = { it.number }) { sign ->
-            SignRow(sign, page)
-            CardDivider()
+        groups.forEach { group ->
+            stickyHeader(key = "header-${group.kind}-${group.group}") {
+                SignGroupHeading(group.kind, group.group)
+            }
+            items(group.signs, key = { it.number }) { sign ->
+                SignRow(sign, page)
+                CardDivider()
+            }
         }
     }
+}
+
+/**
+ * The heading a group of signs is listed under: the part of the catalogue it belongs to, and the
+ * heading inside it. It is drawn on the paper rather than over it, so the signs scrolling past stay
+ * under the heading instead of showing through it.
+ */
+@Composable
+private fun SignGroupHeading(kind: String, group: String, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.paper)
+            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
+    ) {
+        Text(kind, style = Naj.type.capsLabel, color = colors.muted)
+        if (group.isNotBlank()) {
+            Spacer(Modifier.height(2.dp))
+            Text(group, style = Naj.type.sectionHeading, color = colors.ink)
+        }
+    }
+    CardDivider()
 }
 
 /** One sign: its picture and number, its name, and what the regulation says it means. */
@@ -226,33 +262,57 @@ private fun SignsLoading(modifier: Modifier = Modifier) {
 
 // ── Previews ──
 
-/** The catalogue as it opens: every sign, in the regulation's order. */
+/** How many signs the previews claim the catalogue holds. */
+private val previewSignTotal = 120
+
+/** The catalogue as it opens: every sign, under the headings the regulation lists them in. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun SignsScreenPreview() {
     AppPreview {
         SignsScreen(
-            state = SignsUiState.Ready(signs = previewSignItems, query = "", total = previewSignItems.size),
+            state = SignsUiState.Ready(groups = previewSignGroups, query = "", total = previewSignTotal),
             onEvent = {},
             onBack = {},
         )
     }
 }
 
-/** A search with a query typed into the field. */
+/** A search whose results still fall into several groups, so the list keeps its headings. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun SignsScreenSearchPreview() {
     AppPreview {
         SignsScreen(
             state = SignsUiState.Ready(
-                signs = previewSignItems.filter { it.name.contains("Chodci") },
-                query = "chodc",
-                total = previewSignItems.size,
+                groups = listOf(
+                    previewSignGroups[0].copy(
+                        signs = previewSignGroups[0].signs.filter { it.number == "140" },
+                    ),
+                    previewSignGroups[2].copy(
+                        signs = previewSignGroups[2].signs.filter { it.name.startsWith("Zákaz") },
+                    ),
+                ),
+                query = "zakaz",
+                total = previewSignTotal,
             ),
             onEvent = {},
             onBack = {},
         )
+    }
+}
+
+/** A group the regulation lists under a heading of its own kind, and one it does not. */
+@Preview(widthDp = 400, heightDp = 400)
+@Composable
+private fun SignGroupHeadingPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("with a heading inside the kind")
+            SignGroupHeading(previewSignGroups[2].kind, previewSignGroups[2].group)
+            PreviewLabel("without one")
+            SignGroupHeading(previewSignGroups[3].kind, previewSignGroups[3].group)
+        }
     }
 }
 
@@ -262,7 +322,7 @@ private fun SignsScreenSearchPreview() {
 private fun SignsScreenNoMatchPreview() {
     AppPreview {
         SignsScreen(
-            state = SignsUiState.Ready(signs = emptyList(), query = "vrtuľník", total = previewSignItems.size),
+            state = SignsUiState.Ready(groups = emptyList(), query = "vrtuľník", total = previewSignTotal),
             onEvent = {},
             onBack = {},
         )
@@ -282,7 +342,7 @@ private fun SignsScreenLoadingPreview() {
 private fun SignsScreenWidePreview() {
     AppPreview {
         SignsScreen(
-            state = SignsUiState.Ready(signs = previewSignItems, query = "", total = previewSignItems.size),
+            state = SignsUiState.Ready(groups = previewSignGroups, query = "", total = previewSignTotal),
             onEvent = {},
             onBack = {},
         )

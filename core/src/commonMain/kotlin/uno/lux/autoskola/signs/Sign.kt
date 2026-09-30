@@ -17,8 +17,13 @@ data class Sign(
     val number: String,
     val name: String,
     val description: String,
-    /** The part of the catalogue the sign belongs to, e.g. "I. 4. Pohyb na ceste". */
-    val section: String,
+    /**
+     * The part of the annex the sign is listed in: "VÝSTRAŽNÉ ZNAČKY", "REGULAČNÉ ZNAČKY",
+     * "INFORMAČNÉ ZNAČKY", "DODATKOVÉ TABUĽKY", "VODOROVNÉ ZNAČKY" or "DOPRAVNÉ ZARIADENIA".
+     */
+    val kind: String,
+    /** The heading inside that part, e.g. "I. 4. Pohyb na ceste", or empty where it has none. */
+    val group: String,
     /** Path relative to the catalogue's image directory. */
     val image: String,
 )

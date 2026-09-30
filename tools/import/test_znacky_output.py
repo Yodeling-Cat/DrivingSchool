@@ -1,4 +1,5 @@
 """Checks the committed sign catalogue that ships in the app. Run after every import."""
+import collections
 import json
 import unittest
 
@@ -44,8 +45,35 @@ class SignCatalogueOutputTest(unittest.TestCase):
         self.assertEqual("731", self.signs[-1]["number"])
 
     def test_every_sign_knows_the_part_of_the_catalogue_it_is_from(self):
+        kinds = {
+            "VÝSTRAŽNÉ ZNAČKY",
+            "REGULAČNÉ ZNAČKY",
+            "INFORMAČNÉ ZNAČKY",
+            "DODATKOVÉ TABUĽKY",
+            "VODOROVNÉ ZNAČKY",
+            "DOPRAVNÉ ZARIADENIA",
+        }
         for sign in self.signs:
-            self.assertTrue(sign["section"].strip(), f"sign {sign['number']}")
+            where = f"sign {sign['number']}"
+            self.assertIn(sign["kind"], kinds, where)
+            self.assertTrue(sign["group"].strip() or sign["kind"], where)
+            # A group heading must not have run on into a sign's meaning.
+            self.assertNotIn(sign["group"], sign["description"], where)
+
+    def test_the_signs_come_in_the_six_kinds_of_the_regulation(self):
+        counts = collections.Counter(sign["kind"] for sign in self.signs)
+
+        self.assertEqual(
+            {
+                "VÝSTRAŽNÉ ZNAČKY": 25,
+                "REGULAČNÉ ZNAČKY": 31,
+                "INFORMAČNÉ ZNAČKY": 44,
+                "DODATKOVÉ TABUĽKY": 5,
+                "VODOROVNÉ ZNAČKY": 10,
+                "DOPRAVNÉ ZARIADENIA": 5,
+            },
+            dict(counts),
+        )
 
     def test_the_regulation_is_named_as_the_source(self):
         self.assertIn("30/2020", self.catalogue["source"])

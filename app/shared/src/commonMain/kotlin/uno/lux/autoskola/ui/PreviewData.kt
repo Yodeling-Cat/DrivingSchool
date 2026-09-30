@@ -9,6 +9,7 @@ import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.home.HomeProgress
 import uno.lux.autoskola.home.ResumableTest
 import uno.lux.autoskola.home.ResumePrompt
+import uno.lux.autoskola.learn.SignGroupItem
 import uno.lux.autoskola.learn.SignItem
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.PracticeQuestion
@@ -33,26 +34,61 @@ internal val previewExam = ExamLabel(LicenseCategory.B, "sk")
 internal val previewExamHungarian = ExamLabel(LicenseCategory.B, "hu")
 
 /**
- * The signs the road-sign previews list. The pictures are not loadable from a preview, so their
- * URIs point nowhere: the row draws the same box it draws while an image is still loading.
+ * The signs the road-sign previews list, as the regulation groups them: two groups of the warning
+ * signs, one of the regulatory signs, and the road markings, whose kind carries no heading. The
+ * pictures are not loadable from a preview, so their URIs point nowhere: a row draws the same box
+ * it draws while an image is still loading.
  */
-internal val previewSignItems = listOf(
-    previewSignItem("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov na vozovke."),
-    previewSignItem(
-        "141",
-        "Deti",
-        "Značka upozorňuje na zvýšený pohyb detí a zvýšené riziko ich neočakávaného vstupu do vozovky.",
+internal val previewSignGroups = listOf(
+    SignGroupItem(
+        kind = "VÝSTRAŽNÉ ZNAČKY",
+        group = "I. 4. Pohyb na ceste",
+        signs = listOf(
+            previewSignItem("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov na vozovke."),
+            previewSignItem(
+                "141",
+                "Deti",
+                "Značka upozorňuje na zvýšený pohyb detí a zvýšené riziko ich neočakávaného vstupu do vozovky.",
+            ),
+            previewSignItem(
+                "145",
+                "Zver",
+                "Značka upozorňuje na zvýšené nebezpečenstvo neočakávaného pohybu voľne žijúcej zveri cez cestu.",
+            ),
+        ),
     ),
-    previewSignItem("142", "Priechod pre chodcov", "Značka upozorňuje na priechod pre chodcov."),
-    previewSignItem(
-        "145",
-        "Zver",
-        "Značka upozorňuje na zvýšené nebezpečenstvo neočakávaného pohybu voľne žijúcej zveri cez cestu.",
+    SignGroupItem(
+        kind = "VÝSTRAŽNÉ ZNAČKY",
+        group = "II. Priecestné značky",
+        signs = listOf(
+            previewSignItem("153", "Výstražný kríž", "Značka označuje priecestie."),
+        ),
     ),
-    previewSignItem("230", "Zákaz vjazdu", "Značka zakazuje vjazd všetkými vozidlami."),
-    previewSignItem("350", "", "Značka informuje o čísle cesty I. triedy alebo o čísle cesty II. triedy."),
+    SignGroupItem(
+        kind = "REGULAČNÉ ZNAČKY",
+        group = "II. 3. Zákazy vjazdu",
+        signs = listOf(
+            previewSignItem("230", "Zákaz vjazdu", "Značka zakazuje vjazd všetkými vozidlami."),
+            previewSignItem(
+                "231",
+                "Zákaz vjazdu pre všetky vozidlá",
+                "Značka zakazuje vjazd všetkými vozidlami v oboch smeroch jazdy.",
+            ),
+        ),
+    ),
+    SignGroupItem(
+        kind = "VODOROVNÉ ZNAČKY",
+        group = "",
+        signs = listOf(
+            previewSignItem("601", "Pozdĺžna súvislá čiara", "Značka vyznačuje jazdný pruh alebo okraj vozovky."),
+        ),
+    ),
 )
 
+/** The same signs as one list, for a preview of something that wants them flat. */
+internal val previewSignItems = previewSignGroups.flatMap { it.signs }
+
+/** One sign as the previews draw it, with its picture left to the loader. */
 internal fun previewSignItem(number: String, name: String, description: String) = SignItem(
     number = number,
     name = name,

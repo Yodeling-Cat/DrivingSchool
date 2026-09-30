@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import uno.lux.autoskola.data.signs.SignCatalogueRepository
 import uno.lux.autoskola.signs.Sign
 import uno.lux.autoskola.signs.SignCatalogue
+import uno.lux.autoskola.signs.SignGroup
+import uno.lux.autoskola.signs.groupSigns
 import uno.lux.autoskola.signs.searchSigns
 
 /** One sign as the list draws it: the catalogue's text, and the picture's URI. */
@@ -21,14 +23,27 @@ data class SignItem(
     val imageUri: String,
 )
 
+/** One heading of the list and the signs listed under it. */
+data class SignGroupItem(
+    /** The part of the catalogue the signs come from, e.g. "VÝSTRAŽNÉ ZNAČKY". */
+    val kind: String,
+    /** The heading inside it, e.g. "I. 4. Pohyb na ceste", or empty where it has none. */
+    val group: String,
+    val signs: List<SignItem>,
+)
+
 sealed interface SignsUiState {
     data object Loading : SignsUiState
 
     /**
-     * The signs matching the search. [total] is how many the catalogue holds altogether, which is
-     * what the screen reports while a search is running.
+     * What the search left of the catalogue, under the headings the regulation lists the signs in.
+     * [total] is how many signs the catalogue holds altogether, which is what the screen reports
+     * while a search is running.
      */
-    data class Ready(val signs: List<SignItem>, val query: String, val total: Int) : SignsUiState
+    data class Ready(val groups: List<SignGroupItem>, val query: String, val total: Int) : SignsUiState {
+        /** How many signs the list is showing, which is all of them while no search is running. */
+        val shown: Int get() = groups.sumOf { it.signs.size }
+    }
 }
 
 sealed interface SignsUiEvent {
@@ -51,7 +66,7 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
             SignsUiState.Loading
         } else {
             SignsUiState.Ready(
-                signs = searchSigns(catalogue.signs, query).map { it.toItem(catalogue) },
+                groups = groupSigns(searchSigns(catalogue.signs, query)).map { it.toItem(catalogue) },
                 query = query,
                 total = catalogue.signs.size,
             )
@@ -63,6 +78,12 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
             is SignsUiEvent.Search -> query.value = event.query
         }
     }
+
+    private fun SignGroup.toItem(catalogue: SignCatalogue) = SignGroupItem(
+        kind = kind,
+        group = group,
+        signs = signs.map { it.toItem(catalogue) },
+    )
 
     private fun Sign.toItem(catalogue: SignCatalogue) = SignItem(
         number = number,

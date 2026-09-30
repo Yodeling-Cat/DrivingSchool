@@ -38,7 +38,7 @@ fun testSignCatalogueInfo(catalogue: SignCatalogue) = SignCatalogueInfo(
     signCount = catalogue.signs.size,
 )
 
-/** Three signs: two warning signs and one road marking. */
+/** Three signs: two of them warning signs under one heading, the third a road marking. */
 fun testSignCatalogue(id: String = "sk", version: Int = 1) = SignCatalogue(
     id = id,
     version = version,
@@ -49,14 +49,27 @@ fun testSignCatalogue(id: String = "sk", version: Int = 1) = SignCatalogue(
     signs = listOf(
         testSign("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov na vozovke."),
         testSign("142", "Priechod pre chodcov", "Značka upozorňuje na priechod pre chodcov."),
-        testSign("601", "Pozdĺžna súvislá čiara", "Značka vyznačuje jazdný pruh alebo okraj vozovky."),
+        testSign(
+            "601",
+            "Pozdĺžna súvislá čiara",
+            "Značka vyznačuje jazdný pruh alebo okraj vozovky.",
+            kind = "VODOROVNÉ ZNAČKY",
+            group = "I. Pozdĺžne čiary",
+        ),
     ),
 )
 
-fun testSign(number: String, name: String, description: String) = Sign(
+fun testSign(
+    number: String,
+    name: String,
+    description: String,
+    kind: String = "VÝSTRAŽNÉ ZNAČKY",
+    group: String = "I. 4. Pohyb na ceste",
+) = Sign(
     number = number,
     name = name,
     description = description,
-    section = "I. 4. Pohyb na ceste",
+    kind = kind,
+    group = group,
     image = "obr3/dz/$number.jpg",
 )

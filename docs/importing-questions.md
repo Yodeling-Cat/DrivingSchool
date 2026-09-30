@@ -33,7 +33,7 @@ The output goes to `app/shared/src/commonMain/composeResources/files/`, and it i
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
 | `images/minv-sk/...` | The images the questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
 | `signs/index.json` | The latest version of every sign catalogue, with its sign count. |
-| `signs/<id>-v<version>.json` | One version of one sign catalogue, such as `sk-v1.json`: every sign with its number, name, meaning and picture. It is decoded by `SignCatalogue` in `:core`. |
+| `signs/<id>-v<version>.json` | One version of one sign catalogue, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalogue` in `:core`. |
 
 The app loads these files with `QuestionBankRepository` and `SignCatalogueRepository`, in
 `app/shared/.../data/`.

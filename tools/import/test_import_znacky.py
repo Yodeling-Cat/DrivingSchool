@@ -29,7 +29,7 @@ class RowsTest(unittest.TestCase):
         rows = znacky_pdf.rows(body("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov."))
 
         self.assertEqual(
-            [SignRow("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov.", "")], rows
+            [SignRow("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov.", "", "")], rows
         )
 
     def test_a_wrapped_name_and_meaning_are_joined(self):
@@ -58,28 +58,55 @@ class RowsTest(unittest.TestCase):
 
         rows = znacky_pdf.rows(lines)
 
-        self.assertEqual(SignRow("707", "Vodiaca tabuľa", "Vodiaca tabuľa označuje trvalú prekážku.", ""), rows[0])
+        self.assertEqual(SignRow("707", "Vodiaca tabuľa", "Vodiaca tabuľa označuje trvalú prekážku.", "", ""), rows[0])
 
     def test_a_group_heading_is_not_a_name(self):
         lines = [
-            line("I. 4. Pohyb na ceste", x=254.4, y=2.0),
+            line("I. 4. Pohyb na ceste", x=254.4, y=2.0, bold=True),
             *body("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov."),
         ]
 
         rows = znacky_pdf.rows(lines)
 
         self.assertEqual("Chodci", rows[0].name)
-        self.assertEqual("I. 4. Pohyb na ceste", rows[0].section)
+        self.assertEqual("I. 4. Pohyb na ceste", rows[0].group)
 
-    def test_a_document_title_becomes_the_section(self):
+    def test_a_document_title_becomes_the_kind_of_sign(self):
         lines = [
-            line("DOPRAVNÉ ZARIADENIA", x=233.4, y=2.0),
+            line("DOPRAVNÉ ZARIADENIA", x=233.4, y=2.0, bold=True),
             *body("701", "Zábrana", "Zábrana vyznačuje uzávierku."),
         ]
 
         rows = znacky_pdf.rows(lines)
 
-        self.assertEqual("DOPRAVNÉ ZARIADENIA", rows[0].section)
+        self.assertEqual("DOPRAVNÉ ZARIADENIA", rows[0].kind)
+        self.assertEqual("", rows[0].group)
+
+    def test_a_heading_past_the_meaning_column_is_a_heading_not_a_meaning(self):
+        # The road markings draw their group headings past the meaning column's left edge.
+        lines = [
+            line("I. Pozdĺžne čiary", x=263.3, y=2.0, bold=True),
+            *body("601", "Pozdĺžna súvislá čiara", "Značka vyznačuje jazdný pruh alebo okraj vozovky."),
+        ]
+
+        rows = znacky_pdf.rows(lines)
+
+        self.assertEqual("I. Pozdĺžne čiary", rows[0].group)
+        self.assertEqual("Značka vyznačuje jazdný pruh alebo okraj vozovky.", rows[0].description)
+
+    def test_a_new_kind_leaves_the_group_of_the_previous_one_behind(self):
+        lines = [
+            line("VÝSTRAŽNÉ ZNAČKY", x=240.3, y=2.0, bold=True),
+            line("I. 4. Pohyb na ceste", x=254.4, y=4.0, bold=True),
+            *body("140", "Chodci", "Značka upozorňuje na zvýšený pohyb chodcov."),
+            line("VODOROVNÉ ZNAČKY", x=239.3, y=40.0, bold=True),
+            *body("601", "Pozdĺžna súvislá čiara", "Značka vyznačuje jazdný pruh.", y=50.0),
+        ]
+
+        rows = znacky_pdf.rows(lines)
+
+        self.assertEqual(("VÝSTRAŽNÉ ZNAČKY", "I. 4. Pohyb na ceste"), (rows[0].kind, rows[0].group))
+        self.assertEqual(("VODOROVNÉ ZNAČKY", ""), (rows[1].kind, rows[1].group))
 
     def test_a_repeated_table_header_does_not_leak_into_the_text(self):
         lines = [
@@ -161,7 +188,7 @@ class RowsTest(unittest.TestCase):
 
         rows = znacky_pdf.rows(lines)
 
-        self.assertEqual(SignRow("350", "", "Značka informuje o čísle cesty I. triedy.", ""), rows[0])
+        self.assertEqual(SignRow("350", "", "Značka informuje o čísle cesty I. triedy.", "", ""), rows[0])
 
     def test_text_before_the_first_row_number_is_ignored(self):
         lines = [
@@ -209,7 +236,7 @@ class RowsTest(unittest.TestCase):
 class MatchTest(unittest.TestCase):
     @staticmethod
     def sign(number, name="Chodci"):
-        return SignRow(number, name, "Značka.", "I. Výstražné značky")
+        return SignRow(number, name, "Značka.", "VÝSTRAŽNÉ ZNAČKY", "I. Výstražné značky")
 
     def test_an_image_finds_the_entry_with_its_number(self):
         listed, unmatched, extra = import_znacky.match([self.sign("140")], ["obr3/dz/140.jpg"])

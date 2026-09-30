@@ -59,17 +59,26 @@ class PdfLine:
     y: float
     x: float
     text: str
+    #: Whether any span of the line is bold, which is how the tables set their own headings.
     bold: bool = False
 
 
 @dataclass
 class SignRow:
-    """One catalogue entry: a sign's number, its name, and what it means."""
+    """
+    One catalogue entry: a sign's number, its name, and what it means.
+
+    The annex groups its signs twice over. [kind] is the part of the annex the sign is listed in -
+    "VÝSTRAŽNÉ ZNAČKY", "REGULAČNÉ ZNAČKY", "INFORMAČNÉ ZNAČKY", "DODATKOVÉ TABUĽKY",
+    "VODOROVNÉ ZNAČKY" or "DOPRAVNÉ ZARIADENIA" - and [group] the heading inside it, such as
+    "II. 3. Zákazy vjazdu" or "I. 4. Pohyb na ceste".
+    """
 
     number: str
     name: str
     description: str
-    section: str
+    kind: str
+    group: str
 
 
 def lines(path):
@@ -84,6 +93,9 @@ def lines(path):
                 text = _clean("".join(span["text"] for span in line["spans"]))
                 if not text or line["bbox"][1] < HEADER_Y:
                     continue
+                # A heading of a table is set in bold - the groups of the road markings and of the
+                # markings' symbols sit past the meaning column's left edge, which is what put
+                # "II. Priečne čiary" at the end of a sign's meaning.
                 bold = any("Bold" in span["font"] for span in line["spans"])
                 out.append(PdfLine(page=index, y=line["bbox"][1], x=line["bbox"][0], text=text, bold=bold))
     return sorted(out, key=lambda line: (line.page, line.y, line.x))
@@ -99,7 +111,8 @@ def _clean(text):
 def rows(lines):
     """The catalogue entries among [lines], in document order."""
     out = []
-    section = ""
+    kind = ""
+    group = ""
     current = None
 
     def close():
@@ -116,13 +129,20 @@ def rows(lines):
             # imprint. None carries text of a row, and a row's meaning may continue below it, so the
             # row stays open.
             continue
-        if TITLE.match(line.text) or (HEADING.match(line.text) and line.x < DESC_X):
+        if TITLE.match(line.text):
             close()
-            section = line.text
+            kind, group = line.text, ""
+            continue
+        if HEADING.match(line.text) and line.bold:
+            # A heading of the table itself. It is bold throughout, wherever the table puts it:
+            # the road markings draw theirs past the meaning column's own left edge, which is what
+            # put "II. Priečne čiary" at the end of a sign's meaning.
+            close()
+            group = line.text
             continue
         if BOD.match(line.text):
             close()
-            current = {"number": None, "names": [], "description": [], "section": section}
+            current = {"number": None, "names": [], "description": [], "kind": kind, "group": group}
             continue
         if current is None:
             continue
@@ -149,7 +169,8 @@ def _entry(item):
         number=item["number"],
         name=_clean(" ".join(item["names"])),
         description=_clean(" ".join(item["description"])),
-        section=item["section"],
+        kind=item["kind"],
+        group=item["group"],
     )
 
 

@@ -48,4 +48,19 @@ class ElapsedTimeTest {
         assertTrue(isOverTime(elapsedSeconds = 1800, allottedSeconds = 1800))
         assertTrue(isOverTime(elapsedSeconds = 1801, allottedSeconds = 1800))
     }
+
+    @Test
+    fun theClockMeasuredForWidthIsAllZerosWithTheSameColons() {
+        // Zero is the widest digit in this font, so a clock of them is as wide as any clock gets.
+        assertEquals("00:00", elapsedClockPlaceholder("07:42"))
+        assertEquals("0:00:00", elapsedClockPlaceholder("1:07:42"))
+    }
+
+    @Test
+    fun thePlaceholderIsAsLongAsTheClockItStandsFor() {
+        listOf(0L, 7L, 59L, 60L, 462L, 3599L, 3600L, 4525L, 36000L).forEach { seconds ->
+            val clock = elapsedClock(seconds)
+            assertEquals(clock.length, elapsedClockPlaceholder(clock).length, "placeholder for $clock")
+        }
+    }
 }

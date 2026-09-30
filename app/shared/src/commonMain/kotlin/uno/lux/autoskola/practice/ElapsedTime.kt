@@ -21,6 +21,15 @@ internal fun elapsedClock(seconds: Long): String {
 internal fun isOverTime(elapsedSeconds: Long, allottedSeconds: Long): Boolean = elapsedSeconds >= allottedSeconds
 
 /**
+ * The clock drawn invisibly beside the real one so the pill around it keeps its width as the digits
+ * change: every digit becomes the widest one, and the colons stay where they are. The app's font is
+ * proportional - "00:11" is 23% narrower than "00:00" in DM Sans - and the widest digit is a zero
+ * (0.707 em against the eight's 0.632), so a clock of zeros is as wide as any clock can be.
+ */
+internal fun elapsedClockPlaceholder(elapsed: String): String =
+    elapsed.map { if (it.isDigit()) '0' else it }.joinToString("")
+
+/**
  * Whether there is nothing left to time. With answers checked as they are picked, the last answer is
  * the end of the work: the user can still read the marks and finish the test, but they are done, so
  * the clock stops where it stood. Without that mode the answers are only scored at the end, and the

@@ -93,6 +93,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -668,6 +670,30 @@ private fun FinishPromptEffect(
 private fun elapsedColor(overTime: Boolean): Color = if (overTime) Naj.colors.wrongOn else Naj.colors.muted
 
 /**
+ * The clock, in a box as wide as the widest clock of the same shape: the time is drawn over an
+ * invisible placeholder of eights, so the pill around it keeps its width as the digits change. The
+ * placeholder is hidden from accessibility, which has no use for it.
+ */
+@Composable
+private fun ElapsedLabel(
+    elapsed: String,
+    style: TextStyle,
+    color: Color,
+    maxLines: Int = 1,
+) {
+    Box {
+        Text(
+            elapsedClockPlaceholder(elapsed),
+            style = style,
+            color = Color.Transparent,
+            maxLines = maxLines,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        Text(elapsed, style = style, color = color, maxLines = maxLines)
+    }
+}
+
+/**
  * The question page's header: the way back, the test's name with its number in the coral italic,
  * the clock, and how far through the test is.
  */
@@ -715,7 +741,7 @@ private fun PracticeTopBar(
                     tint = if (pill == TimerPill.Running) colors.primaryDeep else pillContent,
                     modifier = Modifier.size(16.dp),
                 )
-                Text(elapsed, style = Naj.type.tileStatus, color = pillContent)
+                ElapsedLabel(elapsed, style = Naj.type.tileStatus, color = pillContent)
             }
         }
         Spacer(Modifier.height(18.dp))
@@ -851,7 +877,7 @@ private fun RowScope.PracticeBarContent(
                     color = colors.roadYellow,
                     maxLines = 1,
                 )
-                Text(
+                ElapsedLabel(
                     elapsed,
                     style = Naj.type.tiny,
                     color = if (overTime) colors.wrongBottom else colors.roadYellow,

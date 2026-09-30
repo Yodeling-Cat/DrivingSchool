@@ -50,6 +50,31 @@ class SignCatalogueOutputTest(unittest.TestCase):
     def test_the_regulation_is_named_as_the_source(self):
         self.assertIn("30/2020", self.catalogue["source"])
 
+    def test_no_sign_carries_text_from_the_documents_around_it(self):
+        # The regulation's last page ends with the citations of its last sign and the publisher's
+        # imprint, drawn in the same columns as a row: one sign shipped with all of it as its name.
+        # Only words no sign's own text can hold are listed here.
+        forbidden = ("@", "tel.:", "e-mail", "helpdesk", "Vydavateľ", "Zbierky zákonov", "slov-lex", "Račianska")
+        for sign in self.signs:
+            text = f"{sign['name']} {sign['description']}"
+            for word in forbidden:
+                self.assertNotIn(word, text, f"sign {sign['number']}")
+
+    def test_a_signs_name_is_a_name(self):
+        # The check that catches a name a column of the regulation ran into: a name is a few words
+        # on one line, so a citation or an imprint block is not one however it got there.
+        for sign in self.signs:
+            where = f"sign {sign['number']}: {sign['name']!r}"
+            self.assertLessEqual(len(sign["name"]), 60, where)
+            self.assertNotIn("\n", sign["name"], where)
+            self.assertFalse(sign["name"].endswith("."), where)
+            self.assertFalse(any(char.isdigit() for char in sign["name"]), where)
+
+    def test_the_last_sign_of_the_regulation_keeps_its_name(self):
+        last = next(s for s in self.signs if s["number"] == "731")
+
+        self.assertEqual("Čierna šípka", last["name"])
+
     def test_the_index_lists_the_catalogue_and_its_count(self):
         index = load(SIGNS / "index.json")
         entry = next(c for c in index if c["id"] == self.catalogue["id"])

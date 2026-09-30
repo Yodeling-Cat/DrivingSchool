@@ -33,8 +33,15 @@ NOISE = re.compile(
     r"|DynamicResources|Príloha č|k vyhláške č)"
     r"|portálu Slov-Lex|Slov-Lex dost",
 )
+# The publisher's imprint closes the regulation, on the last page and in the column a sign's name
+# comes from: who publishes the Zbierka zákonov, their address, phone number and e-mail. It belongs
+# to the document, not to the sign above it.
+IMPRINT = re.compile(r"slov-lex|Vydavateľ|Zbierky zákonov|tel\.:|e-mail|@|spravodlivosti", re.IGNORECASE)
 # The meaning of the sign sits in the table's third column, which starts left of the middle.
 DESC_X = 262.0
+# And its number and name in the second: what is left of this belongs to the table's own bookkeeping
+# ("Bod" numbers) or, after the last table, to the regulation's citations and its imprint.
+NAME_X = 130.0
 # Lines above this y are the page header ("Strana 28", "Zbierka zákonov Slovenskej republiky").
 HEADER_Y = 100.0
 
@@ -104,9 +111,10 @@ def rows(lines):
     # A row's cells are drawn at slightly different heights (260.3 against 260.4), so a row is read
     # in `y` order rounded to the point, and left to right within that.
     for line in sorted(lines, key=lambda line: (line.page, round(line.y), line.x)):
-        if NOISE.match(line.text):
-            # A table header repeated on the next page, or the portal's footer. It carries no text
-            # of a row, and a row's meaning may continue below it, so the row stays open.
+        if NOISE.match(line.text) or IMPRINT.search(line.text):
+            # A table header repeated on the next page, the portal's footer, or the publisher's
+            # imprint. None carries text of a row, and a row's meaning may continue below it, so the
+            # row stays open.
             continue
         if TITLE.match(line.text) or (HEADING.match(line.text) and line.x < DESC_X):
             close()
@@ -120,6 +128,11 @@ def rows(lines):
             continue
         if line.x >= DESC_X:
             current["description"].append(line.text)
+        elif line.x < NAME_X:
+            # Left of the table's second column: a "Bod" number, which was taken above, or - after
+            # the regulation's last table - the citations and the imprint of the document, which
+            # belong to no sign.
+            continue
         elif SIGN_NUMBER.match(line.text):
             current["number"] = line.text
         elif line.text != " ":

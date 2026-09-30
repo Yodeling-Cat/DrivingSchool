@@ -174,6 +174,37 @@ class RowsTest(unittest.TestCase):
         self.assertEqual(1, len(rows))
         self.assertEqual("Chodci", rows[0].name)
 
+    def test_the_citations_and_imprint_after_the_last_sign_are_not_its_name(self):
+        # The regulation ends with the sources of its last sign and with the publisher's imprint,
+        # written in the same columns as a row's own text.
+        lines = [
+            line("2.", x=118.0, y=10.0),
+            line("731", y=10.0),
+            line("Čierna šípka", x=179.3, y=16.0),
+            line("Čierna šípka umožňuje vodičovi otočiť sa", x=273.6, y=10.0),
+            line("Slovenskej republiky v znení neskorších predpisov.", x=55.3, y=30.0),
+            line("§ 2 ods. 1, § 4 ods. 1, 2 a 6 zákona č. 184/1999 Z. z.", x=55.3, y=42.0),
+            line("Vydavateľ Zbierky zákonov Slovenskej republiky", x=58.3, y=54.0),
+            line("Vydavateľ Zbierky zákonov Slovenskej republiky", x=152.2, y=60.0),
+            line("tel.: +421 2 209 25 267, e-mail: helpdesk@slov-lex.sk.", x=178.3, y=66.0),
+        ]
+
+        rows = znacky_pdf.rows(lines)
+
+        self.assertEqual(1, len(rows))
+        self.assertEqual("Čierna šípka", rows[0].name)
+        self.assertEqual("Čierna šípka umožňuje vodičovi otočiť sa", rows[0].description)
+
+    def test_a_row_that_is_not_a_sign_keeps_no_text_from_its_neighbours(self):
+        # A symbol table has no sign numbers; whatever sits around it must not become a sign either.
+        lines = [
+            line("A. SYMBOLY VOZIDIEL A ÚČASTNÍKOV CESTNEJ PREMÁVKY", x=141.9, y=2.0),
+            line("10.", x=112.2, y=10.0),
+            line("Chodci", x=266.2, y=10.0),
+        ]
+
+        self.assertEqual([], znacky_pdf.rows(lines))
+
 
 class MatchTest(unittest.TestCase):
     @staticmethod

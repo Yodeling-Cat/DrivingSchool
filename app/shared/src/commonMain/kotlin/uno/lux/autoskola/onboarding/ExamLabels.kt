@@ -17,6 +17,7 @@ import uno.lux.autoskola.bank.LicenseCategory.CE
 import uno.lux.autoskola.bank.LicenseCategory.D
 import uno.lux.autoskola.bank.LicenseCategory.DE
 import uno.lux.autoskola.bank.LicenseCategory.T
+import uno.lux.autoskola.i18n.AppLanguage
 
 // Exam names are shown in the language of the question bank, so people can find the exam
 // in their own language even before the app UI is localised.
@@ -93,4 +94,11 @@ data class ExamLabel(val category: LicenseCategory, val bankLanguage: String) {
 
     /** E.g. "Vodičský preukaz · slovensky". */
     val title: String get() = bankTitle(bankLanguage)
+
+    /**
+     * E.g. "Auto (B) · Slovenčina": the category and the language it is taken in, short enough for
+     * a row or a subtitle. [title] is the bank's own name for itself and too long for either.
+     */
+    val shortTitle: String
+        get() = "$name · ${AppLanguage.fromCode(bankLanguage)?.nativeName ?: bankLanguage}"
 }

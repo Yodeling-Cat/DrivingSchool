@@ -46,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.TestResult
-import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.practice.attemptName
@@ -180,7 +179,7 @@ private fun Header(state: ResultsUiState.Ready, onBack: () -> Unit) {
                 color = colors.ink,
             )
             Text(
-                examSubtitle(state),
+                state.exam.shortTitle,
                 style = Naj.type.secondary,
                 color = colors.muted,
                 maxLines = 1,
@@ -464,12 +463,6 @@ private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
     val centre = Offset(size.width / 2f, size.height / 2f)
     val half = direction * (length / 2f)
     return Brush.linearGradient(colors, centre - half, centre + half)
-}
-
-/** The exam the test was for, named the way the exam picker names it: "Car (B) · Slovenčina". */
-private fun examSubtitle(state: ResultsUiState.Ready): String {
-    val language = AppLanguage.fromCode(state.exam.bankLanguage)?.nativeName ?: state.exam.bankLanguage
-    return "${state.exam.name} · $language"
 }
 
 /** One wave of the poster: the design's `M0 40 Q45 10 90 40 T180 40 T270 40 T360 40`, [width] wide. */

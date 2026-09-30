@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.onboarding.LicenceIcon
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LocalNavBarInset
@@ -86,20 +87,12 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        IconTile(
-                            size = 46.dp,
-                            background = Brush.linearGradient(colors.primaryGradient),
-                        ) {
-                            Text(
-                                state.exam?.category?.code.orEmpty(),
-                                style = Naj.type.chipLetter,
-                                color = colors.ink,
-                            )
-                        }
+                        // The same icon and colour the licence step offers the category in.
+                        state.exam?.let { LicenceIcon(it.category) }
                         Column(Modifier.weight(1f)) {
                             Text(strings.settingsChangeExam, style = Naj.type.rowTitle, color = colors.ink)
                             Text(
-                                state.exam?.let { "${it.name} \u00b7 ${it.title}" }.orEmpty(),
+                                state.exam?.shortTitle.orEmpty(),
                                 style = Naj.type.rowSubtitle,
                                 color = colors.muted,
                             )

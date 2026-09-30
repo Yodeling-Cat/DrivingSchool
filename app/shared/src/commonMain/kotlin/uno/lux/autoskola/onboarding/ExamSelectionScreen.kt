@@ -350,14 +350,7 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        IconTile(
-            size = 46.dp,
-            background = Brush.linearGradient(
-                listOf(category.tint.copy(alpha = 0.16f), category.tint.copy(alpha = 0.16f)),
-            ),
-        ) {
-            Icon(category.icon, contentDescription = null, tint = category.tint, modifier = Modifier.size(26.dp))
-        }
+        LicenceIcon(category)
         Text(label, style = Naj.type.rowTitle, color = colors.ink, modifier = Modifier.weight(1f))
     }
 }

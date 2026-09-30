@@ -68,9 +68,11 @@ import uno.lux.autoskola.ui.CardRadius
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.DashedCircleIcon
 import uno.lux.autoskola.ui.EyebrowLabel
+import uno.lux.autoskola.ui.HeightClass
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LicenceRadius
 import uno.lux.autoskola.ui.LoadingScreen
+import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.OutlinePill
@@ -252,6 +254,9 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
     val colors = Naj.colors
     val tests = state.tests
     val progress = state.progress
+    // A phone held sideways gets this layout but not its desktop measurements; see [twoPaneColumns]
+    // and [twoPaneResumeWide].
+    val height = LocalHeightClass.current
 
     Row(Modifier.widthIn(max = ContentWidth.Wide).fillMaxHeight()) {
         Column(
@@ -286,11 +291,15 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             progress.resumable?.let { unfinished ->
-                ResumeCard(unfinished, onResume = { onEvent(HomeUiEvent.Resume) }, wide = true)
+                ResumeCard(
+                    unfinished,
+                    onResume = { onEvent(HomeUiEvent.Resume) },
+                    wide = twoPaneResumeWide(height),
+                )
             }
             Text(text = strings.allTests, style = Naj.type.sectionHeadingLarge, color = colors.ink)
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(twoPaneColumns(height)),
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(WideGridGap),
@@ -881,6 +890,19 @@ private fun HomeScreenTestsLeftPreview() {
 @Preview(widthDp = 700, heightDp = 900)
 @Composable
 private fun HomeScreenMediumPreview() {
+    AppPreview {
+        HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/**
+ * A phone held sideways - 952x426dp is a Pixel 9 Pro in landscape. The width still picks the
+ * two-pane layout, and the short window is what gives it the phone's compact resume card and two
+ * tiles per row instead of the desktop's banner and three.
+ */
+@Preview(widthDp = 952, heightDp = 426)
+@Composable
+private fun HomeScreenLandscapePreview() {
     AppPreview {
         HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
     }

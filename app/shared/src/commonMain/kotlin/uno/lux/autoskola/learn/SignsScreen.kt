@@ -1,12 +1,12 @@
 package uno.lux.autoskola.learn
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,21 +35,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.rememberAsyncImagePainter
 import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.previewSignItems
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.paperBackground
+
+/** The width of the column a sign's picture and number sit in, and how tall the picture may get. */
+private val SignImageColumnWidth = 72.dp
+private val SignImageMaxHeight = 52.dp
 
 /** Connects [SignsScreen] to its [SignsViewModel] and to navigation. */
 @Composable
@@ -60,30 +64,35 @@ fun SignsRoute(onBack: () -> Unit, viewModel: SignsViewModel = koinViewModel()) 
 
 /**
  * The road-sign catalogue: every sign with its picture, its name and what it means, searched by
- * name, number or meaning.
+ * name, number or meaning. A picture opens bigger when it's tapped, as a question's does.
  */
 @Composable
 fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: () -> Unit) {
     val colors = Naj.colors
-    Box(Modifier.fillMaxSize().paperBackground()) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
-                SignsHeader(state, onBack)
-                SignSearchField(
-                    query = (state as? SignsUiState.Ready)?.query.orEmpty(),
-                    onQueryChange = { onEvent(SignsUiEvent.Search(it)) },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                Spacer(Modifier.height(8.dp))
-                when (state) {
-                    SignsUiState.Loading -> SignsLoading(Modifier.weight(1f))
+    // Measured here, outside the list, so an enlarged picture is never drawn bigger than the
+    // screen showing it.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val page = DpSize(maxWidth, maxHeight)
+        Box(Modifier.fillMaxSize().paperBackground()) {
+            Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+                Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
+                    SignsHeader(state, onBack)
+                    SignSearchField(
+                        query = (state as? SignsUiState.Ready)?.query.orEmpty(),
+                        onQueryChange = { onEvent(SignsUiEvent.Search(it)) },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    when (state) {
+                        SignsUiState.Loading -> SignsLoading(Modifier.weight(1f))
 
-                    is SignsUiState.Ready ->
-                        if (state.signs.isEmpty()) {
-                            SignListEmpty(Modifier.weight(1f))
-                        } else {
-                            SignList(state.signs, Modifier.weight(1f))
-                        }
+                        is SignsUiState.Ready ->
+                            if (state.signs.isEmpty()) {
+                                SignListEmpty(Modifier.weight(1f))
+                            } else {
+                                SignList(state.signs, page, Modifier.weight(1f))
+                            }
+                    }
                 }
             }
         }
@@ -119,10 +128,10 @@ private fun SignsHeader(state: SignsUiState, onBack: () -> Unit) {
 
 /** The catalogue, one sign a row, in the regulation's own order. */
 @Composable
-private fun SignList(signs: List<SignItem>, modifier: Modifier = Modifier) {
+private fun SignList(signs: List<SignItem>, page: DpSize, modifier: Modifier = Modifier) {
     LazyColumn(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp)) {
         items(signs, key = { it.number }) { sign ->
-            SignRow(sign)
+            SignRow(sign, page)
             CardDivider()
         }
     }
@@ -130,20 +139,14 @@ private fun SignList(signs: List<SignItem>, modifier: Modifier = Modifier) {
 
 /** One sign: its picture and number, its name, and what the regulation says it means. */
 @Composable
-private fun SignRow(sign: SignItem, modifier: Modifier = Modifier) {
+private fun SignRow(sign: SignItem, page: DpSize, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(Modifier.width(72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            val painter = rememberAsyncImagePainter(sign.imageUri)
-            Image(
-                painter = painter,
-                contentDescription = sign.name.ifEmpty { null },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                contentScale = ContentScale.Fit,
-            )
+        Column(Modifier.width(SignImageColumnWidth), horizontalAlignment = Alignment.CenterHorizontally) {
+            EnlargeableImage(uri = sign.imageUri, page = page, maxHeight = SignImageMaxHeight)
             Spacer(Modifier.height(4.dp))
             Text(sign.number, style = Naj.type.secondary, color = colors.muted)
         }

@@ -80,10 +80,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -100,15 +99,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import coil3.compose.AsyncImagePainter
-import coil3.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -121,7 +116,10 @@ import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.BarIconButton
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.HeightClass
+import uno.lux.autoskola.ui.ImageCornerRadius
+import uno.lux.autoskola.ui.ImageSideBySideMaxHeight
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
@@ -142,13 +140,7 @@ import uno.lux.autoskola.ui.theme.accentNumber
 import uno.lux.autoskola.ui.theme.paperBackground
 import uno.lux.autoskola.ui.theme.paperGlows
 
-/** Over the page behind an enlarged picture, which is drawn on top of it. */
-private val EnlargedImageScrim = Color(0xB3000000)
-
 private val QuestionPanelWidth = 360.dp
-
-/** How far an enlarged picture stays away from the edges of the screen it's shown on. */
-private val EnlargedImageMargin = 24.dp
 
 /** The width an arrow beside the question needs, so it sits clear of the text. */
 private val QuestionArrowSize = 56.dp
@@ -1114,10 +1106,11 @@ private fun QuestionPage(
                         Spacer(Modifier.height(16.dp))
                     }
                     Box(Modifier.weight(2f)) {
-                        QuestionImage(
+                        EnlargeableImage(
                             uri = imageUri,
-                            maxHeight = QuestionImageSideBySideMaxHeight,
                             page = page,
+                            maxHeight = ImageSideBySideMaxHeight,
+                            shape = questionImageShape(imageUri),
                         )
                     }
                 }
@@ -1129,7 +1122,9 @@ private fun QuestionPage(
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomRoom),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    imageUri?.let { uri -> QuestionImage(uri = uri, page = page) }
+                    imageUri?.let { uri ->
+                        EnlargeableImage(uri = uri, page = page, shape = questionImageShape(uri))
+                    }
                     questionText()
                     if (skipped) SkippedNotice()
                     answers()
@@ -1158,89 +1153,12 @@ private fun SkippedNotice() {
 }
 
 /**
- * The picture of a question: drawn [QUESTION_IMAGE_SCALE] times its own size so a sign is readable,
- * and tapping it opens a copy that's twice as big. [page] is the room the page has and [maxHeight]
- * how tall the picture may get in it, so no picture is ever drawn bigger than the screen.
+ * The picture of a question is the bank's own file, and a traffic-situation drawing is a scene
+ * that runs to its own edges: rounding it would cut the road off. Everything else - signs,
+ * pictograms - sits on a plain background and is rounded like the rest of the app.
  */
-@Composable
-private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionImageMaxHeight) {
-    // The pictures are drawn bigger than they are, so the sharper filter is what keeps their edges
-    // from turning into steps: bicubic on Skia, the platform's best on Android.
-    val painter = rememberAsyncImagePainter(uri, filterQuality = FilterQuality.High)
-    val imageState by painter.state.collectAsState()
-    val density = LocalDensity.current
-
-    /** Whether the enlarged copy is open. */
-    var enlarged by remember(uri) { mutableStateOf(false) }
-
-    val loaded = imageState
-    if (loaded is AsyncImagePainter.State.Success) {
-        val intrinsic = with(density) { painter.intrinsicSize.toDpSize() }
-        // A traffic-situation drawing is a scene that runs to its own edges: rounding it would cut
-        // the road off. Everything else - signs, pictograms - sits on a plain background and is
-        // rounded like the rest of the app.
-        val shape = if (isSituationDrawing(uri)) RectangleShape else RoundedCornerShape(12.dp)
-        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            val height = minOf(maxHeight, page.height)
-            val size = questionImageSize(intrinsic, maxWidth = maxWidth, maxHeight = height)
-            Image(
-                painter = painter,
-                contentDescription = strings.enlargeImage,
-                modifier = Modifier
-                    .size(size)
-                    .clip(shape)
-                    .clickable { enlarged = true },
-            )
-            if (enlarged) {
-                // The picture has been decoded already, so the copy draws the bitmap the inline
-                // one does, at the size the screen has room for.
-                EnlargedQuestionImage(
-                    painter = loaded.painter,
-                    drawn = size,
-                    onDismiss = { enlarged = false },
-                )
-            }
-        }
-    } else {
-        // Keep the space, so the answers don't jump when the image arrives.
-        Spacer(Modifier.height(minOf(maxHeight, page.height)))
-    }
-}
-
-/**
- * One picture, as large as the screen allows, over the test it belongs to. It's closed by tapping
- * anywhere - including the picture itself - or with the button in the corner.
- */
-@Composable
-private fun EnlargedQuestionImage(painter: Painter, drawn: DpSize, onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(EnlargedImageScrim)
-                .clickable(onClick = onDismiss)
-                .padding(EnlargedImageMargin),
-            contentAlignment = Alignment.Center,
-        ) {
-            BoxWithConstraints(contentAlignment = Alignment.Center) {
-                Image(
-                    painter = painter,
-                    contentDescription = null,
-                    modifier = Modifier.size(enlargedImageSize(drawn, DpSize(maxWidth, maxHeight))),
-                )
-            }
-            RoundButton(
-                icon = IconClose,
-                contentDescription = strings.closeImage,
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.TopEnd),
-            )
-        }
-    }
-}
+private fun questionImageShape(uri: String?): Shape =
+    if (isSituationDrawing(uri)) RectangleShape else RoundedCornerShape(ImageCornerRadius)
 
 /** [onSelect] is null when the answer is locked. */
 @Composable

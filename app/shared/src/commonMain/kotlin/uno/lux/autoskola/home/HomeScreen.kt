@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
@@ -73,13 +72,13 @@ import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PagePadding
+import uno.lux.autoskola.ui.PickerPill
 import uno.lux.autoskola.ui.PillHeight
 import uno.lux.autoskola.ui.PrimaryPill
 import uno.lux.autoskola.ui.ScreenHeader
 import uno.lux.autoskola.ui.TestStatus
 import uno.lux.autoskola.ui.TestTile
 import uno.lux.autoskola.ui.TileRadius
-import uno.lux.autoskola.ui.WhitePill
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.fullWidthItem
 import uno.lux.autoskola.ui.theme.GRAIN_CARD
@@ -290,22 +289,11 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
 /** The white pill naming the exam, which opens the exam picker. */
 @Composable
 private fun ExamPill(exam: ExamLabel, onClick: () -> Unit) {
-    val colors = Naj.colors
-    Box(Modifier.clip(RoundedCornerShape(percent = 50)).clickable(onClick = onClick)) {
-        WhitePill(height = 36.dp) {
-            Text(
-                text = "${exam.name} \u00b7 ${exam.bankLanguage.uppercase()}",
-                style = CaptionStyle,
-                color = colors.ink,
-            )
-            Icon(
-                Icons.Filled.ArrowDropDown,
-                contentDescription = strings.change,
-                tint = colors.ink,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
+    PickerPill(
+        text = "${exam.name} \u00b7 ${exam.bankLanguage.uppercase()}",
+        contentDescription = strings.change,
+        onClick = onClick,
+    )
 }
 
 /** The licence gradient card: its waves, the finished-tests hero, and the four stats under it. */

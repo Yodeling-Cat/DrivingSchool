@@ -32,7 +32,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -125,6 +124,11 @@ private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modi
     }
 }
 
+/**
+ * One flat navy, not the design's navyLight-to-navy gradient: over the phone's 72dp pill that
+ * gradient passes unnoticed, but stretched down a full-height rail it reads as a light leak over
+ * the bar rather than as the bar's own colour.
+ */
 @Composable
 private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
     val colors = Naj.colors
@@ -133,7 +137,7 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
         modifier = Modifier
             .width(RailWidth)
             .fillMaxHeight()
-            .background(Brush.verticalGradient(listOf(colors.navyLight, colors.navy)))
+            .background(colors.navy)
             .padding(top = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),

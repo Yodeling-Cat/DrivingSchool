@@ -33,9 +33,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +62,7 @@ import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PrimaryPill
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.drawLicenceWaves
 import uno.lux.autoskola.ui.previewExam
 import uno.lux.autoskola.ui.previewSections
 import uno.lux.autoskola.ui.previewSummary
@@ -99,11 +98,6 @@ private val CountGap = 10.dp
 
 /** How far the stamp is tilted, the way a rubber stamp lands. */
 private const val STAMP_TILT = -8f
-
-/** The poster's waves: ten of them, 16dp apart, the first at y = 40 as the design's paths are. */
-private val WaveTop = 40.dp
-private val WaveGap = 16.dp
-private const val WAVE_COUNT = 10
 
 /**
  * Connects [ResultsScreen] to its [ResultsViewModel]. [onReview] goes back to the test with
@@ -224,15 +218,7 @@ private fun ResultCard(result: TestResult, eyebrow: String, modifier: Modifier =
                 .matchParentSize()
                 .cssGradient(colors.licenceGradient, 115f)
                 .drawBehind {
-                    for (wave in 0 until WAVE_COUNT) {
-                        val y = WaveTop.toPx() + wave * WaveGap.toPx()
-                        drawPath(
-                            path = wavePath(size.width, y),
-                            color = Color.White,
-                            alpha = 0.35f,
-                            style = Stroke(width = 1.2.dp.toPx()),
-                        )
-                    }
+                    drawLicenceWaves()
                     leftGlow()
                 }
                 .grain(GRAIN_CARD, shader),
@@ -469,18 +455,6 @@ private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
     val centre = Offset(size.width / 2f, size.height / 2f)
     val half = direction * (length / 2f)
     return Brush.linearGradient(colors, centre - half, centre + half)
-}
-
-/** One wave of the poster: the design's `M0 40 Q45 10 90 40 T180 40 T270 40 T360 40`, [width] wide. */
-private fun wavePath(width: Float, y: Float): Path {
-    val unit = width / 360f
-    return Path().apply {
-        moveTo(0f, y)
-        quadraticTo(45f * unit, y - 30f, 90f * unit, y)
-        quadraticTo(135f * unit, y + 30f, 180f * unit, y)
-        quadraticTo(225f * unit, y - 30f, 270f * unit, y)
-        quadraticTo(315f * unit, y + 30f, 360f * unit, y)
-    }
 }
 
 /** The white highlight that bleeds into the card from its left edge. */

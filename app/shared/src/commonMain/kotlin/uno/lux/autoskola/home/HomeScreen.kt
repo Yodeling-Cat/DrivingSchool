@@ -45,9 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.TextStyle
@@ -85,6 +83,7 @@ import uno.lux.autoskola.ui.TestStatus
 import uno.lux.autoskola.ui.TestTile
 import uno.lux.autoskola.ui.TileRadius
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.drawLicenceWaves
 import uno.lux.autoskola.ui.fullWidthItem
 import uno.lux.autoskola.ui.previewExam
 import uno.lux.autoskola.ui.previewProgress
@@ -102,14 +101,6 @@ import uno.lux.autoskola.ui.theme.rememberGrainShader
 // ── Measurements the design draws but the component kit doesn't name ──
 
 private val LicenceCardHeight = 222.dp
-
-/** The licence card's waves: ten of them, one every 16dp from y=40, 30dp from crest to trough. */
-private const val LICENCE_WAVE_COUNT = 10
-private val LicenceWaveStartY = 40.dp
-private val LicenceWaveStepY = 16.dp
-private val LicenceWaveAmplitude = 30.dp
-private val LicenceWaveStroke = 1.2.dp
-private val LicenceWaveOffset = 45.dp
 
 /** The white glow over the card's left edge: a 260x200 ellipse centred on (90, 40). */
 private val LicenceGlowCenterX = 90.dp
@@ -740,33 +731,7 @@ private fun TopHighlight(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxWidth().height(1.dp)) { drawRect(Color.White.copy(alpha = 0.7f)) }
 }
 
-/**
- * The ten white wave lines: each is a crest then a mirrored trough, carried across the card's whole
- * width. How many quarters of the pattern that takes is [licenceWaveQuarters]' business; the last
- * one ends past the right edge, or a card wider than the design's 360dp cut the waves off mid-card.
- */
-private fun DrawScope.drawLicenceWaves() {
-    val quarter = LicenceWaveQuarter.toPx()
-    val offset = LicenceWaveOffset.toPx()
-    val amplitude = LicenceWaveAmplitude.toPx()
-    val step = LicenceWaveStepY.toPx()
-    val quarters = licenceWaveQuarters(size.width.toDp())
-    repeat(LICENCE_WAVE_COUNT) { index ->
-        val y = LicenceWaveStartY.toPx() + index * step
-        val wave = Path().apply {
-            moveTo(0f, y)
-            repeat(quarters) { span ->
-                // A crest on the even quarters and a trough on the odd ones, so the pattern keeps
-                // the phase the design sets, whatever the card measures.
-                val peak = if (span % 2 == 0) y - amplitude else y + amplitude
-                quadraticTo(offset + quarter * span, peak, quarter * (span + 1), y)
-            }
-        }
-        drawPath(wave, color = Color.White.copy(alpha = 0.35f), style = Stroke(LicenceWaveStroke.toPx()))
-    }
-}
-
-/** The white glow over the licence card's left edge, as a squashed radial gradient. */
+/** The white glow over the card's left edge, as a squashed radial gradient. */
 private fun DrawScope.drawLicenceGlow() {
     val radiusX = LicenceGlowWidth.toPx() / 2f
     val radiusY = LicenceGlowHeight.toPx() / 2f

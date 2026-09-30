@@ -77,6 +77,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -287,6 +288,9 @@ fun PracticeScreen(
 
     /** The bar's place in the sheet: the pill plus the room it floats in. */
     val barSlotHeight = pillHeight + pillGap * 2
+
+    /** How far a question's content has to clear the pinned bar to be readable to its last line. */
+    val questionBottomRoom = barSlotHeight + navBarInset + 16.dp
     // The open sheet covers the top app bar, so it only has to stay below the status bar. Phones in
     // landscape are inset below the status bar by the box the sheet lives in instead.
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -373,7 +377,9 @@ fun PracticeScreen(
 
     /** The questions themselves: the pager, with the arrows beside it where there's room. */
     val questionsPane: @Composable (PaddingValues) -> Unit = { padding ->
-        Row(Modifier.padding(padding).fillMaxSize()) {
+        // Only the top bar's room is taken out of the page: the questions run on behind the pinned
+        // bar, and each page keeps its last answer clear of it with [questionBottomRoom].
+        Row(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
             // Compose's scrollable ignores drags made with a mouse (its own canDrag says so), so a
             // page is dragged by hand here. A touch drag never reaches this: the pager consumes it
             // first, being the closer of the two.
@@ -415,6 +421,7 @@ fun PracticeScreen(
                         selectedIndex = selectedAnswers[page],
                         locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
                         skipped = questionSkipped(selectedAnswers[page], finished),
+                        bottomRoom = questionBottomRoom,
                         onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
                     )
                 }
@@ -899,6 +906,8 @@ private fun QuestionPage(
     locked: Boolean,
     /** The user left this question open in a finished test. */
     skipped: Boolean,
+    /** The room the pinned bar takes at the bottom, which the page's content has to clear. */
+    bottomRoom: Dp,
     onSelect: (Int) -> Unit,
 ) {
     val revealed = locked
@@ -941,7 +950,7 @@ private fun QuestionPage(
                     modifier = Modifier
                         .widthIn(max = ContentWidth.Wide)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomRoom),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Column(Modifier.weight(3f)) {
@@ -967,14 +976,13 @@ private fun QuestionPage(
                     modifier = Modifier
                         .widthIn(max = ContentWidth.Reading)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomRoom),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     imageUri?.let { uri -> QuestionImage(uri = uri, page = page) }
                     questionText()
                     if (skipped) SkippedNotice()
                     answers()
-                    Spacer(Modifier.height(16.dp))
                 }
             }
         }
@@ -1018,6 +1026,10 @@ private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionIma
     val loaded = imageState
     if (loaded is AsyncImagePainter.State.Success) {
         val intrinsic = with(density) { painter.intrinsicSize.toDpSize() }
+        // A traffic-situation drawing is a scene that runs to its own edges: rounding it would cut
+        // the road off. Everything else - signs, pictograms - sits on a plain background and is
+        // rounded like the rest of the app.
+        val shape = if (isSituationDrawing(uri)) RectangleShape else RoundedCornerShape(12.dp)
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             val height = minOf(maxHeight, page.height)
             val size = questionImageSize(intrinsic, maxWidth = maxWidth, maxHeight = height)
@@ -1026,7 +1038,7 @@ private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionIma
                 contentDescription = strings.enlargeImage,
                 modifier = Modifier
                     .size(size)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(shape)
                     .clickable { enlarged = true },
             )
             if (enlarged) {

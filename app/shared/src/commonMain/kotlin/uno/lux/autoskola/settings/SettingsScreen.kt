@@ -36,6 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.IconTile
+import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.NajCard
 import uno.lux.autoskola.ui.NajSwitch
 import uno.lux.autoskola.ui.SectionLabel
@@ -61,7 +62,7 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
-                    .padding(top = 52.dp, bottom = 24.dp),
+                    .padding(top = 52.dp, bottom = 24.dp + LocalNavBarInset.current),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

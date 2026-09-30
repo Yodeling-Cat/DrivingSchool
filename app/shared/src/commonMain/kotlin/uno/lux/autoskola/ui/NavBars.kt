@@ -7,23 +7,28 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +47,16 @@ enum class NavTab(val icon: ImageVector, val label: (Strings) -> String) {
     Settings(Icons.Filled.Tune, { it.navSettings }),
 }
 
+/**
+ * The room the floating pill takes at the bottom of a compact screen: its height, the space it
+ * floats in, and the home indicator's inset. A screen adds this to its own bottom padding so
+ * nothing ends up permanently under the pill.
+ */
+val LocalNavBarInset = staticCompositionLocalOf { 0.dp }
+
+/** The pill, the room it floats in, and a gap: how much of a compact screen's height it takes. */
+private val NavPillRoom = 72.dp + 24.dp + 16.dp
+
 private val RailWidth = 88.dp
 private val PillItemWidth = 100.dp
 private val PillItemHeight = 56.dp
@@ -55,11 +70,12 @@ private val PillItemHeight = 56.dp
 @Composable
 fun NavigationShell(selected: NavTab, onSelect: (NavTab) -> Unit, content: @Composable () -> Unit) {
     if (LocalWidthClass.current == WidthClass.Compact) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            bottomBar = { NavPill(selected, onSelect) },
-        ) { padding ->
-            Box(Modifier.padding(padding).consumeWindowInsets(padding)) { content() }
+        // The pill floats over the page rather than sitting in a bar below it, so the screen's own
+        // background - glows and grain included - runs behind it and all the way to the bottom.
+        // Screens keep their last content clear of it with [LocalNavBarInset].
+        Box(Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalNavBarInset provides NavPillRoom) { content() }
+            NavPill(selected, onSelect, Modifier.align(Alignment.BottomCenter))
         }
     } else {
         Row(Modifier.fillMaxSize()) {
@@ -70,9 +86,14 @@ fun NavigationShell(selected: NavTab, onSelect: (NavTab) -> Unit, content: @Comp
 }
 
 @Composable
-private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit) {
+private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modifier = Modifier) {
     val colors = Naj.colors
-    Box(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+    ) {
         NavyPill(Modifier.fillMaxWidth(), arrangement = Arrangement.SpaceAround) {
             NavTab.entries.forEach { tab ->
                 val active = tab == selected

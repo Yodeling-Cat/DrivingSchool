@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.paperBackground
 
@@ -41,7 +42,7 @@ fun LearnScreen() {
                     .widthIn(max = ContentWidth.Narrow)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 52.dp, bottom = 24.dp),
+                    .padding(top = 52.dp, bottom = 24.dp + LocalNavBarInset.current),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 Text(strings.learnTitle, style = Naj.type.screenTitle, color = colors.ink)

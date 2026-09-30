@@ -70,6 +70,7 @@ import uno.lux.autoskola.ui.EyebrowLabel
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LicenceRadius
 import uno.lux.autoskola.ui.LoadingScreen
+import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PagePadding
@@ -197,7 +198,8 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
             start = PagePadding,
             end = PagePadding,
             top = HeaderTopInset,
-            bottom = 24.dp,
+            // The floating navigation pill sits over the bottom of the page.
+            bottom = 24.dp + LocalNavBarInset.current,
         ),
         horizontalArrangement = Arrangement.spacedBy(GridGap),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
@@ -316,6 +318,11 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
     val finished = results.size
     val passed = results.values.count { it.passed }
     val average = if (results.isEmpty()) null else results.values.sumOf { it.percent } / results.size
+    // Passed, the card names the stage they have reached rather than what they are preparing for.
+    val stage = when (trainingStage(results, totalTests)) {
+        TrainingStage.InTraining -> strings.progressEyebrow
+        TrainingStage.Expert -> strings.progressEyebrowPassed
+    }
 
     Box(
         modifier = modifier
@@ -342,7 +349,7 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
             Spacer(Modifier.height(18.dp))
             EyebrowLabel(
-                text = strings.progressEyebrow.uppercase(),
+                text = stage.uppercase(),
                 style = Naj.type.eyebrow,
                 color = colors.inkAt(0.75f),
             )
@@ -407,12 +414,6 @@ private fun StatsRow(
             label = strings.averageShort,
             value = average?.let { "$it%" } ?: "\u2013",
             modifier = Modifier.weight(1f),
-        )
-        Stat(
-            label = strings.questionPool(progress.questionPoolSize),
-            value = "${progress.questionsAnswered}",
-            modifier = Modifier.weight(1f),
-            alignEnd = true,
         )
     }
 }

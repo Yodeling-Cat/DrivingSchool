@@ -61,6 +61,13 @@ object ContentWidth {
     val Wide = 1200.dp
 }
 
+/**
+ * The free width on each side of a content column capped at [column] in a page [available] dp wide.
+ * A page no wider than the column has no gutter, so anything meant to sit beside the content has to
+ * find room elsewhere.
+ */
+fun contentGutter(available: Dp, column: Dp): Dp = (available - column).coerceAtLeast(0.dp) / 2
+
 /** Measures the window and provides [LocalWidthClass] and [LocalHeightClass] to [content]. */
 @Composable
 fun ProvideWindowSizeClasses(content: @Composable () -> Unit) {

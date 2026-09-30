@@ -1,0 +1,42 @@
+package uno.lux.autoskola.practice
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class ElapsedTimeTest {
+
+    @Test
+    fun aFreshTestReadsZero() {
+        assertEquals("00:00", elapsedClock(0))
+    }
+
+    @Test
+    fun minutesAndSecondsArePaddedToTwoDigits() {
+        assertEquals("00:07", elapsedClock(7))
+        assertEquals("00:59", elapsedClock(59))
+        assertEquals("01:00", elapsedClock(60))
+        assertEquals("07:42", elapsedClock(462))
+    }
+
+    @Test
+    fun theLastSecondBeforeAnHourIsStillMinutes() {
+        assertEquals("59:59", elapsedClock(3599))
+    }
+
+    @Test
+    fun anHourIsShownAsHoursAndMinutes() {
+        assertEquals("1:00:00", elapsedClock(3600))
+        assertEquals("1:15:25", elapsedClock(4525))
+        assertEquals("10:00:00", elapsedClock(36000))
+    }
+
+    @Test
+    fun theExamsOwnTimeLimitReadsAsMinutes() {
+        assertEquals("45:00", elapsedClock(45 * 60))
+    }
+
+    @Test
+    fun aNegativeCountIsReadAsZeroRatherThanMinus() {
+        assertEquals("00:00", elapsedClock(-1))
+    }
+}

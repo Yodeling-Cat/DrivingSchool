@@ -20,4 +20,17 @@ class AdaptiveTest {
         assertEquals(HeightClass.Medium, HeightClass.of(480.dp))
         assertEquals(HeightClass.Expanded, HeightClass.of(900.dp))
     }
+
+    @Test
+    fun aColumnLeavesTheRestOfTheWidthAsGutter() {
+        assertEquals(240.dp, contentGutter(available = 1200.dp, column = ContentWidth.Reading))
+        assertEquals(16.dp, contentGutter(available = 752.dp, column = ContentWidth.Reading))
+    }
+
+    @Test
+    fun aPageNarrowerThanTheColumnHasNoGutter() {
+        assertEquals(0.dp, contentGutter(available = 700.dp, column = ContentWidth.Reading))
+        assertEquals(0.dp, contentGutter(available = ContentWidth.Reading, column = ContentWidth.Reading))
+        assertEquals(0.dp, contentGutter(available = 0.dp, column = ContentWidth.Reading))
+    }
 }

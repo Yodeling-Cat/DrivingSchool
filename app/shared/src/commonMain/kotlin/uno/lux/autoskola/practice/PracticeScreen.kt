@@ -5,8 +5,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -34,6 +38,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -67,6 +72,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -77,6 +83,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -104,6 +112,7 @@ import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.contentGutter
 
 private val SelectedAnswerBg = Color(0xFFEDE7F6)
 private val SelectedAnswerAccent = Color(0xFF5E35B1)
@@ -132,6 +141,9 @@ private val QuestionPanelWidth = 320.dp
 /** How far an enlarged picture stays away from the edges of the screen it's shown on. */
 private val EnlargedImageMargin = 24.dp
 
+/** The width an arrow beside the question needs, so it sits clear of the text. */
+private val QuestionArrowSize = 56.dp
+
 /**
  * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
  * closed, and [onOpenResults] when the test is finished or the user asks for its results.
@@ -144,6 +156,12 @@ fun PracticeRoute(
     viewModel: PracticeViewModel = koinViewModel { parametersOf(attemptId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // The clock runs while the test is in front of the user and stops when it isn't, so the time a
+    // test shows is the time the user spent on it.
+    LifecycleResumeEffect(Unit) {
+        viewModel.onEvent(PracticeUiEvent.Foreground(true))
+        onPauseOrDispose { viewModel.onEvent(PracticeUiEvent.Foreground(false)) }
+    }
     when (val current = state) {
         PracticeUiState.Loading -> LoadingScreen()
 
@@ -183,7 +201,7 @@ fun PracticeScreen(
     val questions = remember(state.questions) { state.questions.map { it.question } }
     val sections = state.sections
     val testName = attemptName(state.kind, state.testNumber)
-    val group = state.exam.name
+    val elapsed = elapsedClock(state.elapsedSeconds)
     val checkImmediately = state.checkImmediately
     val finished = state.finished
     val revealCorrectness = revealsCorrectness(checkImmediately, finished)
@@ -228,6 +246,13 @@ fun PracticeScreen(
         if (pagerWidth > 0) pagerState.scrollToPage(pagerState.targetPage)
     }
 
+    // The arrows go beside the question whenever the page leaves gutters wide enough for them. On a
+    // phone there is no room, so the bar keeps them. The arrows are drawn on top of the page, so
+    // showing them doesn't change its width and the decision can't flip back and forth.
+    val columnCap = if (compactHeight) ContentWidth.Wide else ContentWidth.Reading
+    val gutter = contentGutter(available = with(LocalDensity.current) { pagerWidth.toDp() }, column = columnCap)
+    val arrowsBeside = gutter >= QuestionArrowSize
+
     fun goTo(index: Int) {
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
     }
@@ -262,7 +287,7 @@ fun PracticeScreen(
 
     // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
-        if (!compactHeight) PracticeTopBar(testName, group, onBack = ::handleBack)
+        if (!compactHeight) PracticeTopBar(testName, elapsed, onBack = ::handleBack)
     }
 
     /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
@@ -274,12 +299,14 @@ fun PracticeScreen(
         PracticeBarContent(
             compactHeight = compactHeight,
             testName = testName,
+            elapsed = elapsed,
             currentIndex = currentIndex,
             questionCount = questions.size,
             points = current.points,
             showListToggle = !showPanel,
             listExpanded = listExpanded,
             canFinish = !finished,
+            showArrows = !arrowsBeside,
             onBack = ::handleBack,
             onToggleList = onToggleList,
             onPrevious = { goTo(currentIndex - 1) },
@@ -289,24 +316,71 @@ fun PracticeScreen(
         )
     }
 
+    /** The arrows for a page wide enough to hold them beside the question. */
+    val besideArrows: @Composable BoxScope.() -> Unit = {
+        QuestionArrow(
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            description = strings.previousQuestion,
+            enabled = currentIndex > 0,
+            onClick = { goTo(currentIndex - 1) },
+            modifier = Modifier.align(Alignment.CenterStart).width(gutter).fillMaxHeight(),
+        )
+        QuestionArrow(
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            description = strings.nextQuestion,
+            enabled = currentIndex < questions.size - 1,
+            onClick = { goTo(currentIndex + 1) },
+            modifier = Modifier.align(Alignment.CenterEnd).width(gutter).fillMaxHeight(),
+        )
+    }
+
     val pagerContent: @Composable (PaddingValues) -> Unit = { padding ->
         Row(Modifier.padding(padding).fillMaxSize()) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
+            // Compose's scrollable ignores drags made with a mouse (its own canDrag says so), so a
+            // page is dragged by hand here. A touch drag never reaches this: the pager consumes it
+            // first, being the closer of the two.
+            val dragged = remember { mutableFloatStateOf(0f) }
+            val dragState = rememberDraggableState { delta ->
+                dragged.floatValue += delta
+                scope.launch { pagerState.dispatchRawDelta(-delta) }
+            }
+            Box(
+                Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .onSizeChanged { pagerWidth = it.width },
-                verticalAlignment = Alignment.Top,
-            ) { page ->
-                QuestionPage(
-                    question = questions[page],
-                    imageUri = state.questions[page].imageUri,
-                    selectedIndex = selectedAnswers[page],
-                    locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
-                    skipped = questionSkipped(selectedAnswers[page], finished),
-                    onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
-                )
+                    .draggable(
+                        state = dragState,
+                        orientation = Orientation.Horizontal,
+                        onDragStarted = { dragged.floatValue = 0f },
+                        onDragStopped = { velocity ->
+                            val target = swipedPage(
+                                currentPage = pagerState.currentPage,
+                                dragged = dragged.floatValue,
+                                pageSize = pagerWidth.toFloat(),
+                                velocity = velocity,
+                                pageCount = questions.size,
+                            )
+                            pagerState.animateScrollToPage(target)
+                        },
+                    ),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onSizeChanged { pagerWidth = it.width },
+                    verticalAlignment = Alignment.Top,
+                ) { page ->
+                    QuestionPage(
+                        question = questions[page],
+                        imageUri = state.questions[page].imageUri,
+                        selectedIndex = selectedAnswers[page],
+                        locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
+                        skipped = questionSkipped(selectedAnswers[page], finished),
+                        onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
+                    )
+                }
+                if (arrowsBeside) besideArrows()
             }
             if (showPanel) {
                 VerticalDivider(color = CardBorder)
@@ -454,15 +528,15 @@ private fun FinishPromptEffect(
     }
 }
 
-/** The title of a test: its name above the exam it belongs to. */
+/** The title of a test: its name above how long it has been running. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PracticeTopBar(testName: String, group: String, onBack: () -> Unit) {
+private fun PracticeTopBar(testName: String, elapsed: String, onBack: () -> Unit) {
     CenterAlignedTopAppBar(
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Text(group, color = Subdued, fontSize = 12.sp)
+                Text(elapsed, color = Subdued, fontSize = 12.sp)
             }
         },
         navigationIcon = {
@@ -472,6 +546,32 @@ private fun PracticeTopBar(testName: String, group: String, onBack: () -> Unit) 
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
     )
+}
+
+/**
+ * One of the two arrows beside the question, in the gutter the reading column leaves on a page
+ * wide enough to have one. [modifier] is the whole gutter, so the button sits centred in it.
+ */
+@Composable
+private fun QuestionArrow(
+    icon: ImageVector,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(1.dp, CardBorder, CircleShape),
+        ) {
+            Icon(icon, contentDescription = description)
+        }
+    }
 }
 
 /** Asks whether to leave an unfinished test, whose answers would be lost. */
@@ -490,12 +590,15 @@ private fun LeaveTestDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 private fun RowScope.PracticeBarContent(
     compactHeight: Boolean,
     testName: String,
+    elapsed: String,
     currentIndex: Int,
     questionCount: Int,
     points: Int,
     showListToggle: Boolean,
     listExpanded: Boolean,
     canFinish: Boolean,
+    /** The arrows sit beside the question instead, so the bar leaves them out. */
+    showArrows: Boolean,
     onBack: () -> Unit,
     onToggleList: () -> Unit,
     onPrevious: () -> Unit,
@@ -525,17 +628,25 @@ private fun RowScope.PracticeBarContent(
             fontSize = 14.sp,
             maxLines = 1,
         )
-        Text(strings.points(points), color = Subdued, fontSize = 12.sp)
+        // Phones in landscape hide the top bar, so the time runs in the bar's second line there.
+        Text(
+            if (compactHeight) "${strings.points(points)} · $elapsed" else strings.points(points),
+            color = Subdued,
+            fontSize = 12.sp,
+            maxLines = 1,
+        )
     }
-    // Swiping doesn't work with a mouse, so always offer buttons too. They make no sense while
-    // the question list covers the questions.
-    Row(Modifier.graphicsLayer { alpha = arrowAlpha() }) {
-        val usable = arrowAlpha() > 0.5f
-        IconButton(onClick = onPrevious, enabled = usable && currentIndex > 0) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
-        }
-        IconButton(onClick = onNext, enabled = usable && currentIndex < questionCount - 1) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
+    // The arrows are beside the question wherever the page has room for them. They make no sense
+    // while the question list covers the questions, which is what [arrowAlpha] is for.
+    if (showArrows) {
+        Row(Modifier.graphicsLayer { alpha = arrowAlpha() }) {
+            val usable = arrowAlpha() > 0.5f
+            IconButton(onClick = onPrevious, enabled = usable && currentIndex > 0) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
+            }
+            IconButton(onClick = onNext, enabled = usable && currentIndex < questionCount - 1) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
+            }
         }
     }
     // Finishing is the only option, so there's no menu once the test is finished.

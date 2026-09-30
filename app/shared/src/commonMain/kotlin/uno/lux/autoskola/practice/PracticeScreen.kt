@@ -906,7 +906,7 @@ private fun RowScope.PracticeBarContent(
     Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
         Text(
             if (compactHeight) {
-                "$testName \\u00b7 ${strings.questionOutOf(currentIndex + 1, questionCount)}"
+                barQuestionLine(testName, strings.questionOutOf(currentIndex + 1, questionCount))
             } else {
                 strings.questionOutOf(currentIndex + 1, questionCount)
             },
@@ -919,7 +919,7 @@ private fun RowScope.PracticeBarContent(
         if (compactHeight) {
             Row {
                 Text(
-                    "${strings.points(points)} \\u00b7 ",
+                    barPointsLine(strings.points(points)),
                     style = Naj.type.tiny,
                     color = colors.roadYellow,
                     maxLines = 1,

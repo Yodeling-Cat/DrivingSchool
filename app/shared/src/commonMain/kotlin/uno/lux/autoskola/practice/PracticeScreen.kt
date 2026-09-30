@@ -66,6 +66,7 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -317,6 +318,10 @@ fun PracticeScreen(
     val sideInsets =
         WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
 
+    // The sheet's top edge, less the room Material's host keeps under its Snackbar: the message then
+    // sits just clear of the sheet's top instead of floating over the questions.
+    val messageLift = barSlotHeight + navBarInset - SnackbarHostInset + SnackbarAboveSheet
+
     // Stays up until acted on: first to finish the test, then to get back to its results.
     val snackbarHostState = remember { SnackbarHostState() }
     OverTimeNoticeEffect(
@@ -508,27 +513,36 @@ fun PracticeScreen(
                 // The app bar stays over both panes, so it sits outside the sheet's scaffold.
                 topBar()
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    BottomSheetScaffold(
-                        modifier = Modifier.weight(1f),
-                        scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
-                        // The screen places the message bar itself: the scaffold lifts its own host by
-                        // the sheet's peek as well, which stacks with any room given here.
-                        snackbarHost = {},
-                        containerColor = Color.Transparent,
-                        sheetContainerColor = Color.Transparent,
-                        sheetPeekHeight = barSlotHeight + navBarInset,
-                        // The reading column's width: what holds the question and its answers.
-                        sheetMaxWidth = QuestionColumnWidth,
-                        sheetShadowElevation = 0.dp,
-                        sheetDragHandle = null,
-                        sheetSwipeEnabled = false,
-                        sheetContent = {
-                            // The list is always visible next to the question here, so the toggle is
-                            // inert and the arrows never fade.
-                            BarPill(pillHeight, pillGap) { barContent(false, {}, { 1f }) }
-                        },
-                        content = questionsPane,
-                    )
+                    Box(Modifier.weight(1f)) {
+                        BottomSheetScaffold(
+                            modifier = Modifier.fillMaxSize(),
+                            scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
+                            // The screen places the message bar itself: the scaffold lifts its own host by
+                            // the sheet's peek as well, which stacks with any room given here.
+                            snackbarHost = {},
+                            containerColor = Color.Transparent,
+                            sheetContainerColor = Color.Transparent,
+                            sheetPeekHeight = barSlotHeight + navBarInset,
+                            // The reading column's width: what holds the question and its answers.
+                            sheetMaxWidth = QuestionColumnWidth,
+                            sheetShadowElevation = 0.dp,
+                            sheetDragHandle = null,
+                            sheetSwipeEnabled = false,
+                            sheetContent = {
+                                // The list is always visible next to the question here, so the toggle is
+                                // inert and the arrows never fade.
+                                BarPill(pillHeight, pillGap) { barContent(false, {}, { 1f }) }
+                            },
+                            content = questionsPane,
+                        )
+                        // The message belongs to the questions: it stays over the reading column rather
+                        // than running on under the list's panel, which sits outside this box.
+                        ExamMessageBar(
+                            host = snackbarHostState,
+                            lift = messageLift,
+                            modifier = Modifier.align(Alignment.BottomCenter).widthIn(max = QuestionColumnWidth),
+                        )
+                    }
                     Box(Modifier.padding(end = 16.dp, top = 16.dp, bottom = 16.dp)) { questionPanel() }
                 }
             }
@@ -549,6 +563,16 @@ fun PracticeScreen(
                 // navigation bar's room is at the end of the list, so it takes no height away from it.
                 val gridHeight = (maxHeight - topReserved - barSlotHeight - navBarInset).coerceAtLeast(0.dp)
                 val arrowsHidden by animateFloatAsState(if (listExpanded) 1f else 0f)
+
+                // The sheet rests with its top on the line the peek gives it; anything above that
+                // line means the list is on its way open, if only by a hair, and the message leaves.
+                val restOffset = with(LocalDensity.current) { (maxHeight - barSlotHeight - navBarInset).toPx() }
+                val messageHidden by remember(sheetState, restOffset) {
+                    derivedStateOf {
+                        sheetState.hasPartiallyExpandedState &&
+                            sheetState.requireOffset() < restOffset - SHEET_OPEN_TOLERANCE
+                    }
+                }
 
                 fun toggleList() {
                     scope.launch { if (listExpanded) sheetState.partialExpand() else sheetState.expand() }
@@ -596,24 +620,16 @@ fun PracticeScreen(
                     },
                     content = questionsPane,
                 )
+                // The message comes back when the list settles shut, since the prompt it carries
+                // waits to be acted on rather than timing out while it is out of sight.
+                if (!messageHidden) {
+                    ExamMessageBar(
+                        host = snackbarHostState,
+                        lift = messageLift,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
-        }
-
-        // Material's own message bar, above the bar it belongs to, and out of the way while the
-        // question list is open over the questions.
-        if (!listExpanded) {
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    // The bar's slot, less the gap the pill keeps inside it, plus a small gap of its
-                    // own: close enough to read as sitting on the bar rather than floating above it.
-                    .padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = barSlotHeight + navBarInset - pillGap + SnackbarAboveBar,
-                    ),
-            )
         }
     }
 
@@ -963,8 +979,27 @@ private fun RowScope.PracticeBarContent(
     }
 }
 
-/** How far the message bar sits above the pill it belongs to. */
-private val SnackbarAboveBar = 4.dp
+/** The room Material's own SnackbarHost keeps under the Snackbar it shows. */
+private val SnackbarHostInset = 12.dp
+
+/**
+ * Material's own message bar: as wide as the box it is placed in, and sitting [lift] above that
+ * box's bottom - which is measured to the sheet's top edge, so each of the two layouts gets a bar
+ * over its own questions and nothing else.
+ */
+@Composable
+private fun ExamMessageBar(host: SnackbarHostState, lift: Dp, modifier: Modifier = Modifier) {
+    SnackbarHost(
+        hostState = host,
+        modifier = modifier.padding(start = 16.dp, end = 16.dp, bottom = lift),
+    )
+}
+
+/** How far above the sheet's top edge the message bar sits. */
+private val SnackbarAboveSheet = 4.dp
+
+/** How far the sheet has to move off its resting line before the message gets out of the way. */
+private const val SHEET_OPEN_TOLERANCE = 1.5f
 
 /** A question-list icon that turns into an X (and back) as the question list opens. */
 @Composable

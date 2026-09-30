@@ -53,8 +53,11 @@ enum class NavTab(val icon: ImageVector, val label: (Strings) -> String) {
  */
 val LocalNavBarInset = staticCompositionLocalOf { 0.dp }
 
+/** How far the pill floats above the bottom of the screen. */
+private val NavPillBottomGap = 20.dp
+
 /** The pill, the room it floats in, and a gap: how much of a compact screen's height it takes. */
-private val NavPillRoom = 72.dp + 24.dp + 16.dp
+private val NavPillRoom = 72.dp + NavPillBottomGap + 16.dp
 
 private val RailWidth = 88.dp
 private val PillItemWidth = 100.dp
@@ -91,7 +94,7 @@ private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modi
         modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
-            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            .padding(start = 24.dp, end = 24.dp, bottom = NavPillBottomGap),
     ) {
         NavyPill(Modifier.fillMaxWidth(), arrangement = Arrangement.SpaceAround) {
             NavTab.entries.forEach { tab ->

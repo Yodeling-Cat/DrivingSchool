@@ -114,6 +114,7 @@ import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.contentGutter
+import uno.lux.autoskola.ui.displayText
 
 private val SelectedAnswerBg = Color(0xFFEDE7F6)
 private val SelectedAnswerAccent = Color(0xFF5E35B1)
@@ -712,7 +713,7 @@ private fun QuestionPage(
     val revealed = locked
     val answers: @Composable () -> Unit = {
         AnswerCard(
-            options = question.answers,
+            options = question.answers.map(::displayText),
             selectedIndex = selectedIndex,
             correct = question.correct,
             revealed = revealed,
@@ -721,7 +722,7 @@ private fun QuestionPage(
         )
     }
     val questionText: @Composable () -> Unit = {
-        Text(question.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+        Text(displayText(question.text), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
     }
     // With little height (phones in landscape) a stacked image would push the answers off
     // screen, so show it next to the question and answers instead.

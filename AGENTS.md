@@ -28,7 +28,7 @@ Where tests live:
 
 ## Module layout
 
-Four Gradle modules are wired via `settings.gradle.kts` with typesafe project accessors (`projects.core`, `projects.app.shared`, etc.):
+Five Gradle modules are wired via `settings.gradle.kts` with typesafe project accessors (`projects.core`, `projects.app.shared`, etc.):
 
 - **`:core`** — pure-Kotlin shared logic for **all** targets including the server (iosArm64, iosSimulatorArm64, jvm, js, wasmJs, android). No Compose dependency. This is the only module the server can depend on alongside `:app:shared`.
 - **`:app:shared`** — Compose Multiplatform UI shared across Android/iOS/Web. Targets iOS, JS, Wasm, and `android` (the Android library target; no JVM target — the server cannot consume it). Exposes `api(projects.core)`. iOS framework is built as a static framework named `Shared`.

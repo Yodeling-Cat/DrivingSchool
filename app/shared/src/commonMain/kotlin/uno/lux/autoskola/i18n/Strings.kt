@@ -77,6 +77,14 @@ class Strings(
     /** How many signs a search is showing, out of the whole catalogue. */
     val signsMatches: (matched: Int, total: Int) -> String,
     val signsNothingFound: String,
+    /** The bar action that folds every group away, leaving its heading. */
+    val signsCollapseAll: String,
+    /** The bar action that opens every group again. */
+    val signsExpandAll: String,
+    /** On a group's heading: folds it away, leaving the heading. */
+    val signsCollapseGroup: String,
+    /** On a group's heading: opens its signs. */
+    val signsExpandGroup: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -214,6 +222,10 @@ private val EnglishStrings = Strings(
     signsCount = { if (it == 1) "1 sign" else "$it signs" },
     signsMatches = { matched, total -> "$matched of $total signs" },
     signsNothingFound = "No sign matches your search",
+    signsCollapseAll = "Collapse every group",
+    signsExpandAll = "Expand every group",
+    signsCollapseGroup = "Collapse group",
+    signsExpandGroup = "Expand group",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -326,6 +338,10 @@ private val SlovakStrings = Strings(
     signsCount = { "$it " + westSlavicPlural(it, "značka", "značky", "značiek") },
     signsMatches = { matched, total -> "$matched z $total značiek" },
     signsNothingFound = "Žiadna značka nezodpovedá hľadaniu",
+    signsCollapseAll = "Zbaliť všetky skupiny",
+    signsExpandAll = "Rozbaliť všetky skupiny",
+    signsCollapseGroup = "Zbaliť skupinu",
+    signsExpandGroup = "Rozbaliť skupinu",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -438,6 +454,10 @@ private val HungarianStrings = Strings(
     signsCount = { "$it tábla" },
     signsMatches = { matched, total -> "$matched / $total tábla" },
     signsNothingFound = "Nincs a keresésnek megfelelő tábla",
+    signsCollapseAll = "Összes csoport összecsukása",
+    signsExpandAll = "Összes csoport kibontása",
+    signsCollapseGroup = "Csoport összecsukása",
+    signsExpandGroup = "Csoport kibontása",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -550,6 +570,10 @@ private val CzechStrings = Strings(
     signsCount = { "$it " + westSlavicPlural(it, "značka", "značky", "značek") },
     signsMatches = { matched, total -> "$matched z $total značek" },
     signsNothingFound = "Žádná značka neodpovídá hledání",
+    signsCollapseAll = "Sbalit všechny skupiny",
+    signsExpandAll = "Rozbalit všechny skupiny",
+    signsCollapseGroup = "Sbalit skupinu",
+    signsExpandGroup = "Rozbalit skupinu",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

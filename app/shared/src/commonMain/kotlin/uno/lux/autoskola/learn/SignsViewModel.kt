@@ -30,6 +30,8 @@ data class SignGroupItem(
     /** The heading inside it, e.g. "I. 4. Pohyb na ceste", or empty where it has none. */
     val group: String,
     val signs: List<SignItem>,
+    /** A folded group shows its heading and none of its signs. */
+    val folded: Boolean = false,
 )
 
 sealed interface SignsUiState {
@@ -43,12 +45,27 @@ sealed interface SignsUiState {
     data class Ready(val groups: List<SignGroupItem>, val query: String, val total: Int) : SignsUiState {
         /** How many signs the list is showing, which is all of them while no search is running. */
         val shown: Int get() = groups.sumOf { it.signs.size }
+
+        /** True while no group is folded, which is what the bar's action folds or opens. */
+        val allExpanded: Boolean get() = groups.none { it.folded }
     }
 }
 
 sealed interface SignsUiEvent {
-    /** Filters the list; an empty query shows every sign. */
+    /** Filters the list; an empty query shows every sign, every group open. */
     data class Search(val query: String) : SignsUiEvent
+
+    /**
+     * Folds the group this heading names away, leaving the heading, or opens it again.
+     *
+     * A group is named by its kind and its heading rather than by where it sits, so a heading that
+     * the catalogue lists twice - the two "Značky o (dávaní) prednosti v jazde" one per kind are
+     * told apart by the kind - folds as the reader sees it.
+     */
+    data class ToggleGroup(val kind: String, val group: String) : SignsUiEvent
+
+    /** Folds every group away, or opens them all when anything is folded. */
+    data object ToggleAllGroups : SignsUiEvent
 }
 
 class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewModel() {
@@ -57,16 +74,19 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
 
     private val catalogue = MutableStateFlow<SignCatalogue?>(null)
 
+    /** The headings the reader has folded, which a search clears: its results open every group. */
+    private val folded = MutableStateFlow(emptySet<GroupKey>())
+
     init {
         viewModelScope.launch { catalogue.value = catalogues.bundled() }
     }
 
-    val uiState: StateFlow<SignsUiState> = combine(catalogue, query) { catalogue, query ->
+    val uiState: StateFlow<SignsUiState> = combine(catalogue, query, folded) { catalogue, query, folded ->
         if (catalogue == null) {
             SignsUiState.Loading
         } else {
             SignsUiState.Ready(
-                groups = groupSigns(searchSigns(catalogue.signs, query)).map { it.toItem(catalogue) },
+                groups = groupsOf(catalogue, query).map { it.toItem(catalogue, folded) },
                 query = query,
                 total = catalogue.signs.size,
             )
@@ -75,14 +95,35 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
 
     fun onEvent(event: SignsUiEvent) {
         when (event) {
-            is SignsUiEvent.Search -> query.value = event.query
+            is SignsUiEvent.Search -> {
+                query.value = event.query
+                folded.value = emptySet()
+            }
+
+            is SignsUiEvent.ToggleGroup -> {
+                val key = GroupKey(event.kind, event.group)
+                folded.value = if (key in folded.value) folded.value - key else folded.value + key
+            }
+
+            SignsUiEvent.ToggleAllGroups ->
+                folded.value = if (folded.value.isEmpty()) everyGroup() else emptySet()
         }
     }
 
-    private fun SignGroup.toItem(catalogue: SignCatalogue) = SignGroupItem(
+    /** The groups of [catalogue] that a search for [query] leaves. */
+    private fun groupsOf(catalogue: SignCatalogue, query: String) = groupSigns(searchSigns(catalogue.signs, query))
+
+    /** Every group the list is showing now, which is what the bar's action folds away. */
+    private fun everyGroup(): Set<GroupKey> {
+        val catalogue = catalogue.value ?: return emptySet()
+        return groupsOf(catalogue, query.value).map { GroupKey(it.kind, it.group) }.toSet()
+    }
+
+    private fun SignGroup.toItem(catalogue: SignCatalogue, folded: Set<GroupKey>) = SignGroupItem(
         kind = kind,
         group = group,
         signs = signs.map { it.toItem(catalogue) },
+        folded = GroupKey(kind, group) in folded,
     )
 
     private fun Sign.toItem(catalogue: SignCatalogue) = SignItem(
@@ -92,3 +133,9 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
         imageUri = catalogues.imageUri(catalogue, this),
     )
 }
+
+/**
+ * Names one heading of the list: the kind of sign it belongs to and the heading itself. The kind is
+ * part of it because the catalogue has headings that read almost the same, one per kind.
+ */
+private data class GroupKey(val kind: String, val group: String)

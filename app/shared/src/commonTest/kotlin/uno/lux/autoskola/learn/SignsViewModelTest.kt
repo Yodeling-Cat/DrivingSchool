@@ -92,4 +92,85 @@ class SignsViewModelTest : ViewModelTest() {
         assertEquals(3, ready.shown)
         assertEquals(2, ready.groups.size)
     }
+
+    @Test
+    fun everyGroupStartsOpen() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+
+        assertTrue(ready.allExpanded)
+        assertTrue(ready.groups.none { it.folded })
+    }
+
+    @Test
+    fun foldingTheActionFoldsEveryGroupAndKeepsItsSigns() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SignsUiEvent.ToggleAllGroups)
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+        assertTrue(ready.groups.all { it.folded })
+        assertEquals(false, ready.allExpanded)
+        // Folding hides the signs; it is not a search, so the count stays.
+        assertEquals(3, ready.shown)
+        assertEquals(listOf("140", "142", "601"), ready.groups.flatMap { group -> group.signs.map { it.number } })
+    }
+
+    @Test
+    fun theActionOpensEverythingAgainWhenAnythingIsFolded() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SignsUiEvent.ToggleGroup("VÝSTRAŽNÉ ZNAČKY", "I. 4. Pohyb na ceste"))
+        viewModel.onEvent(SignsUiEvent.ToggleAllGroups)
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+        assertTrue(ready.allExpanded)
+        assertTrue(ready.groups.none { it.folded })
+    }
+
+    @Test
+    fun aHeadingOpensAndFoldsItsOwnGroup() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SignsUiEvent.ToggleGroup("VÝSTRAŽNÉ ZNAČKY", "I. 4. Pohyb na ceste"))
+
+        val folded = assertIs<SignsUiState.Ready>(state.value)
+        assertEquals(listOf(true, false), folded.groups.map { it.folded })
+        assertEquals(false, folded.allExpanded)
+
+        viewModel.onEvent(SignsUiEvent.ToggleGroup("VÝSTRAŽNÉ ZNAČKY", "I. 4. Pohyb na ceste"))
+
+        assertTrue(assertIs<SignsUiState.Ready>(state.value).allExpanded)
+    }
+
+    @Test
+    fun aSearchOpensEveryGroupInItsResults() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SignsUiEvent.ToggleAllGroups)
+        viewModel.onEvent(SignsUiEvent.Search("vozovk"))
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+        assertTrue(ready.allExpanded)
+        assertEquals(listOf("140", "601"), ready.groups.flatMap { group -> group.signs.map { it.number } })
+    }
+
+    @Test
+    fun foldingEverythingFoldsTheGroupsASearchLeft() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SignsUiEvent.Search("vozovk"))
+        viewModel.onEvent(SignsUiEvent.ToggleAllGroups)
+
+        val ready = assertIs<SignsUiState.Ready>(state.value)
+        assertTrue(ready.groups.all { it.folded })
+        assertEquals(2, ready.groups.size)
+    }
 }

@@ -25,8 +25,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -79,7 +83,7 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
         Box(Modifier.fillMaxSize().paperBackground()) {
             Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
-                    SignsHeader(state, onBack)
+                    SignsHeader(state, onEvent, onBack)
                     SignSearchField(
                         query = (state as? SignsUiState.Ready)?.query.orEmpty(),
                         onQueryChange = { onEvent(SignsUiEvent.Search(it)) },
@@ -93,7 +97,7 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
                             if (state.groups.isEmpty()) {
                                 SignListEmpty(Modifier.weight(1f))
                             } else {
-                                SignList(state.groups, page, Modifier.weight(1f))
+                                SignList(state.groups, page, onEvent, Modifier.weight(1f))
                             }
                     }
                 }
@@ -102,9 +106,13 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
     }
 }
 
-/** Back, what the list holds, and how much of it the search is showing. */
+/**
+ * Back, what the list holds, and the action that folds every group away or opens them all. The
+ * action is one button whose icon follows the list: it offers to fold while nothing is folded, and
+ * to open while anything is.
+ */
 @Composable
-private fun SignsHeader(state: SignsUiState, onBack: () -> Unit) {
+private fun SignsHeader(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: () -> Unit) {
     val colors = Naj.colors
     Row(
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
@@ -126,25 +134,47 @@ private fun SignsHeader(state: SignsUiState, onBack: () -> Unit) {
                 )
             }
         }
+        // Nothing to fold while a search has left no groups, so the button goes with them.
+        val ready = state as? SignsUiState.Ready
+        if (ready != null && ready.groups.isNotEmpty()) {
+            RoundButton(
+                icon = if (ready.allExpanded) Icons.Filled.UnfoldLess else Icons.Filled.UnfoldMore,
+                contentDescription = if (ready.allExpanded) strings.signsCollapseAll else strings.signsExpandAll,
+                onClick = { onEvent(SignsUiEvent.ToggleAllGroups) },
+            )
+        }
     }
 }
 
 /**
  * The catalogue, one sign a row, in the regulation's own order, under the headings it lists them
  * in. The heading stays on screen while its signs scroll past, so it is always clear which group
- * the signs belong to - including while a search has left signs of several groups in the list.
+ * the signs belong to - including while a search has left signs of several groups in the list. A
+ * folded group keeps its heading and drops its signs, and its heading opens it again.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SignList(groups: List<SignGroupItem>, page: DpSize, modifier: Modifier = Modifier) {
+private fun SignList(
+    groups: List<SignGroupItem>,
+    page: DpSize,
+    onEvent: (SignsUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp)) {
-        groups.forEach { group ->
-            stickyHeader(key = "header-${group.kind}-${group.group}") {
-                SignGroupHeading(group.kind, group.group)
+        groups.forEachIndexed { index, group ->
+            stickyHeader(key = "header-$index") {
+                SignGroupHeading(
+                    kind = group.kind,
+                    group = group.group,
+                    folded = group.folded,
+                    onToggle = { onEvent(SignsUiEvent.ToggleGroup(group.kind, group.group)) },
+                )
             }
-            items(group.signs, key = { it.number }) { sign ->
-                SignRow(sign, page)
-                CardDivider()
+            if (!group.folded) {
+                items(group.signs, key = { it.number }) { sign ->
+                    SignRow(sign, page)
+                    CardDivider()
+                }
             }
         }
     }
@@ -152,23 +182,44 @@ private fun SignList(groups: List<SignGroupItem>, page: DpSize, modifier: Modifi
 
 /**
  * The heading a group of signs is listed under: the part of the catalogue it belongs to, and the
- * heading inside it. It is drawn on the paper rather than over it, so the signs scrolling past stay
- * under the heading instead of showing through it.
+ * heading inside it, with the chevron that says whether its signs are showing. Tapping it folds the
+ * group away or opens it, so a reader can put the catalogue's headings in front of them and open
+ * only what they are looking at.
+ *
+ * It is drawn on the paper rather than over it, so the signs scrolling past stay under the heading
+ * instead of showing through it.
  */
 @Composable
-private fun SignGroupHeading(kind: String, group: String, modifier: Modifier = Modifier) {
+private fun SignGroupHeading(
+    kind: String,
+    group: String,
+    folded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = Naj.colors
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.paper)
-            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
+            .clickable(onClick = onToggle)
+            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(kind, style = Naj.type.capsLabel, color = colors.muted)
-        if (group.isNotBlank()) {
-            Spacer(Modifier.height(2.dp))
-            Text(group, style = Naj.type.sectionHeading, color = colors.ink)
+        Column(Modifier.weight(1f)) {
+            Text(kind, style = Naj.type.capsLabel, color = colors.muted)
+            if (group.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(group, style = Naj.type.sectionHeading, color = colors.ink)
+            }
         }
+        Icon(
+            imageVector = if (folded) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Filled.KeyboardArrowDown,
+            contentDescription = if (folded) strings.signsExpandGroup else strings.signsCollapseGroup,
+            tint = colors.muted,
+            modifier = Modifier.size(24.dp),
+        )
     }
     CardDivider()
 }
@@ -302,17 +353,85 @@ private fun SignsScreenSearchPreview() {
     }
 }
 
-/** A group the regulation lists under a heading of its own kind, and one it does not. */
-@Preview(widthDp = 400, heightDp = 400)
+/** A group the regulation lists under a heading of its own kind, open and folded, and one it does not. */
+@Preview(widthDp = 400, heightDp = 480)
 @Composable
 private fun SignGroupHeadingPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("with a heading inside the kind")
-            SignGroupHeading(previewSignGroups[2].kind, previewSignGroups[2].group)
-            PreviewLabel("without one")
-            SignGroupHeading(previewSignGroups[3].kind, previewSignGroups[3].group)
+            PreviewLabel("open, with a heading inside the kind")
+            SignGroupHeading(previewSignGroups[2].kind, previewSignGroups[2].group, folded = false, onToggle = {})
+            PreviewLabel("folded")
+            SignGroupHeading(previewSignGroups[2].kind, previewSignGroups[2].group, folded = true, onToggle = {})
+            PreviewLabel("without a heading inside the kind")
+            SignGroupHeading(previewSignGroups[3].kind, previewSignGroups[3].group, folded = false, onToggle = {})
         }
+    }
+}
+
+/** The bar's action while nothing is folded, and while anything is. */
+@Preview(widthDp = 400, heightDp = 300)
+@Composable
+private fun SignsHeaderPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("nothing folded: the action folds")
+            SignsHeader(
+                state = SignsUiState.Ready(groups = previewSignGroups, query = "", total = previewSignTotal),
+                onEvent = {},
+                onBack = {},
+            )
+            PreviewLabel("anything folded: the action opens")
+            SignsHeader(
+                state = SignsUiState.Ready(
+                    groups = previewSignGroups.map { it.copy(folded = true) },
+                    query = "",
+                    total = previewSignTotal,
+                ),
+                onEvent = {},
+                onBack = {},
+            )
+            PreviewLabel("no groups: no action")
+            SignsHeader(
+                state = SignsUiState.Ready(groups = emptyList(), query = "vrtuľník", total = previewSignTotal),
+                onEvent = {},
+                onBack = {},
+            )
+        }
+    }
+}
+
+/** Every group folded: the list is its headings, and one of them opens its own signs. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun SignsScreenFoldedPreview() {
+    AppPreview {
+        SignsScreen(
+            state = SignsUiState.Ready(
+                groups = previewSignGroups.map { it.copy(folded = true) },
+                query = "",
+                total = previewSignTotal,
+            ),
+            onEvent = {},
+            onBack = {},
+        )
+    }
+}
+
+/** One group open among folded ones, so both states of a heading are on screen together. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun SignsScreenOneGroupOpenPreview() {
+    AppPreview {
+        SignsScreen(
+            state = SignsUiState.Ready(
+                groups = previewSignGroups.mapIndexed { index, group -> group.copy(folded = index != 2) },
+                query = "",
+                total = previewSignTotal,
+            ),
+            onEvent = {},
+            onBack = {},
+        )
     }
 }
 

@@ -22,12 +22,19 @@ dependencies {
     debugImplementation(libs.leakcanary.android)
 }
 
+/** The application id a released build ships under. */
+val releaseApplicationId = "uno.lux.autoskola"
+
+/** The id a debug build ships under, so it installs next to a released app and keeps its own data. */
+val debugApplicationIdSuffix = ".dev"
+val debugApplicationId = releaseApplicationId + debugApplicationIdSuffix
+
 android {
     namespace = "uno.lux.autoskola"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "uno.lux.autoskola"
+        applicationId = releaseApplicationId
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -43,6 +50,9 @@ android {
         buildConfig = true
     }
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = debugApplicationIdSuffix
+        }
         getByName("release") {
             isMinifyEnabled = false
         }
@@ -67,5 +77,13 @@ tasks.register<Exec>("runDebug") {
     group = "install"
     description = "Installs the Debug build and starts it on the connected device."
     dependsOn("installDebug")
-    commandLine(adbExecutable(), "shell", "am", "start", "-n", "uno.lux.autoskola/.MainActivity")
+    // The launcher class sits in this module's namespace, while the app id carries the debug suffix.
+    commandLine(
+        adbExecutable(),
+        "shell",
+        "am",
+        "start",
+        "-n",
+        "$debugApplicationId/uno.lux.autoskola.MainActivity",
+    )
 }

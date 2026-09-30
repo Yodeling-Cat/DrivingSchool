@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents (Claude Code, Codex, etc.) when 
 
 NajAutoskola is a Kotlin Multiplatform driving-school app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server. The codebase is currently a fresh KMP scaffold — the placeholder `Greeting`/`Platform` code is template output, not real domain logic.
 
-Root package is `uno.lux.autoskola` across every module. App/server `applicationId` and Gradle `group` are also `uno.lux.autoskola`. Gradle root project name is `NajAutoskola`.
+Root package is `uno.lux.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `uno.lux.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. Gradle root project name is `NajAutoskola`.
 
 ## Tests first
 

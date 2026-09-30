@@ -1,5 +1,6 @@
 package uno.lux.autoskola.onboarding
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -158,7 +160,17 @@ private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(flagEmoji(option.country), fontSize = 40.sp)
+        val flag = countryFlag(option.country)
+        if (flag != null) {
+            Image(
+                painter = rememberVectorPainter(flag),
+                contentDescription = null,
+                modifier = Modifier.width(60.dp).height(40.dp),
+            )
+        } else {
+            // No flag drawn for this country yet, so its code stands in for one.
+            Text(option.country, fontSize = 20.sp, color = Subdued)
+        }
         Spacer(Modifier.height(8.dp))
         Text(
             strings.countryName(option.country),
@@ -312,19 +324,5 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
         Icon(category.icon, contentDescription = null, tint = category.tint, modifier = Modifier.size(28.dp))
         Spacer(Modifier.width(20.dp))
         Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-    }
-}
-
-/**
- * Regional-indicator flag emoji for an ISO 3166-1 alpha-2 country code, e.g. "SK" -> "🇸🇰".
- * Regional indicators sit above U+FFFF, so each one needs a UTF-16 surrogate pair - [Char]
- * alone can't hold a code point that high.
- */
-private fun flagEmoji(countryCode: String): String = buildString {
-    countryCode.uppercase().forEach { letter ->
-        val codePoint = letter.code - 'A'.code + 0x1F1E6
-        val offset = codePoint - 0x10000
-        append(((offset shr 10) + 0xD800).toChar())
-        append(((offset and 0x3FF) + 0xDC00).toChar())
     }
 }

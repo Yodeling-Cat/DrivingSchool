@@ -1,6 +1,5 @@
 package uno.lux.autoskola
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -16,12 +15,13 @@ import uno.lux.autoskola.onboarding.DisclaimerRoute
 import uno.lux.autoskola.onboarding.ExamSelectionRoute
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.ProvideWindowSizeClasses
+import uno.lux.autoskola.ui.theme.NajAutoskolaTheme
 
 @Composable
 @Preview
 fun App() {
     remember { initKoin() }
-    MaterialTheme {
+    NajAutoskolaTheme {
         val viewModel = koinViewModel<AppViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val strings = state.language.strings

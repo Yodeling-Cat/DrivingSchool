@@ -19,3 +19,11 @@ internal fun elapsedClock(seconds: Long): String {
  * the last minute is up, and the notice that tells the user so arrives at the same moment.
  */
 internal fun isOverTime(elapsedSeconds: Long, allottedSeconds: Long): Boolean = elapsedSeconds >= allottedSeconds
+
+/**
+ * Whether there is nothing left to time. With answers checked as they are picked, the last answer is
+ * the end of the work: the user can still read the marks and finish the test, but they are done, so
+ * the clock stops where it stood. Without that mode the answers are only scored at the end, and the
+ * test is not over until the user says so.
+ */
+internal fun stopsClockAtEnd(allAnswered: Boolean, checkImmediately: Boolean): Boolean = allAnswered && checkImmediately

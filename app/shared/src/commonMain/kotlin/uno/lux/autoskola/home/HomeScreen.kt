@@ -1,7 +1,7 @@
 package uno.lux.autoskola.home
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,62 +14,125 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
-import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.PracticeTest
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.attemptName
+import uno.lux.autoskola.ui.CardRadius
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.EyebrowLabel
+import uno.lux.autoskola.ui.IconTile
+import uno.lux.autoskola.ui.LicenceRadius
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalWidthClass
+import uno.lux.autoskola.ui.OutlinePill
+import uno.lux.autoskola.ui.PagePadding
+import uno.lux.autoskola.ui.PillHeight
+import uno.lux.autoskola.ui.PrimaryPill
+import uno.lux.autoskola.ui.ScreenHeader
+import uno.lux.autoskola.ui.TestStatus
+import uno.lux.autoskola.ui.TestTile
+import uno.lux.autoskola.ui.TileRadius
+import uno.lux.autoskola.ui.WhitePill
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.fullWidthItem
+import uno.lux.autoskola.ui.theme.GRAIN_CARD
+import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.grain
+import uno.lux.autoskola.ui.theme.paperBackground
+import uno.lux.autoskola.ui.theme.paperGlows
+import uno.lux.autoskola.ui.theme.rememberGrainShader
 
-private val CardBorder = Color(0xFFE0E0E0)
-private val Subdued = Color(0xFF757575)
-private val Accent = Color(0xFF5E35B1)
-private val PassedColor = Color(0xFF388E3C)
-private val FailedColor = Color(0xFFD32F2F)
+// ── Measurements the design draws but the component kit doesn't name ──
 
-private val InProgressColor = Color(0xFFF57C00)
-private val ResumeBg = Color(0xFFFFF3E0)
+private val LicenceCardHeight = 222.dp
 
-private val SidePaneWidth = 360.dp
-private val TestTileMinWidth = 240.dp
+/** The licence card's waves: ten of them, one every 16dp from y=40, 30dp from crest to trough. */
+private const val LICENCE_WAVE_COUNT = 10
+private val LicenceWaveStartY = 40.dp
+private val LicenceWaveStepY = 16.dp
+private val LicenceWaveAmplitude = 30.dp
+private val LicenceWaveStroke = 1.2.dp
+private val LicenceWaveQuarter = 90.dp
+private val LicenceWaveOffset = 45.dp
+
+/** The white glow over the card's left edge: a 260x200 ellipse centred on (90, 40). */
+private val LicenceGlowCenterX = 90.dp
+private val LicenceGlowCenterY = 40.dp
+private val LicenceGlowWidth = 260.dp
+private val LicenceGlowHeight = 200.dp
+
+/** The yellow "unfinished test" card: 84dp, or the wide layout's taller banner. */
+private val ResumeCardHeight = 84.dp
+private val ResumeWideHeight = 96.dp
+private val ResumeCardRadius = 24.dp
+private val ResumeWideRadius = 28.dp
+private val ResumeBarWidth = 150.dp
+private const val RESUME_GRAIN = 0.4f
+
+/** The orange the resume card floats on: rgba(255, 150, 0, .6). */
+private val ResumeShadow = Color(0x99FF9600)
+
+private val MistakesCardHeight = 68.dp
+private val HomeBandWidth = 410.dp
+private val GridGap = 12.dp
+private val WideGridGap = 14.dp
+private val SectionGap = 16.dp
+private val GridTileMinWidth = 180.dp
+private val HeaderTopInset = 52.dp
+
+/** The 13sp bold caption the design sets the exam pill and the hero's label in. */
+private val CaptionStyle: TextStyle
+    @Composable get() = Naj.type.tileStatus.copy(fontSize = 13.sp)
+
+/** The circle outline the "not done yet" action carries, until the kit has the dashed ring. */
+private val NotDoneYetIcon: ImageVector = Icons.Outlined.RadioButtonUnchecked
 
 /** Connects [HomeScreen] to its [HomeViewModel] and to navigation. */
 @Composable
@@ -95,70 +158,19 @@ fun HomeRoute(
 }
 
 /**
- * Progress overview and test picker. Phones get one column; wider screens show the tests as a
- * grid, and expanded screens move the overview into a side pane next to the grid.
+ * Progress overview and test picker. Phones and medium windows get one scrolling column of cards
+ * and a test grid; an expanded window puts the overview in a band beside the resume banner and a
+ * three-column grid.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChangeExam: () -> Unit) {
-    val tests = state.tests
-    val progress = state.progress
-    val twoPane = LocalWidthClass.current == WidthClass.Expanded
-
-    Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            TopAppBar(
-                title = { Text(strings.appName, fontWeight = FontWeight.SemiBold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-            )
-        },
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            val overview: @Composable () -> Unit = {
-                Overview(
-                    exam = state.exam,
-                    tests = tests,
-                    progress = progress,
-                    onChangeExam = onChangeExam,
-                    onEvent = onEvent,
-                )
-            }
-            Row(Modifier.widthIn(max = ContentWidth.Wide).fillMaxSize()) {
-                if (twoPane) {
-                    Column(
-                        Modifier
-                            .width(SidePaneWidth)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                    ) { overview() }
-                }
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(TestTileMinWidth),
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (!twoPane) fullWidthItem { overview() }
-                    fullWidthItem {
-                        Text(
-                            strings.allTests,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(top = if (twoPane) 0.dp else 12.dp),
-                        )
-                    }
-                    items(tests, key = { it.number }) { test ->
-                        TestTile(
-                            name = strings.testName(test.number),
-                            result = progress.results[test.number],
-                            inProgress = test.number in progress.inProgress,
-                            onClick = { onEvent(HomeUiEvent.StartTest(test.number)) },
-                        )
-                    }
-                }
+    val colors = Naj.colors
+    Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors))) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+            if (LocalWidthClass.current == WidthClass.Expanded) {
+                ExpandedHome(state, onEvent, onChangeExam)
+            } else {
+                ColumnHome(state, onEvent, onChangeExam)
             }
         }
     }
@@ -166,217 +178,573 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
     state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
 }
 
+/** The phone and medium layout: the cards in one scrolling column, then the tests as a grid. */
 @Composable
-private fun Overview(
-    exam: ExamLabel,
-    tests: List<PracticeTest>,
-    progress: HomeProgress,
-    onChangeExam: () -> Unit,
-    onEvent: (HomeUiEvent) -> Unit,
-) {
-    val unfinished = tests.filter { it.number !in progress.results && it.number !in progress.inProgress }
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        progress.resumable?.let { ResumeCard(it, onResume = { onEvent(HomeUiEvent.Resume) }) }
-        ProgressCard(
-            examName = exam.name,
-            examLanguage = exam.title,
-            totalTests = tests.size,
-            progress = progress,
-            onChangeExam = onChangeExam,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = false)) },
-                enabled = tests.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(strings.randomTest)
-            }
-            OutlinedButton(
-                onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
-                enabled = unfinished.isNotEmpty(),
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(strings.notDoneYet)
+private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChangeExam: () -> Unit) {
+    val tests = state.tests
+    val progress = state.progress
+    // A phone shows two tests side by side; a medium window fits as many as the tiles allow.
+    val columns = if (LocalWidthClass.current == WidthClass.Medium) {
+        GridCells.Adaptive(GridTileMinWidth)
+    } else {
+        GridCells.Fixed(2)
+    }
+
+    LazyVerticalGrid(
+        columns = columns,
+        modifier = Modifier.fillMaxHeight().widthIn(max = ContentWidth.Narrow).fillMaxWidth(),
+        contentPadding = PaddingValues(
+            start = PagePadding,
+            end = PagePadding,
+            top = HeaderTopInset,
+            bottom = 24.dp,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(GridGap),
+        verticalArrangement = Arrangement.spacedBy(SectionGap),
+    ) {
+        fullWidthItem {
+            ScreenHeader(
+                trailing = { ExamPill(state.exam, onChangeExam) },
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
+        fullWidthItem {
+            LicenceCard(totalTests = tests.size, progress = progress)
+        }
+        progress.resumable?.let { unfinished ->
+            fullWidthItem {
+                ResumeCard(unfinished, onResume = { onEvent(HomeUiEvent.Resume) }, wide = false)
             }
         }
-        MistakesCard(count = progress.mistakeCount, onPractice = { onEvent(HomeUiEvent.PracticeMistakes) })
+        fullWidthItem {
+            ActionRow(tests = tests, progress = progress, onEvent = onEvent)
+        }
+        fullWidthItem {
+            MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
+        }
+        fullWidthItem {
+            Text(
+                text = strings.allTests,
+                style = Naj.type.sectionHeading,
+                color = Naj.colors.ink,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+            )
+        }
+        items(tests, key = { it.number }) { test ->
+            TestTileItem(test = test, progress = progress, onEvent = onEvent)
+        }
     }
 }
 
+/** The wide layout: the overview band on the left, the resume banner and the grid on the right. */
 @Composable
-private fun ResumeCard(test: ResumableTest, onResume: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(ResumeBg)
-            .clickable(onClick = onResume)
-            .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 4.dp),
-    ) {
-        Text(strings.unfinishedTest, color = InProgressColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            strings.resumeSummary(attemptName(test.kind, test.testNumber), test.answered, test.total),
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onResume) { Text(strings.continueTest, color = InProgressColor) }
+private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChangeExam: () -> Unit) {
+    val colors = Naj.colors
+    val tests = state.tests
+    val progress = state.progress
+
+    Row(Modifier.widthIn(max = ContentWidth.Wide).fillMaxHeight()) {
+        Column(
+            modifier = Modifier
+                .width(HomeBandWidth)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 36.dp),
+        ) {
+            ScreenHeader(trailing = { ExamPill(state.exam, onChangeExam) })
+            Spacer(Modifier.height(20.dp))
+            LicenceCard(totalTests = tests.size, progress = progress)
+            Spacer(Modifier.height(28.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionRow(tests = tests, progress = progress, onEvent = onEvent)
+                MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
+            }
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(start = 16.dp, end = 32.dp, top = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            progress.resumable?.let { unfinished ->
+                ResumeCard(unfinished, onResume = { onEvent(HomeUiEvent.Resume) }, wide = true)
+            }
+            Text(text = strings.allTests, style = Naj.type.sectionHeadingLarge, color = colors.ink)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(WideGridGap),
+                verticalArrangement = Arrangement.spacedBy(WideGridGap),
+            ) {
+                items(tests, key = { it.number }) { test ->
+                    TestTileItem(test = test, progress = progress, onEvent = onEvent)
+                }
+            }
         }
     }
+}
+
+/** The white pill naming the exam, which opens the exam picker. */
+@Composable
+private fun ExamPill(exam: ExamLabel, onClick: () -> Unit) {
+    val colors = Naj.colors
+    Box(Modifier.clip(RoundedCornerShape(percent = 50)).clickable(onClick = onClick)) {
+        WhitePill(height = 36.dp) {
+            Text(
+                text = "${exam.name} \u00b7 ${exam.bankLanguage.uppercase()}",
+                style = CaptionStyle,
+                color = colors.ink,
+            )
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = strings.change,
+                tint = colors.ink,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** The licence gradient card: its waves, the finished-tests hero, and the four stats under it. */
+@Composable
+private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    val shader = rememberGrainShader()
+    val shape = RoundedCornerShape(LicenceRadius)
+    val results = progress.results
+    val finished = results.size
+    val passed = results.values.count { it.passed }
+    val average = if (results.isEmpty()) null else results.values.sumOf { it.percent } / results.size
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(LicenceCardHeight)
+            .shadow(
+                elevation = 24.dp,
+                shape = shape,
+                ambientColor = colors.ink.copy(alpha = 0.55f),
+                spotColor = colors.ink.copy(alpha = 0.55f),
+            )
+            .clip(shape)
+            .background(Brush.linearGradient(colors.licenceGradient)),
+    ) {
+        // The waves, the glow over the left edge and the grain all sit behind the card's content,
+        // the way the design stacks them.
+        Box(Modifier.fillMaxSize().grain(GRAIN_CARD, shader)) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawLicenceWaves()
+                drawLicenceGlow()
+            }
+            TopHighlight()
+        }
+        Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+            Spacer(Modifier.height(18.dp))
+            EyebrowLabel(
+                text = strings.progressEyebrow.uppercase(),
+                style = Naj.type.eyebrow,
+                color = colors.inkAt(0.75f),
+            )
+            Spacer(Modifier.height(10.dp))
+            HeroRow(finished = finished, total = totalTests)
+            Spacer(Modifier.height(18.dp))
+            ProgressBar(
+                fraction = if (totalTests == 0) 0f else finished.toFloat() / totalTests,
+                height = 8.dp,
+                trackColor = colors.inkAt(0.16f),
+                fillColor = colors.ink,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.weight(1f))
+            StatsRow(finished = finished, passed = passed, average = average, progress = progress)
+        }
+    }
+}
+
+/** The hero number, the number of tests beside it, and the words of the caption beside both. */
+@Composable
+private fun HeroRow(finished: Int, total: Int) {
+    val colors = Naj.colors
+    val caption = strings.testsFinishedLabel
+
+    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "$finished",
+            style = Naj.type.heroNumber,
+            color = colors.ink,
+            modifier = Modifier.alignByBaseline(),
+        )
+        Text(
+            text = "/ $total",
+            style = Naj.type.heroSuffix,
+            color = colors.ink.copy(alpha = 0.6f),
+            modifier = Modifier.alignByBaseline(),
+        )
+        if (caption.isNotBlank()) {
+            Text(
+                text = twoLines(caption),
+                style = CaptionStyle,
+                color = colors.ink,
+                modifier = Modifier.alignByBaseline().padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+/** Passed, failed, average, and the questions answered out of the pool. */
+@Composable
+private fun StatsRow(
+    finished: Int,
+    passed: Int,
+    average: Int?,
+    progress: HomeProgress,
+) {
+    Row(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Stat(label = strings.passed, value = "$passed", modifier = Modifier.weight(1f))
+        Stat(label = strings.failed, value = "${finished - passed}", modifier = Modifier.weight(1f))
+        Stat(
+            label = strings.averageShort,
+            value = average?.let { "$it%" } ?: "\u2013",
+            modifier = Modifier.weight(1f),
+        )
+        Stat(
+            label = strings.questionPool(progress.questionPoolSize),
+            value = "${progress.questionsAnswered}",
+            modifier = Modifier.weight(1f),
+            alignEnd = true,
+        )
+    }
+}
+
+/** One figure of the stats row: the number over its label, right-aligned in the last column. */
+@Composable
+private fun Stat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    alignEnd: Boolean = false,
+) {
+    val colors = Naj.colors
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+    ) {
+        Text(text = value, style = Naj.type.statNumber, color = colors.ink)
+        Text(
+            text = label.uppercase(),
+            style = Naj.type.tiny,
+            color = colors.inkAt(0.7f),
+            textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+        )
+    }
+}
+
+/** The unfinished test: how far it got, and how to carry on. [wide] is the 96dp banner. */
+@Composable
+private fun ResumeCard(
+    test: ResumableTest,
+    onResume: () -> Unit,
+    wide: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Naj.colors
+    val shader = rememberGrainShader()
+    val shape = RoundedCornerShape(if (wide) ResumeWideRadius else ResumeCardRadius)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(if (wide) ResumeWideHeight else ResumeCardHeight)
+            .shadow(14.dp, shape, ambientColor = ResumeShadow, spotColor = ResumeShadow)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(colors.resumeTop, colors.resumeBottom)))
+            .clickable(onClick = onResume),
+    ) {
+        Box(Modifier.fillMaxSize().grain(RESUME_GRAIN, shader)) { TopHighlight() }
+        Row(
+            modifier = Modifier.fillMaxSize().padding(start = 20.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                EyebrowLabel(
+                    text = strings.unfinishedTest,
+                    style = Naj.type.letterSpacedSmall,
+                    color = colors.resumeOn,
+                )
+                Text(
+                    text = strings.resumeSummary(attemptName(test.kind, test.testNumber), test.answered, test.total),
+                    style = if (wide) Naj.type.cardHero else Naj.type.cardHeroSmall,
+                    color = colors.ink,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                if (!wide) {
+                    ProgressBar(
+                        fraction = if (test.total == 0) 0f else test.answered.toFloat() / test.total,
+                        height = 5.dp,
+                        trackColor = colors.inkAt(0.15f),
+                        fillColor = colors.ink,
+                        modifier = Modifier.width(ResumeBarWidth).padding(top = 8.dp),
+                    )
+                }
+            }
+            if (wide) ContinuePill() else ResumeCircle()
+        }
+    }
+}
+
+/** The round play button the phone's resume card ends with. */
+@Composable
+private fun ResumeCircle() {
+    val colors = Naj.colors
+    Box(
+        modifier = Modifier.size(48.dp).clip(CircleShape).background(colors.ink),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Filled.PlayArrow,
+            contentDescription = null,
+            tint = colors.roadYellow,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+/** The wide layout's continue pill: ink, with the road-yellow play mark. */
+@Composable
+private fun ContinuePill() {
+    val colors = Naj.colors
+    Row(
+        modifier = Modifier
+            .height(PillHeight)
+            .clip(RoundedCornerShape(PillHeight / 2))
+            .background(colors.ink)
+            .padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Filled.PlayArrow,
+            contentDescription = null,
+            tint = colors.roadYellow,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(text = strings.continueTest, style = Naj.type.button, color = colors.roadYellow)
+    }
+}
+
+/** The two ways to start a test: a random one, or one that hasn't been done yet. */
+@Composable
+private fun ActionRow(
+    tests: List<PracticeTest>,
+    progress: HomeProgress,
+    onEvent: (HomeUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val anyUnfinished = tests.any { it.number !in progress.results && it.number !in progress.inProgress }
+
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinePill(
+            text = strings.randomTest,
+            onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = false)) },
+            modifier = Modifier.weight(1f),
+            icon = Icons.Filled.Shuffle,
+            enabled = tests.isNotEmpty(),
+        )
+        PrimaryPill(
+            text = strings.notDoneYet,
+            onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
+            modifier = Modifier.weight(1f),
+            icon = NotDoneYetIcon,
+            enabled = anyUnfinished,
+        )
+    }
+}
+
+/** The mistakes the user can practise: inert and greyed out when there are none. */
+@Composable
+private fun MistakesCard(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    val enabled = count > 0
+    val shape = RoundedCornerShape(CardRadius)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MistakesCardHeight)
+            .shadow(6.dp, shape, ambientColor = colors.inkAt(0.3f), spotColor = colors.inkAt(0.3f))
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(colors.card, colors.wrongTop)))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        IconTile(
+            size = 44.dp,
+            background = Brush.linearGradient(listOf(colors.mistakesTop, colors.mistakesBottom)),
+        ) {
+            Text(text = "$count", style = Naj.type.badgeNumber, color = Color.White)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = strings.practiceMistakes,
+                style = Naj.type.cardTitle,
+                color = if (enabled) colors.ink else colors.disabledOn,
+            )
+            Text(text = strings.mistakesToReview(count), style = Naj.type.secondary, color = colors.muted)
+        }
+        if (enabled) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.primaryDeep,
+            )
+        }
+    }
+}
+
+/** One test in the grid: its number, and how it stands. */
+@Composable
+private fun TestTileItem(
+    test: PracticeTest,
+    progress: HomeProgress,
+    onEvent: (HomeUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Naj.colors
+    val result = progress.results[test.number]
+    val status = when {
+        test.number in progress.inProgress -> TestStatus.InProgress
+        result == null -> TestStatus.NotStarted
+        result.passed -> TestStatus.Passed
+        else -> TestStatus.Failed
+    }
+    // A finished test summarises itself; the other two say why they carry no score.
+    val label = result?.let { strings.resultSummary(it.score, it.maxScore, it.passed) }
+        ?: if (status == TestStatus.InProgress) strings.inProgress else strings.notStarted
+
+    TestTile(
+        number = "${test.number}",
+        status = status,
+        statusLabel = label,
+        onClick = { onEvent(HomeUiEvent.StartTest(test.number)) },
+        modifier = modifier.shadow(
+            elevation = 6.dp,
+            shape = RoundedCornerShape(TileRadius),
+            ambientColor = colors.ink.copy(alpha = 0.25f),
+            spotColor = colors.ink.copy(alpha = 0.25f),
+        ),
+    )
 }
 
 /** Asks what to do with a test that's already under way: continue it, or start over. */
 @Composable
 private fun ResumePromptDialog(prompt: ResumePrompt, onEvent: (HomeUiEvent) -> Unit) {
+    val colors = Naj.colors
     AlertDialog(
         onDismissRequest = { onEvent(HomeUiEvent.DismissResumePrompt) },
-        title = { Text(strings.resumePromptTitle) },
+        shape = RoundedCornerShape(LicenceRadius),
+        containerColor = colors.sheet,
+        titleContentColor = colors.ink,
+        textContentColor = colors.muted,
+        title = { Text(text = strings.resumePromptTitle, style = Naj.type.sectionHeading) },
         text = {
-            Text(strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total))
+            Text(
+                text = strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total),
+                style = Naj.type.body,
+            )
         },
         confirmButton = {
-            TextButton(onClick = { onEvent(HomeUiEvent.ContinueTest) }) {
-                Text(strings.continueTest)
+            TextButton(
+                onClick = { onEvent(HomeUiEvent.ContinueTest) },
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.primaryDeep),
+            ) {
+                Text(text = strings.continueTest, style = Naj.type.primaryButton)
             }
         },
         dismissButton = {
-            TextButton(onClick = { onEvent(HomeUiEvent.StartOver) }) {
-                Text(strings.startOver)
+            TextButton(
+                onClick = { onEvent(HomeUiEvent.StartOver) },
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.muted),
+            ) {
+                Text(text = strings.startOver, style = Naj.type.button)
             }
         },
     )
 }
 
+/** A rounded bar with [fraction] of it filled. */
 @Composable
-private fun MistakesCard(count: Int, onPractice: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
-    val enabled = count > 0
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .border(1.dp, CardBorder, shape)
-            .clickable(enabled = enabled, onClick = onPractice)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                strings.practiceMistakes,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (enabled) Color.Unspecified else Subdued,
-            )
-            Text(strings.mistakesToReview(count), color = if (enabled) FailedColor else Subdued, fontSize = 13.sp)
-        }
-        if (enabled) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Accent)
-        }
-    }
-}
-
-@Composable
-private fun ProgressCard(
-    examName: String,
-    examLanguage: String,
-    totalTests: Int,
-    progress: HomeProgress,
-    onChangeExam: () -> Unit,
+private fun ProgressBar(
+    fraction: Float,
+    height: Dp,
+    trackColor: Color,
+    fillColor: Color,
+    modifier: Modifier = Modifier,
 ) {
-    val results = progress.results
-    val completed = results.size
-    val passed = results.values.count { it.passed }
-    val averagePercent = if (results.isEmpty()) null else results.values.sumOf { it.percent } / results.size
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(height / 2)
+    Box(modifier.height(height).clip(shape).background(trackColor)) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .clip(shape)
+                .background(fillColor),
+        )
+    }
+}
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .border(1.dp, CardBorder, shape)
-            .padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(examName, fontWeight = FontWeight.Medium, fontSize = 15.sp)
-                Text(examLanguage, color = Subdued, fontSize = 13.sp)
-            }
-            TextButton(onClick = onChangeExam) { Text(strings.change, color = Accent) }
+/** The hairline of white along the top of a coloured card, which the design draws as an inset. */
+@Composable
+private fun TopHighlight(modifier: Modifier = Modifier) {
+    Canvas(modifier.fillMaxWidth().height(1.dp)) { drawRect(Color.White.copy(alpha = 0.7f)) }
+}
+
+/** The ten white wave lines: each is a crest then a mirrored trough, four spans across the card. */
+private fun DrawScope.drawLicenceWaves() {
+    val quarter = LicenceWaveQuarter.toPx()
+    val offset = LicenceWaveOffset.toPx()
+    val amplitude = LicenceWaveAmplitude.toPx()
+    val step = LicenceWaveStepY.toPx()
+    repeat(LICENCE_WAVE_COUNT) { index ->
+        val y = LicenceWaveStartY.toPx() + index * step
+        val wave = Path().apply {
+            moveTo(0f, y)
+            quadraticTo(offset, y - amplitude, quarter, y)
+            quadraticTo(offset + quarter, y + amplitude, quarter * 2, y)
+            quadraticTo(offset + quarter * 2, y - amplitude, quarter * 3, y)
+            quadraticTo(offset + quarter * 3, y + amplitude, quarter * 4, y)
         }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            strings.testsFinished(completed, totalTests),
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 20.sp,
-        )
-        Spacer(Modifier.height(12.dp))
-        LinearProgressIndicator(
-            progress = { if (totalTests == 0) 0f else completed.toFloat() / totalTests },
-            color = Accent,
-            trackColor = CardBorder,
-            drawStopIndicator = {},
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "${strings.questionsAnswered}: ${progress.questionsAnswered} / ${progress.questionPoolSize}",
-            color = Subdued,
-            fontSize = 12.sp,
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Stat(label = strings.passed, value = "$passed", modifier = Modifier.weight(1f))
-            Stat(label = strings.failed, value = "${completed - passed}", modifier = Modifier.weight(1f))
-            Stat(
-                label = strings.averageScore,
-                value = averagePercent?.let { "$it %" } ?: "–",
-                modifier = Modifier.weight(1f),
+        drawPath(wave, color = Color.White.copy(alpha = 0.35f), style = Stroke(LicenceWaveStroke.toPx()))
+    }
+}
+
+/** The white glow over the licence card's left edge, as a squashed radial gradient. */
+private fun DrawScope.drawLicenceGlow() {
+    val radiusX = LicenceGlowWidth.toPx() / 2f
+    val radiusY = LicenceGlowHeight.toPx() / 2f
+    translate(LicenceGlowCenterX.toPx(), LicenceGlowCenterY.toPx()) {
+        // Scaling the canvas turns the circular gradient into the design's ellipse.
+        scale(radiusX, radiusY, pivot = Offset.Zero) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colorStops = arrayOf(0f to Color.White.copy(alpha = 0.55f), 1f to Color.Transparent),
+                    center = Offset.Zero,
+                    radius = 1f,
+                ),
+                topLeft = Offset(-1f, -1f),
+                size = Size(2f, 2f),
             )
         }
     }
 }
 
-@Composable
-private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-        Text(label, color = Subdued, fontSize = 12.sp)
-    }
-}
-
-@Composable
-private fun TestTile(
-    name: String,
-    result: TestResult?,
-    inProgress: Boolean,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .border(1.dp, CardBorder, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(name, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-        if (inProgress) {
-            Text(strings.inProgress, color = InProgressColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        } else if (result == null) {
-            Text(strings.notStarted, color = Subdued, fontSize = 13.sp)
-        } else {
-            Text(
-                strings.resultSummary(result.score, result.maxScore, result.passed),
-                color = if (result.passed) PassedColor else FailedColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    }
+/** Breaks a label at its middle space, the way the design sets the hero's two-line caption. */
+private fun twoLines(label: String): String {
+    val words = label.split(' ').filter { it.isNotBlank() }
+    if (words.size < 2) return label
+    val fold = (words.size + 1) / 2
+    return words.take(fold).joinToString(" ") + "\n" + words.drop(fold).joinToString(" ")
 }

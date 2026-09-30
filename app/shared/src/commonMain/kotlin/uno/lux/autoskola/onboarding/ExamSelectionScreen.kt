@@ -2,14 +2,13 @@ package uno.lux.autoskola.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,15 +17,13 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,12 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.bank.LicenseCategory
@@ -49,11 +47,20 @@ import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.settings.LanguageMenu
-import uno.lux.autoskola.ui.fullWidthItem
+import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.IconTile
+import uno.lux.autoskola.ui.NajCard
+import uno.lux.autoskola.ui.RoundButton
+import uno.lux.autoskola.ui.theme.AccentedText
+import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.accentWord
+import uno.lux.autoskola.ui.theme.paperBackground
+import uno.lux.autoskola.ui.theme.paperGlows
 
-private val Background = Color(0xFFF5F5F5)
-private val Subdued = Color(0xFF616161)
-private val Disabled = Color(0xFFBDBDBD)
+private val StepBarWidth = 28.dp
+private val StepBarHeight = 6.dp
+private val CountryCardHeight = 150.dp
+private val FlagHeight = 42.dp
 
 /**
  * Connects [ExamSelectionScreen] to its [ExamSelectionViewModel]. Calls [onDone] once an exam
@@ -81,15 +88,10 @@ fun ExamSelectionScreen(
     /** `null` when there's nothing to go back to, e.g. on first launch. */
     onBack: (() -> Unit)?,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-            .safeDrawingPadding(),
-        contentAlignment = Alignment.TopCenter,
-    ) {
+    val colors = Naj.colors
+    Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors))) {
         if (state.banks == null) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
+            CircularProgressIndicator(Modifier.align(Alignment.Center), color = colors.primaryDeep)
             return@Box
         }
         // Going back a step is handled here (it's pure navigation within the screen); only
@@ -104,57 +106,120 @@ fun ExamSelectionScreen(
         // Only onboarding offers the app-language picker; when the user opened this from another
         // screen, the language is changed in settings.
         val pickerLanguage = state.language.takeIf { onBack == null }
-        when (val step = state.step) {
-            is ExamSelectionStep.ChooseCountry ->
-                CountryStep(state.countryOptions, pickerLanguage, onStepBack, onEvent)
 
-            is ExamSelectionStep.ChooseBankLanguage ->
-                LanguageStep(step.banks, pickerLanguage, onStepBack, onEvent)
-
-            is ExamSelectionStep.ChooseCategory ->
-                CategoryStep(step.bank, pickerLanguage, onStepBack, onEvent)
+        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+            StepHeader(onStepBack, pickerLanguage, onEvent)
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                when (val step = state.step) {
+                    is ExamSelectionStep.ChooseCountry -> CountryStep(state.countryOptions, onEvent)
+                    is ExamSelectionStep.ChooseBankLanguage -> LanguageStep(step.banks, onEvent)
+                    is ExamSelectionStep.ChooseCategory -> CategoryStep(step.bank, onEvent)
+                }
+            }
         }
     }
 }
 
+/** Back button, the app-language switcher, then the step's title and subtitle. */
 @Composable
-private fun CountryStep(
-    options: List<CountryOption>,
-    language: AppLanguage?,
-    onBack: (() -> Unit)?,
-    onEvent: (ExamSelectionUiEvent) -> Unit,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(160.dp),
-        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+private fun StepHeader(onBack: (() -> Unit)?, language: AppLanguage?, onEvent: (ExamSelectionUiEvent) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        fullWidthItem {
-            StepHeader(
-                onBack,
-                language,
-                onEvent,
-                strings.examSelectionCountryTitle,
-                strings.examSelectionCountrySubtitle,
+        if (onBack != null) {
+            RoundButton(
+                icon = IconArrowBack,
+                contentDescription = strings.back,
+                onClick = onBack,
             )
         }
-        items(options, key = { it.country }) { option ->
-            CountryCard(option, onClick = { onEvent(ExamSelectionUiEvent.ChooseCountry(option.country)) })
+        Spacer(Modifier.weight(1f))
+        if (language != null) {
+            LanguageMenu(current = language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
+        }
+    }
+}
+
+/** The step's title, the coral italic word included, and the wizard's progress bars above it. */
+@Composable
+private fun StepTitle(
+    filled: Int,
+    before: String,
+    accent: String,
+    subtitle: String?,
+) {
+    val colors = Naj.colors
+    Column(Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(3) { index ->
+                Box(
+                    Modifier
+                        .size(StepBarWidth, StepBarHeight)
+                        .clip(RoundedCornerShape(StepBarHeight / 2))
+                        .background(if (index < filled) colors.primaryDeep else colors.emptyOutline),
+                )
+            }
+        }
+        AccentedText(
+            accentWord(before, accent),
+            style = Naj.type.stepTitle,
+            modifier = Modifier.padding(top = 18.dp),
+        )
+        if (subtitle != null) {
+            Text(
+                subtitle,
+                style = Naj.type.button,
+                color = colors.muted,
+                modifier = Modifier.padding(top = 10.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+private fun CountryStep(options: List<CountryOption>, onEvent: (ExamSelectionUiEvent) -> Unit) {
     Column(
         modifier = Modifier
-            .aspectRatio(1.2f)
-            .shadow(if (option.available) 1.dp else 0.dp, shape)
+            .widthIn(max = ContentWidth.Narrow)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+    ) {
+        StepTitle(
+            filled = 1,
+            before = strings.examSelectionCountryTitleBefore,
+            accent = strings.examSelectionCountryTitleAccent,
+            subtitle = strings.examSelectionCountrySubtitle,
+        )
+        Column(Modifier.padding(top = 32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            options.chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    row.forEach { option ->
+                        CountryCard(
+                            option,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onEvent(ExamSelectionUiEvent.ChooseCountry(option.country)) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -> Unit) {
+    val colors = Naj.colors
+    val shape = RoundedCornerShape(22.dp)
+    Column(
+        modifier = modifier
+            .height(CountryCardHeight)
             .clip(shape)
-            .background(if (option.available) Color.White else Color(0xFFEEEEEE))
+            .background(if (option.available) colors.card else colors.card.copy(alpha = 0.45f))
+            .then(
+                if (option.available) Modifier else Modifier.border(1.5.dp, colors.emptyOutline, shape),
+            )
             .clickable(enabled = option.available, onClick = onClick)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -162,169 +227,150 @@ private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
     ) {
         val flag = countryFlag(option.country)
         if (flag != null) {
+            val flagShape = RoundedCornerShape(8.dp)
+            // The drop shadow is only drawn behind an opaque flag: through a see-through one it
+            // shows up as a grey rectangle the size of the flag.
+            val dimmed = Modifier
+                .clip(flagShape)
+                .height(FlagHeight)
+                .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
+                .graphicsLayer { alpha = 0.55f }
             Image(
                 painter = rememberVectorPainter(flag),
                 contentDescription = null,
+                colorFilter = if (option.available) {
+                    null
+                } else {
+                    // The design washes a country without a bank out to grey.
+                    ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.35f) })
+                },
                 // Flags differ in proportion - Hungary's is 2:1, Poland's 8:5 - so the vector's own
-                // size decides the width; every flag comes out 40dp tall.
-                modifier = Modifier.height(flag.defaultHeight).width(flag.defaultWidth),
+                // shape decides the width; every flag comes out [FlagHeight] tall.
+                modifier = if (option.available) {
+                    Modifier
+                        .shadow(6.dp, flagShape)
+                        .clip(flagShape)
+                        .height(FlagHeight)
+                        .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
+                } else {
+                    dimmed
+                },
             )
         } else {
-            // No flag drawn for this country yet, so its code stands in for one.
-            Text(option.country, fontSize = 20.sp, color = Subdued)
+            Text(option.country, style = Naj.type.cardHero, color = colors.muted)
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             strings.countryName(option.country),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = if (option.available) Color.Black else Disabled,
-            textAlign = TextAlign.Center,
+            style = Naj.type.countryName,
+            color = if (option.available) colors.ink else colors.disabledOn,
         )
         if (!option.available) {
-            Spacer(Modifier.height(4.dp))
-            Text(strings.examSelectionCountryComingSoon, fontSize = 12.sp, color = Disabled)
+            Spacer(Modifier.height(2.dp))
+            Text(strings.examSelectionCountryComingSoon, style = Naj.type.secondary, color = colors.disabledOn)
         }
     }
 }
 
 @Composable
-private fun LanguageStep(
-    banks: List<QuestionBankInfo>,
-    language: AppLanguage?,
-    onBack: (() -> Unit)?,
-    onEvent: (ExamSelectionUiEvent) -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+private fun LanguageStep(banks: List<QuestionBankInfo>, onEvent: (ExamSelectionUiEvent) -> Unit) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = ContentWidth.Narrow)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
-        item {
-            StepHeader(
-                onBack,
-                language,
-                onEvent,
-                strings.examSelectionLanguageTitle,
-                strings.examSelectionLanguageSubtitle,
-            )
-        }
-        items(banks, key = { it.id }) { bank ->
-            BigOptionRow(
-                title = bankTitle(bank.language),
-                onClick = { onEvent(ExamSelectionUiEvent.ChooseBank(bank)) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategoryStep(
-    bank: QuestionBankInfo,
-    language: AppLanguage?,
-    onBack: (() -> Unit)?,
-    onEvent: (ExamSelectionUiEvent) -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-    ) {
-        item {
-            StepHeader(onBack, language, onEvent, strings.examSelectionCategoryTitle, null)
-        }
-        item {
-            val shape = RoundedCornerShape(16.dp)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(1.dp, shape)
-                    .clip(shape)
-                    .background(Color.White),
-            ) {
-                LicenseCategory.entries
-                    .filter { (bank.questionCounts[it] ?: 0) > 0 }
-                    .forEach { category ->
-                        CategoryRow(
-                            label = category.displayName(bank.language),
-                            category = category,
-                            onClick = { onEvent(ExamSelectionUiEvent.ChooseCategory(category)) },
-                        )
-                    }
-            }
-        }
-    }
-}
-
-/** Back button + app-language switcher (hidden when [language] is `null`), then a step's title and optional subtitle. */
-@Composable
-private fun StepHeader(
-    onBack: (() -> Unit)?,
-    language: AppLanguage?,
-    onEvent: (ExamSelectionUiEvent) -> Unit,
-    title: String,
-    subtitle: String?,
-) {
-    // A plain Column: a lazy grid's spanned item (unlike a lazy column's) doesn't stack bare
-    // sibling composables along the main axis on its own.
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) { Icon(IconArrowBack, contentDescription = strings.back) }
-            }
-            Spacer(Modifier.weight(1f))
-            if (language != null) {
-                LanguageMenu(current = language, onSelect = { onEvent(ExamSelectionUiEvent.SelectLanguage(it)) })
-            }
-        }
-        Text(
-            title,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        StepTitle(
+            filled = 2,
+            before = strings.examSelectionLanguageTitleBefore,
+            accent = strings.examSelectionLanguageTitleAccent,
+            subtitle = strings.examSelectionLanguageSubtitle,
         )
-        if (subtitle != null) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                subtitle,
-                color = Subdued,
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Spacer(Modifier.height(32.dp))
+        NajCard {
+            banks.forEachIndexed { index, bank ->
+                if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Naj.colors.divider))
+                GroupedRow(
+                    title = bankTitle(bank.language),
+                    onClick = { onEvent(ExamSelectionUiEvent.ChooseBank(bank)) },
+                )
+            }
         }
-        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun BigOptionRow(title: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+private fun CategoryStep(bank: QuestionBankInfo, onEvent: (ExamSelectionUiEvent) -> Unit) {
+    val bankLanguage = AppLanguage.fromCode(bank.language)?.nativeName ?: bank.language
+    Column(
+        modifier = Modifier
+            .widthIn(max = ContentWidth.Narrow)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+    ) {
+        StepTitle(
+            filled = 3,
+            before = strings.examSelectionCategoryTitleBefore,
+            accent = strings.examSelectionCategoryTitleAccent,
+            subtitle = "${strings.countryName(bank.country)} \u00b7 $bankLanguage",
+        )
+        Spacer(Modifier.height(32.dp))
+        NajCard {
+            LicenseCategory.entries
+                .filter { (bank.questionCounts[it] ?: 0) > 0 }
+                .forEachIndexed { index, category ->
+                    if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Naj.colors.divider))
+                    CategoryRow(
+                        label = category.displayName(bank.language),
+                        category = category,
+                        onClick = { onEvent(ExamSelectionUiEvent.ChooseCategory(category)) },
+                    )
+                }
+        }
+    }
+}
+
+/** A row in a grouped list: 64pt tall, its leading tile, a 16pt bold label and a chevron. */
+@Composable
+private fun GroupedRow(title: String, onClick: () -> Unit) {
+    val colors = Naj.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp)
-            .shadow(1.dp, shape)
-            .clip(shape)
-            .background(Color.White)
+            .height(64.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 22.dp),
+            .padding(start = 16.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(title, fontSize = 17.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Text(title, style = Naj.type.rowTitle, color = colors.ink, modifier = Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.primaryDeep)
     }
 }
 
+/** The licence categories, with the icons and names the app already uses for them. */
 @Composable
 private fun CategoryRow(label: String, category: LicenseCategory, onClick: () -> Unit) {
+    val colors = Naj.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(64.dp)
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(start = 10.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Icon(category.icon, contentDescription = null, tint = category.tint, modifier = Modifier.size(28.dp))
-        Spacer(Modifier.width(20.dp))
-        Text(label, fontSize = 17.sp, modifier = Modifier.weight(1f))
+        IconTile(
+            size = 46.dp,
+            background = Brush.linearGradient(
+                listOf(category.tint.copy(alpha = 0.16f), category.tint.copy(alpha = 0.16f)),
+            ),
+        ) {
+            Icon(category.icon, contentDescription = null, tint = category.tint, modifier = Modifier.size(26.dp))
+        }
+        Text(label, style = Naj.type.rowTitle, color = colors.ink, modifier = Modifier.weight(1f))
     }
 }

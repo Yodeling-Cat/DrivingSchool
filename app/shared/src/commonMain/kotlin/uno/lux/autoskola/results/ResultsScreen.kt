@@ -1,5 +1,6 @@
 package uno.lux.autoskola.results
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -7,56 +8,97 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.TestResult
+import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.practice.attemptName
+import uno.lux.autoskola.stats.AttemptSummary
+import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.EyebrowLabel
+import uno.lux.autoskola.ui.LicenceRadius
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalWidthClass
+import uno.lux.autoskola.ui.NajCard
+import uno.lux.autoskola.ui.OutlinePill
+import uno.lux.autoskola.ui.PrimaryPill
+import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.theme.AccentedText
+import uno.lux.autoskola.ui.theme.GRAIN_CARD
+import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.accentNumber
+import uno.lux.autoskola.ui.theme.grain
+import uno.lux.autoskola.ui.theme.paperBackground
+import uno.lux.autoskola.ui.theme.paperGlows
+import uno.lux.autoskola.ui.theme.rememberGrainShader
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
-private val Accent = Color(0xFF5E35B1)
-private val PassedColor = Color(0xFF388E3C)
-private val PassedBg = Color(0xFFE8F5E9)
-private val FailedColor = Color(0xFFD32F2F)
-private val FailedBg = Color(0xFFFFEBEE)
-private val CardBorder = Color(0xFFE0E0E0)
-private val Subdued = Color(0xFF757575)
-private val TrackColor = Color(0xFFEEEEEE)
+/** The page's own room: the header sits below the status bar, the last card clears the bottom. */
+private val PageTop = 48.dp
+private val PageBottom = 24.dp
+
+/** The result card, as the design draws it: one fixed-height poster. */
+private val CardHeight = 236.dp
+private val CardInset = 20.dp
+
+/** The score bar, and the tick that marks the pass mark on it. */
+private val TrackHeight = 8.dp
+private val TrackTickHeight = 18.dp
+private val TrackTickWidth = 2.dp
+
+/** The three counting tiles. */
+private val CountRadius = 20.dp
+private val CountGap = 10.dp
+
+/** How far the stamp is tilted, the way a rubber stamp lands. */
+private const val STAMP_TILT = -8f
+
+/** The poster's waves: ten of them, 16dp apart, the first at y = 40 as the design's paths are. */
+private val WaveTop = 40.dp
+private val WaveGap = 16.dp
+private const val WAVE_COUNT = 10
 
 /**
  * Connects [ResultsScreen] to its [ResultsViewModel]. [onReview] goes back to the test with
@@ -78,174 +120,383 @@ fun ResultsRoute(
 }
 
 /** How a finished test went: the score, right and wrong answers, and a breakdown by section. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () -> Unit) {
+    val colors = Naj.colors
     // Expanded screens show the breakdown next to the score instead of below it.
     val twoPane = LocalWidthClass.current == WidthClass.Expanded
-    Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(strings.resultsTitle, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                        Text(
-                            "${attemptName(state.kind, state.testNumber)} · ${state.exam.name}",
-                            color = Subdued,
-                            fontSize = 12.sp,
-                        )
+    val eyebrow = "${attemptName(state.kind, state.testNumber)} · ${strings.resultsTitle}".uppercase()
+    Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.6f))) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = if (twoPane) ContentWidth.Wide else ContentWidth.Narrow)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = PageTop, bottom = PageBottom),
+            ) {
+                Header(state, onReview)
+                Spacer(Modifier.height(24.dp))
+                if (twoPane) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            ResultCard(state.summary.result, eyebrow)
+                            Counts(state.summary)
+                            Actions(onReview, onDone)
+                        }
+                        // The breakdown's pane already starts at the page's own padding.
+                        Box(Modifier.weight(1f)) { Sections(state.sections, 0.dp) }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onReview) {
-                        Icon(IconArrowBack, contentDescription = strings.back)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ResultCard(state.summary.result, eyebrow, Modifier.padding(horizontal = 16.dp))
+                        Counts(state.summary, Modifier.padding(horizontal = 16.dp))
+                        Actions(onReview, onDone, Modifier.padding(horizontal = 16.dp))
+                        Sections(state.sections, 16.dp)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-            )
-        },
-    ) { padding ->
-        Box(
-            Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            val overview: @Composable () -> Unit = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    ScoreCard(state.summary.result)
-                    Counts(state)
-                    Actions(onReview = onReview, onDone = onDone)
-                }
-            }
-            if (twoPane) {
-                Row(
-                    Modifier.widthIn(max = ContentWidth.Wide).fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                ) {
-                    Box(Modifier.weight(1f)) { overview() }
-                    Box(Modifier.weight(1f)) { Sections(state.sections) }
-                }
-            } else {
-                Column(
-                    Modifier.widthIn(max = ContentWidth.Narrow).fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                ) {
-                    overview()
-                    Sections(state.sections)
                 }
             }
         }
     }
 }
 
+/** The round back button and the two-line title, at the top of the page. */
 @Composable
-private fun ScoreCard(result: TestResult) {
-    val color = if (result.passed) PassedColor else FailedColor
-    Column(
-        Modifier
+private fun Header(state: ResultsUiState.Ready, onBack: () -> Unit) {
+    val colors = Naj.colors
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
+        Column {
+            AccentedText(
+                accentNumber("${attemptName(state.kind, state.testNumber)} ${strings.resultsTitle}"),
+                style = Naj.type.barTitle,
+                color = colors.ink,
+            )
+            Text(
+                examSubtitle(state),
+                style = Naj.type.secondary,
+                color = colors.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * The result: the licence ramp with its waves, glow and grain, the pass stamp, the score over the
+ * pass-mark bar — and, under all of it, the percentage and the mark it had to beat.
+ */
+@Composable
+private fun ResultCard(result: TestResult, eyebrow: String, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    val shader = rememberGrainShader()
+    val shape = RoundedCornerShape(LicenceRadius)
+    val passPercent = TestResult.PASS_PERCENT
+    val stampColor = if (result.passed) colors.passedOn else colors.wrongOn
+    Box(
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (result.passed) PassedBg else FailedBg)
-            .padding(vertical = 24.dp, horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .height(CardHeight)
+            .shadow(
+                elevation = 24.dp,
+                shape = shape,
+                ambientColor = colors.ink.copy(alpha = 0.55f),
+                spotColor = colors.ink.copy(alpha = 0.55f),
+            )
+            .clip(shape),
+    ) {
+        // The poster: ramp, waves and highlight, with the grain over them but under the text.
+        Box(
+            Modifier
+                .matchParentSize()
+                .cssGradient(colors.licenceGradient, 115f)
+                .drawBehind {
+                    for (wave in 0 until WAVE_COUNT) {
+                        val y = WaveTop.toPx() + wave * WaveGap.toPx()
+                        drawPath(
+                            path = wavePath(size.width, y),
+                            color = Color.White,
+                            alpha = 0.35f,
+                            style = Stroke(width = 1.2.dp.toPx()),
+                        )
+                    }
+                    leftGlow()
+                }
+                .grain(GRAIN_CARD, shader),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = CardInset, end = 18.dp, top = 18.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            EyebrowLabel(
+                text = eyebrow,
+                modifier = Modifier.weight(1f),
+                style = Naj.type.eyebrow,
+                color = colors.inkAt(0.75f),
+            )
+            Stamp(passed = result.passed, color = stampColor, modifier = Modifier.padding(top = 8.dp))
+        }
+        Row(
+            modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                result.score.toString(),
+                style = Naj.type.heroNumber,
+                color = colors.ink,
+                modifier = Modifier.alignByBaseline(),
+            )
+            Text(
+                "/ ${result.maxScore}",
+                style = Naj.type.heroSuffix,
+                color = colors.ink.copy(alpha = 0.6f),
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+        ScoreBar(
+            percent = result.percent,
+            passPercent = passPercent,
+            modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = 146.dp),
+        )
+        // Nothing in this state times a test, so the footer carries the score and the pass mark.
+        Text(
+            "${result.percent} % · ${strings.passMarkShort(passPercent)}",
+            style = Naj.type.small,
+            color = colors.inkAt(0.75f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = CardInset, end = CardInset, bottom = 18.dp),
+        )
+    }
+}
+
+/** The tilted PASSED / FAILED stamp the design puts on the card's top-right corner. */
+@Composable
+private fun Stamp(passed: Boolean, color: Color, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = modifier
+            .rotate(STAMP_TILT)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.35f))
+            .border(3.dp, color, shape)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
         Text(
-            if (result.passed) strings.youPassed else strings.youFailed,
+            (if (passed) strings.youPassed else strings.youFailed).uppercase(),
+            style = Naj.type.stamp,
             color = color,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
         )
-        Spacer(Modifier.height(8.dp))
-        Text("${result.score} / ${result.maxScore}", fontSize = 40.sp, fontWeight = FontWeight.Bold)
-        Text("${result.percent} %", color = Subdued, fontSize = 14.sp)
-        Spacer(Modifier.height(8.dp))
-        Text(strings.passMark(TestResult.PASS_PERCENT), color = Subdued, fontSize = 13.sp)
     }
 }
 
+/** The score bar: the track, the score filled in, and the tick where the pass mark falls. */
 @Composable
-private fun Counts(state: ResultsUiState.Ready) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        CountTile(strings.correctCount, state.summary.correct, PassedColor, Modifier.weight(1f))
-        CountTile(strings.wrongCount, state.summary.wrong, FailedColor, Modifier.weight(1f))
-        CountTile(strings.unansweredCount, state.summary.unanswered, Subdued, Modifier.weight(1f))
+private fun ScoreBar(percent: Int, passPercent: Int, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    val filled = (percent / 100f).coerceIn(0f, 1f)
+    val pass = (passPercent / 100f).coerceIn(0f, 1f)
+    Canvas(modifier.fillMaxWidth().height(TrackTickHeight)) {
+        val barTop = (size.height - TrackHeight.toPx()) / 2f
+        val radius = CornerRadius(TrackHeight.toPx() / 2f)
+        drawRoundRect(
+            color = colors.inkAt(0.16f),
+            topLeft = Offset(0f, barTop),
+            size = Size(size.width, TrackHeight.toPx()),
+            cornerRadius = radius,
+        )
+        drawRoundRect(
+            color = colors.ink,
+            topLeft = Offset(0f, barTop),
+            size = Size(size.width * filled, TrackHeight.toPx()),
+            cornerRadius = radius,
+        )
+        drawRect(
+            color = colors.ink,
+            topLeft = Offset(size.width * pass, 0f),
+            size = Size(TrackTickWidth.toPx(), size.height),
+        )
     }
 }
 
+/** How many answers were right, wrong and left blank, as three equal tiles. */
+@Composable
+private fun Counts(summary: AttemptSummary, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CountGap)) {
+        CountTile(
+            label = strings.correctCount,
+            count = summary.correct,
+            tint = listOf(colors.passedTop, colors.passedBottom),
+            text = colors.passedOn,
+            modifier = Modifier.weight(1f),
+        )
+        CountTile(
+            label = strings.wrongCount,
+            count = summary.wrong,
+            tint = listOf(colors.wrongTop, colors.wrongBottom),
+            text = colors.wrongOn,
+            modifier = Modifier.weight(1f),
+        )
+        CountTile(
+            label = strings.unansweredCount,
+            count = summary.unanswered,
+            tint = listOf(colors.card, colors.neutralTint),
+            text = colors.muted,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** One counting tile: a big number with its label, on the tint that goes with it. */
 @Composable
 private fun CountTile(
     label: String,
     count: Int,
-    color: Color,
-    modifier: Modifier,
+    tint: List<Color>,
+    text: Color,
+    modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val colors = Naj.colors
+    val shape = RoundedCornerShape(CountRadius)
     Column(
-        modifier
+        modifier = modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = shape,
+                ambientColor = colors.ink.copy(alpha = 0.35f),
+                spotColor = colors.ink.copy(alpha = 0.35f),
+            )
             .clip(shape)
-            .border(1.dp, CardBorder, shape)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .cssGradient(tint, 150f)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Text(count.toString(), color = color, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text(label, color = Subdued, fontSize = 12.sp, maxLines = 1)
+        Text(count.toString(), style = Naj.type.counterNumber, color = text)
+        Text(
+            label,
+            style = Naj.type.small,
+            color = text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
+/** The two ways out: review the answers, or go back to the list of tests. */
 @Composable
-private fun Actions(onReview: () -> Unit, onDone: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onReview, modifier = Modifier.weight(1f)) {
-            Text(strings.reviewAnswers, maxLines = 1)
-        }
-        Button(
-            onClick = onDone,
-            colors = ButtonDefaults.buttonColors(containerColor = Accent),
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(strings.backToTests, maxLines = 1)
-        }
+private fun Actions(onReview: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinePill(text = strings.reviewAnswers, onClick = onReview, modifier = Modifier.weight(1f))
+        PrimaryPill(text = strings.backToTests, onClick = onDone, modifier = Modifier.weight(1f))
     }
 }
 
+/** The heading and the card the per-section breakdown is drawn on. */
 @Composable
-private fun Sections(sections: List<ResultSection>) {
-    val shape = RoundedCornerShape(12.dp)
-    Column {
-        Text(strings.bySection, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+private fun Sections(sections: List<ResultSection>, sidePadding: Dp, modifier: Modifier = Modifier) {
+    val colors = Naj.colors
+    Column(modifier.fillMaxWidth()) {
+        Text(
+            strings.bySection,
+            style = Naj.type.sectionHeading,
+            color = colors.ink,
+            modifier = Modifier.padding(start = sidePadding + 4.dp),
+        )
         Spacer(Modifier.height(12.dp))
-        Column(Modifier.fillMaxWidth().clip(shape).border(1.dp, CardBorder, shape)) {
+        NajCard(Modifier.fillMaxWidth().padding(horizontal = sidePadding), shadow = 0.3f) {
             sections.forEachIndexed { index, section ->
-                if (index > 0) HorizontalDivider(color = CardBorder)
+                if (index > 0) CardDivider()
                 SectionRow(section)
             }
         }
     }
 }
 
+/** One section: its name, how it scored, and the same score as a bar. */
 @Composable
 private fun SectionRow(section: ResultSection) {
+    val colors = Naj.colors
     val summary = section.summary
-    val allRight = summary.correct == summary.total
+    val allRight = summary.total > 0 && summary.correct == summary.total
+    val on = if (allRight) colors.passedOn else colors.wrongOn
+    val fill = if (allRight) colors.passedDot else colors.wrongDot
+    val progress = if (summary.total == 0) 0f else summary.correct.toFloat() / summary.total
+    // The scale's medium weight has no 14sp step of its own; the design's row name is that size.
+    val nameStyle = Naj.type.question.copy(fontSize = 14.sp, lineHeight = 20.sp)
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(section.title, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Row {
             Text(
-                "${summary.correct} / ${summary.total}",
-                color = if (allRight) PassedColor else FailedColor,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(start = 12.dp),
+                section.title,
+                style = nameStyle,
+                color = colors.ink,
+                modifier = Modifier.weight(1f),
             )
+            Text("${summary.correct} / ${summary.total}", style = Naj.type.sectionScore, color = on)
         }
         Spacer(Modifier.height(8.dp))
-        LinearProgressIndicator(
-            progress = { if (summary.total == 0) 0f else summary.correct.toFloat() / summary.total },
-            modifier = Modifier.fillMaxWidth(),
-            color = if (allRight) PassedColor else Accent,
-            trackColor = TrackColor,
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-        )
+        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.divider)) {
+            Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(fill))
+        }
+    }
+}
+
+/** A linear gradient at a CSS angle: [degrees] clockwise from "to top", over the box's own size. */
+private fun Modifier.cssGradient(colors: List<Color>, degrees: Float): Modifier = drawBehind {
+    drawRect(cssBrush(colors, degrees, size))
+}
+
+/** The gradient line runs through the box's centre, as CSS lays one out. */
+private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
+    val radians = degrees * PI / 180.0
+    val direction = Offset(sin(radians).toFloat(), -cos(radians).toFloat())
+    val length = abs(size.width * direction.x) + abs(size.height * direction.y)
+    val centre = Offset(size.width / 2f, size.height / 2f)
+    val half = direction * (length / 2f)
+    return Brush.linearGradient(colors, centre - half, centre + half)
+}
+
+/** The exam the test was for, named the way the exam picker names it: "Car (B) · Slovenčina". */
+private fun examSubtitle(state: ResultsUiState.Ready): String {
+    val language = AppLanguage.fromCode(state.exam.bankLanguage)?.nativeName ?: state.exam.bankLanguage
+    return "${state.exam.name} · $language"
+}
+
+/** One wave of the poster: the design's `M0 40 Q45 10 90 40 T180 40 T270 40 T360 40`, [width] wide. */
+private fun wavePath(width: Float, y: Float): Path {
+    val unit = width / 360f
+    return Path().apply {
+        moveTo(0f, y)
+        quadraticTo(45f * unit, y - 30f, 90f * unit, y)
+        quadraticTo(135f * unit, y + 30f, 180f * unit, y)
+        quadraticTo(225f * unit, y - 30f, 270f * unit, y)
+        quadraticTo(315f * unit, y + 30f, 360f * unit, y)
+    }
+}
+
+/** The white highlight that bleeds into the card from its left edge. */
+private fun DrawScope.leftGlow() {
+    translate(-40.dp.toPx(), -60.dp.toPx()) {
+        scale(130.dp.toPx(), 100.dp.toPx(), pivot = Offset.Zero) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colorStops = arrayOf(0f to Color.White.copy(alpha = 0.55f), 1f to Color.Transparent),
+                    center = Offset.Zero,
+                    radius = 1f,
+                ),
+                topLeft = Offset(-1f, -1f),
+                size = Size(2f, 2f),
+            )
+        }
     }
 }

@@ -105,6 +105,7 @@ class PracticeViewModel(
     private var isForeground = false
     private var isFinished = false
     private var checksImmediately = false
+    private var allAnswered = false
     private var timeLimitNotified = false
     private var timerJob: Job? = null
 
@@ -149,11 +150,13 @@ class PracticeViewModel(
         }
         isFinished = attempt.isFinished
         checksImmediately = attempt.checkImmediately
+        allAnswered = attempt.isFullyAnswered
         updateTimer()
     }
 
     private fun updateTimer() {
-        val canTick = isForeground && !isFinished && elapsedSeconds.value != null
+        val canTick = isForeground && !isFinished && elapsedSeconds.value != null &&
+            !stopsClockAtEnd(allAnswered, checksImmediately)
         if (canTick) {
             if (timerJob == null) {
                 timerJob = viewModelScope.launch {
@@ -201,6 +204,8 @@ class PracticeViewModel(
                 val nextPage = nextPageAfter(event.questionIndex)
                 viewModelScope.launch {
                     session.answer(attemptId, question, event.answerIndex)
+                    // The saved attempt comes back through the flow, which re-reads whether every
+                    // question is answered and stops the clock on the answer that completes it.
                     elapsedSeconds.value?.let { session.updateElapsed(attemptId, it) }
                     // Move on only once the answer is saved, so no question is passed over unseen.
                     nextPage?.let { advanceToPage.value = it }

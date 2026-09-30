@@ -333,6 +333,41 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theClockStopsOnTheAnswerThatChecksTheLastQuestion() = runTest {
+        val attempt = startTest(checkImmediately = true)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen {
+            secondsPass(4)
+            assertEquals(4L, state.ready.elapsedSeconds)
+
+            // Every answer is checked as it is picked, so the last one ends the test's work.
+            state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+            assertTrue(state.ready.allAnswered)
+
+            secondsPass(10)
+            assertEquals(4L, state.ready.elapsedSeconds)
+        }
+    }
+
+    @Test
+    fun theClockKeepsRunningWhileAnswersAreOnlyScoredAtTheEnd() = runTest {
+        val attempt = startTest(checkImmediately = false)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen {
+            secondsPass(4)
+            state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+            assertTrue(state.ready.allAnswered)
+
+            // Without check-as-you-go the test is still the user's to run: it is timed until they
+            // finish it themselves.
+            secondsPass(3)
+            assertEquals(7L, state.ready.elapsedSeconds)
+        }
+    }
+
+    @Test
     fun elapsedTimeStopsTickingWhenFinished() = runTest {
         val attempt = startTest()
         val (viewModel, state) = open(attempt)

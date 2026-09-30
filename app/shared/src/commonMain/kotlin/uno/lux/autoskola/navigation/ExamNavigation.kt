@@ -3,27 +3,7 @@ package uno.lux.autoskola.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Quiz
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -36,18 +16,19 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import uno.lux.autoskola.home.HomeRoute
-import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.learn.LearnScreen
 import uno.lux.autoskola.onboarding.ExamSelectionRoute
 import uno.lux.autoskola.practice.PracticeRoute
 import uno.lux.autoskola.results.ResultsRoute
 import uno.lux.autoskola.settings.SettingsRoute
-import uno.lux.autoskola.ui.LocalWidthClass
-import uno.lux.autoskola.ui.WidthClass
-
-private val Accent = Color(0xFF5E35B1)
+import uno.lux.autoskola.ui.NavTab
+import uno.lux.autoskola.ui.NavigationShell
 
 @Serializable
 data object HomeKey : NavKey
+
+@Serializable
+data object LearnKey : NavKey
 
 @Serializable
 data object SettingsKey : NavKey
@@ -66,6 +47,7 @@ private val navConfiguration = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
             subclass(HomeKey::class, HomeKey.serializer())
+            subclass(LearnKey::class, LearnKey.serializer())
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
             subclass(PracticeKey::class, PracticeKey.serializer())
@@ -73,8 +55,6 @@ private val navConfiguration = SavedStateConfiguration {
         }
     }
 }
-
-private enum class Tab { Tests, Settings }
 
 /** Switching tabs is instant, like the bars themselves; other screens use the default animation. */
 private val tabMetadata =
@@ -90,10 +70,14 @@ fun ExamNavigation() {
     val backStack = rememberNavBackStack(navConfiguration, HomeKey)
 
     val pop: () -> Unit = { backStack.removeLastOrNull() }
-    val selectTab: (Tab) -> Unit = { tab ->
-        // Settings sits on top of Tests, so back from Settings returns to Tests.
+    val selectTab: (NavTab) -> Unit = { tab ->
+        // A tab other than Tests sits on top of it, so back from the tab returns to the tests.
         while (backStack.size > 1) backStack.removeLastOrNull()
-        if (tab == Tab.Settings) backStack.add(SettingsKey)
+        when (tab) {
+            NavTab.Tests -> Unit
+            NavTab.Learn -> backStack.add(LearnKey)
+            NavTab.Settings -> backStack.add(SettingsKey)
+        }
     }
 
     NavDisplay(
@@ -105,15 +89,18 @@ fun ExamNavigation() {
         ),
         entryProvider = entryProvider {
             entry<HomeKey>(metadata = tabMetadata) {
-                NavigationShell(Tab.Tests, selectTab) {
+                NavigationShell(NavTab.Tests, selectTab) {
                     HomeRoute(
                         onOpenAttempt = { backStack.add(PracticeKey(it)) },
                         onChangeExam = { backStack.add(ChangeExamKey) },
                     )
                 }
             }
+            entry<LearnKey>(metadata = tabMetadata) {
+                NavigationShell(NavTab.Learn, selectTab) { LearnScreen() }
+            }
             entry<SettingsKey>(metadata = tabMetadata) {
-                NavigationShell(Tab.Settings, selectTab) {
+                NavigationShell(NavTab.Settings, selectTab) {
                     SettingsRoute(onChangeExam = { backStack.add(ChangeExamKey) })
                 }
             }
@@ -142,52 +129,4 @@ fun ExamNavigation() {
 /** Pops [key] only if it's still on top, so a repeated close can't pop the screen below. */
 private fun NavBackStack<NavKey>.popIfTop(key: NavKey) {
     if (lastOrNull() == key) removeLastOrNull()
-}
-
-/** Bottom navigation bar on phones, navigation rail on tablets and desktop. */
-@Composable
-private fun NavigationShell(selected: Tab, onSelect: (Tab) -> Unit, content: @Composable () -> Unit) {
-    val destinations = listOf(
-        Triple(Tab.Tests, Icons.Outlined.Quiz, strings.navTests),
-        Triple(Tab.Settings, Icons.Outlined.Settings, strings.navSettings),
-    )
-    if (LocalWidthClass.current == WidthClass.Compact) {
-        Scaffold(
-            containerColor = Color.White,
-            bottomBar = {
-                NavigationBar(containerColor = Color.White) {
-                    destinations.forEach { (tab, icon, label) ->
-                        NavigationBarItem(
-                            selected = tab == selected,
-                            onClick = { onSelect(tab) },
-                            icon = { NavIcon(icon) },
-                            label = { Text(label) },
-                        )
-                    }
-                }
-            },
-        ) { padding ->
-            Box(Modifier.padding(padding).consumeWindowInsets(padding)) { content() }
-        }
-    } else {
-        Row(Modifier.fillMaxSize().background(Color.White)) {
-            NavigationRail(containerColor = Color.White) {
-                destinations.forEach { (tab, icon, label) ->
-                    NavigationRailItem(
-                        selected = tab == selected,
-                        onClick = { onSelect(tab) },
-                        icon = { NavIcon(icon) },
-                        label = { Text(label) },
-                    )
-                }
-            }
-            VerticalDivider(color = Color(0xFFEEEEEE))
-            Box(Modifier.weight(1f)) { content() }
-        }
-    }
-}
-
-@Composable
-private fun NavIcon(icon: ImageVector) {
-    Icon(icon, contentDescription = null, tint = Accent)
 }

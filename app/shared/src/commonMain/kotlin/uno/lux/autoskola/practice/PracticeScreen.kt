@@ -45,17 +45,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -63,7 +59,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
@@ -79,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
@@ -86,11 +82,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -106,38 +100,31 @@ import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.ui.BarIconButton
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.HeightClass
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
+import uno.lux.autoskola.ui.NajCard
+import uno.lux.autoskola.ui.NajSnackbar
+import uno.lux.autoskola.ui.NavyPill
+import uno.lux.autoskola.ui.QuestionChip
+import uno.lux.autoskola.ui.RoundButton
+import uno.lux.autoskola.ui.WhitePill
 import uno.lux.autoskola.ui.WidthClass
 import uno.lux.autoskola.ui.contentGutter
 import uno.lux.autoskola.ui.displayText
-
-private val SelectedAnswerBg = Color(0xFFEDE7F6)
-private val SelectedAnswerAccent = Color(0xFF5E35B1)
-private val CorrectAnswerBg = Color(0xFFE8F5E9)
-private val CorrectAnswerAccent = Color(0xFF388E3C)
-private val WrongAnswerBg = Color(0xFFFFEBEE)
-private val WrongAnswerAccent = Color(0xFFD32F2F)
-private val SkippedAnswerBg = Color(0xFFFFF8E1)
-private val SkippedAnswerAccent = Color(0xFFC2410C)
-private val UnselectedLetter = Color(0xFFBDBDBD)
-private val CardBorder = Color(0xFFE0E0E0)
-private val Subdued = Color(0xFF757575)
+import uno.lux.autoskola.ui.theme.AccentedText
+import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.accentNumber
+import uno.lux.autoskola.ui.theme.paperBackground
+import uno.lux.autoskola.ui.theme.paperGlows
 
 /** Over the page behind an enlarged picture, which is drawn on top of it. */
 private val EnlargedImageScrim = Color(0xB3000000)
 
-private val QuestionChipBg = Color(0xFFEEEEEE)
-private val QuestionChipAnsweredBg = Color(0xFFD1C4E9)
-private val QuestionChipCorrectBg = Color(0xFFC8E6C9)
-private val QuestionChipIncorrectBg = Color(0xFFFFCDD2)
-private val QuestionChipSkippedBg = Color(0xFFFFECB3)
-private val QuestionChipCurrentBorder = Color(0xFF5E35B1)
-
-private val QuestionPanelWidth = 320.dp
+private val QuestionPanelWidth = 360.dp
 
 /** How far an enlarged picture stays away from the edges of the screen it's shown on. */
 private val EnlargedImageMargin = 24.dp
@@ -145,11 +132,23 @@ private val EnlargedImageMargin = 24.dp
 /** The width an arrow beside the question needs, so it sits clear of the text. */
 private val QuestionArrowSize = 56.dp
 
+/** The bar pill and the room the sheet keeps around it. */
+private val BarPillHeight = 68.dp
+private val BarPillGap = 8.dp
+private val BarPillHeightCompact = 56.dp
+private val BarPillGapCompact = 4.dp
+
+/** The width of the question column on a wide screen, with the arrows beside it. */
+private val QuestionColumnWidth = 660.dp
+
 /**
- * The shadow the bar throws on the question behind it. The sheet and the page are both white, so
+ * The shadow the bar throws on the question behind it. The sheet and the page are both light, so
  * the shadow is the only thing separating them — the Material default is barely visible.
  */
 private val QuestionSheetShadow = 24.dp
+
+/** Radius of the top corners of the question list's surface. */
+private val SheetRadius = 32.dp
 
 /**
  * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
@@ -205,6 +204,7 @@ fun PracticeScreen(
     onBack: () -> Unit,
     onOpenResults: () -> Unit,
 ) {
+    val colors = Naj.colors
     val questions = remember(state.questions) { state.questions.map { it.question } }
     val sections = state.sections
     val testName = attemptName(state.kind, state.testNumber)
@@ -282,7 +282,11 @@ fun PracticeScreen(
     }
 
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val barHeight = if (compactHeight) 56.dp else 80.dp
+    val pillHeight = if (compactHeight) BarPillHeightCompact else BarPillHeight
+    val pillGap = if (compactHeight) BarPillGapCompact else BarPillGap
+
+    /** The bar's place in the sheet: the pill plus the room it floats in. */
+    val barSlotHeight = pillHeight + pillGap * 2
     // The open sheet covers the top app bar, so it only has to stay below the status bar. Phones in
     // landscape are inset below the status bar by the box the sheet lives in instead.
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -307,7 +311,19 @@ fun PracticeScreen(
 
     // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
-        if (!compactHeight) PracticeTopBar(testName, elapsed, overTime, onBack = ::handleBack)
+        if (!compactHeight) {
+            PracticeTopBar(
+                testName = testName,
+                elapsed = elapsed,
+                overTime = overTime,
+                allAnswered = state.allAnswered,
+                checkImmediately = checkImmediately,
+                finished = finished,
+                questionNumber = currentIndex + 1,
+                questionCount = questions.size,
+                onBack = ::handleBack,
+            )
+        }
     }
 
     /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
@@ -413,6 +429,8 @@ fun PracticeScreen(
             Modifier
                 .width(QuestionPanelWidth)
                 .fillMaxHeight()
+                .clip(RoundedCornerShape(28.dp))
+                .background(colors.sheet)
                 .verticalScroll(rememberScrollState()),
         ) {
             QuestionGrid(
@@ -429,109 +447,115 @@ fun PracticeScreen(
         }
     }
 
-    if (showPanel) {
-        // The bar is the bottom sheet a phone shows, over the questions alone: the list has a panel
-        // of its own here, and the sheet's width is the question column's, so it lines up with the
-        // question and the answers instead of running on under the list. It is pinned — nothing
-        // drags or expands it — and its shadow is what separates it from the page above.
-        Column(
-            Modifier
-                .fillMaxSize()
-                // The sheet's peek already makes room for the navigation bar, as on a phone.
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
-        ) {
-            // The app bar stays over both panes, so it sits outside the sheet's scaffold.
-            topBar()
-            Row(Modifier.fillMaxWidth().weight(1f)) {
+    Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
+        if (showPanel) {
+            // The bar is the bottom sheet a phone shows, over the questions alone: the list has a
+            // panel of its own here, and the sheet's width is the question column's, so it lines up
+            // with the question and the answers instead of running on under the list. It is pinned
+            // — nothing drags or expands it — and its shadow is what separates it from the page.
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    // The sheet's peek already makes room for the navigation bar, as on a phone.
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+            ) {
+                // The app bar stays over both panes, so it sits outside the sheet's scaffold.
+                topBar()
+                Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BottomSheetScaffold(
+                        modifier = Modifier.weight(1f),
+                        scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
+                        containerColor = Color.Transparent,
+                        sheetContainerColor = Color.Transparent,
+                        sheetPeekHeight = barSlotHeight + navBarInset,
+                        // The reading column's width: what holds the question and its answers.
+                        sheetMaxWidth = QuestionColumnWidth,
+                        sheetShadowElevation = 0.dp,
+                        sheetDragHandle = null,
+                        sheetSwipeEnabled = false,
+                        sheetContent = {
+                            // The list is always visible next to the question here, so the toggle is
+                            // inert and the arrows never fade.
+                            BarPill(pillHeight, pillGap) { barContent(false, {}, { 1f }) }
+                        },
+                        content = questionsPane,
+                    )
+                    Box(Modifier.padding(end = 16.dp, top = 16.dp, bottom = 16.dp)) { questionPanel() }
+                }
+            }
+        } else {
+            // The question list is a sheet pinned to the bottom: collapsed it shows just the bar. Its
+            // content has a fixed height — a bar over a list tall enough to reach the status bar — so
+            // the sheet's anchors don't move under the user's finger. Sizing or fading content from the
+            // live drag offset makes the gesture fight its own layout, which is how taps and list
+            // scrolls got eaten after a drag.
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxSize()
+                    // The scaffold doesn't inset its content; the sheet stays below the status bar by
+                    // its height instead.
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets)),
+            ) {
+                // The bar is as tall as the collapsed peek, and the list runs up to the status bar. The
+                // navigation bar's room is at the end of the list, so it takes no height away from it.
+                val gridHeight = (maxHeight - topReserved - barSlotHeight - navBarInset).coerceAtLeast(0.dp)
+                val arrowsHidden by animateFloatAsState(if (listExpanded) 1f else 0f)
+
+                fun toggleList() {
+                    scope.launch { if (listExpanded) sheetState.partialExpand() else sheetState.expand() }
+                }
+
                 BottomSheetScaffold(
-                    modifier = Modifier.weight(1f),
-                    scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
-                    containerColor = Color.White,
-                    sheetContainerColor = Color.White,
-                    sheetPeekHeight = barHeight + navBarInset,
-                    // The reading column's width: what holds the question and its answers.
-                    sheetMaxWidth = ContentWidth.Reading,
+                    scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
+                    containerColor = Color.Transparent,
+                    // Closed, the pill floats straight over the page; open, it sits on the warm
+                    // sheet the question list is drawn on.
+                    sheetContainerColor = if (listExpanded) colors.sheet else Color.Transparent,
+                    sheetPeekHeight = barSlotHeight + navBarInset,
                     sheetShadowElevation = QuestionSheetShadow,
                     sheetDragHandle = null,
-                    sheetSwipeEnabled = false,
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    topBar = topBar,
                     sheetContent = {
-                        // The list is always visible next to the question here, so the toggle is
-                        // inert and the arrows never fade.
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(barHeight + navBarInset)
-                                .padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            content = { barContent(false, {}, { 1f }) },
-                        )
+                        Column(Modifier.fillMaxWidth()) {
+                            BarPill(pillHeight, pillGap) {
+                                barContent(listExpanded, ::toggleList, { 1f - arrowsHidden })
+                            }
+                            Column(
+                                Modifier
+                                    .height(gridHeight)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius))
+                                    .background(colors.sheet)
+                                    .verticalScroll(rememberScrollState()),
+                            ) {
+                                QuestionGrid(
+                                    questions = questions,
+                                    sections = sections,
+                                    currentIndex = currentIndex,
+                                    selectedAnswers = selectedAnswers,
+                                    revealCorrectness = revealCorrectness,
+                                    finished = finished,
+                                    onSelectQuestion = {
+                                        goTo(it)
+                                        scope.launch { sheetState.partialExpand() }
+                                    },
+                                )
+                                Spacer(Modifier.height(navBarInset))
+                            }
+                        }
                     },
                     content = questionsPane,
                 )
-                VerticalDivider(color = CardBorder)
-                questionPanel()
             }
         }
-    } else {
-        // The question list is a sheet pinned to the bottom: collapsed it shows just the bar. Its
-        // content has a fixed height — a bar over a list tall enough to reach the status bar — so
-        // the sheet's anchors don't move under the user's finger. Sizing or fading content from the
-        // live drag offset makes the gesture fight its own layout, which is how taps and list
-        // scrolls got eaten after a drag.
-        BoxWithConstraints(
-            Modifier
-                .fillMaxSize()
-                // The scaffold doesn't inset its content; the sheet stays below the status bar by
-                // its height instead.
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets)),
-        ) {
-            // The bar is as tall as the collapsed peek, and the list runs up to the status bar. The
-            // navigation bar's room is at the end of the list, so it takes no height away from it.
-            val gridHeight = (maxHeight - topReserved - barHeight - navBarInset).coerceAtLeast(0.dp)
-            val arrowsHidden by animateFloatAsState(if (listExpanded) 1f else 0f)
-
-            fun toggleList() {
-                scope.launch { if (listExpanded) sheetState.partialExpand() else sheetState.expand() }
-            }
-
-            BottomSheetScaffold(
-                scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
-                containerColor = Color.White,
-                sheetContainerColor = Color.White,
-                sheetPeekHeight = barHeight + navBarInset,
-                sheetShadowElevation = QuestionSheetShadow,
-                sheetDragHandle = null,
-                topBar = topBar,
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                sheetContent = {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(barHeight + navBarInset)
-                            .padding(horizontal = if (compactHeight) 4.dp else 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = { barContent(listExpanded, ::toggleList, { 1f - arrowsHidden }) },
-                    )
-                    Column(Modifier.height(gridHeight).verticalScroll(rememberScrollState())) {
-                        QuestionGrid(
-                            questions = questions,
-                            sections = sections,
-                            currentIndex = currentIndex,
-                            selectedAnswers = selectedAnswers,
-                            revealCorrectness = revealCorrectness,
-                            finished = finished,
-                            onSelectQuestion = {
-                                goTo(it)
-                                scope.launch { sheetState.partialExpand() }
-                            },
-                        )
-                        Spacer(Modifier.height(navBarInset))
-                    }
-                },
-                content = questionsPane,
-            )
-        }
+        // The message bar sits above the pill rather than on top of it, the way the design stacks
+        // them. It is not the scaffold's own host for that reason.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 16.dp, end = 16.dp, bottom = barSlotHeight + navBarInset + 12.dp),
+        ) { data -> NajSnackbar(data) }
     }
 
     if (confirmingLeave) {
@@ -598,31 +622,79 @@ private fun FinishPromptEffect(
 }
 
 /** The colour of the test's clock: over time it warns the way a wrong answer does. */
-private fun elapsedColor(overTime: Boolean): Color = if (overTime) WrongAnswerAccent else Subdued
+@Composable
+private fun elapsedColor(overTime: Boolean): Color = if (overTime) Naj.colors.wrongOn else Naj.colors.muted
 
-/** The title of a test: its name above how long it has been running, in red once it's over time. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The question page's header: the way back, the test's name with its number in the coral italic,
+ * the clock, and how far through the test is.
+ */
 @Composable
 private fun PracticeTopBar(
     testName: String,
     elapsed: String,
     overTime: Boolean,
+    allAnswered: Boolean,
+    checkImmediately: Boolean,
+    finished: Boolean,
+    questionNumber: Int,
+    questionCount: Int,
     onBack: () -> Unit,
 ) {
-    CenterAlignedTopAppBar(
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Text(elapsed, color = elapsedColor(overTime), fontSize = 12.sp)
+    val colors = Naj.colors
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 48.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
+            AccentedText(
+                accentNumber(testName),
+                style = Naj.type.barTitle,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            val pill = timerPill(
+                allAnswered = allAnswered,
+                checkImmediately = checkImmediately,
+                finished = finished,
+                overTime = overTime,
+            )
+            val pillBackground = when (pill) {
+                TimerPill.Running -> colors.card
+                TimerPill.InTime -> colors.passedBottom
+                TimerPill.OverTime -> colors.wrongBottom
             }
-        },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(IconArrowBack, contentDescription = strings.back)
+            val pillContent = when (pill) {
+                TimerPill.Running -> elapsedColor(overTime)
+                TimerPill.InTime -> colors.passedOn
+                TimerPill.OverTime -> colors.wrongOn
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-    )
+            WhitePill(height = 36.dp, tint = pillBackground) {
+                Icon(
+                    Icons.Filled.Timer,
+                    contentDescription = null,
+                    tint = if (pill == TimerPill.Running) colors.primaryDeep else pillContent,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(elapsed, style = Naj.type.tileStatus, color = pillContent)
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        QuestionProgress(questionNumber, questionCount)
+    }
+}
+
+/** How far through the test the user is, in the teal gradient the design uses for progress. */
+@Composable
+private fun QuestionProgress(questionNumber: Int, questionCount: Int) {
+    val colors = Naj.colors
+    val fraction = if (questionCount == 0) 0f else questionNumber.toFloat() / questionCount
+    Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.inkAt(0.1f))) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Brush.horizontalGradient(colors.primaryGradient)),
+        )
+    }
 }
 
 /**
@@ -637,16 +709,22 @@ private fun QuestionArrow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = Naj.colors
     Box(modifier, contentAlignment = Alignment.Center) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
+        Box(
             modifier = Modifier
+                .size(52.dp)
                 .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, CardBorder, CircleShape),
+                .background(colors.card)
+                .clickable(enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = description)
+            Icon(
+                icon,
+                contentDescription = description,
+                tint = colors.ink.copy(alpha = if (enabled) 1f else 0.3f),
+                modifier = Modifier.size(26.dp),
+            )
         }
     }
 }
@@ -656,11 +734,29 @@ private fun QuestionArrow(
 private fun LeaveTestDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(strings.leaveTestTitle) },
-        text = { Text(strings.leaveTestMessage) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(strings.leaveTest) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.keepTesting) } },
+        containerColor = Naj.colors.card,
+        shape = RoundedCornerShape(22.dp),
+        title = { Text(strings.leaveTestTitle, style = Naj.type.cardTitle, color = Naj.colors.ink) },
+        text = { Text(strings.leaveTestMessage, style = Naj.type.option, color = Naj.colors.muted) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(strings.leaveTest, style = Naj.type.button, color = Naj.colors.wrongOn)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(strings.keepTesting, style = Naj.type.button, color = Naj.colors.primaryDeep)
+            }
+        },
     )
+}
+
+/** The navy pill the test's controls live in, with the room the page keeps around it. */
+@Composable
+private fun BarPill(height: Dp, gap: Dp, content: @Composable RowScope.() -> Unit) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = gap)) {
+        NavyPill(Modifier.fillMaxWidth(), height = height, arrangement = Arrangement.Start, content = content)
+    }
 }
 
 @Composable
@@ -684,35 +780,44 @@ private fun RowScope.PracticeBarContent(
     arrowAlpha: () -> Float,
     onFinish: () -> Unit,
 ) {
+    val colors = Naj.colors
     var showOverflowMenu by remember { mutableStateOf(false) }
     if (compactHeight) {
-        IconButton(onClick = onBack) {
-            Icon(IconArrowBack, contentDescription = strings.back)
-        }
+        BarIconButton(IconArrowBack, strings.back, onClick = onBack)
     }
     if (showListToggle) {
         QuestionListToggle(expanded = listExpanded, onClick = onToggleList)
     }
-    Column(modifier = Modifier.weight(1f)) {
+    Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
         Text(
             if (compactHeight) {
-                "$testName · ${strings.questionOutOf(currentIndex + 1, questionCount)}"
+                "$testName \\u00b7 ${strings.questionOutOf(currentIndex + 1, questionCount)}"
             } else {
                 strings.questionOutOf(currentIndex + 1, questionCount)
             },
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.sp,
+            style = Naj.type.barNumber,
+            color = Color.White,
             maxLines = 1,
         )
         // Phones in landscape hide the top bar, so the time runs in the bar's second line there,
         // and only the time itself turns red when the test is over it.
         if (compactHeight) {
             Row {
-                Text("${strings.points(points)} · ", color = Subdued, fontSize = 12.sp, maxLines = 1)
-                Text(elapsed, color = elapsedColor(overTime), fontSize = 12.sp, maxLines = 1)
+                Text(
+                    "${strings.points(points)} \\u00b7 ",
+                    style = Naj.type.tiny,
+                    color = colors.roadYellow,
+                    maxLines = 1,
+                )
+                Text(
+                    elapsed,
+                    style = Naj.type.tiny,
+                    color = if (overTime) colors.wrongBottom else colors.roadYellow,
+                    maxLines = 1,
+                )
             }
         } else {
-            Text(strings.points(points), color = Subdued, fontSize = 12.sp, maxLines = 1)
+            Text(strings.points(points), style = Naj.type.tiny, color = colors.roadYellow, maxLines = 1)
         }
     }
     // The arrows are beside the question wherever the page has room for them. They make no sense
@@ -720,26 +825,32 @@ private fun RowScope.PracticeBarContent(
     if (showArrows) {
         Row(Modifier.graphicsLayer { alpha = arrowAlpha() }) {
             val usable = arrowAlpha() > 0.5f
-            IconButton(onClick = onPrevious, enabled = usable && currentIndex > 0) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = strings.previousQuestion)
-            }
-            IconButton(onClick = onNext, enabled = usable && currentIndex < questionCount - 1) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.nextQuestion)
-            }
+            BarIconButton(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                strings.previousQuestion,
+                onClick = onPrevious,
+                enabled = usable && currentIndex > 0,
+            )
+            BarIconButton(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                strings.nextQuestion,
+                onClick = onNext,
+                enabled = usable && currentIndex < questionCount - 1,
+            )
         }
     }
     // Finishing is the only option, so there's no menu once the test is finished.
     if (canFinish) {
         Box {
-            IconButton(onClick = { showOverflowMenu = true }) {
-                Icon(IconMoreVert, contentDescription = strings.moreOptions)
-            }
+            BarIconButton(IconMoreVert, strings.moreOptions, onClick = { showOverflowMenu = true })
             DropdownMenu(
                 expanded = showOverflowMenu,
                 onDismissRequest = { showOverflowMenu = false },
+                shape = RoundedCornerShape(18.dp),
+                containerColor = colors.card,
             ) {
                 DropdownMenuItem(
-                    text = { Text(strings.finishTest) },
+                    text = { Text(strings.finishTest, style = Naj.type.cardTitle, color = colors.ink) },
                     onClick = {
                         showOverflowMenu = false
                         onFinish()
@@ -750,29 +861,32 @@ private fun RowScope.PracticeBarContent(
     }
 }
 
-/** A hamburger that turns into an X (and back) as the question list opens. */
+/** A question-list icon that turns into an X (and back) as the question list opens. */
 @Composable
 private fun QuestionListToggle(expanded: Boolean, onClick: () -> Unit) {
     val progress by animateFloatAsState(if (expanded) 1f else 0f)
-    IconButton(onClick = onClick) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                IconMenu,
-                contentDescription = if (expanded) null else strings.questionList,
-                modifier = Modifier.graphicsLayer {
-                    alpha = 1f - progress
-                    rotationZ = 90f * progress
-                },
-            )
-            Icon(
-                IconClose,
-                contentDescription = if (expanded) strings.closeQuestionList else null,
-                modifier = Modifier.graphicsLayer {
-                    alpha = progress
-                    rotationZ = -90f * (1f - progress)
-                },
-            )
-        }
+    Box(
+        modifier = Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            IconMenu,
+            contentDescription = if (expanded) null else strings.questionList,
+            tint = Color.White,
+            modifier = Modifier.size(24.dp).graphicsLayer {
+                alpha = 1f - progress
+                rotationZ = 90f * progress
+            },
+        )
+        Icon(
+            IconClose,
+            contentDescription = if (expanded) strings.closeQuestionList else null,
+            tint = Color.White,
+            modifier = Modifier.size(24.dp).graphicsLayer {
+                alpha = progress
+                rotationZ = -90f * (1f - progress)
+            },
+        )
     }
 }
 
@@ -788,6 +902,7 @@ private fun QuestionPage(
     onSelect: (Int) -> Unit,
 ) {
     val revealed = locked
+    val wide = LocalWidthClass.current != WidthClass.Compact
     val answers: @Composable () -> Unit = {
         AnswerCard(
             options = question.answers.map(::displayText),
@@ -802,7 +917,11 @@ private fun QuestionPage(
         // Selectable, so a question can be copied out — to look up the rule it's about, say. The
         // answers aren't: a tap on one of those picks an answer.
         SelectionContainer {
-            Text(displayText(question.text), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp)
+            Text(
+                displayText(question.text),
+                style = if (wide) Naj.type.questionWide else Naj.type.question,
+                color = Naj.colors.ink,
+            )
         }
     }
     // With little height (phones in landscape) a stacked image would push the answers off
@@ -849,17 +968,11 @@ private fun QuestionPage(
                         .widthIn(max = ContentWidth.Reading)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    imageUri?.let { uri -> QuestionImage(uri = uri, page = page) }
                     questionText()
-                    imageUri?.let { uri ->
-                        Spacer(Modifier.height(12.dp))
-                        QuestionImage(uri = uri, page = page)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    if (skipped) {
-                        SkippedNotice()
-                        Spacer(Modifier.height(8.dp))
-                    }
+                    if (skipped) SkippedNotice()
                     answers()
                     Spacer(Modifier.height(16.dp))
                 }
@@ -874,21 +987,15 @@ private fun QuestionPage(
  */
 @Composable
 private fun SkippedNotice() {
-    Row(
+    val colors = Naj.colors
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(SkippedAnswerBg)
+            .background(colors.skippedTint)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            strings.skippedQuestion,
-            color = SkippedAnswerAccent,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 1.sp,
-        )
+        Text(strings.skippedQuestion, style = Naj.type.eyebrowTight, color = colors.skippedOn)
     }
 }
 
@@ -919,7 +1026,7 @@ private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionIma
                 contentDescription = strings.enlargeImage,
                 modifier = Modifier
                     .size(size)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { enlarged = true },
             )
             if (enlarged) {
@@ -963,9 +1070,12 @@ private fun EnlargedQuestionImage(painter: Painter, drawn: DpSize, onDismiss: ()
                     modifier = Modifier.size(enlargedImageSize(drawn, DpSize(maxWidth, maxHeight))),
                 )
             }
-            IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd)) {
-                Icon(IconClose, contentDescription = strings.closeImage, tint = Color.White)
-            }
+            RoundButton(
+                icon = IconClose,
+                contentDescription = strings.closeImage,
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
         }
     }
 }
@@ -979,23 +1089,21 @@ private fun AnswerCard(
     revealed: Boolean,
     onSelect: ((Int) -> Unit)?,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, CardBorder, RoundedCornerShape(12.dp)),
-    ) {
-        options.forEachIndexed { index, option ->
-            if (index > 0) {
-                HorizontalDivider(color = CardBorder, thickness = 1.dp)
+    val colors = Naj.colors
+    NajCard(shadow = 0.3f) {
+        Column(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, option ->
+                if (index > 0) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                }
+                AnswerRow(
+                    letter = ('A' + index).toString(),
+                    text = option,
+                    state = answerState(index, selectedIndex, correct, revealed),
+                    isUserAnswer = selectedIndex == index,
+                    onClick = onSelect?.let { { it(index) } },
+                )
             }
-            AnswerRow(
-                letter = ('A' + index).toString(),
-                text = option,
-                state = answerState(index, selectedIndex, correct, revealed),
-                isUserAnswer = selectedIndex == index,
-                onClick = onSelect?.let { { it(index) } },
-            )
         }
     }
 }
@@ -1008,50 +1116,53 @@ private fun AnswerRow(
     isUserAnswer: Boolean,
     onClick: (() -> Unit)?,
 ) {
+    val colors = Naj.colors
     val (background, accent) = when (state) {
-        AnswerState.Neutral -> Color.White to UnselectedLetter
-        AnswerState.Selected -> SelectedAnswerBg to SelectedAnswerAccent
-        AnswerState.Correct -> CorrectAnswerBg to CorrectAnswerAccent
-        AnswerState.Wrong -> WrongAnswerBg to WrongAnswerAccent
+        AnswerState.Neutral -> null to colors.muted
+
+        AnswerState.Selected -> Brush.horizontalGradient(listOf(colors.mintGlow, colors.selectedTint)) to
+            colors.primaryDeep
+
+        AnswerState.Correct -> Brush.horizontalGradient(listOf(colors.correctTint, colors.correctTint)) to
+            colors.passedOn
+
+        AnswerState.Wrong -> Brush.horizontalGradient(listOf(colors.wrongBottom, colors.wrongBottom)) to
+            colors.wrongOn
     }
     val label = when {
         state == AnswerState.Correct -> strings.correctAnswer
         isUserAnswer -> strings.yourAnswer
         else -> null
     }
+    val marked = state != AnswerState.Neutral
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(background)
+            .then(if (background != null) Modifier.background(background) else Modifier)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(start = 12.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(
-            letter,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-            modifier = Modifier.width(40.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            if (label != null) {
-                Text(
-                    label,
-                    color = if (state == AnswerState.Selected) Subdued else accent,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-            }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (marked) accent else colors.neutralTint),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
-                text,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = MaterialTheme.colorScheme.onSurface,
+                letter,
+                style = Naj.type.answerLetter,
+                color = if (marked) Color.White else colors.neutralOn,
             )
+        }
+        Column(modifier = Modifier.weight(1f).padding(top = 7.dp)) {
+            if (label != null) {
+                Text(label, style = Naj.type.eyebrowTight, color = accent)
+                Spacer(Modifier.height(2.dp))
+            }
+            Text(text, style = Naj.type.option, color = colors.ink)
         }
     }
 }
@@ -1071,6 +1182,7 @@ private fun QuestionGrid(
     finished: Boolean,
     onSelectQuestion: (Int) -> Unit,
 ) {
+    val colors = Naj.colors
     val grouped: List<Pair<Section, List<Int>>> =
         sections.mapNotNull { section ->
             val indices = questions.withIndex()
@@ -1082,17 +1194,19 @@ private fun QuestionGrid(
     Column(modifier = Modifier.fillMaxWidth()) {
         grouped.forEachIndexed { sectionIndex, (section, indices) ->
             if (sectionIndex > 0) {
-                HorizontalDivider(color = CardBorder, thickness = 1.dp)
+                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
             }
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(section.title, color = Subdued, fontSize = 13.sp)
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Row {
+                    Text(section.title.uppercase(), style = Naj.type.capsLabel, color = colors.muted)
+                }
                 Spacer(Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     indices.forEach { idx ->
-                        QuestionChip(
+                        QuestionChipRow(
                             number = idx + 1,
                             state = chipState(
                                 selected = selectedAnswers[idx],
@@ -1112,29 +1226,37 @@ private fun QuestionGrid(
 }
 
 @Composable
-private fun QuestionChip(
+private fun QuestionChipRow(
     number: Int,
     state: ChipState,
     isCurrent: Boolean,
     onClick: () -> Unit,
 ) {
-    val bg = when (state) {
-        ChipState.Correct -> QuestionChipCorrectBg
-        ChipState.Incorrect -> QuestionChipIncorrectBg
-        ChipState.Skipped -> QuestionChipSkippedBg
-        ChipState.Answered -> QuestionChipAnsweredBg
-        ChipState.Unanswered -> QuestionChipBg
+    val colors = Naj.colors
+    if (isCurrent) {
+        QuestionChip(
+            number = number.toString(),
+            background = colors.ink,
+            textColor = colors.roadYellow,
+            borderColor = colors.ink,
+            shadowed = true,
+            onClick = onClick,
+        )
+        return
     }
-    val shape = RoundedCornerShape(6.dp)
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(shape)
-            .background(bg)
-            .then(if (isCurrent) Modifier.border(2.dp, QuestionChipCurrentBorder, shape) else Modifier)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(number.toString(), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    val (background, text, border) = when (state) {
+        ChipState.Correct -> Triple(colors.correctTint, colors.correctOn, colors.correctTint)
+        ChipState.Incorrect -> Triple(colors.wrongBottom, colors.wrongOn, colors.wrongBottom)
+        ChipState.Skipped -> Triple(colors.skippedTint, colors.skippedOn, colors.skippedTint)
+        ChipState.Answered -> Triple(colors.selectedTint, colors.ink, colors.selectedTint)
+        ChipState.Unanswered -> Triple(colors.card, colors.muted, colors.emptyOutline)
     }
+    QuestionChip(
+        number = number.toString(),
+        background = background,
+        textColor = text,
+        borderColor = border,
+        outlined = background == colors.card,
+        onClick = onClick,
+    )
 }

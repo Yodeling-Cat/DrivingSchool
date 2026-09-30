@@ -48,6 +48,15 @@ class NajType(fonts: NajFonts) {
     val screenTitle = TextStyle(fontFamily = fonts.fraunces, fontSize = 30.sp, letterSpacing = (-0.7).sp)
     val barTitle = TextStyle(fontFamily = fonts.fraunces, fontSize = 22.sp, letterSpacing = (-0.4).sp)
 
+    // The headings over a list or a group are titles too, as the design sets them: "All tests" and
+    // "By section" are drawn in the display serif, a size apart from each other.
+    val sectionHeading = TextStyle(fontFamily = fonts.fraunces, fontSize = 22.sp, letterSpacing = (-0.4).sp)
+    val sectionHeadingLarge = TextStyle(
+        fontFamily = fonts.fraunces,
+        fontSize = 24.sp,
+        letterSpacing = (-0.4).sp,
+    )
+
     // Headings and numbers: Bricolage Grotesque 800.
     val heroNumber = TextStyle(
         fontFamily = fonts.bricolage,
@@ -56,12 +65,6 @@ class NajType(fonts: NajFonts) {
         letterSpacing = (-3).sp,
     )
     val heroSuffix = TextStyle(fontFamily = fonts.bricolageBold, fontSize = 30.sp)
-    val sectionHeading = TextStyle(fontFamily = fonts.bricolage, fontSize = 22.sp, letterSpacing = (-0.4).sp)
-    val sectionHeadingLarge = TextStyle(
-        fontFamily = fonts.bricolage,
-        fontSize = 24.sp,
-        letterSpacing = (-0.4).sp,
-    )
     val statNumber = TextStyle(fontFamily = fonts.bricolage, fontSize = 22.sp)
     val tileNumber = TextStyle(
         fontFamily = fonts.bricolage,

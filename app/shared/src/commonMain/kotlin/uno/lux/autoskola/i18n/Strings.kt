@@ -114,6 +114,8 @@ class Strings(
     val settingsAnswers: String,
     val settingsCheckImmediately: String,
     val settingsCheckImmediatelyDescription: String,
+    val settingsAdvanceAfterAnswer: String,
+    val settingsAdvanceAfterAnswerDescription: String,
     val settingsExam: String,
     val settingsChangeExam: String,
 )
@@ -207,6 +209,9 @@ private val EnglishStrings = Strings(
     settingsCheckImmediately = "Check answers immediately",
     settingsCheckImmediatelyDescription = "See whether your answer is right as soon as you pick it. " +
         "You can't change an answer after that.",
+    settingsAdvanceAfterAnswer = "Move on after answering",
+    settingsAdvanceAfterAnswerDescription = "The next question opens as soon as you pick an answer. " +
+        "Available only when answers aren't checked immediately.",
     settingsExam = "Exam",
     settingsChangeExam = "Change exam",
 )
@@ -288,6 +293,9 @@ private val SlovakStrings = Strings(
     settingsCheckImmediately = "Hneď vyhodnotiť odpoveď",
     settingsCheckImmediatelyDescription = "Po výbere odpovede hneď uvidíte, či je správna. " +
         "Odpoveď potom už nemôžete zmeniť.",
+    settingsAdvanceAfterAnswer = "Po odpovedi prejsť ďalej",
+    settingsAdvanceAfterAnswerDescription = "Ďalšia otázka sa otvorí hneď po výbere odpovede. " +
+        "Dostupné len vtedy, keď sa odpoveď nevyhodnocuje hneď.",
     settingsExam = "Skúška",
     settingsChangeExam = "Zmeniť skúšku",
 )
@@ -369,6 +377,9 @@ private val HungarianStrings = Strings(
     settingsCheckImmediately = "Válaszok azonnali értékelése",
     settingsCheckImmediatelyDescription = "A válasz kiválasztása után azonnal látja, hogy helyes-e. " +
         "A választ ezután nem módosíthatja.",
+    settingsAdvanceAfterAnswer = "Továbblépés válasz után",
+    settingsAdvanceAfterAnswerDescription = "A következő kérdés azonnal megnyílik, amint választ ad. " +
+        "Csak akkor érhető el, ha a válaszokat nem értékeli ki azonnal.",
     settingsExam = "Vizsga",
     settingsChangeExam = "Vizsga módosítása",
 )
@@ -450,6 +461,9 @@ private val CzechStrings = Strings(
     settingsCheckImmediately = "Ihned vyhodnotit odpověď",
     settingsCheckImmediatelyDescription = "Po výběru odpovědi hned uvidíte, zda je správná. " +
         "Odpověď pak už nelze změnit.",
+    settingsAdvanceAfterAnswer = "Po odpovědi přejít dál",
+    settingsAdvanceAfterAnswerDescription = "Další otázka se otevře hned po výběru odpovědi. " +
+        "Dostupné jen tehdy, když se odpověď nevyhodnocuje ihned.",
     settingsExam = "Zkouška",
     settingsChangeExam = "Změnit zkoušku",
 )

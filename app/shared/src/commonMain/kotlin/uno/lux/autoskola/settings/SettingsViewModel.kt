@@ -16,13 +16,21 @@ import uno.lux.autoskola.onboarding.ExamLabel
 data class SettingsUiState(
     val language: AppLanguage,
     val checkAnswersImmediately: Boolean,
+    val advanceAfterAnswer: Boolean,
     /** `null` while the exam loads. */
     val exam: ExamLabel?,
-)
+) {
+    /**
+     * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
+     * switched on while that is off.
+     */
+    val canAdvanceAfterAnswer: Boolean get() = !checkAnswersImmediately
+}
 
 sealed interface SettingsUiEvent {
     data class SelectLanguage(val language: AppLanguage) : SettingsUiEvent
     data class SetCheckAnswersImmediately(val enabled: Boolean) : SettingsUiEvent
+    data class SetAdvanceAfterAnswer(val enabled: Boolean) : SettingsUiEvent
 }
 
 class SettingsViewModel(private val preferences: PreferencesRepository, exams: ExamRepository) : ViewModel() {
@@ -39,12 +47,14 @@ class SettingsViewModel(private val preferences: PreferencesRepository, exams: E
         when (event) {
             is SettingsUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
             is SettingsUiEvent.SetCheckAnswersImmediately -> preferences.setCheckAnswersImmediately(event.enabled)
+            is SettingsUiEvent.SetAdvanceAfterAnswer -> preferences.setAdvanceAfterAnswer(event.enabled)
         }
     }
 
     private fun state(preferences: Preferences, exam: CurrentExam) = SettingsUiState(
         language = preferences.language,
         checkAnswersImmediately = preferences.checkAnswersImmediately,
+        advanceAfterAnswer = preferences.advanceAfterAnswer,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
     )
 }

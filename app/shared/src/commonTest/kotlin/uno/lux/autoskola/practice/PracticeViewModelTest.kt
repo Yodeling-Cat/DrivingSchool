@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,8 +34,14 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     private fun TestScope.open(attempt: TestAttempt): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
-        val viewModel = PracticeViewModel(attempt.id, repositories.exams, repositories.banks)
+        val viewModel = PracticeViewModel(attempt.id, repositories.exams, repositories.banks, repositories.preferences)
         return viewModel to observe(viewModel.uiState)
+    }
+
+    /** Turns auto-advance on, which is only possible while answers aren't checked as they're picked. */
+    private fun autoAdvance() {
+        repositories.preferences.setCheckAnswersImmediately(false)
+        repositories.preferences.setAdvanceAfterAnswer(true)
     }
 
     private val StateFlow<PracticeUiState>.ready get() = assertIs<PracticeUiState.Ready>(value)
@@ -117,6 +124,59 @@ class PracticeViewModelTest : ViewModelTest() {
         assertEquals(mapOf(1 to 2), state.ready.answers)
         assertEquals(1, repositories.attempts.get(attempt.id)!!.answers.size)
         assertEquals(0, state.ready.initialPage) // fixed when the test opened
+    }
+
+    @Test
+    fun answeringMovesOnToTheNextQuestionWhenAutoAdvanceIsOn() = runTest {
+        autoAdvance()
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+        assertEquals(mapOf(0 to 1), state.ready.answers)
+        assertEquals(1, state.ready.advanceToPage)
+
+        // The screen reports the move, so it isn't asked for a second time.
+        viewModel.onEvent(PracticeUiEvent.PageAdvanced)
+        assertNull(state.ready.advanceToPage)
+    }
+
+    @Test
+    fun aTestThatChecksAnswersImmediatelyStaysOnTheAnsweredQuestion() = runTest {
+        autoAdvance()
+        val attempt = startTest(checkImmediately = true)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+        assertEquals(mapOf(0 to 1), state.ready.answers)
+        assertNull(state.ready.advanceToPage)
+    }
+
+    @Test
+    fun theLastQuestionStaysOpenWhenAutoAdvanceIsOn() = runTest {
+        autoAdvance()
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        val last = state.ready.questions.lastIndex
+
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = last, answerIndex = 0))
+
+        assertEquals(mapOf(last to 0), state.ready.answers)
+        assertNull(state.ready.advanceToPage)
+    }
+
+    @Test
+    fun aFinishedTestDoesNotMoveOn() = runTest {
+        autoAdvance()
+        val attempt = startTest()
+        repositories.attempts.finish(attempt.id, TestResult(0, 4))
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+        assertNull(state.ready.advanceToPage)
     }
 
     @Test

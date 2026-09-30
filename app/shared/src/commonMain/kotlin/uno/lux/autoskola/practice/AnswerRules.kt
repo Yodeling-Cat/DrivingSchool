@@ -24,6 +24,19 @@ internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt
 }
 
 /**
+ * Whether answering question [questionIndex] of a test with [count] questions moves straight on to
+ * the next one. Only when the user asked for it, and never in a test that reveals answers as they're
+ * picked: a checked answer has to stay on screen. A finished test is being reviewed, so it stays put.
+ */
+internal fun advancesAfterAnswer(
+    advanceAfterAnswer: Boolean,
+    checkImmediately: Boolean,
+    finished: Boolean,
+    questionIndex: Int,
+    count: Int,
+): Boolean = advanceAfterAnswer && !checkImmediately && !finished && questionIndex < count - 1
+
+/**
  * State of option [index]. Once [revealed], the correct option and a wrong pick are marked;
  * before that only the user's pick is.
  */

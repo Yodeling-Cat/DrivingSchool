@@ -22,6 +22,7 @@ import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.exam.CurrentExam
 import uno.lux.autoskola.data.exam.ExamRepository
 import uno.lux.autoskola.data.exam.ExamSession
+import uno.lux.autoskola.data.preferences.PreferencesRepository
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.stats.TestAttempt
@@ -59,6 +60,8 @@ sealed interface PracticeUiState {
         val finished: Boolean,
         /** The test was just finished here, so the screen should show its results. */
         val openResults: Boolean = false,
+        /** Page the test moves on to after an answer, once the screen has reported the move. */
+        val advanceToPage: Int? = null,
         val elapsedSeconds: Long = 0L,
         val showTimeLimitToast: Boolean = false,
     ) : PracticeUiState
@@ -71,6 +74,9 @@ sealed interface PracticeUiEvent {
     /** The screen showed the results that [PracticeUiState.Ready.openResults] asked for. */
     data object ResultsOpened : PracticeUiEvent
 
+    /** The screen moved to the question [PracticeUiState.Ready.advanceToPage] asked for. */
+    data object PageAdvanced : PracticeUiEvent
+
     /** Whether the screen is currently in the foreground and active. */
     data class Foreground(val inForeground: Boolean) : PracticeUiEvent
 
@@ -82,6 +88,7 @@ class PracticeViewModel(
     private val attemptId: String,
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
+    private val preferences: PreferencesRepository,
     private val allottedTimeSeconds: Long = TestAttempt.OFFICIAL_DURATION_SECONDS,
 ) : ViewModel() {
 
@@ -95,12 +102,14 @@ class PracticeViewModel(
 
     private var isForeground = false
     private var isFinished = false
+    private var checksImmediately = false
     private var timeLimitNotified = false
     private var timerJob: Job? = null
 
     private val elapsedSeconds = MutableStateFlow<Long?>(null)
     private val showTimeLimitToast = MutableStateFlow(false)
     private val openResults = MutableStateFlow(false)
+    private val advanceToPage = MutableStateFlow<Int?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PracticeUiState> = session
@@ -111,9 +120,10 @@ class PracticeViewModel(
                     onAttemptLoaded(attempt)
                 }
             }
-            combine(attemptFlow, openResults, elapsedSeconds, showTimeLimitToast) {
+            combine(attemptFlow, openResults, advanceToPage, elapsedSeconds, showTimeLimitToast) {
                     attempt,
                     openResults,
+                    advanceTo,
                     elapsed,
                     showToast,
                 ->
@@ -121,7 +131,7 @@ class PracticeViewModel(
                     PracticeUiState.Closed
                 } else {
                     val effectiveElapsed = elapsed ?: attempt.elapsedSeconds
-                    ready(session, attempt, openResults, effectiveElapsed, showToast)
+                    ready(session, attempt, openResults, advanceTo, effectiveElapsed, showToast)
                 }
             }
         }
@@ -136,6 +146,7 @@ class PracticeViewModel(
             }
         }
         isFinished = attempt.isFinished
+        checksImmediately = attempt.checkImmediately
         updateTimer()
     }
 
@@ -185,9 +196,12 @@ class PracticeViewModel(
         when (event) {
             is PracticeUiEvent.Answer -> {
                 val question = questions?.getOrNull(event.questionIndex)?.question ?: return
+                val nextPage = nextPageAfter(event.questionIndex)
                 viewModelScope.launch {
                     session.answer(attemptId, question, event.answerIndex)
                     elapsedSeconds.value?.let { session.updateElapsed(attemptId, it) }
+                    // Move on only once the answer is saved, so no question is passed over unseen.
+                    nextPage?.let { advanceToPage.value = it }
                 }
             }
 
@@ -200,6 +214,8 @@ class PracticeViewModel(
             }
 
             PracticeUiEvent.ResultsOpened -> openResults.value = false
+
+            PracticeUiEvent.PageAdvanced -> advanceToPage.value = null
 
             is PracticeUiEvent.Foreground -> {
                 isForeground = event.inForeground
@@ -219,10 +235,27 @@ class PracticeViewModel(
         elapsedSeconds.value?.let { saveElapsed(it) }
     }
 
+    /**
+     * Whether answering question [index] moves the test on to the next one. The question order and
+     * whether the attempt reveals answers are fixed when it loads, so only the end of the test and
+     * the user's setting can change while it's open.
+     */
+    private fun nextPageAfter(index: Int): Int? {
+        val advances = advancesAfterAnswer(
+            advanceAfterAnswer = preferences.preferences.value.advanceAfterAnswer,
+            checkImmediately = checksImmediately,
+            finished = isFinished,
+            questionIndex = index,
+            count = questions?.size ?: 0,
+        )
+        return if (advances) index + 1 else null
+    }
+
     private fun ready(
         session: ExamSession,
         attempt: TestAttempt,
         openResults: Boolean,
+        advanceToPage: Int?,
         elapsedSeconds: Long,
         showTimeLimitToast: Boolean,
     ): PracticeUiState.Ready {
@@ -242,6 +275,7 @@ class PracticeViewModel(
             allAnswered = attempt.isFullyAnswered,
             finished = attempt.isFinished,
             openResults = openResults && attempt.isFinished,
+            advanceToPage = advanceToPage,
             elapsedSeconds = elapsedSeconds,
             showTimeLimitToast = showTimeLimitToast,
         )

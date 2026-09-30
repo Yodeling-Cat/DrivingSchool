@@ -47,6 +47,27 @@ class PreferencesRepositoryTest {
     }
 
     @Test
+    fun autoAdvanceIsOffWhileAnswersAreCheckedImmediately() {
+        val settings = MapSettings()
+        val repository = PreferencesRepository(settings)
+
+        // Checking answers as they're picked is the default, and it rules auto-advance out.
+        repository.setAdvanceAfterAnswer(true)
+        assertFalse(repository.preferences.value.advanceAfterAnswer)
+        assertFalse(PreferencesRepository(settings).preferences.value.advanceAfterAnswer)
+
+        repository.setCheckAnswersImmediately(false)
+        repository.setAdvanceAfterAnswer(true)
+        assertTrue(repository.preferences.value.advanceAfterAnswer)
+        assertTrue(PreferencesRepository(settings).preferences.value.advanceAfterAnswer)
+
+        // Turning checking back on forces it off, and off is what's stored.
+        repository.setCheckAnswersImmediately(true)
+        assertFalse(repository.preferences.value.advanceAfterAnswer)
+        assertFalse(PreferencesRepository(settings).preferences.value.advanceAfterAnswer)
+    }
+
+    @Test
     fun changesAreEmittedImmediately() {
         val repository = PreferencesRepository(MapSettings())
         repository.acceptDisclaimer()

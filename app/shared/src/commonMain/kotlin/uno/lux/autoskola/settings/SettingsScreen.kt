@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -44,6 +45,7 @@ import uno.lux.autoskola.ui.ContentWidth
 private val Background = Color(0xFFF5F5F5)
 private val Subdued = Color(0xFF616161)
 private val Accent = Color(0xFF5E35B1)
+private val Divider = Color(0xFFEEEEEE)
 
 /** Connects [SettingsScreen] to its [SettingsViewModel] and to navigation. */
 @Composable
@@ -105,29 +107,20 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
 
                 SectionTitle(strings.settingsAnswers)
                 Card {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .toggleable(
-                                value = state.checkAnswersImmediately,
-                                onValueChange = { onEvent(SettingsUiEvent.SetCheckAnswersImmediately(it)) },
-                                role = Role.Switch,
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(strings.settingsCheckImmediately, fontSize = 16.sp)
-                            Spacer(Modifier.height(2.dp))
-                            Text(strings.settingsCheckImmediatelyDescription, color = Subdued, fontSize = 13.sp)
-                        }
-                        Spacer(Modifier.width(16.dp))
-                        Switch(
-                            checked = state.checkAnswersImmediately,
-                            onCheckedChange = null,
-                            colors = SwitchDefaults.colors(checkedTrackColor = Accent),
-                        )
-                    }
+                    SettingsSwitchRow(
+                        title = strings.settingsCheckImmediately,
+                        description = strings.settingsCheckImmediatelyDescription,
+                        checked = state.checkAnswersImmediately,
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetCheckAnswersImmediately(it)) },
+                    )
+                    HorizontalDivider(color = Divider)
+                    SettingsSwitchRow(
+                        title = strings.settingsAdvanceAfterAnswer,
+                        description = strings.settingsAdvanceAfterAnswerDescription,
+                        checked = state.advanceAfterAnswer,
+                        enabled = state.canAdvanceAfterAnswer,
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(it)) },
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -151,4 +144,43 @@ private fun SectionTitle(text: String) {
 private fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
     Column(modifier.fillMaxWidth().clip(shape).background(Color.White)) { content() }
+}
+
+/**
+ * One setting with its switch; the whole row toggles it. [enabled] is false for a setting that
+ * another one rules out, which greys the row out and leaves the switch off.
+ */
+@Composable
+private fun SettingsSwitchRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                onValueChange = onCheckedChange,
+                role = Role.Switch,
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 16.sp, color = if (enabled) Color.Unspecified else Subdued)
+            Spacer(Modifier.height(2.dp))
+            Text(description, color = Subdued, fontSize = 13.sp)
+        }
+        Spacer(Modifier.width(16.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(checkedTrackColor = Accent),
+        )
+    }
 }

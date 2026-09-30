@@ -157,8 +157,10 @@ fun PracticeRoute(
  * scored when the test is finished.
  *
  * Answers come from [state]; every pick is sent as [PracticeUiEvent.Answer] so it's saved
- * straight away. Once every question is answered, a snackbar offers to finish the test; once
- * it's finished, every answer is revealed and the snackbar leads back to the results.
+ * straight away, and the test moves on to the next question when the user asked for that (see
+ * [PracticeUiState.Ready.advanceToPage]). Once every question is answered, a snackbar offers to
+ * finish the test; once it's finished, every answer is revealed and the snackbar leads back to the
+ * results.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,6 +220,14 @@ fun PracticeScreen(
 
     fun goTo(index: Int) {
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
+    }
+
+    // Auto-advance: the ViewModel decides when answering moves the test on and asks for the page
+    // here. Reporting the move back is what lets the same question ask for it again later.
+    LaunchedEffect(state.advanceToPage) {
+        val target = state.advanceToPage ?: return@LaunchedEffect
+        goTo(target)
+        onEvent(PracticeUiEvent.PageAdvanced)
     }
 
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()

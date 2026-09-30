@@ -38,4 +38,28 @@ class SettingsViewModelTest : ViewModelTest() {
         assertFalse(state.value.checkAnswersImmediately)
         assertFalse(repositories.preferences.preferences.value.checkAnswersImmediately)
     }
+
+    @Test
+    fun autoAdvanceIsSavedAndOnlyWhileAnswersArentCheckedImmediately() = runTest {
+        val state = observe(viewModel.uiState)
+
+        // Checked answers are the default, and they rule auto-advance out.
+        assertFalse(state.value.advanceAfterAnswer)
+        assertFalse(state.value.canAdvanceAfterAnswer)
+
+        viewModel.onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(true))
+        assertFalse(state.value.advanceAfterAnswer)
+
+        viewModel.onEvent(SettingsUiEvent.SetCheckAnswersImmediately(false))
+        assertTrue(state.value.canAdvanceAfterAnswer)
+        viewModel.onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(true))
+        assertTrue(state.value.advanceAfterAnswer)
+        assertTrue(repositories.preferences.preferences.value.advanceAfterAnswer)
+
+        // Checking answers as they're picked turns it back off.
+        viewModel.onEvent(SettingsUiEvent.SetCheckAnswersImmediately(true))
+        assertFalse(state.value.advanceAfterAnswer)
+        assertFalse(repositories.preferences.preferences.value.advanceAfterAnswer)
+        assertFalse(state.value.canAdvanceAfterAnswer)
+    }
 }

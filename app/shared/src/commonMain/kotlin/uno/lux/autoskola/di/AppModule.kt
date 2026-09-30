@@ -41,7 +41,7 @@ val appModule = module {
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SettingsViewModel)
-    viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get()) }
+    viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
 }
 

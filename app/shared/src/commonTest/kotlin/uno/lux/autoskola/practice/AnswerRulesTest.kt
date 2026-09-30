@@ -36,6 +36,26 @@ class AnswerRulesTest {
     }
 
     @Test
+    fun answersMoveTheTestOnOnlyWhenThatIsAskedForAndNothingIsRevealed() {
+        assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false))
+        assertFalse(advances(advanceAfterAnswer = false, checkImmediately = false))
+        // A checked answer is shown on its own question, so there is nothing to move on from.
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = true))
+    }
+
+    @Test
+    fun theLastQuestionOfATestHasNowhereToMoveOnTo() {
+        assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 2, count = 4))
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 3, count = 4))
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 0, count = 1))
+    }
+
+    @Test
+    fun aFinishedTestDoesNotMoveOn() {
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, finished = true))
+    }
+
+    @Test
     fun withoutCheckingOnlyTheSelectionIsShown() {
         val states = (0..2).map { answerState(index = it, selected = 1, correct = 0, revealed = false) }
         assertEquals(listOf(AnswerState.Neutral, AnswerState.Selected, AnswerState.Neutral), states)
@@ -96,4 +116,19 @@ class AnswerRulesTest {
             chipState(selected = null, correct = 0, revealCorrectness = true, finished = false),
         )
     }
+
+    /** [advancesAfterAnswer] with the parts a test doesn't care about filled in. */
+    private fun advances(
+        advanceAfterAnswer: Boolean,
+        checkImmediately: Boolean,
+        finished: Boolean = false,
+        questionIndex: Int = 0,
+        count: Int = 4,
+    ) = advancesAfterAnswer(
+        advanceAfterAnswer = advanceAfterAnswer,
+        checkImmediately = checkImmediately,
+        finished = finished,
+        questionIndex = questionIndex,
+        count = count,
+    )
 }

@@ -60,6 +60,10 @@ private val NavPillBottomGap = 20.dp
 private val NavPillRoom = 72.dp + NavPillBottomGap + 16.dp
 
 private val RailWidth = 88.dp
+
+/** A rail item: the tile that holds the icon, and the rounded mask its press ripple is drawn in. */
+private val RailTileSize = 48.dp
+private val RailItemRadius = 16.dp
 private val PillItemWidth = 100.dp
 private val PillItemHeight = 56.dp
 
@@ -95,8 +99,11 @@ private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modi
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .padding(start = 24.dp, end = 24.dp, bottom = NavPillBottomGap),
+        contentAlignment = Alignment.Center,
     ) {
-        NavyPill(Modifier.fillMaxWidth(), arrangement = Arrangement.SpaceAround) {
+        // As wide as its items rather than as wide as the screen: stretched across a wide phone or
+        // a tablet the bar is mostly empty navy either side of the tabs.
+        NavyPill(arrangement = Arrangement.Center) {
             NavTab.entries.forEach { tab ->
                 val active = tab == selected
                 Column(
@@ -149,14 +156,19 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
         NavTab.entries.forEach { tab ->
             val isActive = tab == selected
             Column(
-                modifier = Modifier.clickable { onSelect(tab) },
+                modifier = Modifier
+                    // The press ripple is masked to the item's own rounded shape; left unclipped it
+                    // is drawn as a rectangle around the icon and the label.
+                    .clip(RoundedCornerShape(RailItemRadius))
+                    .clickable { onSelect(tab) }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .size(RailTileSize)
+                        .clip(RoundedCornerShape(RailItemRadius))
                         .background(if (isActive) colors.roadYellow else Color.Transparent),
                     contentAlignment = Alignment.Center,
                 ) {

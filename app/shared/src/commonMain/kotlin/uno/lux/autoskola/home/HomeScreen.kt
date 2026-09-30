@@ -262,7 +262,10 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .padding(start = 16.dp, end = 32.dp, top = 24.dp, bottom = 24.dp),
+                // No bottom inset here: the grid's viewport has to reach the window's bottom edge,
+                // or a row being scrolled is cut off 24dp above it. The breathing room below the
+                // last row is the grid's own bottom content padding instead.
+                .padding(start = 16.dp, end = 32.dp, top = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             progress.resumable?.let { unfinished ->
@@ -272,6 +275,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(WideGridGap),
                 verticalArrangement = Arrangement.spacedBy(WideGridGap),
             ) {

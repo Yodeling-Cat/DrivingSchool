@@ -546,8 +546,9 @@ private fun ContinuePill() {
  * window, where a row of two half-width buttons on a band this wide leaves both of them oddly long.
  * On a phone they sit side by side at their own widths, because the two labels differ by half a word
  * per language: the short one is only as wide as its label, and the one that spells out what it
- * starts takes the rest of the row. The "not passed" pill is live for as long as a test is still
- * unpassed: a failed one counts, because it can be taken again.
+ * starts takes the rest of the row. The random one wears its shorter label on a phone for the same
+ * reason ([randomPillLabel]) and names the test from a tablet up. The "not passed" pill is live for
+ * as long as a test is still unpassed: a failed one counts, because it can be taken again.
  */
 @Composable
 private fun ActionRow(
@@ -557,9 +558,11 @@ private fun ActionRow(
     modifier: Modifier = Modifier,
     stacked: Boolean = false,
 ) {
+    val randomLabel = randomPillLabel(LocalWidthClass.current, strings)
+
     val randomTest = @Composable { pillModifier: Modifier ->
         OutlinePill(
-            text = strings.randomTest,
+            text = randomLabel,
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notPassed = false)) },
             modifier = pillModifier,
             icon = Icons.Filled.Shuffle,

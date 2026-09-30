@@ -1,5 +1,8 @@
 package uno.lux.autoskola.practice
 
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -17,6 +20,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PracticeViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories().apply {
@@ -34,6 +38,36 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     private val StateFlow<PracticeUiState>.ready get() = assertIs<PracticeUiState.Ready>(value)
+
+    /**
+     * Runs [body] with the screen in the foreground, and clears the ViewModel when it ends - also
+     * when [body] throws.
+     *
+     * The practice screen ticks once a second while it is in the foreground. A ticker that is still
+     * running when a test ends leaves the test's scheduler with work forever, and `runTest` waits
+     * for that scheduler to go idle before it returns: the test hangs, and an assertion that failed
+     * is never even reported. Clearing the ViewModel stops the ticker, which is exactly what the
+     * screen going away does on a device.
+     */
+    private inline fun PracticeViewModel.withScreen(body: () -> Unit) {
+        onEvent(PracticeUiEvent.Foreground(true))
+        try {
+            body()
+        } finally {
+            viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * Lets [seconds] of the test's virtual time pass, the tick that falls on the second included.
+     *
+     * `advanceTimeBy` stops just short of the moment it advances to, and the practice timer ticks
+     * on the second, so the tick due at the end of the wait needs a `runCurrent` to run.
+     */
+    private fun TestScope.secondsPass(seconds: Int) {
+        testScheduler.advanceTimeBy(seconds * 1_000L)
+        testScheduler.runCurrent()
+    }
 
     @Test
     fun showsTheAttemptsQuestionsInOrder() = runTest {
@@ -164,24 +198,25 @@ class PracticeViewModelTest : ViewModelTest() {
         val (viewModel, state) = open(attempt)
 
         // Does not tick in background
-        testScheduler.advanceTimeBy(3_000)
+        secondsPass(3)
         assertEquals(0L, state.ready.elapsedSeconds)
 
-        // Enter foreground: ticks
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(3_000)
-        assertEquals(3L, state.ready.elapsedSeconds)
+        viewModel.withScreen {
+            // Ticks while the screen is in the foreground
+            secondsPass(3)
+            assertEquals(3L, state.ready.elapsedSeconds)
 
-        // Leave foreground: stops ticking and saves to repository
-        viewModel.onEvent(PracticeUiEvent.Foreground(false))
-        testScheduler.advanceTimeBy(5_000)
-        assertEquals(3L, state.ready.elapsedSeconds)
-        assertEquals(3L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
+            // Leaving the foreground stops the ticking and saves what was reached
+            viewModel.onEvent(PracticeUiEvent.Foreground(false))
+            secondsPass(5)
+            assertEquals(3L, state.ready.elapsedSeconds)
+            assertEquals(3L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
 
-        // Re-enter foreground: resumes ticking
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(2_000)
-        assertEquals(5L, state.ready.elapsedSeconds)
+            // Coming back picks up where it left off
+            viewModel.onEvent(PracticeUiEvent.Foreground(true))
+            secondsPass(2)
+            assertEquals(5L, state.ready.elapsedSeconds)
+        }
     }
 
     @Test
@@ -190,27 +225,28 @@ class PracticeViewModelTest : ViewModelTest() {
         repositories.attempts.updateElapsed(attempt.id, 1798L)
         val (viewModel, state) = open(attempt)
 
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(1_000)
-        assertEquals(1799L, state.ready.elapsedSeconds)
-        assertFalse(state.ready.showTimeLimitToast)
-        assertFalse(state.ready.finished)
+        viewModel.withScreen {
+            secondsPass(1)
+            assertEquals(1799L, state.ready.elapsedSeconds)
+            assertFalse(state.ready.showTimeLimitToast)
+            assertFalse(state.ready.finished)
 
-        // Reaches allotted time (1800s)
-        testScheduler.advanceTimeBy(1_000)
-        assertEquals(1800L, state.ready.elapsedSeconds)
-        assertTrue(state.ready.showTimeLimitToast)
-        assertFalse(state.ready.finished) // Test does not stop!
+            // Reaches allotted time (1800s)
+            secondsPass(1)
+            assertEquals(1800L, state.ready.elapsedSeconds)
+            assertTrue(state.ready.showTimeLimitToast)
+            assertFalse(state.ready.finished) // Test does not stop!
 
-        // Acknowledge toast
-        viewModel.onEvent(PracticeUiEvent.TimeLimitToastShown)
-        assertFalse(state.ready.showTimeLimitToast)
+            // Acknowledge toast
+            viewModel.onEvent(PracticeUiEvent.TimeLimitToastShown)
+            assertFalse(state.ready.showTimeLimitToast)
 
-        // Further ticks do not re-trigger toast
-        testScheduler.advanceTimeBy(2_000)
-        assertEquals(1802L, state.ready.elapsedSeconds)
-        assertFalse(state.ready.showTimeLimitToast)
-        assertFalse(state.ready.finished)
+            // Further ticks do not re-trigger toast
+            secondsPass(2)
+            assertEquals(1802L, state.ready.elapsedSeconds)
+            assertFalse(state.ready.showTimeLimitToast)
+            assertFalse(state.ready.finished)
+        }
     }
 
     @Test
@@ -219,26 +255,30 @@ class PracticeViewModelTest : ViewModelTest() {
         repositories.attempts.updateElapsed(attempt.id, 1850L)
         val (viewModel, state) = open(attempt)
 
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(1_000)
-        assertEquals(1851L, state.ready.elapsedSeconds)
-        assertFalse(state.ready.showTimeLimitToast)
+        viewModel.withScreen {
+            secondsPass(1)
+            assertEquals(1851L, state.ready.elapsedSeconds)
+            assertFalse(state.ready.showTimeLimitToast)
+        }
     }
 
     @Test
     fun elapsedTimeStopsTickingWhenFinished() = runTest {
         val attempt = startTest()
         val (viewModel, state) = open(attempt)
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(5_000)
-        assertEquals(5L, state.ready.elapsedSeconds)
 
-        viewModel.onEvent(PracticeUiEvent.Finish)
-        assertTrue(state.ready.finished)
+        viewModel.withScreen {
+            secondsPass(5)
+            assertEquals(5L, state.ready.elapsedSeconds)
 
-        testScheduler.advanceTimeBy(5_000)
-        assertEquals(5L, state.ready.elapsedSeconds)
-        assertEquals(5L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
+            viewModel.onEvent(PracticeUiEvent.Finish)
+            assertTrue(state.ready.finished)
+
+            // Finishing stops the ticking, and keeps the time that was reached
+            secondsPass(5)
+            assertEquals(5L, state.ready.elapsedSeconds)
+            assertEquals(5L, repositories.attempts.get(attempt.id)!!.elapsedSeconds)
+        }
     }
 
     @Test
@@ -249,8 +289,10 @@ class PracticeViewModelTest : ViewModelTest() {
         val (viewModel, state) = open(attempt)
         assertEquals(450L, state.ready.elapsedSeconds)
 
-        viewModel.onEvent(PracticeUiEvent.Foreground(true))
-        testScheduler.advanceTimeBy(5_000)
-        assertEquals(450L, state.ready.elapsedSeconds)
+        viewModel.withScreen {
+            // A finished test is being reviewed, not taken: nothing ticks.
+            secondsPass(5)
+            assertEquals(450L, state.ready.elapsedSeconds)
+        }
     }
 }

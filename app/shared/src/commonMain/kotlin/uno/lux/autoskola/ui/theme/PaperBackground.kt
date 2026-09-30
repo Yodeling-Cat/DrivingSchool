@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import najautoskola.app.shared.generated.resources.Res
@@ -49,6 +50,11 @@ fun paperGlows(colors: NajColors, mintY: Float = 0.9f, mintRadius: Float = 0.4f)
 /**
  * The page behind every screen: the warm paper, its corner glows, and the tiling grain over the
  * top of both. Content is drawn above the grain, as it is in the design.
+ *
+ * The glows are drawn inside [clipRect] because a `DrawScope` does not clip to the node it belongs
+ * to: a glow centred on this page's corner would otherwise paint the same distance to the left of
+ * it, over whatever is next to the page - the navigation rail, which came out washed pale instead
+ * of navy.
  */
 @Composable
 fun Modifier.paperBackground(glows: List<PaperGlow>, grain: Float = GRAIN_PAGE): Modifier {
@@ -56,8 +62,10 @@ fun Modifier.paperBackground(glows: List<PaperGlow>, grain: Float = GRAIN_PAGE):
     val shader = rememberGrainShader()
     return this
         .drawBehind {
-            drawRect(colors.paper)
-            glows.forEach { drawGlow(it) }
+            clipRect {
+                drawRect(colors.paper)
+                glows.forEach { drawGlow(it) }
+            }
         }
         .grain(grain, shader)
 }

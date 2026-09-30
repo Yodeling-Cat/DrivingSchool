@@ -103,6 +103,10 @@ class Strings(
     val nextQuestion: String,
     val moreOptions: String,
     val finishTest: String,
+
+    /** Debug builds only: the practice screen's overflow menu fills the test in. */
+    val answerAllRandomly: String,
+    val answerAllCorrectly: String,
     val yourAnswer: String,
     val correctAnswer: String,
     val enlargeImage: String,
@@ -214,6 +218,9 @@ private val EnglishStrings = Strings(
     nextQuestion = "Next question",
     moreOptions = "More options",
     finishTest = "Finish test",
+
+    answerAllRandomly = "Answer randomly (dev)",
+    answerAllCorrectly = "Answer correctly (dev)",
     yourAnswer = "YOUR ANSWER",
     correctAnswer = "CORRECT ANSWER",
     enlargeImage = "Enlarge picture",
@@ -311,6 +318,9 @@ private val SlovakStrings = Strings(
     nextQuestion = "Ďalšia otázka",
     moreOptions = "Ďalšie možnosti",
     finishTest = "Ukončiť test",
+
+    answerAllRandomly = "Odpovedať náhodne (dev)",
+    answerAllCorrectly = "Odpovedať správne (dev)",
     yourAnswer = "VAŠA ODPOVEĎ",
     correctAnswer = "SPRÁVNA ODPOVEĎ",
     enlargeImage = "Zväčšiť obrázok",
@@ -408,6 +418,9 @@ private val HungarianStrings = Strings(
     nextQuestion = "Következő kérdés",
     moreOptions = "További lehetőségek",
     finishTest = "Teszt befejezése",
+
+    answerAllRandomly = "Véletlenszerű válasz (dev)",
+    answerAllCorrectly = "Válaszolj helyesen (dev)",
     yourAnswer = "AZ ÖN VÁLASZA",
     correctAnswer = "HELYES VÁLASZ",
     enlargeImage = "Kép nagyítása",
@@ -505,6 +518,9 @@ private val CzechStrings = Strings(
     nextQuestion = "Další otázka",
     moreOptions = "Další možnosti",
     finishTest = "Ukončit test",
+
+    answerAllRandomly = "Odpovědět náhodně (dev)",
+    answerAllCorrectly = "Odpovědět správně (dev)",
     yourAnswer = "VAŠE ODPOVĚĎ",
     correctAnswer = "SPRÁVNÁ ODPOVĚĎ",
     enlargeImage = "Zvětšit obrázek",

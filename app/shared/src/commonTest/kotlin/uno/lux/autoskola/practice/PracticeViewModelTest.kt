@@ -400,4 +400,48 @@ class PracticeViewModelTest : ViewModelTest() {
             assertEquals(450L, state.ready.elapsedSeconds)
         }
     }
+
+    @Test
+    fun theDebugShortcutAnswersEveryQuestionCorrectly() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.AnswerAllCorrectly) }
+
+        val questions = state.ready.questions
+        assertEquals(questions.indices.toList(), state.ready.answers.keys.sorted())
+        questions.forEachIndexed { index, question ->
+            assertEquals(question.question.correct, state.ready.answers[index], "question $index")
+        }
+    }
+
+    @Test
+    fun theDebugShortcutAnswersEveryQuestionWithOneOfThatQuestionsOptions() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.AnswerAllRandomly) }
+
+        val questions = state.ready.questions
+        assertEquals(questions.indices.toList(), state.ready.answers.keys.sorted())
+        questions.forEachIndexed { index, question ->
+            val chosen = assertNotNull(state.ready.answers[index], "question $index")
+            assertTrue(chosen in question.question.answers.indices, "answer $chosen for question $index")
+        }
+    }
+
+    @Test
+    fun theDebugShortcutLeavesTheAnswersTheUserAlreadyGave() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen {
+            // A deliberately wrong answer to the first question, as a user might give.
+            viewModel.onEvent(PracticeUiEvent.Answer(0, 2))
+            viewModel.onEvent(PracticeUiEvent.AnswerAllCorrectly)
+        }
+
+        assertEquals(2, state.ready.answers[0])
+        assertEquals(0, state.ready.answers[1])
+    }
 }

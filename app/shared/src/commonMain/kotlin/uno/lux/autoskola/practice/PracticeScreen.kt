@@ -113,6 +113,7 @@ import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.Section
 import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.isDebugBuild
 import uno.lux.autoskola.ui.BarIconButton
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.HeightClass
@@ -373,6 +374,8 @@ fun PracticeScreen(
             onNext = { goTo(currentIndex + 1) },
             arrowAlpha = arrowAlpha,
             onFinish = { onEvent(PracticeUiEvent.Finish) },
+            // The shortcuts are built away in a release build, where the menu has no place for them.
+            onDebugAnswers = if (isDebugBuild()) onEvent else null,
         )
     }
 
@@ -847,6 +850,8 @@ private fun RowScope.PracticeBarContent(
     onNext: () -> Unit,
     arrowAlpha: () -> Float,
     onFinish: () -> Unit,
+    /** The debug answers, or null in a release build, where the menu leaves them out. */
+    onDebugAnswers: ((PracticeUiEvent) -> Unit)?,
 ) {
     val colors = Naj.colors
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -924,6 +929,23 @@ private fun RowScope.PracticeBarContent(
                         onFinish()
                     },
                 )
+                val debugAnswers = onDebugAnswers
+                if (debugAnswers != null) {
+                    DropdownMenuItem(
+                        text = { Text(strings.answerAllRandomly, style = Naj.type.cardTitle, color = colors.ink) },
+                        onClick = {
+                            showOverflowMenu = false
+                            debugAnswers(PracticeUiEvent.AnswerAllRandomly)
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(strings.answerAllCorrectly, style = Naj.type.cardTitle, color = colors.ink) },
+                        onClick = {
+                            showOverflowMenu = false
+                            debugAnswers(PracticeUiEvent.AnswerAllCorrectly)
+                        },
+                    )
+                }
             }
         }
     }

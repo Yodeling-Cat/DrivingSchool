@@ -29,6 +29,7 @@ import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.stats.answersByIndex
 import uno.lux.autoskola.stats.isFullyAnswered
 import uno.lux.autoskola.stats.resumeIndex
+import kotlin.random.Random
 
 data class PracticeQuestion(
     val question: Question,
@@ -84,6 +85,12 @@ sealed interface PracticeUiEvent {
 
     /** The screen displayed the time limit toast that [PracticeUiState.Ready.showTimeLimitToast] asked for. */
     data object TimeLimitToastShown : PracticeUiEvent
+
+    /** Debug builds only: fill in every question that is still unanswered, with a random option. */
+    data object AnswerAllRandomly : PracticeUiEvent
+
+    /** Debug builds only: fill in every question that is still unanswered, with the right option. */
+    data object AnswerAllCorrectly : PracticeUiEvent
 }
 
 class PracticeViewModel(
@@ -92,6 +99,8 @@ class PracticeViewModel(
     private val banks: QuestionBankRepository,
     private val preferences: PreferencesRepository,
     private val allottedTimeSeconds: Long = TestAttempt.OFFICIAL_DURATION_SECONDS,
+    /** Which option the debug shortcut picks, injected so a test can pin it down. */
+    private val random: Random = Random.Default,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -100,6 +109,9 @@ class PracticeViewModel(
 
     /** Set when the attempt first loads; the question order and start page don't change after that. */
     private var questions: List<PracticeQuestion>? = null
+
+    /** The questions already answered, so the debug shortcut can fill in only the rest. */
+    private var answered: Set<Int> = emptySet()
     private var initialPage: Int? = null
 
     private var isForeground = false
@@ -151,6 +163,7 @@ class PracticeViewModel(
         isFinished = attempt.isFinished
         checksImmediately = attempt.checkImmediately
         allAnswered = attempt.isFullyAnswered
+        answered = attempt.answersByIndex().keys
         updateTimer()
     }
 
@@ -233,6 +246,26 @@ class PracticeViewModel(
             }
 
             PracticeUiEvent.TimeLimitToastShown -> showTimeLimitToast.value = false
+
+            PracticeUiEvent.AnswerAllRandomly -> answerAll { random.nextInt(it.answers.size) }
+
+            PracticeUiEvent.AnswerAllCorrectly -> answerAll { it.correct }
+        }
+    }
+
+    /**
+     * Fills in the whole test at once, for the overflow menu's debug entries: every question the user
+     * hasn't answered yet gets the option [answerOf] picks. Answers already given are left as they
+     * are, so the shortcut can't wipe out work - or a mistake - that was there first.
+     */
+    private fun answerAll(answerOf: (Question) -> Int) {
+        val session = session.value ?: return
+        val questions = questions ?: return
+        val unanswered = questions.withIndex().filterNot { (index, _) -> index in answered }
+        viewModelScope.launch {
+            unanswered.forEach { (_, practiceQuestion) ->
+                session.answer(attemptId, practiceQuestion.question, answerOf(practiceQuestion.question))
+            }
         }
     }
 

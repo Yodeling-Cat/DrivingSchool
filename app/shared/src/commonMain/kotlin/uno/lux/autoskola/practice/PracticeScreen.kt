@@ -121,7 +121,6 @@ import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.NajCard
-import uno.lux.autoskola.ui.NajSnackbar
 import uno.lux.autoskola.ui.NavyPill
 import uno.lux.autoskola.ui.QuestionChip
 import uno.lux.autoskola.ui.RoundButton
@@ -512,6 +511,18 @@ fun PracticeScreen(
                     BottomSheetScaffold(
                         modifier = Modifier.weight(1f),
                         scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
+                        // The message sits above the bar instead of over it: the bar is the only way
+                        // back into the test, and the design stacks the two rather than overlapping.
+                        snackbarHost = { host ->
+                            SnackbarHost(
+                                hostState = host,
+                                modifier = Modifier.padding(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = barSlotHeight + navBarInset + 12.dp,
+                                ),
+                            )
+                        },
                         containerColor = Color.Transparent,
                         sheetContainerColor = Color.Transparent,
                         sheetPeekHeight = barSlotHeight + navBarInset,
@@ -554,6 +565,16 @@ fun PracticeScreen(
 
                 BottomSheetScaffold(
                     scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
+                    snackbarHost = { host ->
+                        SnackbarHost(
+                            hostState = host,
+                            modifier = Modifier.padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = barSlotHeight + navBarInset + 12.dp,
+                            ),
+                        )
+                    },
                     containerColor = Color.Transparent,
                     // Closed, the pill floats straight over the page; open, it sits on the warm
                     // sheet the question list is drawn on.
@@ -595,14 +616,6 @@ fun PracticeScreen(
                 )
             }
         }
-        // The message bar sits above the pill rather than on top of it, the way the design stacks
-        // them. It is not the scaffold's own host for that reason.
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = barSlotHeight + navBarInset + 12.dp),
-        ) { data -> NajSnackbar(data) }
     }
 
     if (confirmingLeave) {

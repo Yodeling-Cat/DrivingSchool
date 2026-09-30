@@ -20,7 +20,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -509,47 +508,4 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
         color = Naj.colors.muted,
         modifier = modifier.defaultMinSize(minHeight = 32.dp).padding(top = 24.dp, bottom = 10.dp),
     )
-}
-
-/**
- * The app's message bar: the same navy pill as the navigation and the question bar, with its action
- * in road yellow. Material's default is a dark slab that belongs to neither.
- */
-@Composable
-fun NajSnackbar(data: SnackbarData, modifier: Modifier = Modifier) {
-    val colors = Naj.colors
-    val shape = RoundedCornerShape(22.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 16.dp,
-                shape = shape,
-                ambientColor = colors.ink.copy(alpha = 0.7f),
-                spotColor = colors.ink.copy(alpha = 0.7f),
-            )
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(colors.navyLight, colors.navy)))
-            .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            data.visuals.message,
-            style = Naj.type.cardTitle,
-            color = Color.White,
-            modifier = Modifier.weight(1f),
-        )
-        data.visuals.actionLabel?.let { label ->
-            Text(
-                label,
-                style = Naj.type.button,
-                color = colors.roadYellow,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { data.performAction() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            )
-        }
-    }
 }

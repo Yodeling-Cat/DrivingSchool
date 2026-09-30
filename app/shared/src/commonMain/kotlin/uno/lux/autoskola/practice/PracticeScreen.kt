@@ -511,18 +511,9 @@ fun PracticeScreen(
                     BottomSheetScaffold(
                         modifier = Modifier.weight(1f),
                         scaffoldState = rememberBottomSheetScaffoldState(pinnedSheetState, snackbarHostState),
-                        // The message sits above the bar instead of over it: the bar is the only way
-                        // back into the test, and the design stacks the two rather than overlapping.
-                        snackbarHost = { host ->
-                            SnackbarHost(
-                                hostState = host,
-                                modifier = Modifier.padding(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    bottom = barSlotHeight + navBarInset + 12.dp,
-                                ),
-                            )
-                        },
+                        // The screen places the message bar itself: the scaffold lifts its own host by
+                        // the sheet's peek as well, which stacks with any room given here.
+                        snackbarHost = {},
                         containerColor = Color.Transparent,
                         sheetContainerColor = Color.Transparent,
                         sheetPeekHeight = barSlotHeight + navBarInset,
@@ -565,16 +556,7 @@ fun PracticeScreen(
 
                 BottomSheetScaffold(
                     scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
-                    snackbarHost = { host ->
-                        SnackbarHost(
-                            hostState = host,
-                            modifier = Modifier.padding(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = barSlotHeight + navBarInset + 12.dp,
-                            ),
-                        )
-                    },
+                    snackbarHost = {},
                     containerColor = Color.Transparent,
                     // Closed, the pill floats straight over the page; open, it sits on the warm
                     // sheet the question list is drawn on.
@@ -615,6 +597,23 @@ fun PracticeScreen(
                     content = questionsPane,
                 )
             }
+        }
+
+        // Material's own message bar, above the bar it belongs to, and out of the way while the
+        // question list is open over the questions.
+        if (!listExpanded) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    // The bar's slot, less the gap the pill keeps inside it, plus a small gap of its
+                    // own: close enough to read as sitting on the bar rather than floating above it.
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = barSlotHeight + navBarInset - pillGap + SnackbarAboveBar,
+                    ),
+            )
         }
     }
 
@@ -963,6 +962,9 @@ private fun RowScope.PracticeBarContent(
         }
     }
 }
+
+/** How far the message bar sits above the pill it belongs to. */
+private val SnackbarAboveBar = 4.dp
 
 /** A question-list icon that turns into an X (and back) as the question list opens. */
 @Composable

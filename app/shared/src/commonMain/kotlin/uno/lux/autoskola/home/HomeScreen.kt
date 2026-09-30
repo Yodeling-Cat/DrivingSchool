@@ -109,7 +109,6 @@ private val LicenceWaveStartY = 40.dp
 private val LicenceWaveStepY = 16.dp
 private val LicenceWaveAmplitude = 30.dp
 private val LicenceWaveStroke = 1.2.dp
-private val LicenceWaveQuarter = 90.dp
 private val LicenceWaveOffset = 45.dp
 
 /** The white glow over the card's left edge: a 260x200 ellipse centred on (90, 40). */
@@ -741,20 +740,27 @@ private fun TopHighlight(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxWidth().height(1.dp)) { drawRect(Color.White.copy(alpha = 0.7f)) }
 }
 
-/** The ten white wave lines: each is a crest then a mirrored trough, four spans across the card. */
+/**
+ * The ten white wave lines: each is a crest then a mirrored trough, carried across the card's whole
+ * width. How many quarters of the pattern that takes is [licenceWaveQuarters]' business; the last
+ * one ends past the right edge, or a card wider than the design's 360dp cut the waves off mid-card.
+ */
 private fun DrawScope.drawLicenceWaves() {
     val quarter = LicenceWaveQuarter.toPx()
     val offset = LicenceWaveOffset.toPx()
     val amplitude = LicenceWaveAmplitude.toPx()
     val step = LicenceWaveStepY.toPx()
+    val quarters = licenceWaveQuarters(size.width.toDp())
     repeat(LICENCE_WAVE_COUNT) { index ->
         val y = LicenceWaveStartY.toPx() + index * step
         val wave = Path().apply {
             moveTo(0f, y)
-            quadraticTo(offset, y - amplitude, quarter, y)
-            quadraticTo(offset + quarter, y + amplitude, quarter * 2, y)
-            quadraticTo(offset + quarter * 2, y - amplitude, quarter * 3, y)
-            quadraticTo(offset + quarter * 3, y + amplitude, quarter * 4, y)
+            repeat(quarters) { span ->
+                // A crest on the even quarters and a trough on the odd ones, so the pattern keeps
+                // the phase the design sets, whatever the card measures.
+                val peak = if (span % 2 == 0) y - amplitude else y + amplitude
+                quadraticTo(offset + quarter * span, peak, quarter * (span + 1), y)
+            }
         }
         drawPath(wave, color = Color.White.copy(alpha = 0.35f), style = Stroke(LicenceWaveStroke.toPx()))
     }

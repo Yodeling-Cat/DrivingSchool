@@ -81,6 +81,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -816,7 +817,9 @@ private fun SkippedNotice() {
  */
 @Composable
 private fun QuestionImage(uri: String, page: DpSize, maxHeight: Dp = QuestionImageMaxHeight) {
-    val painter = rememberAsyncImagePainter(uri)
+    // The pictures are drawn bigger than they are, so the sharper filter is what keeps their edges
+    // from turning into steps: bicubic on Skia, the platform's best on Android.
+    val painter = rememberAsyncImagePainter(uri, filterQuality = FilterQuality.High)
     val imageState by painter.state.collectAsState()
     val density = LocalDensity.current
 

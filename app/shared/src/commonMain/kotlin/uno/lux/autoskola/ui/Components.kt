@@ -196,6 +196,8 @@ fun PrimaryPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    /** A mark to draw instead of [icon], for one that a vector can't express (see [DashedCircleIcon]). */
+    iconContent: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
     height: Dp = PillHeight,
     fillWidth: Boolean = false,
@@ -227,6 +229,10 @@ fun PrimaryPill(
     ) {
         if (icon != null) {
             Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Box(Modifier.width(8.dp))
+        }
+        if (iconContent != null) {
+            iconContent()
             Box(Modifier.width(8.dp))
         }
         Text(text, style = Naj.type.primaryButton, color = Color.White, textAlign = TextAlign.Center)

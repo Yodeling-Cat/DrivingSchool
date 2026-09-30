@@ -30,7 +30,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -52,7 +51,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -66,6 +64,7 @@ import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.attemptName
 import uno.lux.autoskola.ui.CardRadius
 import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.DashedCircleIcon
 import uno.lux.autoskola.ui.EyebrowLabel
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LicenceRadius
@@ -131,9 +130,6 @@ private val HeaderTopInset = 52.dp
 /** The 13sp bold caption the design sets the exam pill and the hero's label in. */
 private val CaptionStyle: TextStyle
     @Composable get() = Naj.type.tileStatus.copy(fontSize = 13.sp)
-
-/** The circle outline the "not done yet" action carries, until the kit has the dashed ring. */
-private val NotDoneYetIcon: ImageVector = Icons.Outlined.RadioButtonUnchecked
 
 /** Connects [HomeScreen] to its [HomeViewModel] and to navigation. */
 @Composable
@@ -557,7 +553,7 @@ private fun ActionRow(
             text = strings.notDoneYet,
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notDoneYet = true)) },
             modifier = Modifier.weight(1f),
-            icon = NotDoneYetIcon,
+            iconContent = { DashedCircleIcon(Color.White) },
             enabled = anyUnfinished,
         )
     }

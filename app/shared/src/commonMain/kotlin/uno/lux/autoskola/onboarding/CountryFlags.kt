@@ -14,16 +14,17 @@ import androidx.compose.ui.unit.dp
  * ships no flag emoji at all - so an emoji flag renders on Android and comes out as two empty boxes
  * on the web. A vector is the same flag everywhere.
  */
-internal fun countryFlag(countryCode: String): ImageVector? = when (countryCode.uppercase()) {
-    "SK" -> FlagSlovakia
-    "CZ" -> FlagCzechia
-    else -> null
-}
+internal fun countryFlag(countryCode: String): ImageVector? = FLAGS[countryCode.uppercase()]
 
-// Both flags are drawn from the Wikimedia Commons SVGs, kept in their own 900x600 coordinates so
-// the numbers still match the source. Public domain: national flags and state arms are official
-// symbols.
+/** The codes [countryFlag] answers for; a card for any other country falls back to its own code. */
+internal val countriesWithFlags: Set<String> get() = FLAGS.keys
 
+// Transcribed from the Wikimedia Commons SVGs linked above each flag, kept in each SVG's own
+// coordinate space so the numbers still match the source. National flags are official symbols,
+// which makes the sources public domain. Every flag is drawn 40dp tall, as wide as its own
+// proportions make it.
+
+// https://commons.wikimedia.org/wiki/File:Flag_of_Slovakia.svg
 private val FlagSlovakia: ImageVector = ImageVector.Builder(
     name = "FlagSlovakia",
     defaultWidth = 60.dp,
@@ -84,9 +85,10 @@ private val FlagSlovakia: ImageVector = ImageVector.Builder(
         ),
         fill = SolidColor(Color(0xFF254AA5)),
     )
-    addOutline()
+    addOutline(path = "M7.5 7.5h885v585H7.5Z", strokeWidth = 15f)
 }.build()
 
+// https://commons.wikimedia.org/wiki/File:Flag_of_the_Czech_Republic.svg
 private val FlagCzechia: ImageVector = ImageVector.Builder(
     name = "FlagCzechia",
     defaultWidth = 60.dp,
@@ -112,12 +114,77 @@ private val FlagCzechia: ImageVector = ImageVector.Builder(
         ),
         fill = SolidColor(Color(0xFF11457E)),
     )
-    addOutline()
+    addOutline(path = "M7.5 7.5h885v585H7.5Z", strokeWidth = 15f)
 }.build()
 
-/** A hairline around the whole flag: without it a flag's white band vanishes on a white card. */
-private fun ImageVector.Builder.addOutline() = addPath(
-    addPathNodes("M7.5 7.5h885v585H7.5Z"),
+// https://commons.wikimedia.org/wiki/File:Flag_of_Hungary.svg
+private val FlagHungary: ImageVector = ImageVector.Builder(
+    name = "FlagHungary",
+    defaultWidth = 80.dp,
+    defaultHeight = 40.dp,
+    viewportWidth = 1200f,
+    viewportHeight = 600f,
+).apply {
+    addPath(
+        addPathNodes(
+            "M0 0h1200v600H0",
+        ),
+        fill = SolidColor(Color(0xFF477050)),
+    )
+    addPath(
+        addPathNodes(
+            "M0 0h1200v400H0",
+        ),
+        fill = SolidColor(Color(0xFFFFFFFF)),
+    )
+    addPath(
+        addPathNodes(
+            "M0 0h1200v200H0",
+        ),
+        fill = SolidColor(Color(0xFFCE2939)),
+    )
+    addOutline(path = "M7.5 7.5h1185v585H7.5Z", strokeWidth = 15f)
+}.build()
+
+// https://commons.wikimedia.org/wiki/File:Flag_of_Poland.svg
+private val FlagPoland: ImageVector = ImageVector.Builder(
+    name = "FlagPoland",
+    defaultWidth = 64.dp,
+    defaultHeight = 40.dp,
+    viewportWidth = 8f,
+    viewportHeight = 5f,
+).apply {
+    addPath(
+        addPathNodes(
+            "M0 0h8v5H0Z",
+        ),
+        fill = SolidColor(Color(0xFFDC143C)),
+    )
+    addPath(
+        addPathNodes(
+            "M0 0h8v2.5H0Z",
+        ),
+        fill = SolidColor(Color(0xFFFFFFFF)),
+    )
+    addOutline(path = "M0.0625 0.0625h7.875v4.875H0.0625Z", strokeWidth = 0.125f)
+}.build()
+
+// The flags above, by ISO 3166-1 alpha-2 code. Top-level properties initialize in file order, so
+// this table has to come after the vectors it names.
+private val FLAGS: Map<String, ImageVector> = mapOf(
+    "SK" to FlagSlovakia,
+    "CZ" to FlagCzechia,
+    "HU" to FlagHungary,
+    "PL" to FlagPoland,
+)
+
+/**
+ * A hairline around the whole flag: without it a flag's white band vanishes on a white card. The
+ * stroke is one dp in this flag's own units, and the path runs half a stroke inside the viewport so
+ * the line stays visible.
+ */
+private fun ImageVector.Builder.addOutline(path: String, strokeWidth: Float) = addPath(
+    addPathNodes(path),
     stroke = SolidColor(Color(0x40000000)),
-    strokeLineWidth = 15f,
+    strokeLineWidth = strokeWidth,
 )

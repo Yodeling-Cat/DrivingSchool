@@ -165,7 +165,9 @@ private fun CountryCard(option: CountryOption, onClick: () -> Unit) {
             Image(
                 painter = rememberVectorPainter(flag),
                 contentDescription = null,
-                modifier = Modifier.width(60.dp).height(40.dp),
+                // Flags differ in proportion - Hungary's is 2:1, Poland's 8:5 - so the vector's own
+                // size decides the width; every flag comes out 40dp tall.
+                modifier = Modifier.height(flag.defaultHeight).width(flag.defaultWidth),
             )
         } else {
             // No flag drawn for this country yet, so its code stands in for one.

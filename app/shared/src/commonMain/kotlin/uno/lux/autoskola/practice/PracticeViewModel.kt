@@ -63,6 +63,8 @@ sealed interface PracticeUiState {
         /** Page the test moves on to after an answer, once the screen has reported the move. */
         val advanceToPage: Int? = null,
         val elapsedSeconds: Long = 0L,
+        /** How long this test is given, so the screen can say when it has run out. */
+        val allottedSeconds: Long = 0L,
         val showTimeLimitToast: Boolean = false,
     ) : PracticeUiState
 }
@@ -141,7 +143,7 @@ class PracticeViewModel(
         if (elapsedSeconds.value == null) {
             val initial = attempt.elapsedSeconds
             elapsedSeconds.value = initial
-            if (initial >= allottedTimeSeconds) {
+            if (isOverTime(initial, allottedTimeSeconds)) {
                 timeLimitNotified = true
             }
         }
@@ -175,7 +177,7 @@ class PracticeViewModel(
         if (isFinished) return
         val current = (elapsedSeconds.value ?: 0L) + 1
         elapsedSeconds.value = current
-        if (!timeLimitNotified && current >= allottedTimeSeconds) {
+        if (!timeLimitNotified && isOverTime(current, allottedTimeSeconds)) {
             timeLimitNotified = true
             showTimeLimitToast.value = true
         }
@@ -277,6 +279,7 @@ class PracticeViewModel(
             openResults = openResults && attempt.isFinished,
             advanceToPage = advanceToPage,
             elapsedSeconds = elapsedSeconds,
+            allottedSeconds = allottedTimeSeconds,
             showTimeLimitToast = showTimeLimitToast,
         )
     }

@@ -310,6 +310,16 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theStateCarriesTheTimeATestIsGiven() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen {
+            assertEquals(1800L, state.ready.allottedSeconds)
+        }
+    }
+
+    @Test
     fun doesNotTriggerToastOnResumeIfAlreadyPastAllottedTime() = runTest {
         val attempt = startTest()
         repositories.attempts.updateElapsed(attempt.id, 1850L)

@@ -43,6 +43,13 @@ class StringsTest {
     }
 
     @Test
+    fun everyLanguageNamesTheMinutesATestIsGiven() {
+        AppLanguage.entries.forEach { language ->
+            assert("30" in language.strings.overTime(30)) { "${language.name} over-time notice" }
+        }
+    }
+
+    @Test
     fun everyLanguageNamesTheCountriesWeSupport() {
         AppLanguage.entries.forEach { language ->
             listOf("SK", "CZ").forEach { code ->

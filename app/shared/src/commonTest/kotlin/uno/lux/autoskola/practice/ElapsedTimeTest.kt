@@ -2,6 +2,8 @@ package uno.lux.autoskola.practice
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class ElapsedTimeTest {
 
@@ -38,5 +40,12 @@ class ElapsedTimeTest {
     @Test
     fun aNegativeCountIsReadAsZeroRatherThanMinus() {
         assertEquals("00:00", elapsedClock(-1))
+    }
+
+    @Test
+    fun aTestIsOverTimeOnceItHasHadTheTimeItIsGiven() {
+        assertFalse(isOverTime(elapsedSeconds = 1799, allottedSeconds = 1800))
+        assertTrue(isOverTime(elapsedSeconds = 1800, allottedSeconds = 1800))
+        assertTrue(isOverTime(elapsedSeconds = 1801, allottedSeconds = 1800))
     }
 }

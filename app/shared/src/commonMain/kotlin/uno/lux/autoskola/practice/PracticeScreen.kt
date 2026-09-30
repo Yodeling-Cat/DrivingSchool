@@ -204,6 +204,7 @@ fun PracticeScreen(
     val sections = state.sections
     val testName = attemptName(state.kind, state.testNumber)
     val elapsed = elapsedClock(state.elapsedSeconds)
+    val overTime = isOverTime(state.elapsedSeconds, state.allottedSeconds)
     val checkImmediately = state.checkImmediately
     val finished = state.finished
     val revealCorrectness = revealsCorrectness(checkImmediately, finished)
@@ -278,6 +279,12 @@ fun PracticeScreen(
 
     // Stays up until acted on: first to finish the test, then to get back to its results.
     val snackbarHostState = remember { SnackbarHostState() }
+    OverTimeNoticeEffect(
+        show = state.showTimeLimitToast,
+        message = strings.overTime((state.allottedSeconds / 60).toInt()),
+        snackbarHostState = snackbarHostState,
+        onShown = { onEvent(PracticeUiEvent.TimeLimitToastShown) },
+    )
     FinishPromptEffect(
         prompt = finishPrompt(state.allAnswered, finished),
         snackbarHostState = snackbarHostState,
@@ -289,7 +296,7 @@ fun PracticeScreen(
 
     // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
-        if (!compactHeight) PracticeTopBar(testName, elapsed, onBack = ::handleBack)
+        if (!compactHeight) PracticeTopBar(testName, elapsed, overTime, onBack = ::handleBack)
     }
 
     /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
@@ -305,6 +312,7 @@ fun PracticeScreen(
             currentIndex = currentIndex,
             questionCount = questions.size,
             points = current.points,
+            overTime = overTime,
             showListToggle = !showPanel,
             listExpanded = listExpanded,
             canFinish = !finished,
@@ -497,6 +505,24 @@ fun PracticeScreen(
 }
 
 /**
+ * Tells the user, once, that the test has had the time a test is given. The notice waits its turn
+ * on the snackbar host, so it never talks over the prompt that offers to finish the test.
+ */
+@Composable
+private fun OverTimeNoticeEffect(
+    show: Boolean,
+    message: String,
+    snackbarHostState: SnackbarHostState,
+    onShown: () -> Unit,
+) {
+    LaunchedEffect(show, message) {
+        if (!show) return@LaunchedEffect
+        snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long)
+        onShown()
+    }
+}
+
+/**
  * Keeps the prompt that offers to finish the test - and later to show its results - up until the
  * user acts on it.
  */
@@ -530,15 +556,23 @@ private fun FinishPromptEffect(
     }
 }
 
-/** The title of a test: its name above how long it has been running. */
+/** The colour of the test's clock: over time it warns the way a wrong answer does. */
+private fun elapsedColor(overTime: Boolean): Color = if (overTime) WrongAnswerAccent else Subdued
+
+/** The title of a test: its name above how long it has been running, in red once it's over time. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PracticeTopBar(testName: String, elapsed: String, onBack: () -> Unit) {
+private fun PracticeTopBar(
+    testName: String,
+    elapsed: String,
+    overTime: Boolean,
+    onBack: () -> Unit,
+) {
     CenterAlignedTopAppBar(
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(testName, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Text(elapsed, color = Subdued, fontSize = 12.sp)
+                Text(elapsed, color = elapsedColor(overTime), fontSize = 12.sp)
             }
         },
         navigationIcon = {
@@ -596,6 +630,7 @@ private fun RowScope.PracticeBarContent(
     currentIndex: Int,
     questionCount: Int,
     points: Int,
+    overTime: Boolean,
     showListToggle: Boolean,
     listExpanded: Boolean,
     canFinish: Boolean,
@@ -630,13 +665,16 @@ private fun RowScope.PracticeBarContent(
             fontSize = 14.sp,
             maxLines = 1,
         )
-        // Phones in landscape hide the top bar, so the time runs in the bar's second line there.
-        Text(
-            if (compactHeight) "${strings.points(points)} · $elapsed" else strings.points(points),
-            color = Subdued,
-            fontSize = 12.sp,
-            maxLines = 1,
-        )
+        // Phones in landscape hide the top bar, so the time runs in the bar's second line there,
+        // and only the time itself turns red when the test is over it.
+        if (compactHeight) {
+            Row {
+                Text("${strings.points(points)} · ", color = Subdued, fontSize = 12.sp, maxLines = 1)
+                Text(elapsed, color = elapsedColor(overTime), fontSize = 12.sp, maxLines = 1)
+            }
+        } else {
+            Text(strings.points(points), color = Subdued, fontSize = 12.sp, maxLines = 1)
+        }
     }
     // The arrows are beside the question wherever the page has room for them. They make no sense
     // while the question list covers the questions, which is what [arrowAlpha] is for.

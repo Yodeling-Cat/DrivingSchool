@@ -12,3 +12,10 @@ internal fun elapsedClock(seconds: Long): String {
     val hours = count / 3600
     return if (hours > 0) "$hours:$padded" else padded
 }
+
+/**
+ * Whether a test that has been running [elapsedSeconds] has had the [allottedSeconds] it's given.
+ * A test that reached the time exactly is over it: the clock stops being "still fine" the moment
+ * the last minute is up, and the notice that tells the user so arrives at the same moment.
+ */
+internal fun isOverTime(elapsedSeconds: Long, allottedSeconds: Long): Boolean = elapsedSeconds >= allottedSeconds

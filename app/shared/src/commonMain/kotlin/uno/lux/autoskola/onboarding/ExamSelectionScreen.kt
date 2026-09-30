@@ -31,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -227,14 +226,6 @@ private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -
     ) {
         val flag = countryFlag(option.country)
         if (flag != null) {
-            val flagShape = RoundedCornerShape(8.dp)
-            // The drop shadow is only drawn behind an opaque flag: through a see-through one it
-            // shows up as a grey rectangle the size of the flag.
-            val dimmed = Modifier
-                .clip(flagShape)
-                .height(FlagHeight)
-                .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
-                .graphicsLayer { alpha = 0.55f }
             Image(
                 painter = rememberVectorPainter(flag),
                 contentDescription = null,
@@ -244,17 +235,13 @@ private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -
                     // The design washes a country without a bank out to grey.
                     ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.35f) })
                 },
-                // Flags differ in proportion - Hungary's is 2:1, Poland's 8:5 - so the vector's own
-                // shape decides the width; every flag comes out [FlagHeight] tall.
-                modifier = if (option.available) {
-                    Modifier
-                        .shadow(6.dp, flagShape)
-                        .clip(flagShape)
-                        .height(FlagHeight)
-                        .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
-                } else {
-                    dimmed
-                },
+                // A flag is drawn as it is: square to its own edges, with no rounded corner and no
+                // shadow under it. Flags differ in proportion - Hungary's is 2:1, Poland's 8:5 - so
+                // the vector's own shape decides the width; every flag comes out [FlagHeight] tall.
+                modifier = Modifier
+                    .height(FlagHeight)
+                    .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
+                    .graphicsLayer { alpha = if (option.available) 1f else 0.55f },
             )
         } else {
             Text(option.country, style = Naj.type.cardHero, color = colors.muted)

@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -405,7 +406,9 @@ private fun HeroRow(finished: Int, total: Int) {
                 text = twoLines(caption),
                 style = CaptionStyle,
                 color = colors.ink,
-                modifier = Modifier.alignByBaseline().padding(start = 4.dp),
+                // The caption's own last line sits on the numbers' baseline: aligned by its first
+                // line, a two-line label hangs a whole line below them.
+                modifier = Modifier.alignBy(LastBaseline).padding(start = 4.dp),
             )
         }
     }

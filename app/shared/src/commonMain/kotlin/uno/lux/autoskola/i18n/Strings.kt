@@ -102,8 +102,6 @@ class Strings(
     val situationsDrillName: String,
     /** What one question about a situation is called on its tab, e.g. "Question 2". */
     val questionNumber: (number: Int) -> String,
-    /** The action that shows whether the answer the driver picked is the right one. */
-    val checkAnswer: String,
     /** Read out with the mark on a situation every question of which is answered correctly. */
     val situationSolved: String,
     // Home
@@ -262,7 +260,6 @@ private val EnglishStrings = Strings(
     situationsDrillOne = "Drill this situation",
     situationsDrillName = "Situations drill",
     questionNumber = { "Question $it" },
-    checkAnswer = "Check answer",
     situationSolved = "Answered correctly",
     change = "Change",
     testsFinishedLabel = "tests finished",
@@ -389,7 +386,6 @@ private val SlovakStrings = Strings(
     situationsDrillOne = "Precvičiť túto situáciu",
     situationsDrillName = "Nácvik situácií",
     questionNumber = { "Otázka $it" },
-    checkAnswer = "Skontrolovať odpoveď",
     situationSolved = "Zodpovedané správne",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
@@ -516,7 +512,6 @@ private val HungarianStrings = Strings(
     situationsDrillOne = "A helyzet gyakorlása",
     situationsDrillName = "Helyzetgyakorlás",
     questionNumber = { "$it. kérdés" },
-    checkAnswer = "Válasz ellenőrzése",
     situationSolved = "Helyesen megválaszolva",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
@@ -643,7 +638,6 @@ private val CzechStrings = Strings(
     situationsDrillOne = "Procvičit tuto situaci",
     situationsDrillName = "Nácvik situací",
     questionNumber = { "Otázka $it" },
-    checkAnswer = "Zkontrolovat odpověď",
     situationSolved = "Zodpovězeno správně",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",

@@ -36,8 +36,6 @@ sealed interface SituationUiState {
         val situation: SituationItem,
         /** What the driver has answered about this situation's questions: question id → option. */
         val answers: Map<Int, Int> = emptyMap(),
-        /** The questions whose answer the driver has checked, which keeps their marks shown. */
-        val revealed: Set<Int> = emptySet(),
         /**
          * An attempt to open, once the driver has asked to drill this situation; the screen
          * navigates to it and then sends [SituationUiEvent.AttemptOpened].
@@ -49,9 +47,6 @@ sealed interface SituationUiState {
 sealed interface SituationUiEvent {
     /** Records the option the driver picked. Answering again replaces the answer that was there. */
     data class Answer(val questionId: Int, val chosen: Int) : SituationUiEvent
-
-    /** Checks the answer to [questionId]: it is shown as right or wrong, and stays that way. */
-    data class Reveal(val questionId: Int) : SituationUiEvent
 
     /** Drills this situation's questions, in the practice screen. */
     data object Drill : SituationUiEvent
@@ -88,7 +83,6 @@ class SituationViewModel(
                 SituationUiState.Ready(
                     situation = situation,
                     answers = given.byQuestion,
-                    revealed = given.revealed,
                     openAttemptId = open,
                 )
             } ?: SituationUiState.Closed
@@ -100,10 +94,6 @@ class SituationViewModel(
         when (event) {
             is SituationUiEvent.Answer -> viewModelScope.launch {
                 answers.answer(session.bank.id, session.bank.version, event.questionId, event.chosen)
-            }
-
-            is SituationUiEvent.Reveal -> viewModelScope.launch {
-                answers.reveal(session.bank.id, session.bank.version, event.questionId)
             }
 
             SituationUiEvent.Drill -> viewModelScope.launch {

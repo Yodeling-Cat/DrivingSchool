@@ -82,11 +82,11 @@ fun SituationRoute(
 /**
  * One situation: the drawing of it, and the questions the exam asks about it, one to a tab.
  *
- * The driver answers them while they read. A situation's questions are practice rather than a test,
- * so nothing is scored and nothing is locked: an answer can be changed at any time, and both the
- * answer and whether it was checked are kept with the bank version being read, so coming back to a
- * situation shows what was answered and what was found out. Checking is a tap of its own - the
- * answer is not given away before that.
+ * The driver answers them while they read, and an answer is marked as soon as it is picked - right
+ * or wrong, with the right one shown beside it. Nothing is scored and nothing is locked: this is
+ * practice, so an answer can be changed as often as they like and the marks follow the answer they
+ * have now. What was answered is kept with the bank version being read, so coming back to a
+ * situation shows what they made of it.
  */
 @Composable
 fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
@@ -182,8 +182,6 @@ private fun SituationReading(
         SituationQuestionBlock(
             question = question,
             chosen = state.answers[question.questionId],
-            revealed = question.questionId in state.revealed,
-            onCheck = { onEvent(SituationUiEvent.Reveal(question.questionId)) },
             onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
         )
     }
@@ -225,13 +223,14 @@ private fun SituationTabs(
     }
 }
 
-/** One question of the situation: what it asks, the answers, and the way to check the answer. */
+/**
+ * One question of the situation: what it asks, and the answers, marked as soon as one is picked.
+ * There is no separate step to asking whether the answer was right: picking it is the answer.
+ */
 @Composable
 private fun SituationQuestionBlock(
     question: SituationQuestion,
     chosen: Int?,
-    revealed: Boolean,
-    onCheck: () -> Unit,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -242,13 +241,10 @@ private fun SituationQuestionBlock(
             options = question.answers,
             selectedIndex = chosen,
             correct = question.correct,
-            revealed = revealed,
+            // Answered is marked, unanswered is not: there is nothing to check separately.
+            revealed = chosen != null,
             onSelect = onSelect,
         )
-        // Nothing to check before an answer is picked, and a checked answer stays checked.
-        if (chosen != null && !revealed) {
-            OutlinePill(text = strings.checkAnswer, onClick = onCheck)
-        }
     }
 }
 
@@ -288,13 +284,13 @@ private fun SituationScreenAnsweredPreview() {
     }
 }
 
-/** The same question answered and checked: the marks are kept, so this is what coming back shows. */
+/** The same question answered wrongly: picking an answer is what marks it, at once. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
-private fun SituationScreenCheckedPreview() {
+private fun SituationScreenAnsweredWrongPreview() {
     AppPreview {
         SituationScreen(
-            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 1), revealed = setOf(1813)),
+            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 1)),
             onEvent = {},
             onClose = {},
         )
@@ -347,18 +343,30 @@ private fun SituationScreenLoadingPreview() {
     AppPreview { SituationScreen(state = SituationUiState.Loading, onEvent = {}, onClose = {}) }
 }
 
-/** One question on its own, answered and checked. */
-@Preview(widthDp = 400, heightDp = 420)
+/** The answers on their own: nothing picked, and the marks an answer gets the moment it is. */
+@Preview(widthDp = 400, heightDp = 520)
 @Composable
-private fun SituationQuestionCheckedPreview() {
+private fun SituationQuestionBlockPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("answered and checked")
+            PreviewLabel("nothing answered")
+            SituationQuestionBlock(
+                question = previewSituations[0].questions[0],
+                chosen = null,
+                onSelect = {},
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            PreviewLabel("answered wrongly")
             SituationQuestionBlock(
                 question = previewSituations[0].questions[0],
                 chosen = 1,
-                revealed = true,
-                onCheck = {},
+                onSelect = {},
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            PreviewLabel("answered rightly")
+            SituationQuestionBlock(
+                question = previewSituations[0].questions[0],
+                chosen = 2,
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
             )

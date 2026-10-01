@@ -134,42 +134,4 @@ class SituationViewModelTest : ViewModelTest() {
 
         assertEquals(2, assertIs<SituationUiState.Ready>(opened.value).answers[1814])
     }
-
-    @Test
-    fun checkingAnAnswerIsShownInTheState() = runTest {
-        val viewModel = viewModel(number = 1)
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(SituationUiEvent.Answer(questionId = 1813, chosen = 1))
-        viewModel.onEvent(SituationUiEvent.Reveal(questionId = 1813))
-
-        assertEquals(setOf(1813), assertIs<SituationUiState.Ready>(state.value).revealed)
-    }
-
-    @Test
-    fun whatWasCheckedIsThereTheNextTimeTheSituationIsOpened() = runTest {
-        // The marks are kept with the answer, so a driver who worked a question out isn't asked to
-        // check it again - they are shown what they found out.
-        val repositories = TestRepositories(testSituationsBank())
-        val first = viewModel(number = 1, repositories = repositories)
-        observe(first.uiState)
-        first.onEvent(SituationUiEvent.Answer(questionId = 1813, chosen = 1))
-        first.onEvent(SituationUiEvent.Reveal(questionId = 1813))
-
-        val opened = observe(viewModel(number = 1, repositories = repositories).uiState)
-
-        val ready = assertIs<SituationUiState.Ready>(opened.value)
-        assertEquals(setOf(1813), ready.revealed)
-        assertEquals(1, ready.answers[1813])
-    }
-
-    @Test
-    fun aQuestionThatHasNotBeenAnsweredCannotBeChecked() = runTest {
-        val viewModel = viewModel(number = 1)
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(SituationUiEvent.Reveal(questionId = 1813))
-
-        assertTrue(assertIs<SituationUiState.Ready>(state.value).revealed.isEmpty())
-    }
 }

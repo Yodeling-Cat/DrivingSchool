@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
@@ -83,9 +84,19 @@ import kotlin.math.sin
 private val PageTop = 48.dp
 private val PageBottom = 24.dp
 
-/** The result card, as the design draws it: one fixed-height poster. */
-private val CardHeight = 236.dp
+/** The result card, as the design draws it: a top band, the score bar, and the footer under it. */
 private val CardInset = 20.dp
+private val CardTopInset = 18.dp
+private val CardBottomInset = 18.dp
+
+/** Where the score sits in the band, and the line it stands on, which is the band's own floor. */
+private val ScoreTop = 48.dp
+private val ScoreLineHeight = 76.dp
+private val ScoreBandHeight = ScoreTop + ScoreLineHeight
+
+/** The room the design leaves under the score, and then under the bar for the footer. */
+private val BarGap = 22.dp
+private val FooterGap = 40.dp
 
 /** The score bar, and the tick that marks the pass mark on it. */
 private val TrackHeight = 8.dp
@@ -241,7 +252,7 @@ private fun ResultCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(CardHeight)
+            // As tall as what it draws: the poster is a backdrop, not a frame with a size of its own.
             .shadow(
                 elevation = 24.dp,
                 shape = shape,
@@ -261,73 +272,80 @@ private fun ResultCard(
                 }
                 .grain(GRAIN_CARD, shader),
         )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = CardInset, end = 18.dp, top = 18.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            EyebrowLabel(
-                text = eyebrow,
-                modifier = Modifier.weight(1f),
-                style = Naj.type.eyebrow,
-                color = colors.inkAt(0.75f),
-            )
-            if (hasVerdict) {
-                Stamp(passed = result.passed, color = stampColor, modifier = Modifier.padding(top = 8.dp))
-            }
-        }
-        Row(
-            modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = 48.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                result.score.toString(),
-                style = Naj.type.heroNumber,
-                color = colors.ink,
-                modifier = Modifier.alignByBaseline(),
-            )
-            Text(
-                "/ ${result.maxScore}",
-                style = Naj.type.heroSuffix,
-                color = colors.ink.copy(alpha = 0.6f),
-                modifier = Modifier.alignByBaseline(),
-            )
-        }
-        // The bar is inset like the footer under it, so its right end stays on the card: the score,
-        // and with it the tick, is a share of the card's own width, not of its edge.
-        ScoreBar(
-            percent = result.percent,
-            // No pass mark on a drill's card: there is nothing it was being measured against.
-            passPercent = passPercent.takeIf { hasVerdict },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = CardInset, end = CardInset, top = 146.dp),
-        )
-        // Under the bar: the percentage and the pass mark on the left, the time on the right. An
-        // attempt from before the app timed tests has no time to show, so the corner stays empty -
-        // and a drill's card keeps the whole footer empty, since it was never marked against anything.
-        if (hasVerdict) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(start = CardInset, end = CardInset, bottom = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "${result.percent} % · ${strings.passMarkShort(passPercent)}",
-                    style = Naj.type.small,
-                    color = colors.inkAt(0.75f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (elapsedSeconds > 0) {
+        // The card's own pieces, one under another, so the card is as tall as what it holds.
+        Column(Modifier.fillMaxWidth().padding(bottom = CardBottomInset)) {
+            // The design's top band: the eyebrow across it, the score 48dp down. The band is at least
+            // as tall as the score's line and grows with it, so a larger font moves the bar down
+            // instead of running the score into it.
+            Box(Modifier.fillMaxWidth().heightIn(min = ScoreBandHeight)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = CardInset, end = 18.dp, top = CardTopInset),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    EyebrowLabel(
+                        text = eyebrow,
+                        modifier = Modifier.weight(1f),
+                        style = Naj.type.eyebrow,
+                        color = colors.inkAt(0.75f),
+                    )
+                    if (hasVerdict) {
+                        Stamp(passed = result.passed, color = stampColor, modifier = Modifier.padding(top = 8.dp))
+                    }
+                }
+                Row(
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = ScoreTop),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        strings.minutesShort(elapsedMinutes(elapsedSeconds)),
+                        result.score.toString(),
+                        style = Naj.type.heroNumber,
+                        color = colors.ink,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    Text(
+                        "/ ${result.maxScore}",
+                        style = Naj.type.heroSuffix,
+                        color = colors.ink.copy(alpha = 0.6f),
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                }
+            }
+            // The bar is inset like the footer under it, so its right end stays on the card: the
+            // score, and with it the tick, is a share of the card's own width, not of its edge.
+            ScoreBar(
+                percent = result.percent,
+                // No pass mark on a drill's card: there is nothing it was being measured against.
+                passPercent = passPercent.takeIf { hasVerdict },
+                modifier = Modifier.padding(start = CardInset, end = CardInset, top = BarGap),
+            )
+            // Under the bar: the percentage and the pass mark on the left, the time on the right. An
+            // attempt from before the app timed tests has no time to show, so the corner stays empty
+            // - and a drill's card draws no footer at all, so the card ends under its bar.
+            if (hasVerdict) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = CardInset, end = CardInset, top = FooterGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${result.percent} % · ${strings.passMarkShort(passPercent)}",
                         style = Naj.type.small,
                         color = colors.inkAt(0.75f),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
+                    if (elapsedSeconds > 0) {
+                        Text(
+                            strings.minutesShort(elapsedMinutes(elapsedSeconds)),
+                            style = Naj.type.small,
+                            color = colors.inkAt(0.75f),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }

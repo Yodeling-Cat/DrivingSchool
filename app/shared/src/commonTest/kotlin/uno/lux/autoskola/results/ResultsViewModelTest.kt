@@ -50,6 +50,17 @@ class ResultsViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun aFinishedAttemptCarriesHowLongItTook() = runTest {
+        val attempt = startTest()
+        val session = repositories.exams.currentSession()
+        session.finish(attempt.id, elapsedSeconds = 1_403L)
+
+        val state = assertIs<ResultsUiState.Ready>(open(attempt).value)
+
+        assertEquals(1_403L, state.elapsedSeconds)
+    }
+
+    @Test
     fun unfinishedAttemptHasNoResults() = runTest {
         val attempt = startTest()
 

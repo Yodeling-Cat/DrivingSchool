@@ -56,6 +56,19 @@ class TestAttemptTimeTest {
     }
 
     @Test
+    fun countsElapsedTimeInWholeMinutes() {
+        assertEquals(0, elapsedMinutes(0L))
+        // Seconds are dropped, not rounded up: a test 23:59 long reads as 23 minutes.
+        assertEquals(0, elapsedMinutes(59L))
+        assertEquals(1, elapsedMinutes(60L))
+        assertEquals(23, elapsedMinutes(23 * 60))
+        assertEquals(23, elapsedMinutes(23 * 60 + 59))
+        assertEquals(30, elapsedMinutes(1800L))
+        // An attempt that predates the clock reads as no time at all, never as a minus.
+        assertEquals(0, elapsedMinutes(-30L))
+    }
+
+    @Test
     fun formatsElapsedTimeCorrectly() {
         assertEquals("00:00", formatElapsedTime(0L))
         assertEquals("00:09", formatElapsedTime(9L))

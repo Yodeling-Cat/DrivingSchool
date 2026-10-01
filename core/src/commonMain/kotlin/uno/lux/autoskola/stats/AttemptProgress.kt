@@ -69,6 +69,13 @@ fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
     )
 }
 
+/**
+ * The whole minutes [totalSeconds] is, the way the result card reads them: the seconds are dropped,
+ * so a test 23:59 long reads as 23 minutes. A count a test never gets to (a negative one) reads as
+ * no time at all rather than as a minus.
+ */
+fun elapsedMinutes(totalSeconds: Long): Int = (totalSeconds.coerceAtLeast(0) / 60).toInt()
+
 /** Formats [totalSeconds] as mm:ss (or h:mm:ss when an hour or more). */
 fun formatElapsedTime(totalSeconds: Long): String {
     val seconds = totalSeconds.coerceAtLeast(0)

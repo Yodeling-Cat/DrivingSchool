@@ -33,6 +33,8 @@ sealed interface ResultsUiState {
         val testNumber: Int?,
         val summary: AttemptSummary,
         val sections: List<ResultSection>,
+        /** How long the test ran. Zero on attempts made before the app timed tests. */
+        val elapsedSeconds: Long,
     ) : ResultsUiState
 }
 
@@ -60,6 +62,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : V
             sections = summary.sections.map {
                 ResultSection(session.bank.section(it.section)?.title.orEmpty(), it)
             },
+            elapsedSeconds = attempt.elapsedSeconds,
         )
     }
 }

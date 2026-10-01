@@ -48,6 +48,7 @@ import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.practice.attemptName
 import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.stats.AttemptSummary
+import uno.lux.autoskola.stats.elapsedMinutes
 import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
@@ -144,7 +145,7 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                     ) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            ResultCard(state.summary.result, eyebrow)
+                            ResultCard(state.summary.result, eyebrow, state.elapsedSeconds)
                             Counts(state.summary)
                             Actions(onReview, onDone)
                         }
@@ -153,7 +154,12 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                        ResultCard(state.summary.result, eyebrow, Modifier.padding(horizontal = 16.dp))
+                        ResultCard(
+                            state.summary.result,
+                            eyebrow,
+                            state.elapsedSeconds,
+                            Modifier.padding(horizontal = 16.dp),
+                        )
                         Counts(state.summary, Modifier.padding(horizontal = 16.dp))
                         Actions(onReview, onDone, Modifier.padding(horizontal = 16.dp))
                         Sections(state.sections, 16.dp)
@@ -193,10 +199,16 @@ private fun Header(state: ResultsUiState.Ready, onBack: () -> Unit) {
 
 /**
  * The result: the licence ramp with its waves, glow and grain, the pass stamp, the score over the
- * pass-mark bar — and, under all of it, the percentage and the mark it had to beat.
+ * pass-mark bar — and, under all of it, the percentage, the mark it had to beat and the time the
+ * test took.
  */
 @Composable
-private fun ResultCard(result: TestResult, eyebrow: String, modifier: Modifier = Modifier) {
+private fun ResultCard(
+    result: TestResult,
+    eyebrow: String,
+    elapsedSeconds: Long,
+    modifier: Modifier = Modifier,
+) {
     val colors = Naj.colors
     val shader = rememberGrainShader()
     val shape = RoundedCornerShape(LicenceRadius)
@@ -254,22 +266,41 @@ private fun ResultCard(result: TestResult, eyebrow: String, modifier: Modifier =
                 modifier = Modifier.alignByBaseline(),
             )
         }
+        // The bar is inset like the footer under it, so its right end stays on the card: the score,
+        // and with it the tick, is a share of the card's own width, not of its edge.
         ScoreBar(
             percent = result.percent,
             passPercent = passPercent,
-            modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = 146.dp),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = CardInset, end = CardInset, top = 146.dp),
         )
-        // Nothing in this state times a test, so the footer carries the score and the pass mark.
-        Text(
-            "${result.percent} % · ${strings.passMarkShort(passPercent)}",
-            style = Naj.type.small,
-            color = colors.inkAt(0.75f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        // Under the bar: the percentage and the pass mark on the left, the time on the right. An
+        // attempt from before the app timed tests has no time to show, so the corner stays empty.
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
+                .fillMaxWidth()
                 .padding(start = CardInset, end = CardInset, bottom = 18.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "${result.percent} % · ${strings.passMarkShort(passPercent)}",
+                style = Naj.type.small,
+                color = colors.inkAt(0.75f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (elapsedSeconds > 0) {
+                Text(
+                    strings.minutesShort(elapsedMinutes(elapsedSeconds)),
+                    style = Naj.type.small,
+                    color = colors.inkAt(0.75f),
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
@@ -286,7 +317,7 @@ private fun Stamp(passed: Boolean, color: Color, modifier: Modifier = Modifier) 
             .padding(horizontal = 14.dp, vertical = 6.dp),
     ) {
         Text(
-            (if (passed) strings.youPassed else strings.youFailed).uppercase(),
+            (if (passed) strings.passedStamp else strings.failedStamp).uppercase(),
             style = Naj.type.stamp,
             color = color,
             maxLines = 1,
@@ -462,12 +493,18 @@ private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
 // ── Previews ──
 
 /** A finished attempt over the sample sections, with the pass mark where the summary puts it. */
-private fun resultsState(summary: AttemptSummary = previewSummary()) = ResultsUiState.Ready(
+private fun resultsState(
+    summary: AttemptSummary = previewSummary(),
+    elapsedSeconds: Long = 23 * 60,
+): ResultsUiState.Ready = ResultsUiState.Ready(
     exam = previewExam,
     kind = AttemptKind.PracticeTest,
     testNumber = 7,
     summary = summary,
-    sections = summary.sections.mapIndexed { index, section -> ResultSection(previewSections[index].title, section) },
+    sections = summary.sections.mapIndexed { index, section ->
+        ResultSection(previewSections[index].title, section)
+    },
+    elapsedSeconds = elapsedSeconds,
 )
 
 /** A passed test on a phone: the poster, the three counts, the actions and the breakdown. */
@@ -479,12 +516,29 @@ private fun ResultsScreenPreview() {
     }
 }
 
-/** A failed test: 75 %, under the 90 % the stamp turns on. */
+/** A failed test: 75 %, under the 90 % the stamp turns on, done in twelve minutes. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun ResultsScreenFailedPreview() {
     AppPreview {
-        ResultsScreen(resultsState(previewSummary(correct = 30, wrong = 9)), onReview = {}, onDone = {})
+        ResultsScreen(
+            resultsState(previewSummary(correct = 30, wrong = 9), elapsedSeconds = 12 * 60),
+            onReview = {},
+            onDone = {},
+        )
+    }
+}
+
+/** A test finished before the app timed tests: the bottom-right corner stays empty. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun ResultsScreenUntimedPreview() {
+    AppPreview {
+        ResultsScreen(
+            resultsState(previewSummary(correct = 30, wrong = 9), elapsedSeconds = 0L),
+            onReview = {},
+            onDone = {},
+        )
     }
 }
 

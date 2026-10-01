@@ -50,6 +50,25 @@ class StringsTest {
     }
 
     @Test
+    fun everyLanguageReadsTheMinutesATestTook() {
+        AppLanguage.entries.forEach { language ->
+            assert("23" in language.strings.minutesShort(23)) { "${language.name} minutes" }
+        }
+    }
+
+    @Test
+    fun everyLanguageStampsATestAsPassedOrFailedInOneWord() {
+        AppLanguage.entries.forEach { language ->
+            val strings = language.strings
+            listOf(strings.passedStamp, strings.failedStamp).forEach { word ->
+                // The stamp is a fixed-size badge on the card: one word, no sentence in it.
+                assert(' ' !in word && word.length <= 11) { "${language.name} stamp \"$word\"" }
+            }
+            assert(strings.passedStamp != strings.failedStamp) { "${language.name} stamps differ" }
+        }
+    }
+
+    @Test
     fun everyLanguageNamesTheCountriesWeSupport() {
         AppLanguage.entries.forEach { language ->
             listOf("SK", "CZ").forEach { code ->

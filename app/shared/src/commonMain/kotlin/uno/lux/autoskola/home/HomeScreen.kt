@@ -44,7 +44,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -124,6 +123,9 @@ private val HeaderTopInset = 52.dp
 /** The room the pane beside the overview band keeps on either side of its content. */
 private val PaneLeading = 16.dp
 private val PaneTrailing = 32.dp
+
+/** The gap between the licence card's three figures, which sit together at its left edge. */
+private val StatGap = 24.dp
 
 /** The 13sp bold caption the design sets the exam pill and the hero's label in. */
 private val CaptionStyle: TextStyle
@@ -374,7 +376,7 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.weight(1f))
-            StatsRow(finished = finished, passed = passed, average = average, progress = progress)
+            StatsRow(finished = finished, passed = passed, average = average)
         }
     }
 }
@@ -409,45 +411,29 @@ private fun HeroRow(finished: Int, total: Int) {
     }
 }
 
-/** Passed, failed, average, and the questions answered out of the pool. */
+/** Passed, failed, and the average score of the tests taken. */
 @Composable
-private fun StatsRow(
-    finished: Int,
-    passed: Int,
-    average: Int?,
-    progress: HomeProgress,
-) {
-    Row(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-        Stat(label = strings.passed, value = "$passed", modifier = Modifier.weight(1f))
-        Stat(label = strings.failed, value = "${finished - passed}", modifier = Modifier.weight(1f))
-        Stat(
-            label = strings.averageShort,
-            value = average?.let { "$it%" } ?: "\u2013",
-            modifier = Modifier.weight(1f),
-        )
+private fun StatsRow(finished: Int, passed: Int, average: Int?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+        // The three figures stay together at the card's left edge. Spread across it - a column each -
+        // they read as three unrelated things, and the numbers they hold are one or two characters
+        // wide, so most of the card was empty space between them.
+        horizontalArrangement = Arrangement.spacedBy(StatGap),
+    ) {
+        Stat(label = strings.passed, value = "$passed")
+        Stat(label = strings.failed, value = "${finished - passed}")
+        Stat(label = strings.averageShort, value = average?.let { "$it%" } ?: "\u2013")
     }
 }
 
-/** One figure of the stats row: the number over its label, right-aligned in the last column. */
+/** One figure of the stats row: the number over its label. */
 @Composable
-private fun Stat(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    alignEnd: Boolean = false,
-) {
+private fun Stat(label: String, value: String) {
     val colors = Naj.colors
-    Column(
-        modifier = modifier,
-        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
-    ) {
+    Column {
         Text(text = value, style = Naj.type.statNumber, color = colors.ink)
-        Text(
-            text = label.uppercase(),
-            style = Naj.type.tiny,
-            color = colors.inkAt(0.7f),
-            textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
-        )
+        Text(text = label.uppercase(), style = Naj.type.tiny, color = colors.inkAt(0.7f))
     }
 }
 

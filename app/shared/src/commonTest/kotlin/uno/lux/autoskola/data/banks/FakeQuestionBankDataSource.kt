@@ -72,3 +72,24 @@ fun testQuestion(
     image = image,
     groups = groups,
 )
+
+/**
+ * A bank whose topic holds situations: two drawings, the first asked about twice, and a third one
+ * the drivers of group A alone are asked.
+ */
+fun testSituationsBank(id: String = "sk-sk", version: Int = 1) = QuestionBank(
+    id = id,
+    version = version,
+    country = "SK",
+    language = "sk",
+    imageDir = "minv-sk",
+    sections = listOf(
+        Section(id = 4, title = "Dopravné situácie na križovatkách", questionsPerTest = 4, points = 4),
+    ),
+    questions = listOf(
+        testQuestion(1813, section = 4, image = "obr3/ds/01.png"),
+        testQuestion(1814, section = 4, image = "obr3/ds/01.png"),
+        testQuestion(1815, section = 4, image = "obr3/ds/02.png"),
+        testQuestion(1816, section = 4, image = "obr3/ds/03.png", groups = listOf(LicenseCategory.A)),
+    ),
+)

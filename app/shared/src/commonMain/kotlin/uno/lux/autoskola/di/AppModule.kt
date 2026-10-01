@@ -19,7 +19,9 @@ import uno.lux.autoskola.data.signs.ResourceSignCatalogueDataSource
 import uno.lux.autoskola.data.signs.SignCatalogueDataSource
 import uno.lux.autoskola.data.signs.SignCatalogueRepository
 import uno.lux.autoskola.home.HomeViewModel
+import uno.lux.autoskola.learn.IntersectionsViewModel
 import uno.lux.autoskola.learn.SignsViewModel
+import uno.lux.autoskola.learn.SituationViewModel
 import uno.lux.autoskola.navigation.navigationState
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
@@ -51,6 +53,8 @@ val appModule = module {
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SignsViewModel)
+    viewModelOf(::IntersectionsViewModel)
+    viewModel { (number: Int) -> SituationViewModel(number, get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }

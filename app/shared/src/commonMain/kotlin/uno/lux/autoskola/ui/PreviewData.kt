@@ -11,6 +11,8 @@ import uno.lux.autoskola.home.ResumableTest
 import uno.lux.autoskola.home.ResumePrompt
 import uno.lux.autoskola.learn.SignGroupItem
 import uno.lux.autoskola.learn.SignItem
+import uno.lux.autoskola.learn.SituationItem
+import uno.lux.autoskola.learn.SituationQuestion
 import uno.lux.autoskola.onboarding.ExamLabel
 import uno.lux.autoskola.practice.PracticeQuestion
 import uno.lux.autoskola.stats.AttemptKind
@@ -94,6 +96,49 @@ internal fun previewSignItem(number: String, name: String, description: String) 
     name = name,
     description = description,
     imageUri = "preview://minv-sk/obr3/dz/$number.jpg",
+)
+
+/**
+ * The situations the intersections previews draw, with real texts from the bank: two of the
+ * exam's drawings and the questions asked about them. The URIs point nowhere, as a preview can't
+ * load them, so a drawing shows the box it shows while it is arriving.
+ */
+internal val previewSituations = listOf(
+    SituationItem(
+        number = 1,
+        imageUri = "preview://minv-sk/obr3/ds/01.png",
+        questions = listOf(
+            SituationQuestion(
+                text = "V poradí druhé prejde cez križovatku",
+                answers = listOf(
+                    "modré vozidlo.",
+                    "červené vozidlo odbočujúce vľavo.",
+                    "vaše vozidlo odbočujúce vľavo.",
+                ),
+                correct = 2,
+            ),
+            SituationQuestion(
+                text = "Vozidlá prejdú cez križovatku v tomto poradí:",
+                answers = listOf(
+                    "červené vozidlo, vaše vozidlo, modré vozidlo.",
+                    "modré vozidlo, červené vozidlo, vaše vozidlo.",
+                    "vaše vozidlo, modré vozidlo, červené vozidlo.",
+                ),
+                correct = 0,
+            ),
+        ),
+    ),
+    SituationItem(
+        number = 2,
+        imageUri = "preview://minv-sk/obr3/ds/02.png",
+        questions = listOf(
+            SituationQuestion(
+                text = "Ako posledné prejde cez križovatku",
+                answers = listOf("modré vozidlo.", "vaše vozidlo.", "červené vozidlo."),
+                correct = 1,
+            ),
+        ),
+    ),
 )
 
 /** The sections the sample questions belong to, as the question list groups them. */

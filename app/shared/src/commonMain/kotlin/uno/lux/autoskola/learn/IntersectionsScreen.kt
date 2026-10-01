@@ -1,0 +1,250 @@
+package uno.lux.autoskola.learn
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
+import uno.lux.autoskola.i18n.AppLanguage
+import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.practice.IconArrowBack
+import uno.lux.autoskola.ui.AppPreview
+import uno.lux.autoskola.ui.CardDivider
+import uno.lux.autoskola.ui.ContentWidth
+import uno.lux.autoskola.ui.EnlargeableImage
+import uno.lux.autoskola.ui.LocalNavBarInset
+import uno.lux.autoskola.ui.PreviewBoard
+import uno.lux.autoskola.ui.PreviewLabel
+import uno.lux.autoskola.ui.RoundButton
+import uno.lux.autoskola.ui.previewSituations
+import uno.lux.autoskola.ui.theme.Naj
+import uno.lux.autoskola.ui.theme.paperBackground
+
+/** How big a situation's drawing is drawn in the list: wide, and small enough to scan the index. */
+private val SituationThumbWidth = 190.dp
+private val SituationThumbHeight = 88.dp
+
+/** Connects [IntersectionsScreen] to its [IntersectionsViewModel] and to navigation. */
+@Composable
+fun IntersectionsRoute(
+    onBack: () -> Unit,
+    onOpenSituation: (Int) -> Unit,
+    viewModel: IntersectionsViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    IntersectionsScreen(state, onBack, onOpenSituation)
+}
+
+/**
+ * The situations the exam asks about at intersections: the drawing of each and how many questions
+ * come with it. The drawing opens bigger when it's tapped; the row opens the situation itself.
+ */
+@Composable
+fun IntersectionsScreen(state: IntersectionsUiState, onBack: () -> Unit, onOpenSituation: (Int) -> Unit) {
+    // Measured here, outside the list, so an enlarged drawing is never drawn bigger than the screen.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val page = DpSize(maxWidth, maxHeight)
+        Box(Modifier.fillMaxSize().paperBackground()) {
+            Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+                Column(
+                    Modifier
+                        .widthIn(max = ContentWidth.Reading)
+                        .fillMaxWidth()
+                        .padding(bottom = LocalNavBarInset.current),
+                ) {
+                    SituationsHeader(state, onBack)
+                    when (state) {
+                        IntersectionsUiState.Loading -> SituationsLoading(Modifier.weight(1f))
+
+                        is IntersectionsUiState.Ready ->
+                            if (state.situations.isEmpty()) {
+                                SituationsEmpty(Modifier.weight(1f))
+                            } else {
+                                SituationList(state.situations, page, onOpenSituation, Modifier.weight(1f))
+                            }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Back, what the material is, and how much of it there is. */
+@Composable
+private fun SituationsHeader(state: IntersectionsUiState, onBack: () -> Unit) {
+    val colors = Naj.colors
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
+        Column(Modifier.weight(1f)) {
+            Text(strings.learnIntersections, style = Naj.type.screenTitle, color = colors.ink)
+            (state as? IntersectionsUiState.Ready)?.takeIf { it.situations.isNotEmpty() }?.let { ready ->
+                Text(
+                    text = strings.situationsCount(ready.situations.size) +
+                        " · " + strings.situationQuestions(ready.questionCount),
+                    style = Naj.type.secondary,
+                    color = colors.muted,
+                )
+            }
+        }
+    }
+}
+
+/** The situations, in the order the exam lists them. */
+@Composable
+private fun SituationList(
+    situations: List<SituationItem>,
+    page: DpSize,
+    onOpenSituation: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        items(situations, key = { it.number }) { situation ->
+            SituationRow(situation, page, onClick = { onOpenSituation(situation.number) })
+            CardDivider()
+        }
+    }
+}
+
+/** One situation: its drawing, what it is called, and how much is asked about it. */
+@Composable
+private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> Unit) {
+    val colors = Naj.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(Modifier.width(SituationThumbWidth)) {
+            EnlargeableImage(uri = situation.imageUri, page = page, maxHeight = SituationThumbHeight)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(strings.situationName(situation.number), style = Naj.type.rowTitle, color = colors.ink)
+            Spacer(Modifier.height(3.dp))
+            Text(
+                strings.situationQuestions(situation.questions.size),
+                style = Naj.type.rowSubtitle,
+                color = colors.muted,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.primaryDeep,
+        )
+    }
+}
+
+/** An exam whose bank holds no situations, which the bundled banks all do. */
+@Composable
+private fun SituationsEmpty(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.TopCenter) {
+        Text(strings.situationsNothingFound, style = Naj.type.body, color = Naj.colors.muted)
+    }
+}
+
+/** Nothing to list until the exam and its bank have been read. */
+@Composable
+private fun SituationsLoading(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = Naj.colors.primaryDeep)
+    }
+}
+
+// ── Previews ──
+
+/** The situations of an exam, on a phone. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun IntersectionsScreenPreview() {
+    AppPreview {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(previewSituations),
+            onBack = {},
+            onOpenSituation = {},
+        )
+    }
+}
+
+/** The same list while the exam is being read. */
+@Preview(widthDp = 400, heightDp = 600)
+@Composable
+private fun IntersectionsScreenLoadingPreview() {
+    AppPreview { IntersectionsScreen(IntersectionsUiState.Loading, onBack = {}, onOpenSituation = {}) }
+}
+
+/** A tablet, where the reading column is capped and centred. */
+@Preview(widthDp = 900, heightDp = 700)
+@Composable
+private fun IntersectionsScreenWidePreview() {
+    AppPreview {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(previewSituations),
+            onBack = {},
+            onOpenSituation = {},
+        )
+    }
+}
+
+/** The names in Slovak, whose words are longer than the English ones. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun IntersectionsScreenSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(previewSituations),
+            onBack = {},
+            onOpenSituation = {},
+        )
+    }
+}
+
+/** One row of the list on its own, beside what it draws. */
+@Preview(widthDp = 400, heightDp = 220)
+@Composable
+private fun SituationRowPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("a situation with questions of its own")
+            SituationRow(previewSituations[0], DpSize(400.dp, 220.dp), onClick = {})
+            SituationRow(previewSituations[1], DpSize(400.dp, 220.dp), onClick = {})
+        }
+    }
+}

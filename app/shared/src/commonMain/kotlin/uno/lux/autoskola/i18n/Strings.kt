@@ -85,6 +85,19 @@ class Strings(
     val signsCollapseGroup: String,
     /** On a group's heading: opens its signs. */
     val signsExpandGroup: String,
+    // Intersections
+    /** How many situations at intersections the material holds. */
+    val situationsCount: (count: Int) -> String,
+    /** What the screen calls the situation it is showing, e.g. "Situation 3". */
+    val situationName: (number: Int) -> String,
+    /** How many questions are asked about one situation. */
+    val situationQuestions: (count: Int) -> String,
+    /** Shown for an exam whose bank asks about no situations at all. */
+    val situationsNothingFound: String,
+    /** The action that drills every situation, in the practice screen. */
+    val situationsDrillAll: String,
+    /** The action that drills the one situation the screen is showing. */
+    val situationsDrillOne: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -226,6 +239,12 @@ private val EnglishStrings = Strings(
     signsExpandAll = "Expand every group",
     signsCollapseGroup = "Collapse group",
     signsExpandGroup = "Expand group",
+    situationsCount = { if (it == 1) "1 situation" else "$it situations" },
+    situationName = { "Situation $it" },
+    situationQuestions = { if (it == 1) "1 question" else "$it questions" },
+    situationsNothingFound = "No situations in this exam",
+    situationsDrillAll = "Drill every situation",
+    situationsDrillOne = "Drill this situation",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -342,6 +361,12 @@ private val SlovakStrings = Strings(
     signsExpandAll = "Rozbaliť všetky skupiny",
     signsCollapseGroup = "Zbaliť skupinu",
     signsExpandGroup = "Rozbaliť skupinu",
+    situationsCount = { "$it " + westSlavicPlural(it, "situácia", "situácie", "situácií") },
+    situationName = { "Situácia $it" },
+    situationQuestions = { "$it " + westSlavicPlural(it, "otázka", "otázky", "otázok") },
+    situationsNothingFound = "Táto skúška nemá situácie",
+    situationsDrillAll = "Precvičiť všetky situácie",
+    situationsDrillOne = "Precvičiť túto situáciu",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -458,6 +483,12 @@ private val HungarianStrings = Strings(
     signsExpandAll = "Összes csoport kibontása",
     signsCollapseGroup = "Csoport összecsukása",
     signsExpandGroup = "Csoport kibontása",
+    situationsCount = { "$it helyzet" },
+    situationName = { "$it. helyzet" },
+    situationQuestions = { "$it kérdés" },
+    situationsNothingFound = "Ennek a vizsgának nincs helyzete",
+    situationsDrillAll = "Összes helyzet gyakorlása",
+    situationsDrillOne = "A helyzet gyakorlása",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -574,6 +605,12 @@ private val CzechStrings = Strings(
     signsExpandAll = "Rozbalit všechny skupiny",
     signsCollapseGroup = "Sbalit skupinu",
     signsExpandGroup = "Rozbalit skupinu",
+    situationsCount = { "$it " + westSlavicPlural(it, "situace", "situace", "situací") },
+    situationName = { "Situace $it" },
+    situationQuestions = { "$it " + westSlavicPlural(it, "otázka", "otázky", "otázek") },
+    situationsNothingFound = "Tato zkouška nemá situace",
+    situationsDrillAll = "Procvičit všechny situace",
+    situationsDrillOne = "Procvičit tuto situaci",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

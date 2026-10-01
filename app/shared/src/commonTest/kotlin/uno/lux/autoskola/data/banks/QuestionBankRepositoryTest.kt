@@ -44,6 +44,25 @@ class QuestionBankRepositoryTest {
     }
 
     @Test
+    fun aPictureIsAddressedByItsPath() = runTest {
+        // A situation's drawing is not a question's picture, but the path is relative to the same
+        // image directory, so the loader is handed the same kind of URI.
+        val bank = testBank("sk-sk", 1)
+        val repository = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
+
+        assertEquals("test://minv-sk/obr3/ds/01.png", repository.imageUri(bank, "obr3/ds/01.png"))
+    }
+
+    @Test
+    fun aQuestionWithoutAPictureHasNoImage() = runTest {
+        val bank = testBank("sk-sk", 1)
+        val repository = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
+
+        assertEquals("test://minv-sk/q1.png", repository.imageUri(bank, testQuestion(1, section = 1, image = "q1.png")))
+        assertNull(repository.imageUri(bank, testQuestion(2, section = 1)))
+    }
+
+    @Test
     fun bankIsReadAgainAfterAFailedRead() = runTest {
         // A read can fail once - or be cancelled - without the bank being gone. Remembering the
         // failure would keep the exam "missing" for the rest of the process, which drops the user

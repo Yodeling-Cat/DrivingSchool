@@ -33,6 +33,11 @@ class QuestionBankRepository(private val dataSource: QuestionBankDataSource) {
     }
 
     /** URI of the image of [question], for the image loader, or `null` for text-only questions. */
-    fun imageUri(bank: QuestionBank, question: Question): String? =
-        question.image?.let { dataSource.imageUri(bank.imageDir, it) }
+    fun imageUri(bank: QuestionBank, question: Question): String? = question.image?.let { imageUri(bank, it) }
+
+    /**
+     * URI of [image], a path relative to the bank's image directory, for the image loader. A
+     * question's picture and a situation's drawing are addressed the same way.
+     */
+    fun imageUri(bank: QuestionBank, image: String): String = dataSource.imageUri(bank.imageDir, image)
 }

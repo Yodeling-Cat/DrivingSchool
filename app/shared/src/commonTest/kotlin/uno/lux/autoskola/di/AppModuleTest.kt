@@ -13,7 +13,9 @@ import uno.lux.autoskola.data.signs.FakeSignCatalogueDataSource
 import uno.lux.autoskola.data.signs.SignCatalogueDataSource
 import uno.lux.autoskola.data.signs.testSignCatalogue
 import uno.lux.autoskola.home.HomeViewModel
+import uno.lux.autoskola.learn.IntersectionsViewModel
 import uno.lux.autoskola.learn.SignsViewModel
+import uno.lux.autoskola.learn.SituationViewModel
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
@@ -42,6 +44,8 @@ class AppModuleTest : ViewModelTest() {
         koin.get<ExamSelectionViewModel>()
         koin.get<HomeViewModel>()
         koin.get<SignsViewModel>()
+        koin.get<IntersectionsViewModel>()
+        koin.get<SituationViewModel> { parametersOf(1) }
         koin.get<SettingsViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }

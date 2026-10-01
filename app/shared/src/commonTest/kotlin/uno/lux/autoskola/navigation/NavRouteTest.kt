@@ -16,6 +16,10 @@ class NavRouteTest {
         assertEquals("home", routeOf(listOf(HomeKey)))
         assertEquals("home/practice/1759301234567-9x", routeOf(listOf(HomeKey, PracticeKey("1759301234567-9x"))))
         assertEquals("home/learn/signs", routeOf(listOf(HomeKey, LearnKey, SignsKey)))
+        assertEquals(
+            "home/learn/intersections/situation/3",
+            routeOf(listOf(HomeKey, LearnKey, IntersectionsKey, SituationKey(3))),
+        )
     }
 
     @Test
@@ -25,6 +29,7 @@ class NavRouteTest {
             listOf(HomeKey, LearnKey),
             listOf(HomeKey, LearnKey, SignsKey),
             listOf(HomeKey, LearnKey, IntersectionsKey),
+            listOf(HomeKey, LearnKey, IntersectionsKey, SituationKey(3)),
             listOf(HomeKey, LearnKey, LegislationKey),
             listOf(HomeKey, SettingsKey),
             listOf(HomeKey, ChangeExamKey),
@@ -45,6 +50,7 @@ class NavRouteTest {
             LearnKey,
             SignsKey,
             IntersectionsKey,
+            SituationKey(3),
             LegislationKey,
             SettingsKey,
             ChangeExamKey,
@@ -83,6 +89,9 @@ class NavRouteTest {
     @Test
     fun aScreenMissingWhatItIsAboutEndsTheRoute() {
         assertEquals(listOf(HomeKey), backStackOf("home/practice"))
+        assertEquals(listOf(HomeKey), backStackOf("home/situation"))
+        // A situation is named by its number, so a part that isn't one names no screen.
+        assertEquals(listOf(HomeKey), backStackOf("home/situation/first"))
     }
 
     @Test

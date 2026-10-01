@@ -29,10 +29,12 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.koin.compose.koinInject
 import uno.lux.autoskola.home.HomeRoute
+import uno.lux.autoskola.learn.IntersectionsRoute
 import uno.lux.autoskola.learn.LearnPlaceholderScreen
 import uno.lux.autoskola.learn.LearnScreen
 import uno.lux.autoskola.learn.LearnSection
 import uno.lux.autoskola.learn.SignsRoute
+import uno.lux.autoskola.learn.SituationRoute
 import uno.lux.autoskola.onboarding.ExamSelectionRoute
 import uno.lux.autoskola.practice.PracticeRoute
 import uno.lux.autoskola.results.ResultsRoute
@@ -52,6 +54,10 @@ data object SignsKey : NavKey
 
 @Serializable
 data object IntersectionsKey : NavKey
+
+/** One situation of the intersections material, by its place in it. */
+@Serializable
+data class SituationKey(val number: Int) : NavKey
 
 @Serializable
 data object LegislationKey : NavKey
@@ -76,6 +82,7 @@ private val navConfiguration = SavedStateConfiguration {
             subclass(LearnKey::class, LearnKey.serializer())
             subclass(SignsKey::class, SignsKey.serializer())
             subclass(IntersectionsKey::class, IntersectionsKey.serializer())
+            subclass(SituationKey::class, SituationKey.serializer())
             subclass(LegislationKey::class, LegislationKey.serializer())
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
@@ -175,7 +182,15 @@ fun ExamNavigation() {
                 }
             }
             entry<SignsKey> { SignsRoute(onBack = pop) }
-            entry<IntersectionsKey> { LearnPlaceholderScreen(LearnSection.Intersections, onBack = pop) }
+            entry<IntersectionsKey> {
+                IntersectionsRoute(
+                    onBack = pop,
+                    onOpenSituation = { number -> backStack.add(SituationKey(number)) },
+                )
+            }
+            entry<SituationKey> { key ->
+                SituationRoute(key.number, onClose = { backStack.popIfTop(key) })
+            }
             entry<LegislationKey> { LearnPlaceholderScreen(LearnSection.Legislation, onBack = pop) }
             entry<SettingsKey>(metadata = tabMetadata) {
                 NavigationShell(NavTab.Settings, selectTab) {

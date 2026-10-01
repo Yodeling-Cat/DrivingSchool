@@ -35,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +47,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -106,7 +110,6 @@ private val ResumeCardHeight = 84.dp
 private val ResumeWideHeight = 96.dp
 private val ResumeCardRadius = 24.dp
 private val ResumeWideRadius = 28.dp
-private val ResumeBarWidth = 150.dp
 private const val RESUME_GRAIN = 0.4f
 
 /** The orange the resume card floats on: rgba(255, 150, 0, .6). */
@@ -445,6 +448,7 @@ private fun ResumeCard(
     val colors = Naj.colors
     val shader = rememberGrainShader()
     val shape = RoundedCornerShape(if (wide) ResumeWideRadius else ResumeCardRadius)
+    val summary = strings.resumeSummary(attemptName(test.kind, test.testNumber), test.answered, test.total)
 
     Box(
         modifier = modifier
@@ -467,11 +471,17 @@ private fun ResumeCard(
                     style = Naj.type.letterSpacedSmall,
                     color = colors.resumeOn,
                 )
+                // The bar below is only as wide as the summary itself, so the two read as one block
+                // rather than the bar running past the words it belongs to. The summary is measured
+                // as it is drawn, so a wrapped line keeps the bar with the text rather than the
+                // column it wraps in.
+                var summaryWidth by remember { mutableStateOf(0) }
                 Text(
-                    text = strings.resumeSummary(attemptName(test.kind, test.testNumber), test.answered, test.total),
+                    text = summary,
                     style = if (wide) Naj.type.cardHero else Naj.type.cardHeroSmall,
                     color = colors.ink,
                     modifier = Modifier.padding(top = 2.dp),
+                    onTextLayout = { summaryWidth = it.size.width },
                 )
                 if (!wide) {
                     ProgressBar(
@@ -479,7 +489,9 @@ private fun ResumeCard(
                         height = 5.dp,
                         trackColor = colors.inkAt(0.15f),
                         fillColor = colors.ink,
-                        modifier = Modifier.width(ResumeBarWidth).padding(top = 8.dp),
+                        modifier = Modifier
+                            .width(with(LocalDensity.current) { summaryWidth.toDp() })
+                            .padding(top = 8.dp),
                     )
                 }
             }

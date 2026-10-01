@@ -33,12 +33,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,6 +60,7 @@ import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PrimaryPill
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.drawLicenceGlow
 import uno.lux.autoskola.ui.drawLicenceWaves
 import uno.lux.autoskola.ui.previewExam
 import uno.lux.autoskola.ui.previewSections
@@ -95,6 +94,9 @@ private val TrackTickWidth = 2.dp
 /** The three counting tiles. */
 private val CountRadius = 20.dp
 private val CountGap = 10.dp
+
+/** Where the white glow sits, off the poster's top-left corner; see [drawLicenceGlow]. */
+private val PosterGlowCentre = DpOffset(-40.dp, -60.dp)
 
 /** How far the stamp is tilted, the way a rubber stamp lands. */
 private const val STAMP_TILT = -8f
@@ -219,7 +221,7 @@ private fun ResultCard(result: TestResult, eyebrow: String, modifier: Modifier =
                 .cssGradient(colors.licenceGradient, 115f)
                 .drawBehind {
                     drawLicenceWaves()
-                    leftGlow()
+                    drawLicenceGlow(PosterGlowCentre)
                 }
                 .grain(GRAIN_CARD, shader),
         )
@@ -455,23 +457,6 @@ private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
     val centre = Offset(size.width / 2f, size.height / 2f)
     val half = direction * (length / 2f)
     return Brush.linearGradient(colors, centre - half, centre + half)
-}
-
-/** The white highlight that bleeds into the card from its left edge. */
-private fun DrawScope.leftGlow() {
-    translate(-40.dp.toPx(), -60.dp.toPx()) {
-        scale(130.dp.toPx(), 100.dp.toPx(), pivot = Offset.Zero) {
-            drawRect(
-                brush = Brush.radialGradient(
-                    colorStops = arrayOf(0f to Color.White.copy(alpha = 0.55f), 1f to Color.Transparent),
-                    center = Offset.Zero,
-                    radius = 1f,
-                ),
-                topLeft = Offset(-1f, -1f),
-                size = Size(2f, 2f),
-            )
-        }
-    }
 }
 
 // ── Previews ──

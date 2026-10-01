@@ -45,13 +45,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,6 +81,7 @@ import uno.lux.autoskola.ui.TestStatus
 import uno.lux.autoskola.ui.TestTile
 import uno.lux.autoskola.ui.TileRadius
 import uno.lux.autoskola.ui.WidthClass
+import uno.lux.autoskola.ui.drawLicenceGlow
 import uno.lux.autoskola.ui.drawLicenceWaves
 import uno.lux.autoskola.ui.fullWidthItem
 import uno.lux.autoskola.ui.previewExam
@@ -102,11 +101,8 @@ import uno.lux.autoskola.ui.theme.rememberGrainShader
 
 private val LicenceCardHeight = 222.dp
 
-/** The white glow over the card's left edge: a 260x200 ellipse centred on (90, 40). */
-private val LicenceGlowCenterX = 90.dp
-private val LicenceGlowCenterY = 40.dp
-private val LicenceGlowWidth = 260.dp
-private val LicenceGlowHeight = 200.dp
+/** Where the white glow sits over the card's left edge; see [drawLicenceGlow]. */
+private val LicenceGlowCentre = DpOffset(90.dp, 40.dp)
 
 /** The yellow "unfinished test" card: 84dp, or the wide layout's taller banner. */
 private val ResumeCardHeight = 84.dp
@@ -347,7 +343,7 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
         Box(Modifier.fillMaxSize().grain(GRAIN_CARD, shader)) {
             Canvas(Modifier.fillMaxSize()) {
                 drawLicenceWaves()
-                drawLicenceGlow()
+                drawLicenceGlow(LicenceGlowCentre)
             }
             TopHighlight()
         }
@@ -729,26 +725,6 @@ private fun ProgressBar(
 @Composable
 private fun TopHighlight(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxWidth().height(1.dp)) { drawRect(Color.White.copy(alpha = 0.7f)) }
-}
-
-/** The white glow over the card's left edge, as a squashed radial gradient. */
-private fun DrawScope.drawLicenceGlow() {
-    val radiusX = LicenceGlowWidth.toPx() / 2f
-    val radiusY = LicenceGlowHeight.toPx() / 2f
-    translate(LicenceGlowCenterX.toPx(), LicenceGlowCenterY.toPx()) {
-        // Scaling the canvas turns the circular gradient into the design's ellipse.
-        scale(radiusX, radiusY, pivot = Offset.Zero) {
-            drawRect(
-                brush = Brush.radialGradient(
-                    colorStops = arrayOf(0f to Color.White.copy(alpha = 0.55f), 1f to Color.Transparent),
-                    center = Offset.Zero,
-                    radius = 1f,
-                ),
-                topLeft = Offset(-1f, -1f),
-                size = Size(2f, 2f),
-            )
-        }
-    }
 }
 
 /** Breaks a label at its middle space, the way the design sets the hero's two-line caption. */

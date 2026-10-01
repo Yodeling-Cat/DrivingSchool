@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Claude Code, Codex, etc.) when 
 
 ## Project overview
 
-NajAutoskola is a Kotlin Multiplatform driving-school app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server. The codebase is currently a fresh KMP scaffold — the placeholder `Greeting`/`Platform` code is template output, not real domain logic.
+NajAutoskola is a Kotlin Multiplatform driving-school app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server. The KMP template's placeholders — a `Greeting`, a `Platform` interface with `getPlatform()`, the generated example tests and the Compose logo drawable — have been removed, so everything in the repo is app code.
 
 Root package is `uno.lux.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `uno.lux.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. Gradle root project name is `NajAutoskola`.
 
@@ -41,9 +41,9 @@ Cross-module rule of thumb: shared **business logic** that the server also needs
 
 ## Platform-specific code
 
-`:app:shared` uses the `expect`/`actual` pattern. `Platform.kt` in `commonMain` declares `expect fun getPlatform(): Platform`; each target source set (`androidMain`, `iosMain`, `jsMain`, `wasmJsMain`, `jvmMain`) provides its own `actual`. When adding platform APIs, follow this same pattern rather than introducing per-target abstractions.
+`:app:shared` uses the `expect`/`actual` pattern: the declaration goes in `commonMain`, and each target source set provides its own `actual`. The targets are `android`, `iosArm64`, `iosSimulatorArm64`, `js` and `wasmJs`, so those source sets are `androidMain`, `iosMain`, `jsMain` and `wasmJsMain`; there is no `jvmMain`, because the module has no desktop target. Examples: `WindowTitle.kt` (`expect fun setWindowTitle(title: String)`), `DebugBuild.kt` (`expect fun isDebugBuild(): Boolean`) and `NavigationState.kt`. Each keeps one file per target, named after the common one (`WindowTitle.ios.kt`, `DebugBuild.wasmJs.kt`), and every target has one even where the function does nothing — the apps have no window title, so `setWindowTitle` is empty there. When adding platform APIs, follow this same pattern rather than introducing per-target abstractions.
 
-Compose resources live in `app/shared/src/commonMain/composeResources/` and are accessed via the generated `najautoskola.app.shared.generated.resources.Res` class (e.g. `Res.drawable.compose_multiplatform`).
+Compose resources live in `app/shared/src/commonMain/composeResources/` and are accessed via the generated `najautoskola.app.shared.generated.resources.Res` class (e.g. `Res.drawable.grain`, or `Res.getUri` for a question image).
 
 ## Screen sizes and languages
 

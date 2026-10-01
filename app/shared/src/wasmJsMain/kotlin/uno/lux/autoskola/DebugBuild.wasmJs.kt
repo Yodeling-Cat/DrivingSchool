@@ -2,12 +2,6 @@ package uno.lux.autoskola
 
 import kotlinx.browser.window
 
-class WasmPlatform : Platform {
-    override val name: String = "Web with Kotlin/Wasm"
-}
-
-actual fun getPlatform(): Platform = WasmPlatform()
-
 /** The hosts the development web server serves on; a deployed build is not served from one. */
 private val DEV_SERVER_HOSTS = setOf("localhost", "127.0.0.1", "[::1]")
 

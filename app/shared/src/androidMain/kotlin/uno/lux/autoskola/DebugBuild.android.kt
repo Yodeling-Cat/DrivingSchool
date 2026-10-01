@@ -1,13 +1,5 @@
 package uno.lux.autoskola
 
-import android.os.Build
-
-class AndroidPlatform : Platform {
-    override val name: String = "Android ${Build.VERSION.SDK_INT}"
-}
-
-actual fun getPlatform(): Platform = AndroidPlatform()
-
 /**
  * The app's build type, which is what "a debug build" means on Android. The shared module has no
  * build type of its own - the multiplatform library plugin offers no BuildConfig - so the app's is

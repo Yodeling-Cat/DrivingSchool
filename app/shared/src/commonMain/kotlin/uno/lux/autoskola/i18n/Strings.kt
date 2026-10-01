@@ -143,6 +143,9 @@ class Strings(
     val closeQuestionList: String,
     val previousQuestion: String,
     val nextQuestion: String,
+    /** The same steps for the situations, which the detail screen moves between the same way. */
+    val previousSituation: String,
+    val nextSituation: String,
     val moreOptions: String,
     val finishTest: String,
 
@@ -293,6 +296,8 @@ private val EnglishStrings = Strings(
     closeQuestionList = "Close question list",
     previousQuestion = "Previous question",
     nextQuestion = "Next question",
+    previousSituation = "Previous situation",
+    nextSituation = "Next situation",
     moreOptions = "More options",
     finishTest = "Finish test",
 
@@ -420,6 +425,8 @@ private val SlovakStrings = Strings(
     closeQuestionList = "Zavrieť zoznam otázok",
     previousQuestion = "Predchádzajúca otázka",
     nextQuestion = "Ďalšia otázka",
+    previousSituation = "Predchádzajúca situácia",
+    nextSituation = "Nasledujúca situácia",
     moreOptions = "Ďalšie možnosti",
     finishTest = "Ukončiť test",
 
@@ -547,6 +554,8 @@ private val HungarianStrings = Strings(
     closeQuestionList = "Kérdéslista bezárása",
     previousQuestion = "Előző kérdés",
     nextQuestion = "Következő kérdés",
+    previousSituation = "Előző helyzet",
+    nextSituation = "Következő helyzet",
     moreOptions = "További lehetőségek",
     finishTest = "Teszt befejezése",
 
@@ -674,6 +683,8 @@ private val CzechStrings = Strings(
     closeQuestionList = "Zavřít seznam otázek",
     previousQuestion = "Předchozí otázka",
     nextQuestion = "Další otázka",
+    previousSituation = "Předchozí situace",
+    nextSituation = "Následující situace",
     moreOptions = "Další možnosti",
     finishTest = "Ukončit test",
 

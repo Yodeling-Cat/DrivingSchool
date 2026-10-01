@@ -39,13 +39,29 @@ class SituationViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theSituationTheListNumberedIsTheOneThatOpens() = runTest {
+    fun theSituationTheListNumberedIsTheOneItOpensOn() = runTest {
         val state = observe(viewModel(number = 2).uiState)
 
         val ready = assertIs<SituationUiState.Ready>(state.value)
-        assertEquals(2, ready.situation.number)
-        assertEquals("test://minv-sk/obr3/ds/02.png", ready.situation.imageUri)
-        assertEquals(listOf("Q1815"), ready.situation.questions.map { it.text })
+        assertEquals(1, ready.initialPage)
+        assertEquals(2, ready.situations[ready.initialPage].number)
+        assertEquals("test://minv-sk/obr3/ds/02.png", ready.situations[1].imageUri)
+        assertEquals(listOf("Q1815"), ready.situations[1].questions.map { it.text })
+    }
+
+    @Test
+    fun everySituationIsCarriedSoTheScreenCanMoveBetweenThem() = runTest {
+        // Which one is being read is the screen's own business; what the situations are is not, so
+        // the state holds them all and the screen pages through them without asking the ViewModel.
+        val state = observe(viewModel(number = 1).uiState)
+
+        val ready = assertIs<SituationUiState.Ready>(state.value)
+        assertEquals(0, ready.initialPage)
+        assertEquals(listOf(1, 2), ready.situations.map { it.number })
+        assertEquals(
+            listOf(listOf("Q1813", "Q1814"), listOf("Q1815")),
+            ready.situations.map { situation -> situation.questions.map { it.text } },
+        )
     }
 
     @Test
@@ -54,7 +70,7 @@ class SituationViewModelTest : ViewModelTest() {
 
         assertEquals(
             listOf("Q1813", "Q1814"),
-            assertIs<SituationUiState.Ready>(state.value).situation.questions.map { it.text },
+            assertIs<SituationUiState.Ready>(state.value).situations[0].questions.map { it.text },
         )
     }
 

@@ -6,9 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -36,7 +33,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -68,7 +64,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,7 +76,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -89,7 +83,6 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
@@ -122,6 +115,8 @@ import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
 import uno.lux.autoskola.ui.LocalWidthClass
 import uno.lux.autoskola.ui.NavyPill
+import uno.lux.autoskola.ui.PageArrow
+import uno.lux.autoskola.ui.PageArrowSize
 import uno.lux.autoskola.ui.QuestionChip
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.WhitePill
@@ -138,9 +133,6 @@ import uno.lux.autoskola.ui.theme.paperBackground
 import uno.lux.autoskola.ui.theme.paperGlows
 
 private val QuestionPanelWidth = 360.dp
-
-/** The width an arrow beside the question needs, so it sits clear of the text. */
-private val QuestionArrowSize = 56.dp
 
 /** The bar pill and the room the sheet keeps around it. */
 private val BarPillHeight = 68.dp
@@ -278,7 +270,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     // showing them doesn't change its width and the decision can't flip back and forth.
     val columnCap = if (compactHeight) ContentWidth.Wide else ContentWidth.Reading
     val gutter = contentGutter(available = with(LocalDensity.current) { pagerWidth.toDp() }, column = columnCap)
-    val arrowsBeside = gutter >= QuestionArrowSize
+    val arrowsBeside = gutter >= PageArrowSize
 
     fun goTo(index: Int) {
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, questions.lastIndex)) }
@@ -390,14 +382,14 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
 
     /** The arrows for a page wide enough to hold them beside the question. */
     val besideArrows: @Composable BoxScope.() -> Unit = {
-        QuestionArrow(
+        PageArrow(
             icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
             description = strings.previousQuestion,
             enabled = currentIndex > 0,
             onClick = { goTo(currentIndex - 1) },
             modifier = Modifier.align(Alignment.CenterStart).width(gutter).fillMaxHeight(),
         )
-        QuestionArrow(
+        PageArrow(
             icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             description = strings.nextQuestion,
             enabled = currentIndex < questions.size - 1,
@@ -411,40 +403,11 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
         // Only the top bar's room is taken out of the page: the questions run on behind the pinned
         // bar, and each page keeps its last answer clear of it with [questionBottomRoom].
         Row(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
-            // Compose's scrollable ignores drags made with a mouse (its own canDrag says so), so a
-            // page is dragged by hand here. A touch drag never reaches this: the pager consumes it
-            // first, being the closer of the two.
-            val dragged = remember { mutableFloatStateOf(0f) }
-            val dragState = rememberDraggableState { delta ->
-                dragged.floatValue += delta
-                scope.launch { pagerState.dispatchRawDelta(-delta) }
-            }
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .draggable(
-                        state = dragState,
-                        orientation = Orientation.Horizontal,
-                        onDragStarted = { dragged.floatValue = 0f },
-                        onDragStopped = { velocity ->
-                            val target = swipedPage(
-                                currentPage = pagerState.currentPage,
-                                dragged = dragged.floatValue,
-                                pageSize = pagerWidth.toFloat(),
-                                velocity = velocity,
-                                pageCount = questions.size,
-                            )
-                            pagerState.animateScrollToPage(target)
-                        },
-                    ),
-            ) {
-                HorizontalPager(
+            Box(Modifier.weight(1f).fillMaxHeight()) {
+                SwipePager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onSizeChanged { pagerWidth = it.width },
-                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxSize(),
+                    onPageSize = { pagerWidth = it },
                 ) { page ->
                     QuestionPage(
                         question = questions[page],
@@ -498,7 +461,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     !event.isAltPressed &&
                     !event.isMetaPressed
                 if (!plainKeyDown) return@onPreviewKeyEvent false
-                val target = questionArrowTarget(event.key, currentIndex, questions.size)
+                val target = arrowKeyTarget(event.key, currentIndex, questions.size)
                     ?: return@onPreviewKeyEvent false
                 goTo(target)
                 true
@@ -798,38 +761,6 @@ private fun QuestionProgress(questionNumber: Int, questionCount: Int) {
                 .clip(RoundedCornerShape(3.dp))
                 .background(Brush.horizontalGradient(colors.primaryGradient)),
         )
-    }
-}
-
-/**
- * One of the two arrows beside the question, in the gutter the reading column leaves on a page
- * wide enough to have one. [modifier] is the whole gutter, so the button sits centred in it.
- */
-@Composable
-private fun QuestionArrow(
-    icon: ImageVector,
-    description: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = Naj.colors
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(colors.card)
-                .clickable(enabled = enabled, onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                icon,
-                contentDescription = description,
-                tint = colors.ink.copy(alpha = if (enabled) 1f else 0.3f),
-                modifier = Modifier.size(26.dp),
-            )
-        }
     }
 }
 

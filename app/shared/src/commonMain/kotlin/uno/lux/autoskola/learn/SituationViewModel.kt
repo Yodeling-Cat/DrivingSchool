@@ -30,7 +30,10 @@ sealed interface SituationUiState {
     data object Closed : SituationUiState
 
     data class Ready(
-        val situation: SituationItem,
+        /** Every situation of the exam, which the screen swipes through. */
+        val situations: List<SituationItem>,
+        /** Which one to open on: the situation the route named, counted from zero. */
+        val initialPage: Int,
         /** What the driver has answered about this situation's questions: question id → option. */
         val answers: Map<Int, Int> = emptyMap(),
     ) : SituationUiState
@@ -67,8 +70,15 @@ class SituationViewModel(
         if (session == null) {
             SituationUiState.Loading
         } else {
-            situationOf(session, number)?.let { situation ->
-                SituationUiState.Ready(situation = situation, answers = given.byQuestion)
+            val situations = situationItems(session, banks, given)
+            // A situation the material doesn't have any more - a route restored from before the bank
+            // changed - closes the screen rather than opening another one.
+            situations.getOrNull(number - 1)?.let {
+                SituationUiState.Ready(
+                    situations = situations,
+                    initialPage = number - 1,
+                    answers = given.byQuestion,
+                )
             } ?: SituationUiState.Closed
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SituationUiState.Loading)
@@ -81,6 +91,4 @@ class SituationViewModel(
             }
         }
     }
-
-    private fun situationOf(session: ExamSession, number: Int) = situationItems(session, banks).getOrNull(number - 1)
 }

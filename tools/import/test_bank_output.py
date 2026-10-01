@@ -7,6 +7,13 @@ import import_minv
 BANKS = import_minv.BANKS_OUT
 IMAGES = import_minv.RESOURCES / "images"
 
+#: The bank's topic of situations at intersections. The app reads its intersections material out of
+#: it and nothing else (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
+SITUATIONS_SECTION = 4
+
+#: Where the bank keeps its drawings of those situations.
+SITUATION_DIR = "obr3/ds/"
+
 
 def load(path):
     return json.loads(path.read_text(encoding="utf-8"))
@@ -67,6 +74,23 @@ class BankOutputTest(unittest.TestCase):
             for q in bank["questions"]:
                 if q["image"]:
                     self.assertTrue((IMAGES / bank["imageDir"] / q["image"]).is_file(), f"{name}: {q['image']}")
+
+    def test_the_situations_the_app_reads_are_the_topic_of_that_name(self):
+        # The app builds its intersections material from one topic and nothing else, so the topic
+        # has to be the situations one: every question of it is about a drawing, and every drawing
+        # of the situations folder is asked there rather than in some other topic.
+        for name, bank in self.banks.items():
+            situations = [q for q in bank["questions"] if q["section"] == SITUATIONS_SECTION]
+            self.assertTrue(situations, f"{name}: no situations topic")
+            for q in situations:
+                self.assertTrue(q["image"], f"{name} question {q['id']}: in the situations topic with no drawing")
+            for q in bank["questions"]:
+                if q["image"] and SITUATION_DIR in f"{q['image']}/":
+                    self.assertEqual(
+                        SITUATIONS_SECTION,
+                        q["section"],
+                        f"{name}: {q['image']} is asked in topic {q['section']}",
+                    )
 
 
 if __name__ == "__main__":

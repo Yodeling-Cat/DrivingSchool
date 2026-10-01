@@ -17,6 +17,13 @@ The theory exam is run by the traffic police (Prezídium Policajného zboru, odb
 - Each question is worth 1–4 points, 100 points in total. You pass with 90 or more.
 - Each question has 3 answers, and exactly one is correct.
 - The questions depend on the license group.
+- Topic **4** is *Dopravné situácie na križovatkách* — the situations at intersections, every one of
+  them a question about a drawing of a junction with coloured vehicles. That topic and nothing else
+  is the app's intersections material (`SITUATIONS_SECTION` in `:core`'s `situations/Situations.kt`):
+  88 questions over 40 drawings in the Slovak bank, 89 over 41 in the Hungarian one. It is a topic
+  rather than the folder of drawings, because two of its questions carry a drawing the bank keeps
+  outside `obr3/ds/`. `tools/import/test_bank_output.py` holds both ends of that: every question of
+  topic 4 has a drawing, and every drawing of `obr3/ds/` is asked in topic 4.
 
 ### Source 1: the online sample exam (`data5.js`)
 

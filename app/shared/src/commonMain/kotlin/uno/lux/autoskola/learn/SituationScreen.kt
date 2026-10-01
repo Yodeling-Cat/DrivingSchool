@@ -70,6 +70,7 @@ import uno.lux.autoskola.ui.AnswerCard
 import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
+import uno.lux.autoskola.ui.FittingText
 import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.PageArrow
 import uno.lux.autoskola.ui.PageArrowSize
@@ -346,11 +347,13 @@ private fun SituationTabs(
                         // Not answered yet, which is the only case with no mark at all.
                         else -> Unit
                     }
-                    Text(
-                        strings.questionNumber(index + 1),
+                    // The label gives way in the middle, so the question's number stays readable
+                    // however long the language makes "Question 2" and however many tabs there are.
+                    FittingText(
+                        text = strings.questionNumber(index + 1),
                         style = Naj.type.tiny,
                         color = if (open) Color.White else colors.muted,
-                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
             }
@@ -537,5 +540,20 @@ private fun SituationTabsPreview() {
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
         }
+    }
+}
+
+/** Four tabs on a narrow phone, where a label longer than its tab loses its middle. */
+@Preview(widthDp = 300, heightDp = 100)
+@Composable
+private fun SituationTabsNarrowPreview() {
+    AppPreview {
+        SituationTabs(
+            count = 4,
+            selected = 2,
+            states = listOf(ChipState.Correct, ChipState.Unanswered, ChipState.Incorrect, ChipState.Unanswered),
+            onSelect = {},
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
     }
 }

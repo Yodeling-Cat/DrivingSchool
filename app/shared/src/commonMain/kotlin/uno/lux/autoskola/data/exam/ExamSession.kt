@@ -97,6 +97,19 @@ class ExamSession(val bank: QuestionBank, val category: LicenseCategory, private
     suspend fun startMistakes(checkImmediately: Boolean): TestAttempt? =
         mistakes.first().takeIf { it.isNotEmpty() }?.let { start(AttemptKind.Mistakes, null, it, checkImmediately) }
 
+    /**
+     * Starts a run through [questions] - the situations at intersections, from the learning
+     * material - or returns `null` when there's nothing to drill.
+     *
+     * The drill is not a practice test: it sets no test number, so it can't change a test's result,
+     * and the home screen won't offer to continue one that was walked away from. Its answers are
+     * answers, though, so what the driver misses here is a mistake to practise like any other.
+     */
+    suspend fun startSituations(questions: List<Question>, checkImmediately: Boolean): TestAttempt? {
+        val drill = questions.filter { it.id in pool }
+        return drill.takeIf { it.isNotEmpty() }?.let { start(AttemptKind.Situations, null, it, checkImmediately) }
+    }
+
     suspend fun answer(attemptId: String, question: Question, chosen: Int) =
         attempts.answer(attemptId, question, chosen)
 

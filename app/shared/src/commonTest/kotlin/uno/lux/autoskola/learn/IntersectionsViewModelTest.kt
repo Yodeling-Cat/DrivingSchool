@@ -4,11 +4,15 @@ import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
+import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.testing.TestRepositories
 import uno.lux.autoskola.testing.ViewModelTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class IntersectionsViewModelTest : ViewModelTest() {
@@ -18,14 +22,14 @@ class IntersectionsViewModelTest : ViewModelTest() {
         repositories: TestRepositories = TestRepositories(testSituationsBank()),
     ): IntersectionsViewModel {
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
-        return IntersectionsViewModel(repositories.exams, repositories.banks)
+        return IntersectionsViewModel(repositories.exams, repositories.banks, repositories.preferences)
     }
 
     @Test
     fun noExamSelectedLeavesTheScreenLoading() = runTest {
         val fresh = TestRepositories(testSituationsBank())
 
-        val state = observe(IntersectionsViewModel(fresh.exams, fresh.banks).uiState)
+        val state = observe(IntersectionsViewModel(fresh.exams, fresh.banks, fresh.preferences).uiState)
 
         assertEquals(IntersectionsUiState.Loading, state.value)
     }
@@ -72,10 +76,54 @@ class IntersectionsViewModelTest : ViewModelTest() {
         val repositories = TestRepositories()
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
 
-        val state = observe(IntersectionsViewModel(repositories.exams, repositories.banks).uiState)
+        val state = observe(
+            IntersectionsViewModel(repositories.exams, repositories.banks, repositories.preferences).uiState,
+        )
 
         val ready = assertIs<IntersectionsUiState.Ready>(state.value)
         assertTrue(ready.situations.isEmpty())
         assertEquals(0, ready.questionCount)
+    }
+
+    @Test
+    fun drillingThemOpensOneAttemptOverTheirQuestions() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        val attemptId = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        val attempt = assertNotNull(repositories.attempts.get(attemptId))
+        assertEquals(AttemptKind.Situations, attempt.kind)
+        // The three questions about the two situations group B is asked, in the bank's order.
+        assertEquals(listOf(1813, 1814, 1815), attempt.questionIds)
+    }
+
+    @Test
+    fun aDrillChecksTheAnswersAsTheDriverAsked() = runTest {
+        // A drill is learning, so it goes by the same setting the practice screen does.
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.preferences.setCheckAnswersImmediately(false)
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        val attemptId = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        assertFalse(assertNotNull(repositories.attempts.get(attemptId)).checkImmediately)
+    }
+
+    @Test
+    fun theScreenForgetsTheAttemptOnceItIsOpen() = runTest {
+        // The screen navigates to the practice screen on the id; a second emission would navigate
+        // again every time the state was recomposed.
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+
+        assertNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
     }
 }

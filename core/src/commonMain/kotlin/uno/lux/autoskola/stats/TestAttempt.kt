@@ -13,6 +13,9 @@ enum class AttemptKind {
 
     /** A retest of questions the user previously answered wrongly. */
     Mistakes,
+
+    /** A run through the situations at intersections, from the learning material. */
+    Situations,
 }
 
 /**

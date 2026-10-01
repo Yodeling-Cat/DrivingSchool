@@ -21,10 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ import uno.lux.autoskola.ui.CardDivider
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.LocalNavBarInset
+import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PreviewBoard
 import uno.lux.autoskola.ui.PreviewLabel
 import uno.lux.autoskola.ui.RoundButton
@@ -57,18 +60,33 @@ private val SituationThumbHeight = 88.dp
 fun IntersectionsRoute(
     onBack: () -> Unit,
     onOpenSituation: (Int) -> Unit,
+    onOpenAttempt: (attemptId: String) -> Unit,
     viewModel: IntersectionsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    IntersectionsScreen(state, onBack, onOpenSituation)
+    val openAttemptId = (state as? IntersectionsUiState.Ready)?.openAttemptId
+    // Drilling happens in the practice screen, over the attempt the ViewModel started.
+    LaunchedEffect(openAttemptId) {
+        openAttemptId?.let {
+            onOpenAttempt(it)
+            viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        }
+    }
+    IntersectionsScreen(state, viewModel::onEvent, onBack, onOpenSituation)
 }
 
 /**
  * The situations the exam asks about at intersections: the drawing of each and how many questions
- * come with it. The drawing opens bigger when it's tapped; the row opens the situation itself.
+ * come with it. The drawing opens bigger when it's tapped; the row opens the situation itself, and
+ * the action above the list drills them all.
  */
 @Composable
-fun IntersectionsScreen(state: IntersectionsUiState, onBack: () -> Unit, onOpenSituation: (Int) -> Unit) {
+fun IntersectionsScreen(
+    state: IntersectionsUiState,
+    onEvent: (IntersectionsUiEvent) -> Unit,
+    onBack: () -> Unit,
+    onOpenSituation: (Int) -> Unit,
+) {
     // Measured here, outside the list, so an enlarged drawing is never drawn bigger than the screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val page = DpSize(maxWidth, maxHeight)
@@ -81,6 +99,15 @@ fun IntersectionsScreen(state: IntersectionsUiState, onBack: () -> Unit, onOpenS
                         .padding(bottom = LocalNavBarInset.current),
                 ) {
                     SituationsHeader(state, onBack)
+                    if (state is IntersectionsUiState.Ready && state.situations.isNotEmpty()) {
+                        OutlinePill(
+                            text = strings.situationsDrillAll,
+                            onClick = { onEvent(IntersectionsUiEvent.Drill) },
+                            icon = Icons.Filled.PlayArrow,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
                     when (state) {
                         IntersectionsUiState.Loading -> SituationsLoading(Modifier.weight(1f))
 
@@ -197,6 +224,7 @@ private fun IntersectionsScreenPreview() {
     AppPreview {
         IntersectionsScreen(
             state = IntersectionsUiState.Ready(previewSituations),
+            onEvent = {},
             onBack = {},
             onOpenSituation = {},
         )
@@ -207,7 +235,9 @@ private fun IntersectionsScreenPreview() {
 @Preview(widthDp = 400, heightDp = 600)
 @Composable
 private fun IntersectionsScreenLoadingPreview() {
-    AppPreview { IntersectionsScreen(IntersectionsUiState.Loading, onBack = {}, onOpenSituation = {}) }
+    AppPreview {
+        IntersectionsScreen(IntersectionsUiState.Loading, onEvent = {}, onBack = {}, onOpenSituation = {})
+    }
 }
 
 /** A tablet, where the reading column is capped and centred. */
@@ -217,6 +247,7 @@ private fun IntersectionsScreenWidePreview() {
     AppPreview {
         IntersectionsScreen(
             state = IntersectionsUiState.Ready(previewSituations),
+            onEvent = {},
             onBack = {},
             onOpenSituation = {},
         )
@@ -230,6 +261,7 @@ private fun IntersectionsScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
         IntersectionsScreen(
             state = IntersectionsUiState.Ready(previewSituations),
+            onEvent = {},
             onBack = {},
             onOpenSituation = {},
         )

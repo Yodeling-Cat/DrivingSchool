@@ -32,6 +32,35 @@ class ExamSessionTest {
     }
 
     @Test
+    fun aSituationsDrillRecordsTheQuestionsItRunsAndMarksItselfAsOne() = runTest {
+        val session = session()
+        val questions = bank.questions.filter { it.id in listOf(1, 2) }
+
+        val drill = session.startSituations(questions, checkImmediately = true)
+
+        val started = assertNotNull(drill)
+        assertEquals(AttemptKind.Situations, started.kind)
+        // No test number: a drill is not one of the numbered tests, so it can't score one.
+        assertNull(started.testNumber)
+        assertEquals(listOf(1, 2), started.questionIds)
+        assertTrue(started.checkImmediately)
+    }
+
+    @Test
+    fun aDrillLeavesOutQuestionsTheExamMayNotAsk() = runTest {
+        // Question 5 is asked of group C alone, so a B exam has nothing to drill in it.
+        val session = session(LicenseCategory.B)
+        val questionOfAnotherGroup = bank.questions.filter { it.id == 5 }
+
+        assertNull(session.startSituations(questionOfAnotherGroup, checkImmediately = false))
+    }
+
+    @Test
+    fun aDrillWithNoQuestionsStartsNothing() = runTest {
+        assertNull(session().startSituations(emptyList(), checkImmediately = false))
+    }
+
+    @Test
     fun poolOnlyContainsQuestionsForTheGroup() {
         assertEquals(setOf(1, 2, 3, 4), session().pool)
         assertEquals(setOf(1, 2, 3, 4, 5), session(LicenseCategory.C).pool)

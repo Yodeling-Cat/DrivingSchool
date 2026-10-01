@@ -98,6 +98,8 @@ class Strings(
     val situationsDrillAll: String,
     /** The action that drills the one situation the screen is showing. */
     val situationsDrillOne: String,
+    /** What a run through the situations is called in the practice bar, e.g. "Situations drill". */
+    val situationsDrillName: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -245,6 +247,7 @@ private val EnglishStrings = Strings(
     situationsNothingFound = "No situations in this exam",
     situationsDrillAll = "Drill every situation",
     situationsDrillOne = "Drill this situation",
+    situationsDrillName = "Situations drill",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -367,6 +370,7 @@ private val SlovakStrings = Strings(
     situationsNothingFound = "Táto skúška nemá situácie",
     situationsDrillAll = "Precvičiť všetky situácie",
     situationsDrillOne = "Precvičiť túto situáciu",
+    situationsDrillName = "Nácvik situácií",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -489,6 +493,7 @@ private val HungarianStrings = Strings(
     situationsNothingFound = "Ennek a vizsgának nincs helyzete",
     situationsDrillAll = "Összes helyzet gyakorlása",
     situationsDrillOne = "A helyzet gyakorlása",
+    situationsDrillName = "Helyzetgyakorlás",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -611,6 +616,7 @@ private val CzechStrings = Strings(
     situationsNothingFound = "Tato zkouška nemá situace",
     situationsDrillAll = "Procvičit všechny situace",
     situationsDrillOne = "Procvičit tuto situaci",
+    situationsDrillName = "Nácvik situací",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

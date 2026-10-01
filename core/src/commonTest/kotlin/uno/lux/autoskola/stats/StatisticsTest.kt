@@ -11,6 +11,7 @@ class StatisticsTest {
     private fun attempt(
         id: String,
         testNumber: Int? = 1,
+        kind: AttemptKind? = null,
         startedAt: Long = 0,
         checkImmediately: Boolean = false,
         finishedAt: Long? = null,
@@ -21,7 +22,7 @@ class StatisticsTest {
         bankId = "sk-sk",
         bankVersion = 1,
         category = LicenseCategory.B,
-        kind = if (testNumber == null) AttemptKind.Mistakes else AttemptKind.PracticeTest,
+        kind = kind ?: if (testNumber == null) AttemptKind.Mistakes else AttemptKind.PracticeTest,
         testNumber = testNumber,
         questionIds = listOf(1, 2, 3),
         checkImmediately = checkImmediately,
@@ -35,6 +36,29 @@ class StatisticsTest {
 
     private fun answer(question: Int, correct: Boolean, at: Long) =
         AnswerRecord(questionId = question, chosen = if (correct) 0 else 1, correct = correct, answeredAt = at)
+
+    @Test
+    fun aDrillIsNeitherAResumableTestNorATestResult() {
+        // A run through the situations is practice, not a test: it has no number to score, and a
+        // driver who walks away from one isn't offered it back. Its answers still count, so what
+        // they missed is a mistake like any other.
+        val stats = Statistics.of(
+            listOf(
+                attempt(
+                    "drill",
+                    testNumber = null,
+                    kind = AttemptKind.Situations,
+                    finishedAt = 10,
+                    answers = arrayOf(answer(1, false, 5)),
+                ),
+                attempt("walked-away", testNumber = null, kind = AttemptKind.Situations),
+            ),
+        )
+
+        assertNull(stats.resumable)
+        assertEquals(emptyMap(), stats.latestResults)
+        assertEquals(listOf(1), stats.mistakes)
+    }
 
     @Test
     fun mistakesUseTheMostRecentFinalAnswer() {

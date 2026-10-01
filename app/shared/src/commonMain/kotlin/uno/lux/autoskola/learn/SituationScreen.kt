@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +44,7 @@ import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.NajCard
+import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PreviewBoard
 import uno.lux.autoskola.ui.PreviewLabel
 import uno.lux.autoskola.ui.RoundButton
@@ -54,21 +57,30 @@ import uno.lux.autoskola.ui.theme.paperBackground
 fun SituationRoute(
     number: Int,
     onClose: () -> Unit,
+    onOpenAttempt: (attemptId: String) -> Unit,
     viewModel: SituationViewModel = koinViewModel { parametersOf(number) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val openAttemptId = (state as? SituationUiState.Ready)?.openAttemptId
+    // Drilling happens in the practice screen, over the attempt the ViewModel started.
+    LaunchedEffect(openAttemptId) {
+        openAttemptId?.let {
+            onOpenAttempt(it)
+            viewModel.onEvent(SituationUiEvent.AttemptOpened)
+        }
+    }
     // A situation the material doesn't have any more closes the screen rather than showing another.
     LaunchedEffect(state) { if (state is SituationUiState.Closed) onClose() }
-    SituationScreen(state, onClose)
+    SituationScreen(state, viewModel::onEvent, onClose)
 }
 
 /**
  * One situation: the drawing of it, and every question the exam asks about it with the answer the
- * regulation wants. Reading it is the point - the questions are there to be studied, not answered,
- * and drilling them is what the practice screen is for.
+ * regulation wants. Reading it is the point - the questions are there to be studied, not answered -
+ * and the action above the drawing is what runs them through the practice screen.
  */
 @Composable
-fun SituationScreen(state: SituationUiState, onClose: () -> Unit) {
+fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
     // Measured here, outside the scroll, so an enlarged drawing is never drawn bigger than the screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val page = DpSize(maxWidth, maxHeight)
@@ -76,6 +88,14 @@ fun SituationScreen(state: SituationUiState, onClose: () -> Unit) {
             Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
                     SituationHeader(state, onClose)
+                    (state as? SituationUiState.Ready)?.let {
+                        OutlinePill(
+                            text = strings.situationsDrillOne,
+                            onClick = { onEvent(SituationUiEvent.Drill) },
+                            icon = Icons.Filled.PlayArrow,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
                     when (state) {
                         SituationUiState.Loading -> SituationLoading(Modifier.weight(1f))
 
@@ -219,6 +239,7 @@ private fun SituationScreenPreview() {
     AppPreview {
         SituationScreen(
             state = SituationUiState.Ready(previewSituations[0]),
+            onEvent = {},
             onClose = {},
         )
     }
@@ -231,6 +252,7 @@ private fun SituationScreenWidePreview() {
     AppPreview {
         SituationScreen(
             state = SituationUiState.Ready(previewSituations[1]),
+            onEvent = {},
             onClose = {},
         )
     }
@@ -243,6 +265,7 @@ private fun SituationScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
         SituationScreen(
             state = SituationUiState.Ready(previewSituations[0]),
+            onEvent = {},
             onClose = {},
         )
     }
@@ -252,7 +275,7 @@ private fun SituationScreenSlovakPreview() {
 @Preview(widthDp = 400, heightDp = 600)
 @Composable
 private fun SituationScreenLoadingPreview() {
-    AppPreview { SituationScreen(state = SituationUiState.Loading, onClose = {}) }
+    AppPreview { SituationScreen(state = SituationUiState.Loading, onEvent = {}, onClose = {}) }
 }
 
 /** One question's answers on their own, with the right one marked. */

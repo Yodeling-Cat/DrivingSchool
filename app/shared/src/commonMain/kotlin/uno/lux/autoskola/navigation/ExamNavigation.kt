@@ -186,10 +186,15 @@ fun ExamNavigation() {
                 IntersectionsRoute(
                     onBack = pop,
                     onOpenSituation = { number -> backStack.add(SituationKey(number)) },
+                    onOpenAttempt = { attemptId -> backStack.add(PracticeKey(attemptId)) },
                 )
             }
             entry<SituationKey> { key ->
-                SituationRoute(key.number, onClose = { backStack.popIfTop(key) })
+                SituationRoute(
+                    key.number,
+                    onClose = { backStack.popIfTop(key) },
+                    onOpenAttempt = { attemptId -> backStack.add(PracticeKey(attemptId)) },
+                )
             }
             entry<LegislationKey> { LearnPlaceholderScreen(LearnSection.Legislation, onBack = pop) }
             entry<SettingsKey>(metadata = tabMetadata) {

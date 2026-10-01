@@ -11,6 +11,9 @@ import uno.lux.autoskola.answers.PracticeAnswers
  * Keeps the answers as one JSON document per bank version in [Settings], read once when the app
  * starts. A document per version rather than per question: there are a few hundred answers at most,
  * they are always wanted together, and a question id only means something inside its own version.
+ *
+ * A document written before the checked marks were kept is still read: what it doesn't say is no
+ * checked marks yet.
  */
 class SettingsPracticeAnswerDataSource(private val settings: Settings) : PracticeAnswerDataSource {
 
@@ -24,9 +27,14 @@ class SettingsPracticeAnswerDataSource(private val settings: Settings) : Practic
         bankVersion: Int,
         questionId: Int,
         chosen: Int,
-    ) {
+    ) = update(bankId, bankVersion) { it.withAnswer(questionId, chosen) }
+
+    override suspend fun reveal(bankId: String, bankVersion: Int, questionId: Int) =
+        update(bankId, bankVersion) { it.withReveal(questionId) }
+
+    private fun update(bankId: String, bankVersion: Int, change: (PracticeAnswers) -> PracticeAnswers) {
         val key = answersKey(bankId, bankVersion)
-        val updated = (stored.value[key] ?: PracticeAnswers()).withAnswer(questionId, chosen)
+        val updated = change(stored.value[key] ?: PracticeAnswers())
         settings.putString(key, Json.encodeToString(PracticeAnswers.serializer(), updated))
         stored.value = stored.value + (key to updated)
     }

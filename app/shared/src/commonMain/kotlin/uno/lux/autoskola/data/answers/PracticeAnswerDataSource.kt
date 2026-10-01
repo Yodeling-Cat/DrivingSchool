@@ -20,4 +20,7 @@ interface PracticeAnswerDataSource {
         questionId: Int,
         chosen: Int,
     )
+
+    /** Records that the driver checked the answer to [questionId], so its marks stay shown. */
+    suspend fun reveal(bankId: String, bankVersion: Int, questionId: Int)
 }

@@ -26,8 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -85,19 +83,18 @@ fun SituationRoute(
  * One situation: the drawing of it, and the questions the exam asks about it, one to a tab.
  *
  * The driver answers them while they read. A situation's questions are practice rather than a test,
- * so nothing is scored and nothing is locked: an answer can be changed at any time, and it is kept
- * with the bank version, so coming back to a situation shows what was answered. Asking to check an
- * answer is what shows whether it was the right one - the answer is not given away before that.
+ * so nothing is scored and nothing is locked: an answer can be changed at any time, and both the
+ * answer and whether it was checked are kept with the bank version being read, so coming back to a
+ * situation shows what was answered and what was found out. Checking is a tap of its own - the
+ * answer is not given away before that.
  */
 @Composable
 fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
     // Measured here, outside the scroll, so an enlarged drawing is never drawn bigger than the screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val page = DpSize(maxWidth, maxHeight)
-        // Where the driver is looking, and which answers they asked to check. Both are about this
-        // visit: what they answered is the ViewModel's, and is not forgotten.
+        // Which question the driver is looking at is about this visit; what they answered is not.
         var tab by rememberSaveable { mutableIntStateOf(0) }
-        var checked by remember { mutableStateOf(emptySet<Int>()) }
         Box(Modifier.fillMaxSize().paperBackground()) {
             Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
@@ -119,9 +116,7 @@ fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit
                                 state = state,
                                 page = page,
                                 tab = tab,
-                                checked = checked,
                                 onSelectTab = { tab = it },
-                                onCheck = { questionId -> checked = checked + questionId },
                                 onEvent = onEvent,
                                 modifier = Modifier.weight(1f),
                             )
@@ -167,9 +162,7 @@ private fun SituationReading(
     state: SituationUiState.Ready,
     page: DpSize,
     tab: Int,
-    checked: Set<Int>,
     onSelectTab: (Int) -> Unit,
-    onCheck: (questionId: Int) -> Unit,
     onEvent: (SituationUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -189,8 +182,8 @@ private fun SituationReading(
         SituationQuestionBlock(
             question = question,
             chosen = state.answers[question.questionId],
-            checked = question.questionId in checked,
-            onCheck = { onCheck(question.questionId) },
+            revealed = question.questionId in state.revealed,
+            onCheck = { onEvent(SituationUiEvent.Reveal(question.questionId)) },
             onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
         )
     }
@@ -237,7 +230,7 @@ private fun SituationTabs(
 private fun SituationQuestionBlock(
     question: SituationQuestion,
     chosen: Int?,
-    checked: Boolean,
+    revealed: Boolean,
     onCheck: () -> Unit,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -249,11 +242,11 @@ private fun SituationQuestionBlock(
             options = question.answers,
             selectedIndex = chosen,
             correct = question.correct,
-            revealed = checked,
+            revealed = revealed,
             onSelect = onSelect,
         )
-        // Nothing to check before an answer is picked, and checking again says nothing new.
-        if (chosen != null && !checked) {
+        // Nothing to check before an answer is picked, and a checked answer stays checked.
+        if (chosen != null && !revealed) {
             OutlinePill(text = strings.checkAnswer, onClick = onCheck)
         }
     }
@@ -289,6 +282,19 @@ private fun SituationScreenAnsweredPreview() {
     AppPreview {
         SituationScreen(
             state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 2)),
+            onEvent = {},
+            onClose = {},
+        )
+    }
+}
+
+/** The same question answered and checked: the marks are kept, so this is what coming back shows. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SituationScreenCheckedPreview() {
+    AppPreview {
+        SituationScreen(
+            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 1), revealed = setOf(1813)),
             onEvent = {},
             onClose = {},
         )
@@ -341,7 +347,7 @@ private fun SituationScreenLoadingPreview() {
     AppPreview { SituationScreen(state = SituationUiState.Loading, onEvent = {}, onClose = {}) }
 }
 
-/** One question on its own, answered and checked, which is the one thing the screen can't show. */
+/** One question on its own, answered and checked. */
 @Preview(widthDp = 400, heightDp = 420)
 @Composable
 private fun SituationQuestionCheckedPreview() {
@@ -351,7 +357,7 @@ private fun SituationQuestionCheckedPreview() {
             SituationQuestionBlock(
                 question = previewSituations[0].questions[0],
                 chosen = 1,
-                checked = true,
+                revealed = true,
                 onCheck = {},
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),

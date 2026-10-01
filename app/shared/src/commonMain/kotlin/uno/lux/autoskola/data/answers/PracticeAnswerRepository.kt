@@ -25,7 +25,11 @@ class PracticeAnswerRepository(private val dataSource: PracticeAnswerDataSource)
         bankVersion: Int,
         questionId: Int,
         chosen: Int,
-    ) = withContext(NonCancellable) {
-        writes.withLock { dataSource.answer(bankId, bankVersion, questionId, chosen) }
-    }
+    ) = write { dataSource.answer(bankId, bankVersion, questionId, chosen) }
+
+    /** Records that the driver checked the answer to [questionId], which is remembered with it. */
+    suspend fun reveal(bankId: String, bankVersion: Int, questionId: Int) =
+        write { dataSource.reveal(bankId, bankVersion, questionId) }
+
+    private suspend fun write(change: suspend () -> Unit) = withContext(NonCancellable) { writes.withLock { change() } }
 }

@@ -186,6 +186,8 @@ class Strings(
     val backToTests: String,
     /** The same way out for an attempt begun elsewhere: back to the situations a drill came from. */
     val backToList: String,
+    /** What the prompt says when a drill of the situations is already under way. */
+    val drillPromptTitle: String,
     // Settings
     val settingsTitle: String,
     val settingsLanguage: String,
@@ -323,6 +325,7 @@ private val EnglishStrings = Strings(
     reviewAnswers = "Review answers",
     backToTests = "Back to tests",
     backToList = "Back to list",
+    drillPromptTitle = "This drill is already started",
     settingsTitle = "Settings",
     settingsLanguage = "App language",
     settingsAnswers = "Answers",
@@ -449,6 +452,7 @@ private val SlovakStrings = Strings(
     reviewAnswers = "Prezrieť odpovede",
     backToTests = "Späť na testy",
     backToList = "Späť na zoznam",
+    drillPromptTitle = "Tento nácvik už začal",
     settingsTitle = "Nastavenia",
     settingsLanguage = "Jazyk aplikácie",
     settingsAnswers = "Odpovede",
@@ -575,6 +579,7 @@ private val HungarianStrings = Strings(
     reviewAnswers = "Válaszok áttekintése",
     backToTests = "Vissza a tesztekhez",
     backToList = "Vissza a listához",
+    drillPromptTitle = "Ez a gyakorlás már elkezdődött",
     settingsTitle = "Beállítások",
     settingsLanguage = "Az alkalmazás nyelve",
     settingsAnswers = "Válaszok",
@@ -701,6 +706,7 @@ private val CzechStrings = Strings(
     reviewAnswers = "Prohlédnout odpovědi",
     backToTests = "Zpět na testy",
     backToList = "Zpět na seznam",
+    drillPromptTitle = "Tento nácvik už začal",
     settingsTitle = "Nastavení",
     settingsLanguage = "Jazyk aplikace",
     settingsAnswers = "Odpovědi",

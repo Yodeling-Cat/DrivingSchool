@@ -56,15 +56,32 @@ sealed interface IntersectionsUiState {
          * and then sends [IntersectionsUiEvent.AttemptOpened].
          */
         val openAttemptId: String? = null,
+        /** Set when a drill is already under way, so the screen asks what to do about it. */
+        val drillPrompt: DrillPrompt? = null,
     ) : IntersectionsUiState {
         /** How many questions the situations hold altogether, folded into one run of practice. */
         val questionCount: Int get() = situations.sumOf { it.questions.size }
     }
 }
 
+/**
+ * A drill the driver walked away from, so the screen asks whether to carry on with it or begin
+ * again instead of choosing for them.
+ */
+data class DrillPrompt(val attemptId: String, val answered: Int, val total: Int)
+
 sealed interface IntersectionsUiEvent {
-    /** Drills every situation, in the practice screen. */
+    /** Drills every situation, asking what to do first when one is already under way. */
     data object Drill : IntersectionsUiEvent
+
+    /** Opens the drill [IntersectionsUiState.Ready.drillPrompt] is about, where it was left. */
+    data object ContinueDrill : IntersectionsUiEvent
+
+    /** Throws the drill that's under way away and begins every situation from the start. */
+    data object StartOverDrill : IntersectionsUiEvent
+
+    /** The user closed the prompt, leaving the drill as it was. */
+    data object DismissDrillPrompt : IntersectionsUiEvent
 
     /** The screen opened the attempt [IntersectionsUiState.Ready.openAttemptId] asked for. */
     data object AttemptOpened : IntersectionsUiEvent
@@ -83,31 +100,76 @@ class IntersectionsViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val openAttemptId = MutableStateFlow<String?>(null)
+    private val drillPrompt = MutableStateFlow<DrillPrompt?>(null)
 
     /** What the driver has answered while reading, which marks the situations they are done with. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val given: Flow<PracticeAnswers> = session.filterNotNull()
         .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
 
-    val uiState: StateFlow<IntersectionsUiState> = combine(session, given, openAttemptId) { session, given, open ->
-        if (session == null) {
-            IntersectionsUiState.Loading
-        } else {
-            IntersectionsUiState.Ready(situations = situationItems(session, banks, given), openAttemptId = open)
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntersectionsUiState.Loading)
+    val uiState: StateFlow<IntersectionsUiState> =
+        combine(session, given, openAttemptId, drillPrompt) { session, given, open, prompt ->
+            if (session == null) {
+                IntersectionsUiState.Loading
+            } else {
+                IntersectionsUiState.Ready(
+                    situations = situationItems(session, banks, given),
+                    openAttemptId = open,
+                    drillPrompt = prompt,
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntersectionsUiState.Loading)
 
     fun onEvent(event: IntersectionsUiEvent) {
         val session = session.value ?: return
         when (event) {
             IntersectionsUiEvent.Drill -> viewModelScope.launch {
-                val questions = situations(session.bank, session.category).flatMap { it.questions }
-                val checkImmediately = preferences.preferences.value.checkAnswersImmediately
-                openAttemptId.value = session.startSituations(questions, checkImmediately)?.id
+                // A drill that's already under way could be picked up or begun again, and only the
+                // driver knows which: ask instead of choosing for them.
+                val underWay = session.openSituationsAttempt()
+                if (underWay == null) {
+                    openAttemptId.value = drill(session, startOver = false)
+                } else {
+                    drillPrompt.value = DrillPrompt(
+                        attemptId = underWay.id,
+                        answered = underWay.answers.size,
+                        total = underWay.questionIds.size,
+                    )
+                }
             }
 
-            IntersectionsUiEvent.AttemptOpened -> openAttemptId.value = null
+            IntersectionsUiEvent.ContinueDrill -> {
+                openAttemptId.value = drillPrompt.value?.attemptId
+                drillPrompt.value = null
+            }
+
+            IntersectionsUiEvent.StartOverDrill -> {
+                drillPrompt.value = null
+                viewModelScope.launch { openAttemptId.value = drill(session, startOver = true) }
+            }
+
+            IntersectionsUiEvent.DismissDrillPrompt -> drillPrompt.value = null
+
+            IntersectionsUiEvent.AttemptOpened -> {
+                openAttemptId.value = null
+                drillPrompt.value = null
+            }
         }
+    }
+
+    /**
+     * Starts a run through every situation - or, with [startOver], a fresh one in place of the drill
+     * that's under way. Answers with the attempt's id, or `null` when there is nothing to drill.
+     */
+    private suspend fun drill(session: ExamSession, startOver: Boolean): String? {
+        val questions = situations(session.bank, session.category).flatMap { it.questions }
+        val checkImmediately = preferences.preferences.value.checkAnswersImmediately
+        val attempt = if (startOver) {
+            session.restartSituations(questions, checkImmediately)
+        } else {
+            session.startSituations(questions, checkImmediately)
+        }
+        return attempt?.id
     }
 }
 

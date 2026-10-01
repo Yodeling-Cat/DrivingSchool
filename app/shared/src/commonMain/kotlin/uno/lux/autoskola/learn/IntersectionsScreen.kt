@@ -47,6 +47,7 @@ import uno.lux.autoskola.ui.LocalNavBarInset
 import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PreviewBoard
 import uno.lux.autoskola.ui.PreviewLabel
+import uno.lux.autoskola.ui.ResumeDialog
 import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.previewSituations
 import uno.lux.autoskola.ui.theme.Naj
@@ -121,6 +122,16 @@ fun IntersectionsScreen(
                     }
                 }
             }
+        }
+        // A drill that was walked away from is asked about, not silently begun again.
+        (state as? IntersectionsUiState.Ready)?.drillPrompt?.let { prompt ->
+            ResumeDialog(
+                title = strings.drillPromptTitle,
+                summary = strings.resumeSummary(strings.situationsDrillName, prompt.answered, prompt.total),
+                onContinue = { onEvent(IntersectionsUiEvent.ContinueDrill) },
+                onStartOver = { onEvent(IntersectionsUiEvent.StartOverDrill) },
+                onDismiss = { onEvent(IntersectionsUiEvent.DismissDrillPrompt) },
+            )
         }
     }
 }
@@ -288,5 +299,22 @@ private fun SituationRowPreview() {
             SituationRow(previewSituations[0], DpSize(400.dp, 220.dp), onClick = {})
             SituationRow(previewSituations[1], DpSize(400.dp, 220.dp), onClick = {})
         }
+    }
+}
+
+/** A drill left half-read: the screen asks whether to carry on with it before starting another. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun IntersectionsScreenDrillPromptPreview() {
+    AppPreview {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(
+                situations = previewSituations,
+                drillPrompt = DrillPrompt(attemptId = "attempt-1", answered = 21, total = 88),
+            ),
+            onEvent = {},
+            onBack = {},
+            onOpenSituation = {},
+        )
     }
 }

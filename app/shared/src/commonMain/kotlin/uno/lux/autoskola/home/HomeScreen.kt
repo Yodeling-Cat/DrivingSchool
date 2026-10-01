@@ -29,11 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,6 +73,7 @@ import uno.lux.autoskola.ui.PagePadding
 import uno.lux.autoskola.ui.PickerPill
 import uno.lux.autoskola.ui.PillHeight
 import uno.lux.autoskola.ui.PrimaryPill
+import uno.lux.autoskola.ui.ResumeDialog
 import uno.lux.autoskola.ui.ScreenHeader
 import uno.lux.autoskola.ui.TestStatus
 import uno.lux.autoskola.ui.TestTile
@@ -667,36 +665,12 @@ private fun TestTileItem(
 /** Asks what to do with a test that's already under way: continue it, or start over. */
 @Composable
 private fun ResumePromptDialog(prompt: ResumePrompt, onEvent: (HomeUiEvent) -> Unit) {
-    val colors = Naj.colors
-    AlertDialog(
-        onDismissRequest = { onEvent(HomeUiEvent.DismissResumePrompt) },
-        shape = RoundedCornerShape(LicenceRadius),
-        containerColor = colors.sheet,
-        titleContentColor = colors.ink,
-        textContentColor = colors.muted,
-        title = { Text(text = strings.resumePromptTitle, style = Naj.type.sectionHeading) },
-        text = {
-            Text(
-                text = strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total),
-                style = Naj.type.body,
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onEvent(HomeUiEvent.ContinueTest) },
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.primaryDeep),
-            ) {
-                Text(text = strings.continueTest, style = Naj.type.primaryButton)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = { onEvent(HomeUiEvent.StartOver) },
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.muted),
-            ) {
-                Text(text = strings.startOver, style = Naj.type.button)
-            }
-        },
+    ResumeDialog(
+        title = strings.resumePromptTitle,
+        summary = strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total),
+        onContinue = { onEvent(HomeUiEvent.ContinueTest) },
+        onStartOver = { onEvent(HomeUiEvent.StartOver) },
+        onDismiss = { onEvent(HomeUiEvent.DismissResumePrompt) },
     )
 }
 

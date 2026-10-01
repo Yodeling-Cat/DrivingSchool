@@ -110,6 +110,21 @@ class ExamSession(val bank: QuestionBank, val category: LicenseCategory, private
         return drill.takeIf { it.isNotEmpty() }?.let { start(AttemptKind.Situations, null, it, checkImmediately) }
     }
 
+    /**
+     * The run through the situations that is still under way, or `null` when there is none to
+     * continue. A driver gets one drill at a time: walking away from one and asking to drill again
+     * is offered the same drill back rather than starting a second.
+     */
+    suspend fun openSituationsAttempt(): TestAttempt? = statistics.first().attempts
+        .filter { it.isOpen && it.kind == AttemptKind.Situations }
+        .maxByOrNull { it.updatedAt }
+
+    /** Starts a fresh run through [questions], throwing away the drill that's under way. */
+    suspend fun restartSituations(questions: List<Question>, checkImmediately: Boolean): TestAttempt? {
+        openSituationsAttempt()?.let { attempts.discard(it.id) }
+        return startSituations(questions, checkImmediately)
+    }
+
     suspend fun answer(attemptId: String, question: Question, chosen: Int) =
         attempts.answer(attemptId, question, chosen)
 

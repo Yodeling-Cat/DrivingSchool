@@ -2,6 +2,7 @@ package uno.lux.autoskola.learn
 
 import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.bank.LicenseCategory
+import uno.lux.autoskola.data.banks.testQuestion
 import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.stats.AttemptKind
@@ -124,6 +125,98 @@ class IntersectionsViewModelTest : ViewModelTest() {
 
         val attemptId = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
         assertFalse(assertNotNull(repositories.attempts.get(attemptId)).checkImmediately)
+    }
+
+    @Test
+    fun drillingAgainAsksWhatToDoWithTheDrillUnderWay() = runTest {
+        // Walking away from a drill and coming back to drill again: only the driver knows whether to
+        // carry on where they were or start the whole run over, so the screen asks.
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val first = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        val prompt = assertNotNull(ready.drillPrompt)
+        assertEquals(first, prompt.attemptId)
+        assertEquals(3, prompt.total)
+        // Nothing is opened until the driver answers: the drill sits where it was.
+        assertNull(ready.openAttemptId)
+    }
+
+    @Test
+    fun thePromptSaysHowMuchOfTheDrillIsAnswered() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        repositories.attempts.answer(drill, question = testQuestion(1813, section = 4), chosen = 0)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        val prompt = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).drillPrompt)
+        assertEquals(1, prompt.answered)
+        assertEquals(3, prompt.total)
+    }
+
+    @Test
+    fun carryingOnOpensTheDrillWhereItWasLeft() = runTest {
+        val viewModel = viewModel()
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        viewModel.onEvent(IntersectionsUiEvent.ContinueDrill)
+
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        assertEquals(drill, ready.openAttemptId)
+        assertNull(ready.drillPrompt)
+    }
+
+    @Test
+    fun beginningAgainThrowsTheDrillAwayAndStartsAFreshOne() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val first = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        repositories.attempts.answer(first, question = testQuestion(1813, section = 4), chosen = 0)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        viewModel.onEvent(IntersectionsUiEvent.StartOverDrill)
+
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        val fresh = assertNotNull(ready.openAttemptId)
+        assertTrue(fresh != first)
+        assertNull(ready.drillPrompt)
+        // The drill that was under way is gone, answers and all.
+        assertTrue(assertNotNull(repositories.attempts.get(first)).discardedAt != null)
+    }
+
+    @Test
+    fun closingThePromptLeavesTheDrillAsItWas() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        viewModel.onEvent(IntersectionsUiEvent.DismissDrillPrompt)
+
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        assertNull(ready.drillPrompt)
+        assertNull(ready.openAttemptId)
+        assertNull(assertNotNull(repositories.attempts.get(drill)).discardedAt)
     }
 
     @Test

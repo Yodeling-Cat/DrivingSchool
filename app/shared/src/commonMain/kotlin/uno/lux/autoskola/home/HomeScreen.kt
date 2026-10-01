@@ -42,8 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LastBaseline
@@ -64,7 +62,6 @@ import uno.lux.autoskola.ui.CardRadius
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.DashedCircleIcon
 import uno.lux.autoskola.ui.EyebrowLabel
-import uno.lux.autoskola.ui.HeightClass
 import uno.lux.autoskola.ui.IconTile
 import uno.lux.autoskola.ui.LicenceRadius
 import uno.lux.autoskola.ui.LoadingScreen
@@ -105,9 +102,6 @@ private val LicenceCardHeight = 222.dp
 /** Where the white glow sits over the card's left edge; see [drawLicenceGlow]. */
 private val LicenceGlowCentre = DpOffset(90.dp, 40.dp)
 
-/** The yellow "unfinished test" card: 84dp, or the wide layout's taller banner. */
-private val ResumeCardHeight = 84.dp
-private val ResumeWideHeight = 96.dp
 private val ResumeCardRadius = 24.dp
 private val ResumeWideRadius = 28.dp
 private const val RESUME_GRAIN = 0.4f
@@ -453,15 +447,20 @@ private fun ResumeCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(if (wide) ResumeWideHeight else ResumeCardHeight)
             .shadow(14.dp, shape, ambientColor = ResumeShadow, spotColor = ResumeShadow)
             .clip(shape)
             .background(Brush.linearGradient(listOf(colors.resumeTop, colors.resumeBottom)))
             .clickable(onClick = onResume),
     ) {
-        Box(Modifier.fillMaxSize().grain(RESUME_GRAIN, shader)) { TopHighlight() }
+        // matchParentSize, not fillMaxSize: the grain and the hairline cover whatever the card turns
+        // out to be without asking for a height of their own, so the row below is what sizes it. A
+        // fillMaxSize child would fill the bounded height of the pane it sits in and drag the card
+        // down the whole window with it.
+        Box(Modifier.matchParentSize().grain(RESUME_GRAIN, shader)) { TopHighlight() }
         Row(
-            modifier = Modifier.fillMaxSize().padding(start = 20.dp, end = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {

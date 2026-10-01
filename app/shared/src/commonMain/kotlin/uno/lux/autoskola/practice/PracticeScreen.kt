@@ -347,6 +347,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 questionNumber = currentIndex + 1,
                 questionCount = questions.size,
                 onBack = ::handleBack,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
             )
         }
     }
@@ -707,9 +708,10 @@ private fun PracticeTopBar(
     questionNumber: Int,
     questionCount: Int,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = Naj.colors
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 48.dp)) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 48.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
             AccentedText(

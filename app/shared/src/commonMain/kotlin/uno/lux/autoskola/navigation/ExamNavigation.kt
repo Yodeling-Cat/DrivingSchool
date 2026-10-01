@@ -1,16 +1,25 @@
 package uno.lux.autoskola.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigationevent.NavigationEvent.Companion.EDGE_LEFT
 import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -72,10 +81,34 @@ private val navConfiguration = SavedStateConfiguration {
     }
 }
 
-/** Switching tabs is instant, like the bars themselves; other screens use the default animation. */
+/** Switching tabs is instant, like the bars themselves; other screens use the slide below. */
 private val tabMetadata =
     NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
         NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
+
+/** How long a screen takes to come in or leave. */
+private const val SCREEN_SLIDE_MILLIS = 300
+
+/**
+ * One duration and one easing for every part of the slide, so the pop that replays these values
+ * backwards is the push, and the two can't drift apart.
+ */
+private val ScreenSlideSpec =
+    tween<IntOffset>(durationMillis = SCREEN_SLIDE_MILLIS, easing = FastOutSlowInEasing)
+
+/**
+ * The slide a screen change plays: the incoming screen starts a whole width away and the outgoing
+ * one leaves as far the other way, so neither is partly on screen once it has played. [direction]
+ * is +1 going deeper into the app - in from the right, out to the left - and -1 coming back out,
+ * which is that same slide with both offsets negated. Popping is therefore the push, backwards,
+ * rather than a second animation to keep in step with the first.
+ *
+ * Navigation 3 fades on Android, slides the iOS way on iOS and does nothing in a browser, so the
+ * app states its own slide instead of inheriting a different one per platform.
+ */
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.screenSlide(direction: Int): ContentTransform =
+    slideInHorizontally(animationSpec = ScreenSlideSpec) { direction * it } togetherWith
+        slideOutHorizontally(animationSpec = ScreenSlideSpec) { -direction * it }
 
 /**
  * Everything after onboarding. The back stack lives here; each entry gets its own
@@ -103,6 +136,11 @@ fun ExamNavigation() {
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
         ),
+        transitionSpec = { screenSlide(direction = 1) },
+        popTransitionSpec = { screenSlide(direction = -1) },
+        // A back gesture drags the screen out through the edge it came in from, so which way the
+        // slide runs follows the finger.
+        predictivePopTransitionSpec = { edge -> screenSlide(direction = if (edge == EDGE_LEFT) -1 else 1) },
         entryProvider = entryProvider {
             entry<HomeKey>(metadata = tabMetadata) {
                 NavigationShell(NavTab.Tests, selectTab) {

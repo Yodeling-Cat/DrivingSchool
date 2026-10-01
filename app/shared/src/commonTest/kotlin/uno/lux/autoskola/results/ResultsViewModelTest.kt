@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.LicenseCategory
+import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.testing.TestRepositories
@@ -12,7 +13,10 @@ import uno.lux.autoskola.testing.ViewModelTest
 import uno.lux.autoskola.testing.currentSession
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ResultsViewModelTest : ViewModelTest() {
 
@@ -58,6 +62,34 @@ class ResultsViewModelTest : ViewModelTest() {
         val state = assertIs<ResultsUiState.Ready>(open(attempt).value)
 
         assertEquals(1_403L, state.elapsedSeconds)
+    }
+
+    @Test
+    fun aTestsResultsAreGradedAgainstThePassMark() = runTest {
+        val attempt = startTest()
+        repositories.exams.currentSession().finish(attempt.id)
+
+        val state = assertIs<ResultsUiState.Ready>(open(attempt).value)
+
+        assertTrue(state.hasVerdict)
+    }
+
+    @Test
+    fun aSituationsDrillsResultsAreNotGraded() = runTest {
+        // Reading the situations is not an exam, so its card says what was right, not whether the
+        // driver passed: there is nothing they were being measured against.
+        val drills = TestRepositories(testSituationsBank()).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        }
+        val session = drills.exams.currentSession()
+        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        session.finish(drill.id)
+
+        val state = assertIs<ResultsUiState.Ready>(
+            observe(ResultsViewModel(drill.id, drills.exams).uiState).value,
+        )
+
+        assertFalse(state.hasVerdict)
     }
 
     @Test

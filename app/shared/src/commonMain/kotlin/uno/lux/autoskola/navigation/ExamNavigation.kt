@@ -210,7 +210,8 @@ fun ExamNavigation() {
                 ResultsRoute(
                     key.attemptId,
                     onReview = { backStack.popIfTop(key) },
-                    onDone = { while (backStack.size > 1) backStack.removeLastOrNull() },
+                    onDone = { backStack.popToRoot() },
+                    onDoneToList = { backStack.popToSituations() },
                 )
             }
             entry<ChangeExamKey> {
@@ -223,6 +224,19 @@ fun ExamNavigation() {
 /** Popping [key] only if it's still on top, so a repeated close can't pop the screen below. */
 private fun NavBackStack<NavKey>.popIfTop(key: NavKey) {
     if (lastOrNull() == key) removeLastOrNull()
+}
+
+/** Leaving a test behind for the exams it belongs to: the top-level destination at the bottom. */
+private fun NavBackStack<NavKey>.popToRoot() {
+    while (size > 1) removeLastOrNull()
+}
+
+/**
+ * Leaving a situations drill behind for the situations it was begun from: a drill is started from
+ * that list, so going back through the practice screen is not what "done" means.
+ */
+private fun NavBackStack<NavKey>.popToSituations() {
+    while (size > 1 && last() !is IntersectionsKey) removeLastOrNull()
 }
 
 /** The screen a learning subject opens. Every subject has one, so the hub never hits a dead end. */

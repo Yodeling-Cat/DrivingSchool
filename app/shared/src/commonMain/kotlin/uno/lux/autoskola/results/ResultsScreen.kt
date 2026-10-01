@@ -104,20 +104,29 @@ private const val STAMP_TILT = -8f
 
 /**
  * Connects [ResultsScreen] to its [ResultsViewModel]. [onReview] goes back to the test with
- * its answers revealed, [onDone] back to the list of tests.
+ * its answers revealed; [onDone] goes back to the list of tests, and [onDoneToList] to the
+ * situations a drill was begun from.
  */
 @Composable
 fun ResultsRoute(
     attemptId: String,
     onReview: () -> Unit,
     onDone: () -> Unit,
+    onDoneToList: () -> Unit,
     viewModel: ResultsViewModel = koinViewModel { parametersOf(attemptId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     when (val current = state) {
         ResultsUiState.Loading -> LoadingScreen()
+
         ResultsUiState.Closed -> LaunchedEffect(Unit) { onReview() }
-        is ResultsUiState.Ready -> ResultsScreen(current, onReview = onReview, onDone = onDone)
+
+        is ResultsUiState.Ready -> ResultsScreen(
+            state = current,
+            onReview = onReview,
+            // A drill was begun from the situations, so that is where its way out leads.
+            onDone = if (current.hasVerdict) onDone else onDoneToList,
+        )
     }
 }
 
@@ -145,9 +154,14 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                         horizontalArrangement = Arrangement.spacedBy(24.dp),
                     ) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            ResultCard(state.summary.result, eyebrow, state.elapsedSeconds)
+                            ResultCard(
+                                result = state.summary.result,
+                                eyebrow = eyebrow,
+                                elapsedSeconds = state.elapsedSeconds,
+                                hasVerdict = state.hasVerdict,
+                            )
                             Counts(state.summary)
-                            Actions(onReview, onDone)
+                            Actions(onReview, onDone, doneLabel(state))
                         }
                         // The breakdown's pane already starts at the page's own padding.
                         Box(Modifier.weight(1f)) { Sections(state.sections, 0.dp) }
@@ -155,13 +169,14 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         ResultCard(
-                            state.summary.result,
-                            eyebrow,
-                            state.elapsedSeconds,
-                            Modifier.padding(horizontal = 16.dp),
+                            result = state.summary.result,
+                            eyebrow = eyebrow,
+                            elapsedSeconds = state.elapsedSeconds,
+                            hasVerdict = state.hasVerdict,
+                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
                         Counts(state.summary, Modifier.padding(horizontal = 16.dp))
-                        Actions(onReview, onDone, Modifier.padding(horizontal = 16.dp))
+                        Actions(onReview, onDone, doneLabel(state), Modifier.padding(horizontal = 16.dp))
                         Sections(state.sections, 16.dp)
                     }
                 }
@@ -197,16 +212,25 @@ private fun Header(state: ResultsUiState.Ready, onBack: () -> Unit) {
     }
 }
 
+/** What the way out of the results is called: a drill goes back to the situations. */
+@Composable
+private fun doneLabel(state: ResultsUiState.Ready): String =
+    if (state.hasVerdict) strings.backToTests else strings.backToList
+
 /**
  * The result: the licence ramp with its waves, glow and grain, the pass stamp, the score over the
  * pass-mark bar — and, under all of it, the percentage, the mark it had to beat and the time the
  * test took.
+ *
+ * An attempt that isn't given a verdict - a situations drill - is shown without any of that: the
+ * score alone, with no stamp, no pass mark and no time, because there was nothing to pass.
  */
 @Composable
 private fun ResultCard(
     result: TestResult,
     eyebrow: String,
     elapsedSeconds: Long,
+    hasVerdict: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val colors = Naj.colors
@@ -247,7 +271,9 @@ private fun ResultCard(
                 style = Naj.type.eyebrow,
                 color = colors.inkAt(0.75f),
             )
-            Stamp(passed = result.passed, color = stampColor, modifier = Modifier.padding(top = 8.dp))
+            if (hasVerdict) {
+                Stamp(passed = result.passed, color = stampColor, modifier = Modifier.padding(top = 8.dp))
+            }
         }
         Row(
             modifier = Modifier.align(Alignment.TopStart).padding(start = CardInset, top = 48.dp),
@@ -270,35 +296,39 @@ private fun ResultCard(
         // and with it the tick, is a share of the card's own width, not of its edge.
         ScoreBar(
             percent = result.percent,
-            passPercent = passPercent,
+            // No pass mark on a drill's card: there is nothing it was being measured against.
+            passPercent = passPercent.takeIf { hasVerdict },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = CardInset, end = CardInset, top = 146.dp),
         )
         // Under the bar: the percentage and the pass mark on the left, the time on the right. An
-        // attempt from before the app timed tests has no time to show, so the corner stays empty.
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(start = CardInset, end = CardInset, bottom = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "${result.percent} % · ${strings.passMarkShort(passPercent)}",
-                style = Naj.type.small,
-                color = colors.inkAt(0.75f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            if (elapsedSeconds > 0) {
+        // attempt from before the app timed tests has no time to show, so the corner stays empty -
+        // and a drill's card keeps the whole footer empty, since it was never marked against anything.
+        if (hasVerdict) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(start = CardInset, end = CardInset, bottom = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
-                    strings.minutesShort(elapsedMinutes(elapsedSeconds)),
+                    "${result.percent} % · ${strings.passMarkShort(passPercent)}",
                     style = Naj.type.small,
                     color = colors.inkAt(0.75f),
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
+                if (elapsedSeconds > 0) {
+                    Text(
+                        strings.minutesShort(elapsedMinutes(elapsedSeconds)),
+                        style = Naj.type.small,
+                        color = colors.inkAt(0.75f),
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -325,12 +355,12 @@ private fun Stamp(passed: Boolean, color: Color, modifier: Modifier = Modifier) 
     }
 }
 
-/** The score bar: the track, the score filled in, and the tick where the pass mark falls. */
+/** The score bar: the track, the score filled in, and - where there is one - the pass-mark tick. */
 @Composable
-private fun ScoreBar(percent: Int, passPercent: Int, modifier: Modifier = Modifier) {
+private fun ScoreBar(percent: Int, passPercent: Int?, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     val filled = (percent / 100f).coerceIn(0f, 1f)
-    val pass = (passPercent / 100f).coerceIn(0f, 1f)
+    val pass = passPercent?.let { (it / 100f).coerceIn(0f, 1f) }
     Canvas(modifier.fillMaxWidth().height(TrackTickHeight)) {
         val barTop = (size.height - TrackHeight.toPx()) / 2f
         val radius = CornerRadius(TrackHeight.toPx() / 2f)
@@ -346,11 +376,13 @@ private fun ScoreBar(percent: Int, passPercent: Int, modifier: Modifier = Modifi
             size = Size(size.width * filled, TrackHeight.toPx()),
             cornerRadius = radius,
         )
-        drawRect(
-            color = colors.ink,
-            topLeft = Offset(size.width * pass, 0f),
-            size = Size(TrackTickWidth.toPx(), size.height),
-        )
+        if (pass != null) {
+            drawRect(
+                color = colors.ink,
+                topLeft = Offset(size.width * pass, 0f),
+                size = Size(TrackTickWidth.toPx(), size.height),
+            )
+        }
     }
 }
 
@@ -417,12 +449,17 @@ private fun CountTile(
     }
 }
 
-/** The two ways out: review the answers, or go back to the list of tests. */
+/** The two ways out: review the answers, or go back to where the attempt was begun. */
 @Composable
-private fun Actions(onReview: () -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+private fun Actions(
+    onReview: () -> Unit,
+    onDone: () -> Unit,
+    doneLabel: String,
+    modifier: Modifier = Modifier,
+) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinePill(text = strings.reviewAnswers, onClick = onReview, modifier = Modifier.weight(1f))
-        PrimaryPill(text = strings.backToTests, onClick = onDone, modifier = Modifier.weight(1f))
+        PrimaryPill(text = doneLabel, onClick = onDone, modifier = Modifier.weight(1f))
     }
 }
 
@@ -496,15 +533,17 @@ private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
 private fun resultsState(
     summary: AttemptSummary = previewSummary(),
     elapsedSeconds: Long = 23 * 60,
+    hasVerdict: Boolean = true,
 ): ResultsUiState.Ready = ResultsUiState.Ready(
     exam = previewExam,
-    kind = AttemptKind.PracticeTest,
-    testNumber = 7,
+    kind = if (hasVerdict) AttemptKind.PracticeTest else AttemptKind.Situations,
+    testNumber = if (hasVerdict) 7 else null,
     summary = summary,
     sections = summary.sections.mapIndexed { index, section ->
         ResultSection(previewSections[index].title, section)
     },
     elapsedSeconds = elapsedSeconds,
+    hasVerdict = hasVerdict,
 )
 
 /** A passed test on a phone: the poster, the three counts, the actions and the breakdown. */
@@ -548,5 +587,18 @@ private fun ResultsScreenUntimedPreview() {
 private fun ResultsScreenExpandedPreview() {
     AppPreview {
         ResultsScreen(resultsState(), onReview = {}, onDone = {})
+    }
+}
+
+/** A situations drill: nothing to pass, so no stamp, no pass mark, no time, and back to the list. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun ResultsScreenDrillPreview() {
+    AppPreview {
+        ResultsScreen(
+            resultsState(elapsedSeconds = 31 * 60, hasVerdict = false),
+            onReview = {},
+            onDone = {},
+        )
     }
 }

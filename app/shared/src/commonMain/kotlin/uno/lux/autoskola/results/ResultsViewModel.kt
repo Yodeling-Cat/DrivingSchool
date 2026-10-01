@@ -35,8 +35,20 @@ sealed interface ResultsUiState {
         val sections: List<ResultSection>,
         /** How long the test ran. Zero on attempts made before the app timed tests. */
         val elapsedSeconds: Long,
+        /**
+         * Whether the card says how the attempt went, as passing or failing: a test is measured
+         * against the pass mark, while a situations drill was never being passed or failed, so its
+         * card has no stamp, no pass mark and no time to show.
+         */
+        val hasVerdict: Boolean,
     ) : ResultsUiState
 }
+
+/**
+ * Whether an attempt of [kind] is given a verdict. A test is passed or failed against the pass mark;
+ * a situations drill is a run through the reading material, which is only reported on.
+ */
+internal fun hasVerdict(kind: AttemptKind): Boolean = kind != AttemptKind.Situations
 
 /** Shows how a finished attempt went. Only reads, so it has no events. */
 class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : ViewModel() {
@@ -63,6 +75,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : V
                 ResultSection(session.bank.section(it.section)?.title.orEmpty(), it)
             },
             elapsedSeconds = attempt.elapsedSeconds,
+            hasVerdict = hasVerdict(attempt.kind),
         )
     }
 }

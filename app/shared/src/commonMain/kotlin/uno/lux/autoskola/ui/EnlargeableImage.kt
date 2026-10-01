@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -76,9 +75,9 @@ private val EnlargedImageMargin = 24.dp
  * opens a copy as large as the screen allows.
  *
  * [page] is the room the screen has and [maxHeight] how tall the picture may get in the column it
- * sits in, so a picture is never drawn bigger than the screen showing it. Where the picture is not
- * one of the bank's own files but something that runs to its edges, [shape] is what clips it - only
- * a drawing that would be cut off by rounded corners asks for anything but the default.
+ * sits in, so a picture is never drawn bigger than the screen showing it. [shape] is how the picture
+ * is clipped, which by default is what a picture of the bank is always clipped with: a
+ * traffic-situation drawing runs to its own edges and is cut square, everything else is rounded.
  *
  * The enlarged copy is drawn from the painter the inline one already decoded: a second
  * `rememberAsyncImagePainter` for the same URI would flash empty for a frame, and two painters
@@ -90,7 +89,7 @@ internal fun EnlargeableImage(
     page: DpSize,
     modifier: Modifier = Modifier,
     maxHeight: Dp = ImageMaxHeight,
-    shape: Shape = RoundedCornerShape(ImageCornerRadius),
+    shape: Shape = pictureShape(uri),
 ) {
     // The pictures are drawn bigger than they are, so the sharper filter is what keeps their edges
     // from turning into steps: bicubic on Skia, the platform's best on Android.
@@ -230,7 +229,6 @@ private fun EnlargeableImageNarrowPreview() {
                 uri = "preview://minv-sk/obr3/dz/140.jpg",
                 page = DpSize(200.dp, 120.dp),
                 maxHeight = 52.dp,
-                shape = RoundedCornerShape(ImageCornerRadius),
             )
         }
     }

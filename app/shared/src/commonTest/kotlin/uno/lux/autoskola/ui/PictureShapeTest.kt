@@ -1,10 +1,13 @@
-package uno.lux.autoskola.practice
+package uno.lux.autoskola.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class QuestionImageShapeTest {
+class PictureShapeTest {
     @Test
     fun aTrafficSituationDrawingIsOneThatRunsToItsOwnEdges() {
         assertTrue(isSituationDrawing("test://minv-sk/obr3/ds/01.png"))
@@ -36,5 +39,11 @@ class QuestionImageShapeTest {
     @Test
     fun anotherBanksFolderWithTheSameNameIsNotOne() {
         assertFalse(isSituationDrawing("test://minv-sk/obr3/dsx/01.png"))
+    }
+
+    @Test
+    fun aDrawingIsCutSquareAndEveryOtherPictureIsRounded() {
+        assertEquals(RectangleShape, pictureShape("test://minv-sk/obr3/ds/01.png"))
+        assertEquals(RoundedCornerShape(ImageCornerRadius), pictureShape("test://minv-sk/obr3/dz/110.jpg"))
     }
 }

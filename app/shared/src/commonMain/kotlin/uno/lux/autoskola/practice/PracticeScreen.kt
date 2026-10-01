@@ -80,8 +80,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
@@ -118,7 +116,6 @@ import uno.lux.autoskola.ui.BarIconButton
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.HeightClass
-import uno.lux.autoskola.ui.ImageCornerRadius
 import uno.lux.autoskola.ui.ImageSideBySideMaxHeight
 import uno.lux.autoskola.ui.LoadingScreen
 import uno.lux.autoskola.ui.LocalHeightClass
@@ -1110,7 +1107,6 @@ private fun QuestionPage(
                             uri = imageUri,
                             page = page,
                             maxHeight = ImageSideBySideMaxHeight,
-                            shape = questionImageShape(imageUri),
                         )
                     }
                 }
@@ -1123,7 +1119,7 @@ private fun QuestionPage(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     imageUri?.let { uri ->
-                        EnlargeableImage(uri = uri, page = page, shape = questionImageShape(uri))
+                        EnlargeableImage(uri = uri, page = page)
                     }
                     questionText()
                     if (skipped) SkippedNotice()
@@ -1151,14 +1147,6 @@ private fun SkippedNotice() {
         Text(strings.skippedQuestion, style = Naj.type.eyebrowTight, color = colors.skippedOn)
     }
 }
-
-/**
- * The picture of a question is the bank's own file, and a traffic-situation drawing is a scene
- * that runs to its own edges: rounding it would cut the road off. Everything else - signs,
- * pictograms - sits on a plain background and is rounded like the rest of the app.
- */
-private fun questionImageShape(uri: String?): Shape =
-    if (isSituationDrawing(uri)) RectangleShape else RoundedCornerShape(ImageCornerRadius)
 
 /** [onSelect] is null when the answer is locked. */
 @Composable

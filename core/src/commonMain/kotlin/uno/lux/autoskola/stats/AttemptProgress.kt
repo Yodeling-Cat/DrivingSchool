@@ -28,6 +28,12 @@ fun TestAttempt.score(questions: List<Question>): TestResult {
 val TestAttempt.isFullyAnswered: Boolean
     get() = questionIds.all { answerFor(it) != null }
 
+/**
+ * Whether the driver answered a single question of it. A test left with none is not work in
+ * progress: there is nothing in it to come back to, so it is dropped instead of kept.
+ */
+val TestAttempt.wasAnswered: Boolean get() = answers.isNotEmpty()
+
 /** How one attempt went, for the results screen. */
 data class AttemptSummary(
     val result: TestResult,

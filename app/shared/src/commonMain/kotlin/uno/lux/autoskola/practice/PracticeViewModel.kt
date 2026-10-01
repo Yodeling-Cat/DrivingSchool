@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -30,6 +32,7 @@ import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.stats.answersByIndex
 import uno.lux.autoskola.stats.isFullyAnswered
 import uno.lux.autoskola.stats.resumeIndex
+import uno.lux.autoskola.stats.wasAnswered
 import kotlin.random.Random
 
 data class PracticeQuestion(
@@ -62,6 +65,8 @@ sealed interface PracticeUiState {
         val finished: Boolean,
         /** The test was just finished here, so the screen should show its results. */
         val openResults: Boolean = false,
+        /** The driver left the test, so the screen should close. */
+        val close: Boolean = false,
         /** Page the test moves on to after an answer, once the screen has reported the move. */
         val advanceToPage: Int? = null,
         val elapsedSeconds: Long = 0L,
@@ -77,6 +82,12 @@ sealed interface PracticeUiState {
 sealed interface PracticeUiEvent {
     data class Answer(val questionIndex: Int, val answerIndex: Int) : PracticeUiEvent
     data object Finish : PracticeUiEvent
+
+    /**
+     * The driver is leaving the test. What they answered stays as it is - and a test they answered
+     * nothing in goes: there is no work in it to come back to.
+     */
+    data object Leave : PracticeUiEvent
 
     /** The screen showed the results that [PracticeUiState.Ready.openResults] asked for. */
     data object ResultsOpened : PracticeUiEvent
@@ -134,6 +145,10 @@ class PracticeViewModel(
     private val showTimeLimitToast = MutableStateFlow(false)
     private val openResults = MutableStateFlow(false)
     private val advanceToPage = MutableStateFlow<Int?>(null)
+    private val close = MutableStateFlow(false)
+
+    /** What the screen is asked to do once the work behind it is done: results, or closing. */
+    private val screenRequests = combine(openResults, close) { openResults, close -> openResults to close }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PracticeUiState> = session
@@ -144,18 +159,19 @@ class PracticeViewModel(
                     onAttemptLoaded(attempt)
                 }
             }
-            combine(attemptFlow, openResults, advanceToPage, elapsedSeconds, showTimeLimitToast) {
+            combine(attemptFlow, screenRequests, advanceToPage, elapsedSeconds, showTimeLimitToast) {
                     attempt,
-                    openResults,
+                    requests,
                     advanceTo,
                     elapsed,
                     showToast,
                 ->
+                val (openResults, close) = requests
                 if (attempt == null) {
                     PracticeUiState.Closed
                 } else {
                     val effectiveElapsed = elapsed ?: attempt.elapsedSeconds
-                    ready(session, attempt, openResults, advanceTo, effectiveElapsed, showToast)
+                    ready(session, attempt, openResults, close, advanceTo, effectiveElapsed, showToast)
                 }
             }
         }
@@ -247,6 +263,17 @@ class PracticeViewModel(
                 openResults.value = true
             }
 
+            // Leaving a test nobody answered a question of: there is nothing in it to come back to,
+            // so the attempt goes rather than waiting to be picked up again. One that was answered
+            // stays as it is, and the screen closes.
+            PracticeUiEvent.Leave -> viewModelScope.launch {
+                if (session.attempt(attemptId).first()?.wasAnswered == true) {
+                    close.value = true
+                } else {
+                    session.discard(attemptId)
+                }
+            }
+
             PracticeUiEvent.ResultsOpened -> openResults.value = false
 
             PracticeUiEvent.PageAdvanced -> advanceToPage.value = null
@@ -322,6 +349,7 @@ class PracticeViewModel(
         session: ExamSession,
         attempt: TestAttempt,
         openResults: Boolean,
+        close: Boolean,
         advanceToPage: Int?,
         elapsedSeconds: Long,
         showTimeLimitToast: Boolean,
@@ -342,6 +370,7 @@ class PracticeViewModel(
             allAnswered = attempt.isFullyAnswered,
             finished = attempt.isFinished,
             openResults = openResults && attempt.isFinished,
+            close = close,
             advanceToPage = advanceToPage,
             elapsedSeconds = elapsedSeconds,
             allottedSeconds = timeLimitSeconds,

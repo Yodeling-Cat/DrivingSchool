@@ -517,4 +517,48 @@ class PracticeViewModelTest : ViewModelTest() {
             assertFalse(state.ready.showTimeLimitToast)
         }
     }
+
+    @Test
+    fun leavingATestNothingWasAnsweredInDropsIt() = runTest {
+        // Nothing was answered, so there is no work in it to come back to.
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.Leave) }
+
+        assertTrue(assertNotNull(repositories.attempts.get(attempt.id)).discardedAt != null)
+        assertEquals(PracticeUiState.Closed, state.value)
+    }
+
+    @Test
+    fun leavingADrillNothingWasAnsweredInDropsThatToo() = runTest {
+        // The rule is about leaving, not about tests: a drill nobody answered in goes the same way.
+        val drills = TestRepositories(testSituationsBank()).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        }
+        val session = drills.exams.currentSession()
+        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val (viewModel, state) = open(drill, drills)
+
+        viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.Leave) }
+
+        assertTrue(assertNotNull(drills.attempts.get(drill.id)).discardedAt != null)
+        assertEquals(PracticeUiState.Closed, state.value)
+    }
+
+    @Test
+    fun leavingATestWithAnswersInItKeepsItWhereItWas() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        viewModel.withScreen {
+            viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+            viewModel.onEvent(PracticeUiEvent.Leave)
+
+            assertNull(assertNotNull(repositories.attempts.get(attempt.id)).discardedAt)
+            assertEquals(1, state.ready.answers[0])
+            // The screen closes once the leaving has been dealt with; the test waits to be continued.
+            assertTrue(state.ready.close)
+        }
+    }
 }

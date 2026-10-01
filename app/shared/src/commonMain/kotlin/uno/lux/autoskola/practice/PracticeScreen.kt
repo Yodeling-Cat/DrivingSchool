@@ -161,8 +161,8 @@ private val QuestionSheetShadow = 24.dp
 private val SheetRadius = 32.dp
 
 /**
- * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] once the attempt is
- * closed, and [onOpenResults] when the test is finished or the user asks for its results.
+ * Connects [PracticeScreen] to its [PracticeViewModel]. Calls [onClose] when the test is left or the
+ * attempt is gone, and [onOpenResults] when the test is finished or the user asks for its results.
  */
 @Composable
 fun PracticeRoute(
@@ -190,7 +190,10 @@ fun PracticeRoute(
                     viewModel.onEvent(PracticeUiEvent.ResultsOpened)
                 }
             }
-            PracticeScreen(current, viewModel::onEvent, onBack = onClose, onOpenResults = onOpenResults)
+            // The screen closes when the driver leaves, not when they press back: a test they
+            // answered nothing in is dropped first.
+            LaunchedEffect(current.close) { if (current.close) onClose() }
+            PracticeScreen(current, viewModel::onEvent, onOpenResults = onOpenResults)
         }
     }
 }
@@ -208,12 +211,7 @@ fun PracticeRoute(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PracticeScreen(
-    state: PracticeUiState.Ready,
-    onEvent: (PracticeUiEvent) -> Unit,
-    onBack: () -> Unit,
-    onOpenResults: () -> Unit,
-) {
+fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> Unit, onOpenResults: () -> Unit) {
     val colors = Naj.colors
     val questions = remember(state.questions) { state.questions.map { it.question } }
     val sections = state.sections
@@ -252,7 +250,10 @@ fun PracticeScreen(
     fun handleBack() {
         when (backAction(listExpanded, finished)) {
             BackAction.CloseQuestionList -> scope.launch { sheetState.partialExpand() }
-            BackAction.Leave -> onBack()
+
+            // Leaving is the ViewModel's to do: a test with nothing answered in it goes with it.
+            BackAction.Leave -> onEvent(PracticeUiEvent.Leave)
+
             BackAction.ConfirmLeave -> confirmingLeave = true
         }
     }
@@ -642,7 +643,7 @@ fun PracticeScreen(
             onDismiss = { confirmingLeave = false },
             onConfirm = {
                 confirmingLeave = false
-                onBack()
+                onEvent(PracticeUiEvent.Leave)
             },
         )
     }
@@ -1280,7 +1281,7 @@ private fun practiceState(
 @Composable
 private fun PracticeScreenPreview() {
     AppPreview {
-        PracticeScreen(practiceState(), onEvent = {}, onBack = {}, onOpenResults = {})
+        PracticeScreen(practiceState(), onEvent = {}, onOpenResults = {})
     }
 }
 
@@ -1292,7 +1293,6 @@ private fun PracticeScreenAnsweredPreview() {
         PracticeScreen(
             practiceState(answers = mapOf(0 to 1)),
             onEvent = {},
-            onBack = {},
             onOpenResults = {},
         )
     }
@@ -1307,7 +1307,6 @@ private fun PracticeScreenCheckedPreview() {
         PracticeScreen(
             practiceState(checkImmediately = true, answers = mapOf(0 to 0, 1 to 2), initialPage = 1),
             onEvent = {},
-            onBack = {},
             onOpenResults = {},
         )
     }
@@ -1321,7 +1320,6 @@ private fun PracticeScreenFinishedPreview() {
         PracticeScreen(
             practiceState(finished = true, answers = mapOf(0 to 0, 1 to 2), initialPage = 2),
             onEvent = {},
-            onBack = {},
             onOpenResults = {},
         )
     }
@@ -1335,7 +1333,6 @@ private fun PracticeScreenOverTimePreview() {
         PracticeScreen(
             practiceState(elapsedSeconds = 1_900L, showTimeLimitToast = true),
             onEvent = {},
-            onBack = {},
             onOpenResults = {},
         )
     }
@@ -1349,7 +1346,6 @@ private fun PracticeScreenExpandedPreview() {
         PracticeScreen(
             practiceState(answers = mapOf(0 to 1), initialPage = 1),
             onEvent = {},
-            onBack = {},
             onOpenResults = {},
         )
     }
@@ -1360,6 +1356,6 @@ private fun PracticeScreenExpandedPreview() {
 @Composable
 private fun PracticeScreenLandscapePreview() {
     AppPreview {
-        PracticeScreen(practiceState(), onEvent = {}, onBack = {}, onOpenResults = {})
+        PracticeScreen(practiceState(), onEvent = {}, onOpenResults = {})
     }
 }

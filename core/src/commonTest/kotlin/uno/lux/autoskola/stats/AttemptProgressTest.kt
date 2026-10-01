@@ -53,6 +53,13 @@ class AttemptProgressTest {
     }
 
     @Test
+    fun anAttemptNobodyAnsweredAnythingInSaysSo() {
+        // Nothing was answered, so there is nothing about it worth keeping.
+        assertEquals(false, attempt().wasAnswered)
+        assertEquals(true, attempt(10 to 0).wasAnswered)
+    }
+
+    @Test
     fun scoreCountsPointsOfCorrectAnswersAgainstAllQuestions() {
         // Correct on 10 (3 points) and 30 (1 point), wrong on 20, nothing else missing.
         assertEquals(TestResult(score = 4, maxScore = 6), attempt(10 to 0, 20 to 1, 30 to 0).score(questions))

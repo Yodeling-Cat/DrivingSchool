@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -309,6 +310,14 @@ private fun ResultCard(
                         style = Naj.type.heroSuffix,
                         color = colors.ink.copy(alpha = 0.6f),
                         modifier = Modifier.alignByBaseline(),
+                    )
+                    // What the score is a score of, set the way the licence card sets "tests
+                    // finished": its own last line on the numbers' baseline.
+                    Text(
+                        strings.pointsLabel,
+                        style = Naj.type.heroCaption,
+                        color = colors.ink,
+                        modifier = Modifier.alignBy(LastBaseline).padding(start = 4.dp),
                     )
                 }
             }

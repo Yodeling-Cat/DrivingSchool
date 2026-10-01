@@ -95,6 +95,9 @@ class NajType(fonts: NajFonts) {
     val rowSubtitle = TextStyle(fontFamily = fonts.dmSans, fontSize = 13.sp, lineHeight = 18.sp)
     val secondary = TextStyle(fontFamily = fonts.dmSansMedium, fontSize = 12.5.sp)
     val tileStatus = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 12.sp)
+
+    /** The words beside a hero number, as the licence card sets "tests finished". */
+    val heroCaption = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 13.sp)
     val small = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 12.sp)
     val eyebrow = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 10.5.sp, letterSpacing = 1.6.sp)
     val eyebrowTight = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 10.5.sp, letterSpacing = 1.sp)

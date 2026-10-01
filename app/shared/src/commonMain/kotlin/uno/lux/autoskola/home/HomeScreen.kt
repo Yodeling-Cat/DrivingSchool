@@ -44,12 +44,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LastBaseline
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import uno.lux.autoskola.TestResult
@@ -127,10 +125,6 @@ private val PaneTrailing = 32.dp
 
 /** The gap between the licence card's three figures, which sit together at its left edge. */
 private val StatGap = 24.dp
-
-/** The 13sp bold caption the design sets the exam pill and the hero's label in. */
-private val CaptionStyle: TextStyle
-    @Composable get() = Naj.type.tileStatus.copy(fontSize = 13.sp)
 
 /** Connects [HomeScreen] to its [HomeViewModel] and to navigation. */
 @Composable
@@ -404,7 +398,7 @@ private fun HeroRow(finished: Int, total: Int) {
         if (caption.isNotBlank()) {
             Text(
                 text = twoLines(caption),
-                style = CaptionStyle,
+                style = Naj.type.heroCaption,
                 color = colors.ink,
                 // The caption's own last line sits on the numbers' baseline: aligned by its first
                 // line, a two-line label hangs a whole line below them.

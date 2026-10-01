@@ -184,6 +184,9 @@ class Strings(
     /** The same pass mark, set beside the score on the result card. */
     val passMarkShort: (percent: Int) -> String,
 
+    /** The words beside that score, as the licence card sets "tests finished": "points". */
+    val pointsLabel: String,
+
     /** How long the test ran, set at the card's other corner: "23 min". */
     val minutesShort: (minutes: Int) -> String,
     val bySection: String,
@@ -328,6 +331,7 @@ private val EnglishStrings = Strings(
     unansweredCount = "Unanswered",
     passMark = { "You need $it % to pass" },
     passMarkShort = { "pass mark $it %" },
+    pointsLabel = "points",
     minutesShort = { "$it min" },
     bySection = "By section",
     reviewAnswers = "Review answers",
@@ -458,6 +462,7 @@ private val SlovakStrings = Strings(
     unansweredCount = "Nezodpovedané",
     passMark = { "Na úspech potrebujete $it %" },
     passMarkShort = { "hranica $it %" },
+    pointsLabel = "bodov",
     minutesShort = { "$it min" },
     bySection = "Podľa okruhov",
     reviewAnswers = "Prezrieť odpovede",
@@ -588,6 +593,7 @@ private val HungarianStrings = Strings(
     unansweredCount = "Megválaszolatlan",
     passMark = { "A sikerhez $it% szükséges" },
     passMarkShort = { "küszöb $it%" },
+    pointsLabel = "pont",
     minutesShort = { "$it perc" },
     bySection = "Témakörönként",
     reviewAnswers = "Válaszok áttekintése",
@@ -718,6 +724,7 @@ private val CzechStrings = Strings(
     unansweredCount = "Nezodpovězené",
     passMark = { "K úspěchu potřebujete $it %" },
     passMarkShort = { "hranice $it %" },
+    pointsLabel = "bodů",
     minutesShort = { "$it min" },
     bySection = "Podle okruhů",
     reviewAnswers = "Prohlédnout odpovědi",

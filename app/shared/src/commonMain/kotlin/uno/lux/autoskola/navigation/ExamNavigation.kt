@@ -190,11 +190,7 @@ fun ExamNavigation() {
                 )
             }
             entry<SituationKey> { key ->
-                SituationRoute(
-                    key.number,
-                    onClose = { backStack.popIfTop(key) },
-                    onOpenAttempt = { attemptId -> backStack.add(PracticeKey(attemptId)) },
-                )
+                SituationRoute(key.number, onClose = { backStack.popIfTop(key) })
             }
             entry<LegislationKey> { LearnPlaceholderScreen(LearnSection.Legislation, onBack = pop) }
             entry<SettingsKey>(metadata = tabMetadata) {

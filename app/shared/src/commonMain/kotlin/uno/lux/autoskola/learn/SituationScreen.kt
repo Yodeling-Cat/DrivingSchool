@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +44,6 @@ import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.LocalNavBarInset
-import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PreviewBoard
 import uno.lux.autoskola.ui.PreviewLabel
 import uno.lux.autoskola.ui.RoundButton
@@ -62,18 +59,9 @@ private val SituationTabHeight = 36.dp
 fun SituationRoute(
     number: Int,
     onClose: () -> Unit,
-    onOpenAttempt: (attemptId: String) -> Unit,
     viewModel: SituationViewModel = koinViewModel { parametersOf(number) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val openAttemptId = (state as? SituationUiState.Ready)?.openAttemptId
-    // Drilling happens in the practice screen, over the attempt the ViewModel started.
-    LaunchedEffect(openAttemptId) {
-        openAttemptId?.let {
-            onOpenAttempt(it)
-            viewModel.onEvent(SituationUiEvent.AttemptOpened)
-        }
-    }
     // A situation the material doesn't have any more closes the screen rather than showing another.
     LaunchedEffect(state) { if (state is SituationUiState.Closed) onClose() }
     SituationScreen(state, viewModel::onEvent, onClose)
@@ -105,22 +93,14 @@ fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit
                         // The screen is on its way out; leave the space it took.
                         SituationUiState.Closed -> Spacer(Modifier.weight(1f))
 
-                        is SituationUiState.Ready -> {
-                            OutlinePill(
-                                text = strings.situationsDrillOne,
-                                onClick = { onEvent(SituationUiEvent.Drill) },
-                                icon = Icons.Filled.PlayArrow,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
-                            SituationReading(
-                                state = state,
-                                page = page,
-                                tab = tab,
-                                onSelectTab = { tab = it },
-                                onEvent = onEvent,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        is SituationUiState.Ready -> SituationReading(
+                            state = state,
+                            page = page,
+                            tab = tab,
+                            onSelectTab = { tab = it },
+                            onEvent = onEvent,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }

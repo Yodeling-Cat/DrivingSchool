@@ -4,7 +4,6 @@ import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
-import uno.lux.autoskola.stats.AttemptKind
 import uno.lux.autoskola.testing.TestRepositories
 import uno.lux.autoskola.testing.ViewModelTest
 import kotlin.test.Test
@@ -24,7 +23,6 @@ class SituationViewModelTest : ViewModelTest() {
             number,
             repositories.exams,
             repositories.banks,
-            repositories.preferences,
             repositories.answers,
         )
     }
@@ -34,7 +32,7 @@ class SituationViewModelTest : ViewModelTest() {
         val fresh = TestRepositories(testSituationsBank())
 
         val state = observe(
-            SituationViewModel(1, fresh.exams, fresh.banks, fresh.preferences, fresh.answers).uiState,
+            SituationViewModel(1, fresh.exams, fresh.banks, fresh.answers).uiState,
         )
 
         assertEquals(SituationUiState.Loading, state.value)
@@ -65,30 +63,6 @@ class SituationViewModelTest : ViewModelTest() {
         // A screen restored from a route the bank no longer answers shows nothing rather than
         // another situation's drawing.
         val state = observe(viewModel(number = 9).uiState)
-
-        assertEquals(SituationUiState.Closed, state.value)
-    }
-
-    @Test
-    fun drillingItOpensAnAttemptOverTheQuestionsAskedAboutIt() = runTest {
-        val repositories = TestRepositories(testSituationsBank())
-        val viewModel = viewModel(number = 1, repositories = repositories)
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(SituationUiEvent.Drill)
-
-        val attemptId = assertNotNull(assertIs<SituationUiState.Ready>(state.value).openAttemptId)
-        val attempt = assertNotNull(repositories.attempts.get(attemptId))
-        assertEquals(AttemptKind.Situations, attempt.kind)
-        assertEquals(listOf(1813, 1814), attempt.questionIds)
-    }
-
-    @Test
-    fun thereIsNothingToDrillWhereThereIsNoSituation() = runTest {
-        val viewModel = viewModel(number = 9)
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(SituationUiEvent.Drill)
 
         assertEquals(SituationUiState.Closed, state.value)
     }

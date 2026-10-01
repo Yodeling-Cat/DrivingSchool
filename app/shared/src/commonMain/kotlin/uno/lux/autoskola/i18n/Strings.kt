@@ -96,8 +96,6 @@ class Strings(
     val situationsNothingFound: String,
     /** The action that drills every situation, in the practice screen. */
     val situationsDrillAll: String,
-    /** The action that drills the one situation the screen is showing. */
-    val situationsDrillOne: String,
     /** What a run through the situations is called in the practice bar, e.g. "Situations drill". */
     val situationsDrillName: String,
     /** What one question about a situation is called on its tab, e.g. "Question 2". */
@@ -257,7 +255,6 @@ private val EnglishStrings = Strings(
     situationQuestions = { if (it == 1) "1 question" else "$it questions" },
     situationsNothingFound = "No situations in this exam",
     situationsDrillAll = "Drill every situation",
-    situationsDrillOne = "Drill this situation",
     situationsDrillName = "Situations drill",
     questionNumber = { "Question $it" },
     situationSolved = "Answered correctly",
@@ -383,7 +380,6 @@ private val SlovakStrings = Strings(
     situationQuestions = { "$it " + westSlavicPlural(it, "otázka", "otázky", "otázok") },
     situationsNothingFound = "Táto skúška nemá situácie",
     situationsDrillAll = "Precvičiť všetky situácie",
-    situationsDrillOne = "Precvičiť túto situáciu",
     situationsDrillName = "Nácvik situácií",
     questionNumber = { "Otázka $it" },
     situationSolved = "Zodpovedané správne",
@@ -509,7 +505,6 @@ private val HungarianStrings = Strings(
     situationQuestions = { "$it kérdés" },
     situationsNothingFound = "Ennek a vizsgának nincs helyzete",
     situationsDrillAll = "Összes helyzet gyakorlása",
-    situationsDrillOne = "A helyzet gyakorlása",
     situationsDrillName = "Helyzetgyakorlás",
     questionNumber = { "$it. kérdés" },
     situationSolved = "Helyesen megválaszolva",
@@ -635,7 +630,6 @@ private val CzechStrings = Strings(
     situationQuestions = { "$it " + westSlavicPlural(it, "otázka", "otázky", "otázek") },
     situationsNothingFound = "Tato zkouška nemá situace",
     situationsDrillAll = "Procvičit všechny situace",
-    situationsDrillOne = "Procvičit tuto situaci",
     situationsDrillName = "Nácvik situací",
     questionNumber = { "Otázka $it" },
     situationSolved = "Zodpovězeno správně",

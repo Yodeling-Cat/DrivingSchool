@@ -59,7 +59,7 @@ val appModule = module {
     viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
-    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }
+    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }

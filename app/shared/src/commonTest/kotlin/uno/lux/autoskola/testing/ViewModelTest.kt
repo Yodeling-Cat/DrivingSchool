@@ -12,6 +12,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import uno.lux.autoskola.bank.QuestionBank
+import uno.lux.autoskola.data.answers.PracticeAnswerRepository
+import uno.lux.autoskola.data.answers.SettingsPracticeAnswerDataSource
 import uno.lux.autoskola.data.attempts.AttemptRepository
 import uno.lux.autoskola.data.attempts.SettingsAttemptDataSource
 import uno.lux.autoskola.data.banks.FakeQuestionBankDataSource
@@ -49,6 +51,7 @@ class TestRepositories(bank: QuestionBank = testBank()) {
     val settings = MapSettings()
     val preferences = PreferencesRepository(settings)
     val attempts = AttemptRepository(SettingsAttemptDataSource(settings), now = { ++clock })
+    val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
     val exams = ExamRepository(preferences, banks, attempts)
 }

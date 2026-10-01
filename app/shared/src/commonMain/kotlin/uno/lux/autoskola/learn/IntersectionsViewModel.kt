@@ -2,24 +2,33 @@ package uno.lux.autoskola.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import uno.lux.autoskola.answers.PracticeAnswers
 import uno.lux.autoskola.bank.Question
+import uno.lux.autoskola.data.answers.PracticeAnswerRepository
 import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.exam.CurrentExam
 import uno.lux.autoskola.data.exam.ExamRepository
 import uno.lux.autoskola.data.exam.ExamSession
 import uno.lux.autoskola.data.preferences.PreferencesRepository
+import uno.lux.autoskola.situations.isSolvedBy
 import uno.lux.autoskola.situations.situations
 import uno.lux.autoskola.ui.displayText
 
 /** One question about a situation, as the screens read it. */
 data class SituationQuestion(
+    /** The bank's id of the question, which is what an answer is kept against. */
+    val questionId: Int,
     val text: String,
     val answers: List<String>,
     /** Index into [answers]. */
@@ -32,6 +41,8 @@ data class SituationItem(
     val number: Int,
     val imageUri: String,
     val questions: List<SituationQuestion>,
+    /** Every question answered, and answered right, so there is nothing left to practise here. */
+    val solved: Boolean = false,
 )
 
 sealed interface IntersectionsUiState {
@@ -64,6 +75,7 @@ class IntersectionsViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
     private val preferences: PreferencesRepository,
+    private val answers: PracticeAnswerRepository,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -72,11 +84,16 @@ class IntersectionsViewModel(
 
     private val openAttemptId = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<IntersectionsUiState> = combine(session, openAttemptId) { session, open ->
+    /** What the driver has answered while reading, which marks the situations they are done with. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val given: Flow<PracticeAnswers> = session.filterNotNull()
+        .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
+
+    val uiState: StateFlow<IntersectionsUiState> = combine(session, given, openAttemptId) { session, given, open ->
         if (session == null) {
             IntersectionsUiState.Loading
         } else {
-            IntersectionsUiState.Ready(situations = situationItems(session, banks), openAttemptId = open)
+            IntersectionsUiState.Ready(situations = situationItems(session, banks, given), openAttemptId = open)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntersectionsUiState.Loading)
 
@@ -97,18 +114,24 @@ class IntersectionsViewModel(
 /**
  * The situations of [session] as the screens draw them, numbered from one and in the bank's order.
  * The numbering is the material's own, so the situation the list calls third is the one the detail
- * screen calls third.
+ * screen calls third. [answers] are what the driver has answered while reading, which is what says
+ * whether a situation has been worked out in full.
  */
-internal fun situationItems(session: ExamSession, banks: QuestionBankRepository): List<SituationItem> =
-    situations(session.bank, session.category).mapIndexed { index, situation ->
-        SituationItem(
-            number = index + 1,
-            imageUri = banks.imageUri(session.bank, situation.image),
-            questions = situation.questions.map { it.toSituationQuestion() },
-        )
-    }
+internal fun situationItems(
+    session: ExamSession,
+    banks: QuestionBankRepository,
+    answers: PracticeAnswers = PracticeAnswers(),
+): List<SituationItem> = situations(session.bank, session.category).mapIndexed { index, situation ->
+    SituationItem(
+        number = index + 1,
+        imageUri = banks.imageUri(session.bank, situation.image),
+        questions = situation.questions.map { it.toSituationQuestion() },
+        solved = situation.isSolvedBy(answers),
+    )
+}
 
 private fun Question.toSituationQuestion() = SituationQuestion(
+    questionId = id,
     text = displayText(text),
     answers = answers.map(::displayText),
     correct = correct,

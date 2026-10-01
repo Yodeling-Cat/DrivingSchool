@@ -100,6 +100,12 @@ class Strings(
     val situationsDrillOne: String,
     /** What a run through the situations is called in the practice bar, e.g. "Situations drill". */
     val situationsDrillName: String,
+    /** What one question about a situation is called on its tab, e.g. "Question 2". */
+    val questionNumber: (number: Int) -> String,
+    /** The action that shows whether the answer the driver picked is the right one. */
+    val checkAnswer: String,
+    /** Read out with the mark on a situation every question of which is answered correctly. */
+    val situationSolved: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -248,6 +254,9 @@ private val EnglishStrings = Strings(
     situationsDrillAll = "Drill every situation",
     situationsDrillOne = "Drill this situation",
     situationsDrillName = "Situations drill",
+    questionNumber = { "Question $it" },
+    checkAnswer = "Check answer",
+    situationSolved = "Answered correctly",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -371,6 +380,9 @@ private val SlovakStrings = Strings(
     situationsDrillAll = "Precvičiť všetky situácie",
     situationsDrillOne = "Precvičiť túto situáciu",
     situationsDrillName = "Nácvik situácií",
+    questionNumber = { "Otázka $it" },
+    checkAnswer = "Skontrolovať odpoveď",
+    situationSolved = "Zodpovedané správne",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -494,6 +506,9 @@ private val HungarianStrings = Strings(
     situationsDrillAll = "Összes helyzet gyakorlása",
     situationsDrillOne = "A helyzet gyakorlása",
     situationsDrillName = "Helyzetgyakorlás",
+    questionNumber = { "$it. kérdés" },
+    checkAnswer = "Válasz ellenőrzése",
+    situationSolved = "Helyesen megválaszolva",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -617,6 +632,9 @@ private val CzechStrings = Strings(
     situationsDrillAll = "Procvičit všechny situace",
     situationsDrillOne = "Procvičit tuto situaci",
     situationsDrillName = "Nácvik situací",
+    questionNumber = { "Otázka $it" },
+    checkAnswer = "Zkontrolovat odpověď",
+    situationSolved = "Zodpovězeno správně",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

@@ -1,6 +1,7 @@
 package uno.lux.autoskola.learn
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,6 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,14 +42,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
-import uno.lux.autoskola.practice.AnswerState
 import uno.lux.autoskola.practice.IconArrowBack
-import uno.lux.autoskola.practice.answerState
+import uno.lux.autoskola.ui.AnswerCard
 import uno.lux.autoskola.ui.AppPreview
 import uno.lux.autoskola.ui.ContentWidth
 import uno.lux.autoskola.ui.EnlargeableImage
 import uno.lux.autoskola.ui.LocalNavBarInset
-import uno.lux.autoskola.ui.NajCard
 import uno.lux.autoskola.ui.OutlinePill
 import uno.lux.autoskola.ui.PreviewBoard
 import uno.lux.autoskola.ui.PreviewLabel
@@ -51,6 +55,9 @@ import uno.lux.autoskola.ui.RoundButton
 import uno.lux.autoskola.ui.previewSituations
 import uno.lux.autoskola.ui.theme.Naj
 import uno.lux.autoskola.ui.theme.paperBackground
+
+/** How tall a question's tab is. Round, like every other pill in the app. */
+private val SituationTabHeight = 36.dp
 
 /** Connects [SituationScreen] to its [SituationViewModel] and to navigation. */
 @Composable
@@ -75,35 +82,50 @@ fun SituationRoute(
 }
 
 /**
- * One situation: the drawing of it, and every question the exam asks about it with the answer the
- * regulation wants. Reading it is the point - the questions are there to be studied, not answered -
- * and the action above the drawing is what runs them through the practice screen.
+ * One situation: the drawing of it, and the questions the exam asks about it, one to a tab.
+ *
+ * The driver answers them while they read. A situation's questions are practice rather than a test,
+ * so nothing is scored and nothing is locked: an answer can be changed at any time, and it is kept
+ * with the bank version, so coming back to a situation shows what was answered. Asking to check an
+ * answer is what shows whether it was the right one - the answer is not given away before that.
  */
 @Composable
 fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
     // Measured here, outside the scroll, so an enlarged drawing is never drawn bigger than the screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val page = DpSize(maxWidth, maxHeight)
+        // Where the driver is looking, and which answers they asked to check. Both are about this
+        // visit: what they answered is the ViewModel's, and is not forgotten.
+        var tab by rememberSaveable { mutableIntStateOf(0) }
+        var checked by remember { mutableStateOf(emptySet<Int>()) }
         Box(Modifier.fillMaxSize().paperBackground()) {
             Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
                     SituationHeader(state, onClose)
-                    (state as? SituationUiState.Ready)?.let {
-                        OutlinePill(
-                            text = strings.situationsDrillOne,
-                            onClick = { onEvent(SituationUiEvent.Drill) },
-                            icon = Icons.Filled.PlayArrow,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
-                    }
                     when (state) {
                         SituationUiState.Loading -> SituationLoading(Modifier.weight(1f))
 
                         // The screen is on its way out; leave the space it took.
                         SituationUiState.Closed -> Spacer(Modifier.weight(1f))
 
-                        is SituationUiState.Ready ->
-                            SituationBody(state.situation, page, Modifier.weight(1f))
+                        is SituationUiState.Ready -> {
+                            OutlinePill(
+                                text = strings.situationsDrillOne,
+                                onClick = { onEvent(SituationUiEvent.Drill) },
+                                icon = Icons.Filled.PlayArrow,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                            SituationReading(
+                                state = state,
+                                page = page,
+                                tab = tab,
+                                checked = checked,
+                                onSelectTab = { tab = it },
+                                onCheck = { questionId -> checked = checked + questionId },
+                                onEvent = onEvent,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }
@@ -139,85 +161,100 @@ private fun SituationHeader(state: SituationUiState, onClose: () -> Unit) {
     }
 }
 
-/** The drawing, then the questions it is asked with. */
+/** The drawing, the tab of each question, and the question being read. */
 @Composable
-private fun SituationBody(situation: SituationItem, page: DpSize, modifier: Modifier = Modifier) {
+private fun SituationReading(
+    state: SituationUiState.Ready,
+    page: DpSize,
+    tab: Int,
+    checked: Set<Int>,
+    onSelectTab: (Int) -> Unit,
+    onCheck: (questionId: Int) -> Unit,
+    onEvent: (SituationUiEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val questions = state.situation.questions
+    val question = questions.getOrNull(tab) ?: questions.firstOrNull() ?: return
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalNavBarInset.current),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        EnlargeableImage(uri = situation.imageUri, page = page)
-        situation.questions.forEach { question ->
-            SituationQuestionBlock(question)
+        EnlargeableImage(uri = state.situation.imageUri, page = page)
+        if (questions.size > 1) {
+            SituationTabs(count = questions.size, selected = tab, onSelect = onSelectTab)
         }
+        SituationQuestionBlock(
+            question = question,
+            chosen = state.answers[question.questionId],
+            checked = question.questionId in checked,
+            onCheck = { onCheck(question.questionId) },
+            onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
+        )
     }
 }
 
-/** One question about the situation, with its answers and the one that's right. */
+/**
+ * One tab per question: the questions about a situation are asked about the same drawing, and a
+ * driver reads one at a time rather than all of them at once.
+ */
 @Composable
-private fun SituationQuestionBlock(question: SituationQuestion, modifier: Modifier = Modifier) {
+private fun SituationTabs(
+    count: Int,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = Naj.colors
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(question.text, style = Naj.type.question, color = colors.ink)
-        SituationAnswers(question.answers, question.correct)
-    }
-}
-
-/** The answers to one question, with the right one marked: nothing here is a choice to make. */
-@Composable
-private fun SituationAnswers(answers: List<String>, correct: Int, modifier: Modifier = Modifier) {
-    val colors = Naj.colors
-    NajCard(modifier.fillMaxWidth(), shadow = 0.3f) {
-        Column(Modifier.fillMaxWidth()) {
-            answers.forEachIndexed { index, answer ->
-                if (index > 0) {
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
-                }
-                SituationAnswerRow(
-                    letter = ('A' + index).toString(),
-                    text = answer,
-                    right = answerState(index, selected = null, correct = correct, revealed = true) ==
-                        AnswerState.Correct,
+    val shape = RoundedCornerShape(SituationTabHeight / 2)
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        repeat(count) { index ->
+            val open = index == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(SituationTabHeight)
+                    .clip(shape)
+                    .background(if (open) colors.ink else colors.card)
+                    .clickable { onSelect(index) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    strings.questionNumber(index + 1),
+                    style = Naj.type.tiny,
+                    color = if (open) Color.White else colors.muted,
+                    maxLines = 1,
                 )
             }
         }
     }
 }
 
-/** One answer of a situation, with the letter the practice screen gives it. */
+/** One question of the situation: what it asks, the answers, and the way to check the answer. */
 @Composable
-private fun SituationAnswerRow(letter: String, text: String, right: Boolean) {
+private fun SituationQuestionBlock(
+    question: SituationQuestion,
+    chosen: Int?,
+    checked: Boolean,
+    onCheck: () -> Unit,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = Naj.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (right) Modifier.background(colors.correctTint) else Modifier)
-            .padding(start = 12.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (right) colors.passedOn else colors.neutralTint),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                letter,
-                style = Naj.type.answerLetter,
-                color = if (right) Color.White else colors.neutralOn,
-            )
-        }
-        Column(Modifier.weight(1f).padding(top = 7.dp)) {
-            if (right) {
-                Text(strings.correctAnswer, style = Naj.type.eyebrowTight, color = colors.passedOn)
-                Spacer(Modifier.height(2.dp))
-            }
-            Text(text, style = Naj.type.option, color = colors.ink)
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(question.text, style = Naj.type.question, color = colors.ink)
+        AnswerCard(
+            options = question.answers,
+            selectedIndex = chosen,
+            correct = question.correct,
+            revealed = checked,
+            onSelect = onSelect,
+        )
+        // Nothing to check before an answer is picked, and checking again says nothing new.
+        if (chosen != null && !checked) {
+            OutlinePill(text = strings.checkAnswer, onClick = onCheck)
         }
     }
 }
@@ -232,26 +269,39 @@ private fun SituationLoading(modifier: Modifier = Modifier) {
 
 // ── Previews ──
 
-/** One situation on a phone: its drawing and the questions asked about it. */
+/** A situation on a phone: its drawing and its first question, unanswered. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SituationScreenPreview() {
     AppPreview {
         SituationScreen(
-            state = SituationUiState.Ready(previewSituations[0]),
+            state = SituationUiState.Ready(previewSituations[0], answers = emptyMap()),
             onEvent = {},
             onClose = {},
         )
     }
 }
 
-/** A situation whose questions a taller screen fits beside the drawing. */
-@Preview(widthDp = 900, heightDp = 700)
+/** The same question answered, with nothing given away yet. */
+@Preview(widthDp = 400, heightDp = 900)
 @Composable
-private fun SituationScreenWidePreview() {
+private fun SituationScreenAnsweredPreview() {
     AppPreview {
         SituationScreen(
-            state = SituationUiState.Ready(previewSituations[1]),
+            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 2)),
+            onEvent = {},
+            onClose = {},
+        )
+    }
+}
+
+/** A situation with one question has no tabs to show. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SituationScreenOneQuestionPreview() {
+    AppPreview {
+        SituationScreen(
+            state = SituationUiState.Ready(previewSituations[1], answers = mapOf(1815 to 1)),
             onEvent = {},
             onClose = {},
         )
@@ -264,7 +314,20 @@ private fun SituationScreenWidePreview() {
 private fun SituationScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
         SituationScreen(
-            state = SituationUiState.Ready(previewSituations[0]),
+            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 2)),
+            onEvent = {},
+            onClose = {},
+        )
+    }
+}
+
+/** A tablet, where the reading column is capped and centred. */
+@Preview(widthDp = 900, heightDp = 800)
+@Composable
+private fun SituationScreenWidePreview() {
+    AppPreview {
+        SituationScreen(
+            state = SituationUiState.Ready(previewSituations[0], answers = mapOf(1813 to 2)),
             onEvent = {},
             onClose = {},
         )
@@ -278,18 +341,34 @@ private fun SituationScreenLoadingPreview() {
     AppPreview { SituationScreen(state = SituationUiState.Loading, onEvent = {}, onClose = {}) }
 }
 
-/** One question's answers on their own, with the right one marked. */
-@Preview(widthDp = 400, heightDp = 260)
+/** One question on its own, answered and checked, which is the one thing the screen can't show. */
+@Preview(widthDp = 400, heightDp = 420)
 @Composable
-private fun SituationAnswersPreview() {
+private fun SituationQuestionCheckedPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("one question's answers")
-            SituationAnswers(
-                answers = previewSituations[0].questions[0].answers,
-                correct = previewSituations[0].questions[0].correct,
+            PreviewLabel("answered and checked")
+            SituationQuestionBlock(
+                question = previewSituations[0].questions[0],
+                chosen = 1,
+                checked = true,
+                onCheck = {},
+                onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
+        }
+    }
+}
+
+/** The tabs on their own: the question being read, and the ones waiting. */
+@Preview(widthDp = 400, heightDp = 120)
+@Composable
+private fun SituationTabsPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("one tab per question")
+            SituationTabs(count = 4, selected = 1, onSelect = {}, modifier = Modifier.padding(horizontal = 12.dp))
+            SituationTabs(count = 2, selected = 0, onSelect = {}, modifier = Modifier.padding(horizontal = 12.dp))
         }
     }
 }

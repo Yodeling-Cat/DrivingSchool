@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -189,6 +190,15 @@ private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> 
                 strings.situationQuestions(situation.questions.size),
                 style = Naj.type.rowSubtitle,
                 color = colors.muted,
+            )
+        }
+        // Every question about it answered, and answered right: nothing left to practise here.
+        if (situation.solved) {
+            Icon(
+                Icons.Filled.CheckCircle,
+                contentDescription = strings.situationSolved,
+                tint = colors.passedOn,
+                modifier = Modifier.size(20.dp),
             )
         }
         Icon(

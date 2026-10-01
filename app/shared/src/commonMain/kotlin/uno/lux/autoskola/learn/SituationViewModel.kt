@@ -2,13 +2,19 @@ package uno.lux.autoskola.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import uno.lux.autoskola.answers.PracticeAnswers
+import uno.lux.autoskola.data.answers.PracticeAnswerRepository
 import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.exam.CurrentExam
 import uno.lux.autoskola.data.exam.ExamRepository
@@ -28,6 +34,8 @@ sealed interface SituationUiState {
 
     data class Ready(
         val situation: SituationItem,
+        /** What the driver has answered about this situation's questions: question id → option. */
+        val answers: Map<Int, Int> = emptyMap(),
         /**
          * An attempt to open, once the driver has asked to drill this situation; the screen
          * navigates to it and then sends [SituationUiEvent.AttemptOpened].
@@ -37,6 +45,9 @@ sealed interface SituationUiState {
 }
 
 sealed interface SituationUiEvent {
+    /** Records the option the driver picked. Answering again replaces the answer that was there. */
+    data class Answer(val questionId: Int, val chosen: Int) : SituationUiEvent
+
     /** Drills this situation's questions, in the practice screen. */
     data object Drill : SituationUiEvent
 
@@ -50,6 +61,7 @@ class SituationViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
     private val preferences: PreferencesRepository,
+    private val answers: PracticeAnswerRepository,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -58,11 +70,16 @@ class SituationViewModel(
 
     private val openAttemptId = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<SituationUiState> = combine(session, openAttemptId) { session, open ->
+    /** What the driver has answered while reading, kept with the bank version being read. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val given: Flow<PracticeAnswers> = session.filterNotNull()
+        .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
+
+    val uiState: StateFlow<SituationUiState> = combine(session, given, openAttemptId) { session, given, open ->
         if (session == null) {
             SituationUiState.Loading
         } else {
-            situationOf(session, number)?.let { SituationUiState.Ready(it, openAttemptId = open) }
+            situationOf(session, number)?.let { SituationUiState.Ready(it, given.byQuestion, open) }
                 ?: SituationUiState.Closed
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SituationUiState.Loading)
@@ -70,6 +87,10 @@ class SituationViewModel(
     fun onEvent(event: SituationUiEvent) {
         val session = session.value ?: return
         when (event) {
+            is SituationUiEvent.Answer -> viewModelScope.launch {
+                answers.answer(session.bank.id, session.bank.version, event.questionId, event.chosen)
+            }
+
             SituationUiEvent.Drill -> viewModelScope.launch {
                 val questions = questionsOf(session, number)
                 val checkImmediately = preferences.preferences.value.checkAnswersImmediately

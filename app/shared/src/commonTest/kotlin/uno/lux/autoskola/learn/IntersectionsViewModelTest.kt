@@ -22,14 +22,21 @@ class IntersectionsViewModelTest : ViewModelTest() {
         repositories: TestRepositories = TestRepositories(testSituationsBank()),
     ): IntersectionsViewModel {
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
-        return IntersectionsViewModel(repositories.exams, repositories.banks, repositories.preferences)
+        return IntersectionsViewModel(
+            repositories.exams,
+            repositories.banks,
+            repositories.preferences,
+            repositories.answers,
+        )
     }
 
     @Test
     fun noExamSelectedLeavesTheScreenLoading() = runTest {
         val fresh = TestRepositories(testSituationsBank())
 
-        val state = observe(IntersectionsViewModel(fresh.exams, fresh.banks, fresh.preferences).uiState)
+        val state = observe(
+            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.preferences, fresh.answers).uiState,
+        )
 
         assertEquals(IntersectionsUiState.Loading, state.value)
     }
@@ -77,7 +84,12 @@ class IntersectionsViewModelTest : ViewModelTest() {
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
 
         val state = observe(
-            IntersectionsViewModel(repositories.exams, repositories.banks, repositories.preferences).uiState,
+            IntersectionsViewModel(
+                repositories.exams,
+                repositories.banks,
+                repositories.preferences,
+                repositories.answers,
+            ).uiState,
         )
 
         val ready = assertIs<IntersectionsUiState.Ready>(state.value)
@@ -125,5 +137,45 @@ class IntersectionsViewModelTest : ViewModelTest() {
         viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
 
         assertNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+    }
+
+    @Test
+    fun aSituationEveryQuestionOfWhichIsAnsweredRightIsMarkedAsOneToSkip() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        // The first situation's two questions, both right.
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 0)
+
+        val state = observe(viewModel(repositories).uiState)
+
+        assertEquals(
+            listOf(true, false),
+            assertIs<IntersectionsUiState.Ready>(state.value).situations.map {
+                it.solved
+            },
+        )
+    }
+
+    @Test
+    fun aSituationWithOneQuestionLeftWrongIsNotMarked() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 1)
+
+        val state = observe(viewModel(repositories).uiState)
+
+        assertFalse(assertIs<IntersectionsUiState.Ready>(state.value).situations.first().solved)
+    }
+
+    @Test
+    fun theMarkAppearsAsSoonAsTheLastAnswerIsRight() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 1)
+        val state = observe(viewModel(repositories).uiState)
+
+        repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 0)
+
+        assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).situations.first().solved)
     }
 }

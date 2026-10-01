@@ -1,5 +1,6 @@
 package uno.lux.autoskola.situations
 
+import uno.lux.autoskola.answers.PracticeAnswers
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.QuestionBank
@@ -31,3 +32,11 @@ fun situations(bank: QuestionBank, category: LicenseCategory): List<Situation> {
     }
     return asked.groupBy { it.image!! }.map { (image, questions) -> Situation(image, questions) }
 }
+
+/**
+ * Whether the driver has answered every question about this situation, and answered each of them
+ * correctly. That is the state worth marking: a situation worked out in full is one there is
+ * nothing left to practise in.
+ */
+fun Situation.isSolvedBy(answers: PracticeAnswers): Boolean =
+    questions.isNotEmpty() && questions.all { answers.chosenFor(it.id) == it.correct }

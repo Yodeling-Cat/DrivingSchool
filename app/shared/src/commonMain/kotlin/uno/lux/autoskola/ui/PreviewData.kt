@@ -109,6 +109,7 @@ internal val previewSituations = listOf(
         imageUri = "preview://minv-sk/obr3/ds/01.png",
         questions = listOf(
             SituationQuestion(
+                questionId = 1813,
                 text = "V poradí druhé prejde cez križovatku",
                 answers = listOf(
                     "modré vozidlo.",
@@ -118,6 +119,7 @@ internal val previewSituations = listOf(
                 correct = 2,
             ),
             SituationQuestion(
+                questionId = 1814,
                 text = "Vozidlá prejdú cez križovatku v tomto poradí:",
                 answers = listOf(
                     "červené vozidlo, vaše vozidlo, modré vozidlo.",
@@ -133,11 +135,14 @@ internal val previewSituations = listOf(
         imageUri = "preview://minv-sk/obr3/ds/02.png",
         questions = listOf(
             SituationQuestion(
+                questionId = 1815,
                 text = "Ako posledné prejde cez križovatku",
                 answers = listOf("modré vozidlo.", "vaše vozidlo.", "červené vozidlo."),
                 correct = 1,
             ),
         ),
+        // Answered right, so the list marks it as one there is nothing left to practise in.
+        solved = true,
     ),
 )
 

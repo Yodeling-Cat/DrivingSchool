@@ -1,11 +1,13 @@
 package uno.lux.autoskola.situations
 
+import uno.lux.autoskola.answers.PracticeAnswers
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.QuestionBank
 import uno.lux.autoskola.bank.Section
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SituationsTest {
@@ -90,6 +92,28 @@ class SituationsTest {
     }
 
     @Test
+    fun aSituationIsSolvedWhenEveryQuestionIsAnsweredAndRight() {
+        val questions = listOf(
+            question(1, section = SITUATIONS, image = "obr3/ds/01.png", correct = 0),
+            question(2, section = SITUATIONS, image = "obr3/ds/01.png", correct = 2),
+        )
+        val situation = situations(bank(*questions.toTypedArray()), LicenseCategory.B).single()
+
+        assertFalse(situation.isSolvedBy(PracticeAnswers()))
+        assertFalse(situation.isSolvedBy(PracticeAnswers().withAnswer(1, 0)))
+        assertFalse(situation.isSolvedBy(PracticeAnswers().withAnswer(1, 0).withAnswer(2, 1)))
+        assertTrue(situation.isSolvedBy(PracticeAnswers().withAnswer(1, 0).withAnswer(2, 2)))
+    }
+
+    @Test
+    fun aSituationWithNothingToPractiseIsNotSolved() {
+        // By construction a situation has questions; one that somehow had none is not "done".
+        val situation = Situation(image = "obr3/ds/01.png", questions = emptyList())
+
+        assertFalse(situation.isSolvedBy(PracticeAnswers()))
+    }
+
+    @Test
     fun everySituationHoldsTheDrawingItIsAbout() {
         val bank = bank(
             question(1, section = SITUATIONS, image = "obr3/ds/03.png"),
@@ -121,12 +145,13 @@ class SituationsTest {
         text: String = "Vozidlá prejdú cez križovatku v tomto poradí:",
         answers: List<String> = listOf("červené vozidlo.", "modré vozidlo.", "vaše vozidlo."),
         groups: List<LicenseCategory> = listOf(LicenseCategory.A, LicenseCategory.B),
+        correct: Int = 0,
     ) = Question(
         id = id,
         section = section,
         text = text,
         answers = answers,
-        correct = 0,
+        correct = correct,
         points = 4,
         image = image,
         groups = groups,

@@ -7,6 +7,9 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import uno.lux.autoskola.AppViewModel
+import uno.lux.autoskola.data.answers.PracticeAnswerDataSource
+import uno.lux.autoskola.data.answers.PracticeAnswerRepository
+import uno.lux.autoskola.data.answers.SettingsPracticeAnswerDataSource
 import uno.lux.autoskola.data.attempts.AttemptDataSource
 import uno.lux.autoskola.data.attempts.AttemptRepository
 import uno.lux.autoskola.data.attempts.SettingsAttemptDataSource
@@ -36,11 +39,13 @@ val appModule = module {
     single<AttemptDataSource> { SettingsAttemptDataSource(get()) }
     single<QuestionBankDataSource> { ResourceQuestionBankDataSource() }
     single<SignCatalogueDataSource> { ResourceSignCatalogueDataSource() }
+    single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
 
     // Repositories
     single { AttemptRepository(get()) }
     single { QuestionBankRepository(get()) }
     single { SignCatalogueRepository(get()) }
+    single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
     single { ExamRepository(get(), get(), get()) }
 
@@ -54,7 +59,7 @@ val appModule = module {
     viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
-    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
+    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }

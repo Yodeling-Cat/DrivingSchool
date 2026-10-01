@@ -20,6 +20,7 @@ import uno.lux.autoskola.data.signs.SignCatalogueDataSource
 import uno.lux.autoskola.data.signs.SignCatalogueRepository
 import uno.lux.autoskola.home.HomeViewModel
 import uno.lux.autoskola.learn.SignsViewModel
+import uno.lux.autoskola.navigation.navigationState
 import uno.lux.autoskola.onboarding.DisclaimerViewModel
 import uno.lux.autoskola.onboarding.ExamSelectionViewModel
 import uno.lux.autoskola.practice.PracticeViewModel
@@ -40,6 +41,9 @@ val appModule = module {
     single { SignCatalogueRepository(get()) }
     single { PreferencesRepository(get()) }
     single { ExamRepository(get(), get(), get()) }
+
+    // Navigation
+    single { navigationState(get()) }
 
     // ViewModels
     viewModelOf(::AppViewModel)

@@ -10,6 +10,9 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -24,6 +27,7 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import org.koin.compose.koinInject
 import uno.lux.autoskola.home.HomeRoute
 import uno.lux.autoskola.learn.LearnPlaceholderScreen
 import uno.lux.autoskola.learn.LearnScreen
@@ -116,7 +120,22 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.screenSlide(direction:
  */
 @Composable
 fun ExamNavigation() {
-    val backStack = rememberNavBackStack(navConfiguration, HomeKey)
+    val navigation = koinInject<NavigationState>()
+    // Where the app was left, unless rememberSaveable kept a stack of its own (a rotation, or a
+    // process the system killed with its state intact).
+    val startKeys = remember { backStackOf(navigation.initialRoute()) }
+    val backStack = rememberNavBackStack(navConfiguration, *startKeys.toTypedArray())
+
+    // Every screen of the stack is in the route, so what is kept - the URL, or the stored route - is
+    // the whole way down, not only the screen on top.
+    val route = routeOf(backStack)
+    LaunchedEffect(route) { navigation.record(route) }
+
+    // A browser's back and forward buttons move the address bar; the app follows them.
+    DisposableEffect(navigation) {
+        val stopWatching = navigation.observe { moved -> backStack.navigateTo(backStackOf(moved)) }
+        onDispose { stopWatching() }
+    }
 
     val pop: () -> Unit = { backStack.removeLastOrNull() }
     val selectTab: (NavTab) -> Unit = { tab ->

@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -61,6 +62,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import uno.lux.autoskola.i18n.AppLanguage
 import uno.lux.autoskola.i18n.strings
+import uno.lux.autoskola.practice.ChipState
 import uno.lux.autoskola.practice.IconArrowBack
 import uno.lux.autoskola.practice.SwipePager
 import uno.lux.autoskola.practice.arrowKeyTarget
@@ -277,7 +279,7 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                     SituationTabs(
                         count = situation.questions.size,
                         selected = situation.questions.indexOf(question),
-                        answeredRight = answeredRight(situation.questions, answers),
+                        states = questionStates(situation.questions, answers),
                         onSelect = { tab = it },
                     )
                 }
@@ -293,15 +295,16 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
 
 /**
  * One tab per question: the questions about a situation are asked about the same drawing, and a
- * driver reads one at a time rather than all of them at once. A question answered right carries the
- * same green mark the list gives a finished situation, so the tabs say how much of it is done.
+ * driver reads one at a time rather than all of them at once. A tab carries the mark the list gives
+ * a finished situation - the green tick for a question answered right, a red cross for one answered
+ * wrongly - and nothing at all while it hasn't been answered.
  */
 @Composable
 private fun SituationTabs(
     count: Int,
     selected: Int,
-    /** Positions of the questions answered right. */
-    answeredRight: Set<Int>,
+    /** How each question stands, by the position its tab is drawn at. */
+    states: List<ChipState>,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -323,15 +326,25 @@ private fun SituationTabs(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (index in answeredRight) {
-                        Icon(
+                    // The tone that belongs on this tab's own background: the tab being read is dark,
+                    // and the deeper green and red are too dim to read there.
+                    when (states.getOrNull(index)) {
+                        ChipState.Correct -> Icon(
                             Icons.Filled.CheckCircle,
                             contentDescription = strings.answeredCorrectly,
-                            // The green that belongs on this tab's own background: the mark on the
-                            // darker tab being read, the one the list uses on paper everywhere else.
                             tint = if (open) colors.passedDot else colors.passedOn,
                             modifier = Modifier.size(SituationTabMarkSize),
                         )
+
+                        ChipState.Incorrect -> Icon(
+                            Icons.Filled.Cancel,
+                            contentDescription = strings.answeredWrongly,
+                            tint = if (open) colors.wrongDot else colors.wrongOn,
+                            modifier = Modifier.size(SituationTabMarkSize),
+                        )
+
+                        // Not answered yet, which is the only case with no mark at all.
+                        else -> Unit
                     }
                     Text(
                         strings.questionNumber(index + 1),
@@ -496,17 +509,22 @@ private fun SituationQuestionBlockPreview() {
     }
 }
 
-/** The tabs on their own: the question being read, the ones waiting, and the ones marked right. */
-@Preview(widthDp = 400, heightDp = 120)
+/** The tabs on their own: unanswered, answered right, answered wrongly, and the tab being read. */
+@Preview(widthDp = 400, heightDp = 140)
 @Composable
 private fun SituationTabsPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("one tab per question, the right ones marked")
+            PreviewLabel("right, wrong, and nothing for unanswered")
             SituationTabs(
                 count = 4,
                 selected = 1,
-                answeredRight = setOf(0, 3),
+                states = listOf(
+                    ChipState.Correct,
+                    ChipState.Unanswered,
+                    ChipState.Incorrect,
+                    ChipState.Unanswered,
+                ),
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
@@ -514,7 +532,7 @@ private fun SituationTabsPreview() {
             SituationTabs(
                 count = 2,
                 selected = 0,
-                answeredRight = setOf(0),
+                states = listOf(ChipState.Correct, ChipState.Incorrect),
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
             )

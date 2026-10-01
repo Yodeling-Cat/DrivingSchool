@@ -18,6 +18,8 @@ import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.exam.CurrentExam
 import uno.lux.autoskola.data.exam.ExamRepository
 import uno.lux.autoskola.data.exam.ExamSession
+import uno.lux.autoskola.practice.ChipState
+import uno.lux.autoskola.practice.chipState
 
 sealed interface SituationUiState {
     data object Loading : SituationUiState
@@ -45,14 +47,20 @@ sealed interface SituationUiEvent {
 }
 
 /**
- * Which of [questions] are answered, and answered right, by the options in [answers]: the positions
- * of them, counting from zero, which is what a tab is drawn at. A question nobody answered is not
- * among them, and neither is one answered wrongly.
+ * How each of [questions] stands, by the options in [answers]: the very state the practice screen's
+ * question list gives a question number, which is what a tab is marked with. The situations show
+ * their marks as they are picked, so correctness is always revealed - and a question nobody has
+ * answered yet is simply unanswered rather than skipped.
  */
-internal fun answeredRight(questions: List<SituationQuestion>, answers: Map<Int, Int>): Set<Int> =
-    questions.mapIndexedNotNull { index, question ->
-        index.takeIf { answers[question.questionId] == question.correct }
-    }.toSet()
+internal fun questionStates(questions: List<SituationQuestion>, answers: Map<Int, Int>): List<ChipState> =
+    questions.map { question ->
+        chipState(
+            selected = answers[question.questionId],
+            correct = question.correct,
+            revealCorrectness = true,
+            finished = false,
+        )
+    }
 
 /**
  * One situation, opened from the list: its drawing, and every question the exam asks about it, with

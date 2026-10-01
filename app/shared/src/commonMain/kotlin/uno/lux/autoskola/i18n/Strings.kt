@@ -102,6 +102,8 @@ class Strings(
     val questionNumber: (number: Int) -> String,
     /** Read out with the green mark: a question, or a situation, answered correctly. */
     val answeredCorrectly: String,
+    /** The same for the red cross: a question answered wrongly. */
+    val answeredWrongly: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -265,6 +267,7 @@ private val EnglishStrings = Strings(
     situationsDrillName = "Situations drill",
     questionNumber = { "Question $it" },
     answeredCorrectly = "Answered correctly",
+    answeredWrongly = "Answered wrongly",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -394,6 +397,7 @@ private val SlovakStrings = Strings(
     situationsDrillName = "Nácvik situácií",
     questionNumber = { "Otázka $it" },
     answeredCorrectly = "Zodpovedané správne",
+    answeredWrongly = "Zodpovedané nesprávne",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -523,6 +527,7 @@ private val HungarianStrings = Strings(
     situationsDrillName = "Helyzetgyakorlás",
     questionNumber = { "$it. kérdés" },
     answeredCorrectly = "Helyesen megválaszolva",
+    answeredWrongly = "Helytelenül megválaszolva",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -652,6 +657,7 @@ private val CzechStrings = Strings(
     situationsDrillName = "Nácvik situací",
     questionNumber = { "Otázka $it" },
     answeredCorrectly = "Zodpovězeno správně",
+    answeredWrongly = "Zodpovězeno nesprávně",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

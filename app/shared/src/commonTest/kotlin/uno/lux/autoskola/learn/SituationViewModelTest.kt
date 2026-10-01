@@ -4,6 +4,7 @@ import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.bank.LicenseCategory
 import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
+import uno.lux.autoskola.practice.ChipState
 import uno.lux.autoskola.testing.TestRepositories
 import uno.lux.autoskola.testing.ViewModelTest
 import kotlin.test.Test
@@ -126,19 +127,24 @@ class SituationViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theQuestionsAnsweredRightAreTheOnesTheTabsMark() {
-        // The tabs say how much of a situation is done: a question counted there is one that was
-        // answered, and answered right - a wrong answer and no answer at all are not.
+    fun aQuestionStandsAsItsTabMarksIt() {
+        // The tabs say how each question of a situation is doing, in the state the question list
+        // gives a question number: right, wrong, and nothing at all while it hasn't been answered.
         val questions = listOf(
             question(id = 1813, correct = 0),
             question(id = 1814, correct = 1),
             question(id = 1815, correct = 2),
         )
 
-        // 1813 answered right, 1814 answered wrong, 1815 not answered at all.
-        assertEquals(setOf(0), answeredRight(questions, mapOf(1813 to 0, 1814 to 0)))
-        assertEquals(setOf(1), answeredRight(questions, mapOf(1814 to 1, 1815 to 1)))
-        assertEquals(emptySet(), answeredRight(questions, emptyMap()))
+        // 1813 answered right, 1814 answered wrong (it wants 1), 1815 not answered at all.
+        assertEquals(
+            listOf(ChipState.Correct, ChipState.Incorrect, ChipState.Unanswered),
+            questionStates(questions, mapOf(1813 to 0, 1814 to 0)),
+        )
+        assertEquals(
+            listOf(ChipState.Unanswered, ChipState.Unanswered, ChipState.Unanswered),
+            questionStates(questions, emptyMap()),
+        )
     }
 
     private fun question(id: Int, correct: Int) = SituationQuestion(

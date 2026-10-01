@@ -18,6 +18,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import uno.lux.autoskola.bank.Question
 import uno.lux.autoskola.bank.Section
+import uno.lux.autoskola.data.answers.PracticeAnswerRepository
 import uno.lux.autoskola.data.banks.QuestionBankRepository
 import uno.lux.autoskola.data.exam.CurrentExam
 import uno.lux.autoskola.data.exam.ExamRepository
@@ -98,6 +99,7 @@ class PracticeViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
     private val preferences: PreferencesRepository,
+    private val practiceAnswers: PracticeAnswerRepository,
     private val allottedTimeSeconds: Long = TestAttempt.OFFICIAL_DURATION_SECONDS,
     /** Which option the debug shortcut picks, injected so a test can pin it down. */
     private val random: Random = Random.Default,
@@ -118,6 +120,7 @@ class PracticeViewModel(
     private var isFinished = false
     private var checksImmediately = false
     private var allAnswered = false
+    private var kind: AttemptKind = AttemptKind.PracticeTest
     private var timeLimitNotified = false
     private var timerJob: Job? = null
 
@@ -163,6 +166,7 @@ class PracticeViewModel(
         isFinished = attempt.isFinished
         checksImmediately = attempt.checkImmediately
         allAnswered = attempt.isFullyAnswered
+        kind = attempt.kind
         answered = attempt.answersByIndex().keys
         updateTimer()
     }
@@ -217,6 +221,7 @@ class PracticeViewModel(
                 val nextPage = nextPageAfter(event.questionIndex)
                 viewModelScope.launch {
                     session.answer(attemptId, question, event.answerIndex)
+                    recordSituationAnswer(session, question, event.answerIndex)
                     // The saved attempt comes back through the flow, which re-reads whether every
                     // question is answered and stops the clock on the answer that completes it.
                     elapsedSeconds.value?.let { session.updateElapsed(attemptId, it) }
@@ -251,6 +256,19 @@ class PracticeViewModel(
 
             PracticeUiEvent.AnswerAllCorrectly -> answerAll { it.correct }
         }
+    }
+
+    /**
+     * Writes an answer given in a situations drill as the answer to that situation.
+     *
+     * A drill asks the very questions the situations hold, in one run, so an answer given there is
+     * the answer to that situation. It is written as it is picked rather than when the drill is
+     * over, so leaving a drill halfway leaves the situations answered up to where it got to, and
+     * the list can mark off the ones that are done with.
+     */
+    private suspend fun recordSituationAnswer(session: ExamSession, question: Question, chosen: Int) {
+        if (kind != AttemptKind.Situations) return
+        practiceAnswers.answer(session.bank.id, session.bank.version, question.id, chosen)
     }
 
     /**

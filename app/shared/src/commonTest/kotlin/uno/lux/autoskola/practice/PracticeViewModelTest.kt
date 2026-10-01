@@ -4,10 +4,12 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import uno.lux.autoskola.TestResult
 import uno.lux.autoskola.bank.LicenseCategory
+import uno.lux.autoskola.data.banks.testSituationsBank
 import uno.lux.autoskola.data.preferences.TestSelection
 import uno.lux.autoskola.stats.TestAttempt
 import uno.lux.autoskola.testing.TestRepositories
@@ -34,7 +36,13 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     private fun TestScope.open(attempt: TestAttempt): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
-        val viewModel = PracticeViewModel(attempt.id, repositories.exams, repositories.banks, repositories.preferences)
+        val viewModel = PracticeViewModel(
+            attempt.id,
+            repositories.exams,
+            repositories.banks,
+            repositories.preferences,
+            repositories.answers,
+        )
         return viewModel to observe(viewModel.uiState)
     }
 
@@ -443,5 +451,42 @@ class PracticeViewModelTest : ViewModelTest() {
 
         assertEquals(2, state.ready.answers[0])
         assertEquals(0, state.ready.answers[1])
+    }
+
+    @Test
+    fun anAnswerInASituationsDrillIsTheAnswerToThatSituation() = runTest {
+        val drills = TestRepositories(testSituationsBank()).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        }
+        val session = drills.exams.currentSession()
+        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val viewModel = PracticeViewModel(
+            drill.id,
+            drills.exams,
+            drills.banks,
+            drills.preferences,
+            drills.answers,
+        )
+        val state = observe(viewModel.uiState)
+
+        viewModel.withScreen {
+            val question = state.ready.questions[0].question
+            viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+            // The situation the list draws shows the same answer: it was answered here.
+            assertEquals(1, drills.answers.answers("sk-sk", 1).first().chosenFor(question.id))
+        }
+    }
+
+    @Test
+    fun anAnswerToATestIsNotAnAnswerToASituation() = runTest {
+        // Tests and situations are answered in the same screen, but a test holds questions about
+        // everything: only a drill is a run through the situations.
+        val attempt = startTest()
+        val (viewModel, _) = open(attempt)
+
+        viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.Answer(0, 1)) }
+
+        assertTrue(repositories.answers.answers("sk-sk", 1).first().byQuestion.isEmpty())
     }
 }

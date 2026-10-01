@@ -65,8 +65,11 @@ sealed interface PracticeUiState {
         /** Page the test moves on to after an answer, once the screen has reported the move. */
         val advanceToPage: Int? = null,
         val elapsedSeconds: Long = 0L,
-        /** How long this test is given, so the screen can say when it has run out. */
-        val allottedSeconds: Long = 0L,
+        /**
+         * How long this test is given, so the screen can say when it has run out - or `null` when it
+         * isn't timed at all, which is a situations drill.
+         */
+        val allottedSeconds: Long? = null,
         val showTimeLimitToast: Boolean = false,
     ) : PracticeUiState
 }
@@ -121,6 +124,9 @@ class PracticeViewModel(
     private var checksImmediately = false
     private var allAnswered = false
     private var kind: AttemptKind = AttemptKind.PracticeTest
+
+    /** How long the attempt being read is given; `null` when it isn't timed at all. */
+    private var timeLimitSeconds: Long? = null
     private var timeLimitNotified = false
     private var timerJob: Job? = null
 
@@ -156,17 +162,20 @@ class PracticeViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PracticeUiState.Loading)
 
     private fun onAttemptLoaded(attempt: TestAttempt) {
+        kind = attempt.kind
+        // An exam test is given the official thirty minutes; a situations drill is reading practice
+        // with no exam behind it, so its clock only counts how long the driver has been at it.
+        timeLimitSeconds = if (attempt.kind == AttemptKind.Situations) null else allottedTimeSeconds
         if (elapsedSeconds.value == null) {
             val initial = attempt.elapsedSeconds
             elapsedSeconds.value = initial
-            if (isOverTime(initial, allottedTimeSeconds)) {
+            if (isOverTime(initial, timeLimitSeconds)) {
                 timeLimitNotified = true
             }
         }
         isFinished = attempt.isFinished
         checksImmediately = attempt.checkImmediately
         allAnswered = attempt.isFullyAnswered
-        kind = attempt.kind
         answered = attempt.answersByIndex().keys
         updateTimer()
     }
@@ -197,7 +206,7 @@ class PracticeViewModel(
         if (isFinished) return
         val current = (elapsedSeconds.value ?: 0L) + 1
         elapsedSeconds.value = current
-        if (!timeLimitNotified && isOverTime(current, allottedTimeSeconds)) {
+        if (!timeLimitNotified && isOverTime(current, timeLimitSeconds)) {
             timeLimitNotified = true
             showTimeLimitToast.value = true
         }
@@ -335,7 +344,7 @@ class PracticeViewModel(
             openResults = openResults && attempt.isFinished,
             advanceToPage = advanceToPage,
             elapsedSeconds = elapsedSeconds,
-            allottedSeconds = allottedTimeSeconds,
+            allottedSeconds = timeLimitSeconds,
             showTimeLimitToast = showTimeLimitToast,
         )
     }

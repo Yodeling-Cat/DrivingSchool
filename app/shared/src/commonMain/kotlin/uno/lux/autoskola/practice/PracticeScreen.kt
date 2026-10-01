@@ -329,7 +329,8 @@ fun PracticeScreen(
     val questionBottomRoom = barSlotHeight + navBarInset + 16.dp + messageRoom
     OverTimeNoticeEffect(
         show = state.showTimeLimitToast,
-        message = strings.overTime((state.allottedSeconds / 60).toInt()),
+        // Only a run with a time limit can run out of it, so only that one has a message to show.
+        message = state.allottedSeconds?.let { strings.overTime((it / 60).toInt()) }.orEmpty(),
         snackbarHostState = snackbarHostState,
         onShown = { onEvent(PracticeUiEvent.TimeLimitToastShown) },
     )

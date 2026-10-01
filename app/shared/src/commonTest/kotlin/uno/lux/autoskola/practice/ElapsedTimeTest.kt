@@ -50,6 +50,12 @@ class ElapsedTimeTest {
     }
 
     @Test
+    fun aRunWithNoTimeLimitNeverRunsOutOfIt() {
+        // A situations drill gets no limit at all, so there is nothing to exceed, however long it runs.
+        assertFalse(isOverTime(elapsedSeconds = 10_000, allottedSeconds = null))
+    }
+
+    @Test
     fun theClockMeasuredForWidthIsAllZerosWithTheSameColons() {
         // Zero is the widest digit in this font, so a clock of them is as wide as any clock gets.
         assertEquals("00:00", elapsedClockPlaceholder("07:42"))

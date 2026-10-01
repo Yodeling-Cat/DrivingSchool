@@ -46,6 +46,21 @@ class PracticeViewModelTest : ViewModelTest() {
         return viewModel to observe(viewModel.uiState)
     }
 
+    /** The practice screen over an attempt started by [repositories], which is how a drill is run. */
+    private fun TestScope.open(
+        attempt: TestAttempt,
+        repositories: TestRepositories,
+    ): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
+        val viewModel = PracticeViewModel(
+            attempt.id,
+            repositories.exams,
+            repositories.banks,
+            repositories.preferences,
+            repositories.answers,
+        )
+        return viewModel to observe(viewModel.uiState)
+    }
+
     /** Turns auto-advance on, which is only possible while answers aren't checked as they're picked. */
     private fun autoAdvance() {
         repositories.preferences.setCheckAnswersImmediately(false)
@@ -460,14 +475,7 @@ class PracticeViewModelTest : ViewModelTest() {
         }
         val session = drills.exams.currentSession()
         val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
-        val viewModel = PracticeViewModel(
-            drill.id,
-            drills.exams,
-            drills.banks,
-            drills.preferences,
-            drills.answers,
-        )
-        val state = observe(viewModel.uiState)
+        val (viewModel, state) = open(drill, drills)
 
         viewModel.withScreen {
             val question = state.ready.questions[0].question
@@ -488,5 +496,25 @@ class PracticeViewModelTest : ViewModelTest() {
         viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.Answer(0, 1)) }
 
         assertTrue(repositories.answers.answers("sk-sk", 1).first().byQuestion.isEmpty())
+    }
+
+    @Test
+    fun aSituationsDrillIsGivenNoTimeAtAllAndNeverRunsOut() = runTest {
+        val drills = TestRepositories(testSituationsBank()).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        }
+        val session = drills.exams.currentSession()
+        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        drills.attempts.updateElapsed(drill.id, 1_798L)
+        val (viewModel, state) = open(drill, drills)
+
+        viewModel.withScreen {
+            secondsPass(5)
+
+            // Past where a test's thirty minutes would be: the clock keeps counting, quietly.
+            assertNull(state.ready.allottedSeconds)
+            assertEquals(1_803L, state.ready.elapsedSeconds)
+            assertFalse(state.ready.showTimeLimitToast)
+        }
     }
 }

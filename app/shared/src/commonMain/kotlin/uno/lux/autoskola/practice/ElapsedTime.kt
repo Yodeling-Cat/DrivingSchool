@@ -14,11 +14,16 @@ internal fun elapsedClock(seconds: Long): String {
 }
 
 /**
- * Whether a test that has been running [elapsedSeconds] has had the [allottedSeconds] it's given.
- * A test that reached the time exactly is over it: the clock stops being "still fine" the moment
- * the last minute is up, and the notice that tells the user so arrives at the same moment.
+ * Whether an attempt that has been running [elapsedSeconds] has had the [allottedSeconds] it's
+ * given. A test that reached the time exactly is over it: the clock stops being "still fine" the
+ * moment the last minute is up, and the notice that tells the user so arrives at the same moment.
+ *
+ * A run with no time limit at all - a situations drill, which is reading practice rather than an
+ * exam - is given `null`, and never runs out: its clock only counts how long the driver has been at
+ * it.
  */
-internal fun isOverTime(elapsedSeconds: Long, allottedSeconds: Long): Boolean = elapsedSeconds >= allottedSeconds
+internal fun isOverTime(elapsedSeconds: Long, allottedSeconds: Long?): Boolean =
+    allottedSeconds != null && elapsedSeconds >= allottedSeconds
 
 /**
  * The clock drawn invisibly beside the real one so the pill around it keeps its width as the digits

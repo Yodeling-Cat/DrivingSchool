@@ -109,37 +109,32 @@ fun SituationRoute(
  */
 @Composable
 fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
-    // Measured here, outside the scroll, so an enlarged drawing is never drawn bigger than the screen.
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val pageSize = DpSize(maxWidth, maxHeight)
-        Box(Modifier.fillMaxSize().paperBackground()) {
-            Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
-                Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
-                    when (state) {
-                        // Nothing read yet, and a screen on its way out, both keep the header.
-                        SituationUiState.Loading, SituationUiState.Closed -> {
-                            SituationHeader(strings.learnIntersections, null, onClose)
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.BottomCenter) {
-                                if (state is SituationUiState.Loading) SituationLoading()
-                            }
-                        }
-
-                        is SituationUiState.Ready -> Situations(state, pageSize, onEvent, onClose)
+    Box(Modifier.fillMaxSize().paperBackground()) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+            when (state) {
+                // Nothing read yet, and a screen on its way out, both keep the header and its room.
+                SituationUiState.Loading, SituationUiState.Closed -> Column(Modifier.fillMaxSize()) {
+                    SituationHeader(strings.learnIntersections, null, onClose)
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        if (state is SituationUiState.Loading) SituationLoading()
                     }
                 }
+
+                is SituationUiState.Ready -> Situations(state, onEvent, onClose)
             }
         }
     }
 }
 
-/** Every situation as a page, with the ways through them: swipe, the arrows beside, the arrow keys. */
+/**
+ * Every situation as a page, with the ways through them: swipe, the arrows beside, the arrow keys.
+ *
+ * The pages take the whole window - only what they draw is capped, as the practice screen's pages
+ * are - so the arrows beside them have the window's own gutters to sit in, and a swipe brings the
+ * next page in from the edge of the screen rather than clipping it inside a narrow column.
+ */
 @Composable
-private fun Situations(
-    state: SituationUiState.Ready,
-    pageSize: DpSize,
-    onEvent: (SituationUiEvent) -> Unit,
-    onClose: () -> Unit,
-) {
+private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent) -> Unit, onClose: () -> Unit) {
     val situations = state.situations
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { situations.size })
     val scope = rememberCoroutineScope()
@@ -213,7 +208,6 @@ private fun Situations(
             ) { page ->
                 SituationPage(
                     situation = situations[page],
-                    pageSize = pageSize,
                     answers = state.answers,
                     onEvent = onEvent,
                 )
@@ -227,16 +221,21 @@ private fun Situations(
 @Composable
 private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> Unit) {
     val colors = Naj.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onClose)
-        Column(Modifier.weight(1f)) {
-            Text(title, style = Naj.type.screenTitle, color = colors.ink)
-            questionCount?.let {
-                Text(strings.situationQuestions(it), style = Naj.type.secondary, color = colors.muted)
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Row(
+            modifier = Modifier
+                .widthIn(max = ContentWidth.Reading)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onClose)
+            Column(Modifier.weight(1f)) {
+                Text(title, style = Naj.type.screenTitle, color = colors.ink)
+                questionCount?.let {
+                    Text(strings.situationQuestions(it), style = Naj.type.secondary, color = colors.muted)
+                }
             }
         }
     }
@@ -246,36 +245,42 @@ private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> U
  * One situation's page: the drawing, the tab of each question, and the question being read. Which
  * tab that is belongs to the page, so a situation swiped away from and come back to opens where it
  * was left.
+ *
+ * The page takes the whole window and caps only what it draws, as the practice screen's pages do:
+ * the drawing is measured against the page it is on, so an enlarged copy never outgrows the screen.
  */
 @Composable
-private fun SituationPage(
-    situation: SituationItem,
-    pageSize: DpSize,
-    answers: Map<Int, Int>,
-    onEvent: (SituationUiEvent) -> Unit,
-) {
+private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEvent: (SituationUiEvent) -> Unit) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val question = situation.questions.getOrNull(tab) ?: situation.questions.firstOrNull() ?: return
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalNavBarInset.current),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        EnlargeableImage(uri = situation.imageUri, page = pageSize)
-        if (situation.questions.size > 1) {
-            SituationTabs(
-                count = situation.questions.size,
-                selected = situation.questions.indexOf(question),
-                onSelect = { tab = it },
-            )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val pageSize = DpSize(maxWidth, maxHeight)
+        Box(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = ContentWidth.Reading)
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalNavBarInset.current),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                EnlargeableImage(uri = situation.imageUri, page = pageSize)
+                if (situation.questions.size > 1) {
+                    SituationTabs(
+                        count = situation.questions.size,
+                        selected = situation.questions.indexOf(question),
+                        onSelect = { tab = it },
+                    )
+                }
+                SituationQuestionBlock(
+                    question = question,
+                    chosen = answers[question.questionId],
+                    onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
+                )
+            }
         }
-        SituationQuestionBlock(
-            question = question,
-            chosen = answers[question.questionId],
-            onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
-        )
     }
 }
 

@@ -152,8 +152,8 @@ fun HomeRoute(
 
 /**
  * Progress overview and test picker. Phones and medium windows get one scrolling column of cards
- * and a test grid; an expanded window puts the overview in a band beside the resume banner and a
- * three-column grid.
+ * and a test grid; an expanded window puts the overview in a band beside the resume card and a grid
+ * of two or three columns, a short window keeping the phone layout's two.
  */
 @Composable
 fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChangeExam: () -> Unit) {
@@ -180,7 +180,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
     val columns = if (LocalWidthClass.current == WidthClass.Medium) {
         GridCells.Adaptive(GridTileMinWidth)
     } else {
-        GridCells.Fixed(2)
+        GridCells.Fixed(PHONE_COLUMNS)
     }
 
     LazyVerticalGrid(

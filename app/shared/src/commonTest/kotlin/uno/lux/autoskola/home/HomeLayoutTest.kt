@@ -34,4 +34,13 @@ class HomeLayoutTest {
         assertTrue(twoPaneResumeWide(HeightClass.of(480.dp)))
         assertTrue(twoPaneResumeWide(HeightClass.of(1200.dp)))
     }
+
+    /** One rule decides both halves, so a short window can never get half of the phone's shape. */
+    @Test
+    fun theTwoHalvesOfTheShapeAgreeAtEveryHeight() {
+        HeightClass.entries.forEach { height ->
+            val threeColumns = twoPaneColumns(height) == 3
+            assertEquals(threeColumns, twoPaneResumeWide(height), "the two halves disagree at $height")
+        }
+    }
 }

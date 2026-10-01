@@ -207,7 +207,7 @@ private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> 
         if (situation.solved) {
             Icon(
                 Icons.Filled.CheckCircle,
-                contentDescription = strings.situationSolved,
+                contentDescription = strings.answeredCorrectly,
                 tint = colors.passedOn,
                 modifier = Modifier.size(20.dp),
             )

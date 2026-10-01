@@ -124,4 +124,27 @@ class SituationViewModelTest : ViewModelTest() {
 
         assertEquals(2, assertIs<SituationUiState.Ready>(opened.value).answers[1814])
     }
+
+    @Test
+    fun theQuestionsAnsweredRightAreTheOnesTheTabsMark() {
+        // The tabs say how much of a situation is done: a question counted there is one that was
+        // answered, and answered right - a wrong answer and no answer at all are not.
+        val questions = listOf(
+            question(id = 1813, correct = 0),
+            question(id = 1814, correct = 1),
+            question(id = 1815, correct = 2),
+        )
+
+        // 1813 answered right, 1814 answered wrong, 1815 not answered at all.
+        assertEquals(setOf(0), answeredRight(questions, mapOf(1813 to 0, 1814 to 0)))
+        assertEquals(setOf(1), answeredRight(questions, mapOf(1814 to 1, 1815 to 1)))
+        assertEquals(emptySet(), answeredRight(questions, emptyMap()))
+    }
+
+    private fun question(id: Int, correct: Int) = SituationQuestion(
+        questionId = id,
+        text = "Q$id",
+        answers = listOf("a", "b", "c"),
+        correct = correct,
+    )
 }

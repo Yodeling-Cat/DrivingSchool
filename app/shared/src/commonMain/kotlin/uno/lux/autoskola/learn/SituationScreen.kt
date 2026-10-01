@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,7 +26,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +81,9 @@ import uno.lux.autoskola.ui.theme.paperBackground
 
 /** How tall a question's tab is. Round, like every other pill in the app. */
 private val SituationTabHeight = 36.dp
+
+/** How big the mark on a tab is, which has to fit inside it beside the question's number. */
+private val SituationTabMarkSize = 14.dp
 
 /** Connects [SituationScreen] to its [SituationViewModel] and to navigation. */
 @Composable
@@ -271,6 +277,7 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                     SituationTabs(
                         count = situation.questions.size,
                         selected = situation.questions.indexOf(question),
+                        answeredRight = answeredRight(situation.questions, answers),
                         onSelect = { tab = it },
                     )
                 }
@@ -286,12 +293,15 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
 
 /**
  * One tab per question: the questions about a situation are asked about the same drawing, and a
- * driver reads one at a time rather than all of them at once.
+ * driver reads one at a time rather than all of them at once. A question answered right carries the
+ * same green mark the list gives a finished situation, so the tabs say how much of it is done.
  */
 @Composable
 private fun SituationTabs(
     count: Int,
     selected: Int,
+    /** Positions of the questions answered right. */
+    answeredRight: Set<Int>,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -309,12 +319,27 @@ private fun SituationTabs(
                     .clickable { onSelect(index) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    strings.questionNumber(index + 1),
-                    style = Naj.type.tiny,
-                    color = if (open) Color.White else colors.muted,
-                    maxLines = 1,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (index in answeredRight) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = strings.answeredCorrectly,
+                            // The green that belongs on this tab's own background: the mark on the
+                            // darker tab being read, the one the list uses on paper everywhere else.
+                            tint = if (open) colors.passedDot else colors.passedOn,
+                            modifier = Modifier.size(SituationTabMarkSize),
+                        )
+                    }
+                    Text(
+                        strings.questionNumber(index + 1),
+                        style = Naj.type.tiny,
+                        color = if (open) Color.White else colors.muted,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -381,7 +406,7 @@ private fun SituationScreenSecondPreview() {
     }
 }
 
-/** A situation answered, marked as it was picked. */
+/** A situation answered right, with the mark its tab carries for it. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SituationScreenAnsweredPreview() {
@@ -471,15 +496,28 @@ private fun SituationQuestionBlockPreview() {
     }
 }
 
-/** The tabs on their own: the question being read, and the ones waiting. */
+/** The tabs on their own: the question being read, the ones waiting, and the ones marked right. */
 @Preview(widthDp = 400, heightDp = 120)
 @Composable
 private fun SituationTabsPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("one tab per question")
-            SituationTabs(count = 4, selected = 1, onSelect = {}, modifier = Modifier.padding(horizontal = 12.dp))
-            SituationTabs(count = 2, selected = 0, onSelect = {}, modifier = Modifier.padding(horizontal = 12.dp))
+            PreviewLabel("one tab per question, the right ones marked")
+            SituationTabs(
+                count = 4,
+                selected = 1,
+                answeredRight = setOf(0, 3),
+                onSelect = {},
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            PreviewLabel("the tab being read is marked too")
+            SituationTabs(
+                count = 2,
+                selected = 0,
+                answeredRight = setOf(0),
+                onSelect = {},
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
         }
     }
 }

@@ -45,6 +45,16 @@ sealed interface SituationUiEvent {
 }
 
 /**
+ * Which of [questions] are answered, and answered right, by the options in [answers]: the positions
+ * of them, counting from zero, which is what a tab is drawn at. A question nobody answered is not
+ * among them, and neither is one answered wrongly.
+ */
+internal fun answeredRight(questions: List<SituationQuestion>, answers: Map<Int, Int>): Set<Int> =
+    questions.mapIndexedNotNull { index, question ->
+        index.takeIf { answers[question.questionId] == question.correct }
+    }.toSet()
+
+/**
  * One situation, opened from the list: its drawing, and every question the exam asks about it, with
  * what the driver has answered while reading. Reading and answering are all this screen does -
  * running a situation's questions as a test belongs to the list, which drills every situation at

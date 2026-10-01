@@ -100,8 +100,8 @@ class Strings(
     val situationsDrillName: String,
     /** What one question about a situation is called on its tab, e.g. "Question 2". */
     val questionNumber: (number: Int) -> String,
-    /** Read out with the mark on a situation every question of which is answered correctly. */
-    val situationSolved: String,
+    /** Read out with the green mark: a question, or a situation, answered correctly. */
+    val answeredCorrectly: String,
     // Home
     val change: String,
     /** The words beside the count of finished tests, e.g. "tests finished". */
@@ -264,7 +264,7 @@ private val EnglishStrings = Strings(
     situationsDrillAll = "Drill every situation",
     situationsDrillName = "Situations drill",
     questionNumber = { "Question $it" },
-    situationSolved = "Answered correctly",
+    answeredCorrectly = "Answered correctly",
     change = "Change",
     testsFinishedLabel = "tests finished",
     progressEyebrow = "Driver in training",
@@ -393,7 +393,7 @@ private val SlovakStrings = Strings(
     situationsDrillAll = "Precvičiť všetky situácie",
     situationsDrillName = "Nácvik situácií",
     questionNumber = { "Otázka $it" },
-    situationSolved = "Zodpovedané správne",
+    answeredCorrectly = "Zodpovedané správne",
     change = "Zmeniť",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Vodič v príprave",
@@ -522,7 +522,7 @@ private val HungarianStrings = Strings(
     situationsDrillAll = "Összes helyzet gyakorlása",
     situationsDrillName = "Helyzetgyakorlás",
     questionNumber = { "$it. kérdés" },
-    situationSolved = "Helyesen megválaszolva",
+    answeredCorrectly = "Helyesen megválaszolva",
     change = "Módosítás",
     testsFinishedLabel = "befejezett teszt",
     progressEyebrow = "Tanuló vezető",
@@ -651,7 +651,7 @@ private val CzechStrings = Strings(
     situationsDrillAll = "Procvičit všechny situace",
     situationsDrillName = "Nácvik situací",
     questionNumber = { "Otázka $it" },
-    situationSolved = "Zodpovězeno správně",
+    answeredCorrectly = "Zodpovězeno správně",
     change = "Změnit",
     testsFinishedLabel = "dokončené testy",
     progressEyebrow = "Řidič v přípravě",

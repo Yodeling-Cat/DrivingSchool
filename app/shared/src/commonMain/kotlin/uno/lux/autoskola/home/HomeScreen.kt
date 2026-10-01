@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -116,10 +117,13 @@ private val ResumeShadow = Color(0x99FF9600)
 private val MistakesCardHeight = 68.dp
 private val HomeBandWidth = 410.dp
 private val GridGap = 12.dp
-private val WideGridGap = 14.dp
 private val SectionGap = 16.dp
 private val GridTileMinWidth = 180.dp
 private val HeaderTopInset = 52.dp
+
+/** The room the pane beside the overview band keeps on either side of its content. */
+private val PaneLeading = 16.dp
+private val PaneTrailing = 32.dp
 
 /** The 13sp bold caption the design sets the exam pill and the hero's label in. */
 private val CaptionStyle: TextStyle
@@ -151,7 +155,8 @@ fun HomeRoute(
 /**
  * Progress overview and test picker. Phones and medium windows get one scrolling column of cards
  * and a test grid; an expanded window puts the overview in a band beside the resume card and a grid
- * of two or three columns, a short window keeping the phone layout's two.
+ * of two or three columns, a window too short or too narrow for the desktop's measurements keeping
+ * the phone layout's two.
  */
 @Composable
 fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChangeExam: () -> Unit) {
@@ -238,8 +243,8 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
     val colors = Naj.colors
     val tests = state.tests
     val progress = state.progress
-    // A phone held sideways gets this layout but not its desktop measurements; see [twoPaneColumns]
-    // and [twoPaneResumeWide].
+    // A phone held sideways, or a window whose pane is too narrow for the desktop's measurements,
+    // gets this layout without them; see [twoPaneColumns] and [twoPaneResumeWide].
     val height = LocalHeightClass.current
 
     Row(Modifier.widthIn(max = ContentWidth.Wide).fillMaxHeight()) {
@@ -264,33 +269,39 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                 MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
             }
         }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                // No bottom inset here: the grid's viewport has to reach the window's bottom edge,
-                // or a row being scrolled is cut off 24dp above it. The breathing room below the
-                // last row is the grid's own bottom content padding instead.
-                .padding(start = 16.dp, end = 32.dp, top = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            progress.resumable?.let { unfinished ->
-                ResumeCard(
-                    unfinished,
-                    onResume = { onEvent(HomeUiEvent.Resume) },
-                    wide = twoPaneResumeWide(height),
-                )
-            }
-            Text(text = strings.allTests, style = Naj.type.sectionHeadingLarge, color = colors.ink)
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(twoPaneColumns(height)),
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(WideGridGap),
-                verticalArrangement = Arrangement.spacedBy(WideGridGap),
+        // What the grid and the resume banner have to draw in is the pane's own content width, and it
+        // is what picks the shape of both: a window wide enough to be Expanded can still leave this
+        // pane too narrow for three tiles; see [twoPaneColumns].
+        BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
+            val paneWidth = maxWidth - PaneLeading - PaneTrailing
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    // No bottom inset here: the grid's viewport has to reach the window's bottom edge,
+                    // or a row being scrolled is cut off 24dp above it. The breathing room below the
+                    // last row is the grid's own bottom content padding instead.
+                    .padding(start = PaneLeading, end = PaneTrailing, top = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                items(tests, key = { it.number }) { test ->
-                    TestTileItem(test = test, progress = progress, onEvent = onEvent)
+                progress.resumable?.let { unfinished ->
+                    ResumeCard(
+                        unfinished,
+                        onResume = { onEvent(HomeUiEvent.Resume) },
+                        wide = twoPaneResumeWide(height, paneWidth),
+                    )
+                }
+                Text(text = strings.allTests, style = Naj.type.sectionHeadingLarge, color = colors.ink)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(twoPaneColumns(height, paneWidth)),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(WideGridGap),
+                    verticalArrangement = Arrangement.spacedBy(WideGridGap),
+                ) {
+                    items(tests, key = { it.number }) { test ->
+                        TestTileItem(test = test, progress = progress, onEvent = onEvent)
+                    }
                 }
             }
         }
@@ -824,6 +835,21 @@ private fun HomeScreenMediumPreview() {
 @Preview(widthDp = 952, heightDp = 426)
 @Composable
 private fun HomeScreenLandscapePreview() {
+    AppPreview {
+        HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/**
+ * A 912 x 918dp window - a 1140px browser window at 125% scaling - which is Expanded by width and
+ * tall enough for the desktop layout, yet leaves the pane beside the band too little room for three
+ * tiles of [TileMinWidth]: there the status labels wrap onto a second line and are clipped, so it
+ * keeps the phone's two columns and its compact resume card. The preview draws no rail, so its pane
+ * is the 88dp that rail takes wider than the app's, and it still decides the same way.
+ */
+@Preview(widthDp = 912, heightDp = 918)
+@Composable
+private fun HomeScreenNarrowPreview() {
     AppPreview {
         HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
     }

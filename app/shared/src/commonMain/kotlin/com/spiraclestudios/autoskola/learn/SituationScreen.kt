@@ -1,7 +1,6 @@
 package com.spiraclestudios.autoskola.learn
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -42,9 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -53,6 +59,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -65,6 +72,7 @@ import com.spiraclestudios.autoskola.practice.SwipePager
 import com.spiraclestudios.autoskola.practice.arrowKeyTarget
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.ChipRadius
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
 import com.spiraclestudios.autoskola.ui.FittingText
@@ -82,11 +90,14 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** How tall a question's tab is. Round, like every other pill in the app. */
-private val SituationTabHeight = 36.dp
+/** How tall a question's tab is, which is the height of the bar the tabs are drawn as. */
+private val SituationTabHeight = 40.dp
 
 /** How big the mark on a tab is, which has to fit inside it beside the question's number. */
 private val SituationTabMarkSize = 14.dp
+
+/** The white disc the mark of the tab being read sits on, so a tick or a cross reads against teal. */
+private val SituationTabDiscSize = 22.dp
 
 /** Connects [SituationScreen] to its [SituationViewModel] and to navigation. */
 @Composable
@@ -296,9 +307,17 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
 
 /**
  * One tab per question: the questions about a situation are asked about the same drawing, and a
- * driver reads one at a time rather than all of them at once. A tab carries the mark the list gives
- * a finished situation - the green tick for a question answered right, a red cross for one answered
- * wrongly - and nothing at all while it hasn't been answered.
+ * driver reads one at a time rather than all of them at once.
+ *
+ * The tabs are drawn as one bar rather than a row of separate pills: a track the whole row sits on,
+ * the question being read filled in the app's teal, and the questions beside it left on the track
+ * with a hairline between them. That is what says how many questions there are and which one is
+ * open at a glance, where a row of floating pills read as more answers under the drawing.
+ *
+ * A tab carries the mark the list gives a finished situation - the green tick for a question
+ * answered right, a red cross for one answered wrongly - and nothing at all while it hasn't been
+ * answered. On the tab being read the mark sits on a white disc, because the deeper green and red
+ * are too dim to read against the teal that tab is filled with.
  */
 @Composable
 private fun SituationTabs(
@@ -310,54 +329,111 @@ private fun SituationTabs(
     modifier: Modifier = Modifier,
 ) {
     val colors = Naj.colors
-    val shape = RoundedCornerShape(SituationTabHeight / 2)
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val shape = RoundedCornerShape(ChipRadius)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SituationTabHeight)
+            .shadow(8.dp, shape, spotColor = colors.ink.copy(alpha = 0.25f))
+            .clip(shape)
+            .background(colors.selectedTint)
+            .selectableGroup(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         repeat(count) { index ->
             val open = index == selected
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(SituationTabHeight)
-                    .clip(shape)
-                    .background(if (open) colors.ink else colors.card)
-                    .clickable { onSelect(index) },
+                    .fillMaxHeight()
+                    .clip(tabShape(index, count))
+                    // The tab being read is filled; the rest stay on the track, so the bar reads as
+                    // one control with the open tab standing out of it.
+                    .then(
+                        if (open) {
+                            Modifier.background(Brush.verticalGradient(colors.primaryGradient))
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .selectable(selected = open, role = Role.Tab, onClick = { onSelect(index) }),
                 contentAlignment = Alignment.Center,
             ) {
+                // A hairline where two tabs that are neither read nor answered meet, so where one
+                // ends and the next begins doesn't disappear into the track.
+                if (!open && index > 0 && index - 1 != selected) {
+                    Box(
+                        Modifier
+                            .align(Alignment.CenterStart)
+                            .width(1.dp)
+                            .fillMaxHeight(0.6f)
+                            .background(colors.primaryDeep.copy(alpha = 0.22f)),
+                    )
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // The tone that belongs on this tab's own background: the tab being read is dark,
-                    // and the deeper green and red are too dim to read there.
-                    when (states.getOrNull(index)) {
-                        ChipState.Correct -> Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = strings.answeredCorrectly,
-                            tint = if (open) colors.passedDot else colors.passedOn,
-                            modifier = Modifier.size(SituationTabMarkSize),
-                        )
-
-                        ChipState.Incorrect -> Icon(
-                            Icons.Filled.Cancel,
-                            contentDescription = strings.answeredWrongly,
-                            tint = if (open) colors.wrongDot else colors.wrongOn,
-                            modifier = Modifier.size(SituationTabMarkSize),
-                        )
-
-                        // Not answered yet, which is the only case with no mark at all.
-                        else -> Unit
-                    }
+                    SituationTabMark(state = states.getOrNull(index), open = open)
                     // The label gives way in the middle, so the question's number stays readable
                     // however long the language makes "Question 2" and however many tabs there are.
                     FittingText(
                         text = strings.questionNumber(index + 1),
                         style = Naj.type.tiny,
-                        color = if (open) Color.White else colors.muted,
+                        color = if (open) Color.White else colors.primaryDeep,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * The corners a tab of [count] keeps at [index]: the bar's own at either end of the row, and square
+ * edges against the tabs beside it, so the tabs join into one bar instead of drifting apart.
+ */
+internal fun tabShape(index: Int, count: Int): Shape = when {
+    count == 1 -> RoundedCornerShape(ChipRadius)
+    index == 0 -> RoundedCornerShape(topStart = ChipRadius, bottomStart = ChipRadius)
+    index == count - 1 -> RoundedCornerShape(topEnd = ChipRadius, bottomEnd = ChipRadius)
+    else -> RectangleShape
+}
+
+/**
+ * What a tab shows of its question beyond its number: nothing until it has been answered, and then
+ * the tick or the cross the question list would mark it with. [open] is the tab being read, where
+ * the mark is drawn on a white disc - the tick's green and the cross's red are too dim on the teal
+ * that tab is filled with, and on white they read exactly as they do on the track.
+ */
+@Composable
+private fun SituationTabMark(state: ChipState?, open: Boolean) {
+    val colors = Naj.colors
+    val (icon, description, tint) = when (state) {
+        ChipState.Correct -> Triple(
+            Icons.Filled.CheckCircle,
+            strings.answeredCorrectly,
+            colors.passedOn,
+        )
+
+        ChipState.Incorrect -> Triple(
+            Icons.Filled.Cancel,
+            strings.answeredWrongly,
+            colors.wrongOn,
+        )
+
+        // Not answered yet, which is the only case with no mark at all.
+        else -> return
+    }
+    if (!open) {
+        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(SituationTabMarkSize))
+        return
+    }
+    Box(
+        modifier = Modifier.size(SituationTabDiscSize).clip(CircleShape).background(Color.White),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(SituationTabMarkSize))
     }
 }
 
@@ -512,29 +588,29 @@ private fun SituationQuestionBlockPreview() {
     }
 }
 
-/** The tabs on their own: unanswered, answered right, answered wrongly, and the tab being read. */
-@Preview(widthDp = 400, heightDp = 140)
+/** The tabs on their own: the tab being read, and the marks a question gets once it is answered. */
+@Preview(widthDp = 400, heightDp = 160)
 @Composable
 private fun SituationTabsPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("right, wrong, and nothing for unanswered")
+            PreviewLabel("the first tab read, and every way a question can stand")
             SituationTabs(
                 count = 4,
-                selected = 1,
+                selected = 0,
                 states = listOf(
                     ChipState.Correct,
-                    ChipState.Unanswered,
                     ChipState.Incorrect,
                     ChipState.Unanswered,
+                    ChipState.Correct,
                 ),
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
-            PreviewLabel("the tab being read is marked too")
+            PreviewLabel("the last tab read, answered wrongly")
             SituationTabs(
                 count = 2,
-                selected = 0,
+                selected = 1,
                 states = listOf(ChipState.Correct, ChipState.Incorrect),
                 onSelect = {},
                 modifier = Modifier.padding(horizontal = 12.dp),
@@ -544,7 +620,7 @@ private fun SituationTabsPreview() {
 }
 
 /** Four tabs on a narrow phone, where a label longer than its tab loses its middle. */
-@Preview(widthDp = 300, heightDp = 100)
+@Preview(widthDp = 300, heightDp = 120)
 @Composable
 private fun SituationTabsNarrowPreview() {
     AppPreview {

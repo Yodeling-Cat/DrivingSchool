@@ -34,6 +34,13 @@ class SettingsPracticeAnswerDataSource(private val settings: Settings) : Practic
         stored.value = stored.value + (key to updated)
     }
 
+    override suspend fun reset(bankId: String, bankVersion: Int) {
+        val key = answersKey(bankId, bankVersion)
+        // The document goes rather than being written empty: what was never answered is not stored.
+        settings.remove(key)
+        stored.value = stored.value - key
+    }
+
     private fun read(): Map<String, PracticeAnswers> =
         settings.keys.filter { it.startsWith(KEY_PREFIX) }.associateWith { key ->
             // A document that can't be read is answers we don't have, not a reason to fail the app.

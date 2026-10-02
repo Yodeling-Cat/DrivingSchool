@@ -62,6 +62,8 @@ sealed interface IntersectionsUiState {
         val openAttemptId: String? = null,
         /** Set when a drill is already under way, so the screen asks what to do about it. */
         val drillPrompt: DrillPrompt? = null,
+        /** Set while the screen asks whether to clear every answer to the situations. */
+        val resetPrompt: Boolean = false,
     ) : IntersectionsUiState {
         /** How many questions the situations hold altogether, folded into one run of practice. */
         val questionCount: Int get() = situations.sumOf { it.questions.size }
@@ -87,6 +89,15 @@ sealed interface IntersectionsUiEvent {
     /** The user closed the prompt, leaving the drill as it was. */
     data object DismissDrillPrompt : IntersectionsUiEvent
 
+    /** The driver asked to clear every answer to the situations, which the screen asks about first. */
+    data object ResetAnswers : IntersectionsUiEvent
+
+    /** The driver confirmed it: what was answered while reading goes, and so does any drill. */
+    data object ConfirmReset : IntersectionsUiEvent
+
+    /** The user closed the prompt, keeping their answers. */
+    data object DismissReset : IntersectionsUiEvent
+
     /** The screen opened the attempt [IntersectionsUiState.Ready.openAttemptId] asked for. */
     data object AttemptOpened : IntersectionsUiEvent
 
@@ -108,6 +119,7 @@ class IntersectionsViewModel(
 
     private val openAttemptId = MutableStateFlow<String?>(null)
     private val drillPrompt = MutableStateFlow<DrillPrompt?>(null)
+    private val resetPrompt = MutableStateFlow(false)
 
     /** What the driver has answered while reading, which marks the situations they are done with. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -115,7 +127,7 @@ class IntersectionsViewModel(
         .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
 
     val uiState: StateFlow<IntersectionsUiState> =
-        combine(session, given, openAttemptId, drillPrompt) { session, given, open, prompt ->
+        combine(session, given, openAttemptId, drillPrompt, resetPrompt) { session, given, open, prompt, reset ->
             if (session == null) {
                 IntersectionsUiState.Loading
             } else {
@@ -123,6 +135,7 @@ class IntersectionsViewModel(
                     situations = situationItems(session, banks, given),
                     openAttemptId = open,
                     drillPrompt = prompt,
+                    resetPrompt = reset,
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntersectionsUiState.Loading)
@@ -163,6 +176,21 @@ class IntersectionsViewModel(
             }
 
             IntersectionsUiEvent.DismissDrillPrompt -> drillPrompt.value = null
+
+            IntersectionsUiEvent.ResetAnswers -> resetPrompt.value = true
+
+            IntersectionsUiEvent.ConfirmReset -> {
+                resetPrompt.value = false
+                drillPrompt.value = null
+                viewModelScope.launch {
+                    // A drill writes each answer to the situations as well, so the run through them
+                    // and the answers given while reading are the same answers and go together.
+                    session.discardSituationsDrill()
+                    answers.reset(session.bank.id, session.bank.version)
+                }
+            }
+
+            IntersectionsUiEvent.DismissReset -> resetPrompt.value = false
 
             IntersectionsUiEvent.AttemptOpened -> {
                 openAttemptId.value = null

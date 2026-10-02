@@ -1,60 +1,10 @@
 package com.spiraclestudios.autoskola.ui
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.ui.theme.Naj
-
-/**
- * The dialog every question the app asks about one test is put in: [title] and [message] put the
- * question, the highlighted button answers it and the quiet one backs out of it. Tapping outside
- * the dialog, or the system's back gesture, is the same back-out, which is why it is a callback of
- * its own rather than one of the two labelled answers.
- */
-@Composable
-private fun TestQuestionDialog(
-    title: String,
-    message: String,
-    confirmLabel: String,
-    onConfirm: () -> Unit,
-    dismissLabel: String,
-    onDismiss: () -> Unit,
-    onDismissRequest: () -> Unit,
-) {
-    val colors = Naj.colors
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        shape = RoundedCornerShape(LicenceRadius),
-        containerColor = colors.sheet,
-        titleContentColor = colors.ink,
-        textContentColor = colors.muted,
-        title = { Text(text = title, style = Naj.type.sectionHeading) },
-        text = { Text(text = message, style = Naj.type.body) },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.primaryDeep),
-            ) {
-                Text(text = confirmLabel, style = Naj.type.primaryButton)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.muted),
-            ) {
-                Text(text = dismissLabel, style = Naj.type.button)
-            }
-        },
-    )
-}
 
 /**
  * Asks what to do with work that is already under way: carry on with it where it was left, or start
@@ -69,7 +19,7 @@ fun ResumeDialog(
     onStartOver: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    TestQuestionDialog(
+    ConfirmDialog(
         title = title,
         message = summary,
         confirmLabel = strings.continueTest,
@@ -92,7 +42,7 @@ fun RedoTestDialog(
     onRedo: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    TestQuestionDialog(
+    ConfirmDialog(
         title = title,
         message = message,
         confirmLabel = strings.startOver,

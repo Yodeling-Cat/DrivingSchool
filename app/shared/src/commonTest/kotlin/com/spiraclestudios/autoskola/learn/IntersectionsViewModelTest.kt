@@ -9,6 +9,7 @@ import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import com.spiraclestudios.autoskola.testing.currentSession
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -329,5 +330,76 @@ class IntersectionsViewModelTest : ViewModelTest() {
 
         assertEquals(listOf(AnalyticsEvent.SituationOpened), repositories.analyticsSink.events)
         assertEquals(mapOf("number" to 2), repositories.analyticsSink.properties.single())
+    }
+
+    @Test
+    fun theResetIsAskedAboutBeforeAnythingIsCleared() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.ResetAnswers)
+
+        assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).resetPrompt)
+        // Nothing goes until the driver confirms it.
+        assertEquals(0, repositories.answers.answers("sk-sk", 1).first().chosenFor(1813))
+    }
+
+    @Test
+    fun backingOutOfTheResetLeavesTheAnswersAsTheyWere() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.ResetAnswers)
+
+        viewModel.onEvent(IntersectionsUiEvent.DismissReset)
+
+        assertFalse(assertIs<IntersectionsUiState.Ready>(state.value).resetPrompt)
+        assertEquals(0, repositories.answers.answers("sk-sk", 1).first().chosenFor(1813))
+    }
+
+    @Test
+    fun resettingClearsEveryAnswerToTheSituations() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        // The first situation's two questions, both right, so it is marked off before the reset.
+        repositories.answers.answer("sk-sk", 1, questionId = 1813, chosen = 0)
+        repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 0)
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).situations.first().solved)
+        viewModel.onEvent(IntersectionsUiEvent.ResetAnswers)
+
+        viewModel.onEvent(IntersectionsUiEvent.ConfirmReset)
+
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        assertFalse(ready.resetPrompt)
+        assertFalse(ready.situations.first().solved)
+        val answers = repositories.answers.answers("sk-sk", 1).first()
+        assertNull(answers.chosenFor(1813))
+        assertNull(answers.chosenFor(1814))
+    }
+
+    @Test
+    fun resettingThrowsTheDrillUnderWayAway() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val viewModel = viewModel(repositories)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        repositories.attempts.answer(drill, question = testQuestion(1813, section = 4), chosen = 0, locked = false)
+        viewModel.onEvent(IntersectionsUiEvent.ResetAnswers)
+
+        viewModel.onEvent(IntersectionsUiEvent.ConfirmReset)
+
+        // A drill writes its answers to the situations, so resetting them throws it away too: the
+        // next drill starts over from the first question rather than carrying on where it was.
+        assertNull(repositories.exams.currentSession().openSituationsAttempt())
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val ready = assertIs<IntersectionsUiState.Ready>(state.value)
+        assertNull(ready.drillPrompt)
+        assertTrue(assertNotNull(ready.openAttemptId) != drill)
     }
 }

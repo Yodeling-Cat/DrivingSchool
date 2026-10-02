@@ -51,6 +51,41 @@ class SettingsPracticeAnswerDataSourceTest {
     }
 
     @Test
+    fun resettingClearsEveryAnswerOfThatVersion() = runTest {
+        val source = source()
+        source.answer("sk-sk", 1, questionId = 1813, chosen = 2)
+        source.answer("sk-sk", 1, questionId = 1814, chosen = 1)
+
+        source.reset("sk-sk", 1)
+
+        val answers = source.answers("sk-sk", 1).first()
+        assertNull(answers.chosenFor(1813))
+        assertNull(answers.chosenFor(1814))
+    }
+
+    @Test
+    fun resettingLeavesTheAnswersOfAnotherBankVersionAlone() = runTest {
+        val source = source()
+        source.answer("sk-sk", 1, questionId = 1813, chosen = 2)
+        source.answer("sk-sk", 2, questionId = 1813, chosen = 1)
+
+        source.reset("sk-sk", 1)
+
+        assertEquals(1, source.answers("sk-sk", 2).first().chosenFor(1813))
+    }
+
+    @Test
+    fun theClearedAnswersAreGoneTheNextTimeTheAppIsOpened() = runTest {
+        // Clearing has to reach the storage, not only what this run holds in memory.
+        source().apply {
+            answer("sk-sk", 1, questionId = 1813, chosen = 2)
+            reset("sk-sk", 1)
+        }
+
+        assertNull(source().answers("sk-sk", 1).first().chosenFor(1813))
+    }
+
+    @Test
     fun whatCannotBeReadIsNoAnswersRatherThanAFailure() = runTest {
         settings.putString("answers_sk-sk-v1", "not answers at all")
 

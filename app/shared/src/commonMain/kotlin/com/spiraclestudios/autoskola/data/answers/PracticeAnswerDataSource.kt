@@ -20,4 +20,10 @@ interface PracticeAnswerDataSource {
         questionId: Int,
         chosen: Int,
     )
+
+    /**
+     * Clears every answer of bank [bankId] at [bankVersion], as though none had been given, so the
+     * material is read from the start again.
+     */
+    suspend fun reset(bankId: String, bankVersion: Int)
 }

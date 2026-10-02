@@ -115,6 +115,16 @@ class Strings(
     val situationsDrillAll: String,
     /** What a run through the situations is called in the practice bar, e.g. "Situations drill". */
     val situationsDrillName: String,
+    /** The list's overflow action: clear what has been answered about the situations. */
+    val situationsResetAnswers: String,
+    /** What the prompt standing between that action and the answers asks. */
+    val situationsResetTitle: String,
+    /** The prompt's own words: what the driver is about to give up. */
+    val situationsResetMessage: String,
+    /** The highlighted answer to the prompt: the answers go. */
+    val situationsResetConfirm: String,
+    /** The quiet answer to it: they stay. */
+    val situationsResetKeep: String,
     /** What one question about a situation is called on its tab, e.g. "Question 2". */
     val questionNumber: (number: Int) -> String,
     /** Read out with the green mark: a question, or a situation, answered correctly. */
@@ -332,6 +342,12 @@ private val EnglishStrings = Strings(
     situationsNothingFound = "No situations in this exam",
     situationsDrillAll = "Drill every situation",
     situationsDrillName = "Situations drill",
+    situationsResetAnswers = "Reset answers",
+    situationsResetTitle = "Reset all the answers?",
+    situationsResetMessage = "Every answer you have given about these situations is cleared, and a drill " +
+        "that is under way begins again from the first question.",
+    situationsResetConfirm = "Reset",
+    situationsResetKeep = "Keep answers",
     questionNumber = { "Question $it" },
     answeredCorrectly = "Answered correctly",
     answeredWrongly = "Answered wrongly",
@@ -495,6 +511,12 @@ private val SlovakStrings = Strings(
     situationsNothingFound = "Táto skúška nemá situácie",
     situationsDrillAll = "Precvičiť všetky situácie",
     situationsDrillName = "Nácvik situácií",
+    situationsResetAnswers = "Vymazať odpovede",
+    situationsResetTitle = "Vymazať všetky odpovede?",
+    situationsResetMessage = "Vymažú sa všetky odpovede, ktoré ste dali k týmto situáciám, a rozbehnutý " +
+        "nácvik začne od prvej otázky.",
+    situationsResetConfirm = "Vymazať",
+    situationsResetKeep = "Ponechať odpovede",
     questionNumber = { "Otázka $it" },
     answeredCorrectly = "Zodpovedané správne",
     answeredWrongly = "Zodpovedané nesprávne",
@@ -659,6 +681,12 @@ private val HungarianStrings = Strings(
     situationsNothingFound = "Ennek a vizsgának nincs helyzete",
     situationsDrillAll = "Összes helyzet gyakorlása",
     situationsDrillName = "Helyzetgyakorlás",
+    situationsResetAnswers = "Válaszok törlése",
+    situationsResetTitle = "Törli az összes választ?",
+    situationsResetMessage = "A helyzetekre adott összes válasz törlődik, és az elkezdett gyakorlás az " +
+        "első kérdéstől indul újra.",
+    situationsResetConfirm = "Törlés",
+    situationsResetKeep = "Válaszok megtartása",
     questionNumber = { "$it. kérdés" },
     answeredCorrectly = "Helyesen megválaszolva",
     answeredWrongly = "Helytelenül megválaszolva",
@@ -823,6 +851,12 @@ private val CzechStrings = Strings(
     situationsNothingFound = "Tato zkouška nemá situace",
     situationsDrillAll = "Procvičit všechny situace",
     situationsDrillName = "Nácvik situací",
+    situationsResetAnswers = "Vymazat odpovědi",
+    situationsResetTitle = "Vymazat všechny odpovědi?",
+    situationsResetMessage = "Vymažou se všechny odpovědi, které jste k těmto situacím dali, a rozpracovaný " +
+        "nácvik začne znovu od první otázky.",
+    situationsResetConfirm = "Vymazat",
+    situationsResetKeep = "Ponechat odpovědi",
     questionNumber = { "Otázka $it" },
     answeredCorrectly = "Zodpovězeno správně",
     answeredWrongly = "Zodpovězeno nesprávně",

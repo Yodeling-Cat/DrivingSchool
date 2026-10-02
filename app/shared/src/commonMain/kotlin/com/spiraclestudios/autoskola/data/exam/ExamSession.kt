@@ -178,8 +178,22 @@ class ExamSession(
 
     /** Starts a fresh run through [questions], throwing away the drill that's under way. */
     suspend fun restartSituations(questions: List<Question>): TestAttempt? {
-        openSituationsAttempt()?.let { attempts.discard(it.id) }
+        discardSituationsDrill()
         return startSituations(questions)
+    }
+
+    /**
+     * Throws away the situations drill that's under way, if there is one, so the next drill begins
+     * from nothing.
+     *
+     * A drill is answered into the practice answers as well, which is what the situations list
+     * marks itself off by, so starting the reading material over clears both: this, and those
+     * answers (see PracticeViewModel.recordSituationAnswer).
+     */
+    suspend fun discardSituationsDrill() {
+        statistics.first().attempts
+            .filter { it.isOpen && it.kind == AttemptKind.Situations }
+            .forEach { attempts.discard(it.id) }
     }
 
     /** Records the answer, locked while the user's settings check answers as they are picked. */

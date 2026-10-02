@@ -19,16 +19,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,8 +44,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.IconArrowBack
+import com.spiraclestudios.autoskola.practice.IconMoreVert
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
+import com.spiraclestudios.autoskola.ui.ConfirmDialog
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -100,7 +108,11 @@ fun IntersectionsScreen(
                         .fillMaxWidth()
                         .padding(bottom = LocalNavBarInset.current),
                 ) {
-                    SituationsHeader(state, onBack)
+                    SituationsHeader(
+                        state = state,
+                        onBack = onBack,
+                        onResetAnswers = { onEvent(IntersectionsUiEvent.ResetAnswers) },
+                    )
                     if (state is IntersectionsUiState.Ready && state.situations.isNotEmpty()) {
                         OutlinePill(
                             text = strings.situationsDrillAll,
@@ -143,12 +155,25 @@ fun IntersectionsScreen(
                 onDismiss = { onEvent(IntersectionsUiEvent.DismissDrillPrompt) },
             )
         }
+        // Answers are what the list is read against, so clearing them is asked about as well.
+        if ((state as? IntersectionsUiState.Ready)?.resetPrompt == true) {
+            ConfirmDialog(
+                title = strings.situationsResetTitle,
+                message = strings.situationsResetMessage,
+                confirmLabel = strings.situationsResetConfirm,
+                onConfirm = { onEvent(IntersectionsUiEvent.ConfirmReset) },
+                destructive = true,
+                dismissLabel = strings.situationsResetKeep,
+                onDismiss = { onEvent(IntersectionsUiEvent.DismissReset) },
+                onDismissRequest = { onEvent(IntersectionsUiEvent.DismissReset) },
+            )
+        }
     }
 }
 
-/** Back, what the material is, and how much of it there is. */
+/** Back, what the material is, how much of it there is, and what can be done with the answers. */
 @Composable
-private fun SituationsHeader(state: IntersectionsUiState, onBack: () -> Unit) {
+private fun SituationsHeader(state: IntersectionsUiState, onBack: () -> Unit, onResetAnswers: () -> Unit) {
     val colors = Naj.colors
     Row(
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
@@ -166,6 +191,39 @@ private fun SituationsHeader(state: IntersectionsUiState, onBack: () -> Unit) {
                     color = colors.muted,
                 )
             }
+        }
+        // An exam whose bank asks about no situations has no answers to clear, so it has no menu.
+        if (state is IntersectionsUiState.Ready && state.situations.isNotEmpty()) {
+            SituationsOverflowMenu(onResetAnswers)
+        }
+    }
+}
+
+/** The header's overflow: one action, and the answers it clears are asked about before they go. */
+@Composable
+private fun SituationsOverflowMenu(onResetAnswers: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        RoundButton(
+            icon = IconMoreVert,
+            contentDescription = strings.moreOptions,
+            onClick = { expanded = true },
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(18.dp),
+            containerColor = Naj.colors.card,
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(strings.situationsResetAnswers, style = Naj.type.cardTitle, color = Naj.colors.ink)
+                },
+                onClick = {
+                    expanded = false
+                    onResetAnswers()
+                },
+            )
         }
     }
 }
@@ -326,5 +384,59 @@ private fun IntersectionsScreenDrillPromptPreview() {
             onBack = {},
             onOpenSituation = {},
         )
+    }
+}
+
+/** The prompt standing between the menu's action and the answers it clears. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun IntersectionsScreenResetPromptPreview() {
+    AppPreview {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(situations = previewSituations, resetPrompt = true),
+            onEvent = {},
+            onBack = {},
+            onOpenSituation = {},
+        )
+    }
+}
+
+/** The list's header: what the material holds, and the menu over the answers beside it. */
+@Preview(widthDp = 400, heightDp = 160)
+@Composable
+private fun SituationsHeaderPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("what the list holds")
+            SituationsHeader(
+                state = IntersectionsUiState.Ready(previewSituations),
+                onBack = {},
+                onResetAnswers = {},
+            )
+        }
+    }
+}
+
+/** The same header before the exam and its bank have been read: nothing to count, nothing to clear. */
+@Preview(widthDp = 400, heightDp = 160)
+@Composable
+private fun SituationsHeaderLoadingPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("while the exam is being read")
+            SituationsHeader(state = IntersectionsUiState.Loading, onBack = {}, onResetAnswers = {})
+        }
+    }
+}
+
+/** The menu button on its own. The menu itself opens on tap, so this is what there is to tap. */
+@Preview(widthDp = 140, heightDp = 120)
+@Composable
+private fun SituationsOverflowMenuPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("the header's overflow")
+            SituationsOverflowMenu(onResetAnswers = {})
+        }
     }
 }

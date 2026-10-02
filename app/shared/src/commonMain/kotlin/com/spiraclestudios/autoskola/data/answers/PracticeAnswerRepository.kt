@@ -28,4 +28,12 @@ class PracticeAnswerRepository(private val dataSource: PracticeAnswerDataSource)
     ) = withContext(NonCancellable) {
         writes.withLock { dataSource.answer(bankId, bankVersion, questionId, chosen) }
     }
+
+    /**
+     * Clears every answer of bank [bankId] at [bankVersion], so the material is read from the start
+     * again - the way out of a run through the situations that went wrong from the beginning.
+     */
+    suspend fun reset(bankId: String, bankVersion: Int) = withContext(NonCancellable) {
+        writes.withLock { dataSource.reset(bankId, bankVersion) }
+    }
 }

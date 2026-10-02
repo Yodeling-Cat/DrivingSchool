@@ -83,6 +83,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
             implementation(libs.coil.compose)
+            implementation(libs.posthog.kmp)
             implementation(libs.multiplatformSettings.noArg)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.aboutlibraries.compose.m3)

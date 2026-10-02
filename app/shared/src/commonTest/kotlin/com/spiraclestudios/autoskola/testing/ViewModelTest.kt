@@ -2,6 +2,8 @@ package com.spiraclestudios.autoskola.testing
 
 import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.bank.QuestionBank
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.answers.SettingsPracticeAnswerDataSource
 import com.spiraclestudios.autoskola.data.attempts.AttemptRepository
@@ -54,6 +56,10 @@ class TestRepositories(bank: QuestionBank = testBank()) {
     val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
     val exams = ExamRepository(preferences, banks, attempts)
+
+    /** What the tests asserted was sent, and the consent gate in front of it. */
+    val analyticsSink = RecordingAnalyticsDataSource()
+    val analytics = AnalyticsRepository(analyticsSink, preferences)
 }
 
 /** The session of the selected exam, once it has loaded. */

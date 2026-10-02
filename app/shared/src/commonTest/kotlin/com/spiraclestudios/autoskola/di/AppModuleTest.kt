@@ -4,6 +4,9 @@ import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.testBank
@@ -36,6 +39,9 @@ class AppModuleTest : ViewModelTest() {
                     single<Settings> { MapSettings() }
                     single<QuestionBankDataSource> { FakeQuestionBankDataSource.of(testBank()) }
                     single<SignCatalogueDataSource> { FakeSignCatalogueDataSource.of(testSignCatalogue()) }
+                    // The real one never sends without a platform context, but a test should not
+                    // depend on that: the sink makes "nothing was sent" assertable.
+                    single<AnalyticsDataSource> { RecordingAnalyticsDataSource() }
                 },
             )
         }.koin
@@ -51,5 +57,6 @@ class AppModuleTest : ViewModelTest() {
         koin.get<AboutViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }
+        koin.get<AnalyticsRepository>()
     }
 }

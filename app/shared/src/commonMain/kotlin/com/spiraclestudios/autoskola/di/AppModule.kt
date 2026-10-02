@@ -3,6 +3,10 @@ package com.spiraclestudios.autoskola.di
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.PostHogAnalyticsDataSource
+import com.spiraclestudios.autoskola.data.analytics.postHogContext
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerDataSource
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.answers.SettingsPracticeAnswerDataSource
@@ -18,6 +22,7 @@ import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
 import com.spiraclestudios.autoskola.home.HomeViewModel
+import com.spiraclestudios.autoskola.isDebugBuild
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
 import com.spiraclestudios.autoskola.learn.SituationViewModel
@@ -41,6 +46,7 @@ val appModule = module {
     single<QuestionBankDataSource> { ResourceQuestionBankDataSource() }
     single<SignCatalogueDataSource> { ResourceSignCatalogueDataSource() }
     single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
+    single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
 
     // Repositories
     single { AttemptRepository(get()) }
@@ -48,6 +54,7 @@ val appModule = module {
     single { SignCatalogueRepository(get()) }
     single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
+    single { AnalyticsRepository(get(), get()) }
     single { ExamRepository(get(), get(), get()) }
 
     // Navigation

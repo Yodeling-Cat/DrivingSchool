@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
@@ -55,6 +57,7 @@ sealed interface ExamSelectionUiEvent {
 class ExamSelectionViewModel(
     private val preferences: PreferencesRepository,
     private val banks: QuestionBankRepository,
+    private val analytics: AnalyticsRepository,
 ) : ViewModel() {
 
     private val banksState = MutableStateFlow<List<QuestionBankInfo>?>(null)
@@ -90,6 +93,13 @@ class ExamSelectionViewModel(
             is ExamSelectionUiEvent.ChooseCategory -> {
                 val bank = (step.value as? ExamSelectionStep.ChooseCategory)?.bank ?: return
                 preferences.select(TestSelection(bank.id, event.category))
+                // Which exam people prepare for is the question the whole funnel is about, so it
+                // is recorded with the two things that describe it and nothing that identifies
+                // the user.
+                analytics.capture(
+                    AnalyticsEvent.ExamSelected,
+                    mapOf("bank_id" to bank.id, "category" to event.category.name),
+                )
                 done.value = true
             }
 

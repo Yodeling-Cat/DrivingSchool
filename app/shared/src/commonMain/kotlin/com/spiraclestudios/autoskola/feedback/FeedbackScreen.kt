@@ -86,6 +86,10 @@ fun FeedbackRoute(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMod
  * reads it, changes it, sends it or closes it - which is also why a written report is kept after
  * the press rather than cleared: it may be opened twice, and it is theirs.
  *
+ * The press sits at the bottom of the screen and what is written scrolls above it: a message worth
+ * sending is longer than a phone in landscape has room for, and the way out of the screen should
+ * not be the thing that scrolled away.
+ *
  * If the platform has no email app at all, the screen says so rather than leaving the press
  * looking like it worked.
  */
@@ -98,22 +102,38 @@ fun FeedbackScreen(
 ) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = ContentWidth.Narrow)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 24.dp + LocalNavBarInset.current),
+        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                FeedbackHeader(onBack)
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .widthIn(max = ContentWidth.Narrow)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                 ) {
-                    Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
-                    MessageField(state, onEvent)
-                    DeviceInfoRow(state, onEvent)
+                    FeedbackHeader(onBack)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
+                        MessageField(state, onEvent)
+                        DeviceInfoRow(state, onEvent)
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = ContentWidth.Narrow)
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp + LocalNavBarInset.current),
+                ) {
                     SendButton(state, onSend)
                 }
             }
@@ -335,6 +355,20 @@ private fun FeedbackScreenSlovakPreview() {
 @Preview(widthDp = 1100, heightDp = 900)
 @Composable
 private fun FeedbackScreenDesktopPreview() {
+    AppPreview {
+        FeedbackScreen(
+            previewFeedback(message = "The timer kept counting after I answered.", includeDeviceInfo = true),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+        )
+    }
+}
+
+/** A phone in landscape, where the press holds its place below a message with little room left. */
+@Preview(widthDp = 800, heightDp = 420)
+@Composable
+private fun FeedbackScreenLandscapePreview() {
     AppPreview {
         FeedbackScreen(
             previewFeedback(message = "The timer kept counting after I answered.", includeDeviceInfo = true),

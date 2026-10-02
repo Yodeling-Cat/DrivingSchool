@@ -1,6 +1,5 @@
 package com.spiraclestudios.autoskola.practice
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -83,6 +81,7 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
@@ -114,6 +113,9 @@ import com.spiraclestudios.autoskola.ui.LocalWidthClass
 import com.spiraclestudios.autoskola.ui.NavyPill
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
+import com.spiraclestudios.autoskola.ui.PreviewBoard
+import com.spiraclestudios.autoskola.ui.PreviewLabel
+import com.spiraclestudios.autoskola.ui.PreviewRow
 import com.spiraclestudios.autoskola.ui.QuestionChip
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.WhitePill
@@ -144,8 +146,10 @@ private val BarPillGapCompact = 4.dp
 private val QuestionColumnWidth = 660.dp
 
 /**
- * The shadow the bar throws on the question behind it. The sheet and the page are both light, so
- * the shadow is the only thing separating them — the Material default is barely visible.
+ * The shadow the question sheet throws on the page beneath it while it's open. The sheet and the
+ * page are both light, so the shadow is the only thing separating them — the Material default is
+ * barely visible. It's back at nothing while the sheet is shut, which is what [sheetShadowElevation]
+ * ramps up as the sheet is dragged open.
  */
 private val QuestionSheetShadow = 24.dp
 
@@ -298,10 +302,16 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     /** The bar's place in the sheet: the pill plus the room it floats in. */
     val barSlotHeight = pillHeight + pillGap * 2
 
-    // The open sheet covers the top app bar, so it only has to stay below the status bar. Phones in
-    // landscape are inset below the status bar by the box the sheet lives in instead.
-    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topReserved = if (compactHeight) 0.dp else statusBarInset
+    // The app bar's own height, as it is drawn: the open sheet keeps that much room at the top, so
+    // the whole bar stays visible behind it. It stays zero on a phone in landscape, where the top
+    // bar is gone and the bar at the bottom names the test instead.
+    var appBarHeight by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+
+    // The room the open sheet keeps above itself. A phone in landscape has no top bar — it is inset
+    // below the status bar by the box the sheet lives in instead — so the navigation bar's room is
+    // what is left over there.
+    val openTopRoom = if (compactHeight) navBarInset else appBarHeight
     val sideInsets =
         WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
 
@@ -337,27 +347,32 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     // Phones in landscape hide the top bar: the bottom bar already names the test there.
     val topBar: @Composable () -> Unit = {
         if (!compactHeight) {
-            PracticeTopBar(
-                testName = testName,
-                elapsed = elapsed,
-                overTime = overTime,
-                allAnswered = state.allAnswered,
-                checkImmediately = checkImmediately,
-                finished = finished,
-                questionNumber = currentIndex + 1,
-                questionCount = questions.size,
-                onBack = ::handleBack,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-            )
+            Box(Modifier.onSizeChanged { appBarHeight = with(density) { it.height.toDp() } }) {
+                PracticeTopBar(
+                    testName = testName,
+                    elapsed = elapsed,
+                    overTime = overTime,
+                    allAnswered = state.allAnswered,
+                    checkImmediately = checkImmediately,
+                    finished = finished,
+                    questionNumber = currentIndex + 1,
+                    questionCount = questions.size,
+                    onBack = ::handleBack,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                )
+            }
         }
     }
 
-    /** [arrowAlpha] fades the arrows out as the sheet covers the questions. */
+    /**
+     * [cover] is how much of the sheet's open look the bar has taken on: it is what turns the
+     * toggle into a cross and takes the arrows away as the sheet opens over the questions.
+     */
     val barContent: @Composable RowScope.(
         listExpanded: Boolean,
         onToggleList: () -> Unit,
-        arrowAlpha: () -> Float,
-    ) -> Unit = { listExpanded, onToggleList, arrowAlpha ->
+        cover: Float,
+    ) -> Unit = { listExpanded, onToggleList, cover ->
         PracticeBarContent(
             compactHeight = compactHeight,
             testName = testName,
@@ -369,12 +384,12 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
             showListToggle = !showPanel,
             listExpanded = listExpanded,
             canFinish = !finished,
+            cover = cover,
             showArrows = !arrowsBeside,
             onBack = ::handleBack,
             onToggleList = onToggleList,
             onPrevious = { goTo(currentIndex - 1) },
             onNext = { goTo(currentIndex + 1) },
-            arrowAlpha = arrowAlpha,
             onFinish = { onEvent(PracticeUiEvent.Finish) },
             // The shortcuts are built away in a release build, where the menu has no place for them.
             onDebugAnswers = if (isDebugBuild()) onEvent else null,
@@ -500,8 +515,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                             sheetSwipeEnabled = false,
                             sheetContent = {
                                 // The list is always visible next to the question here, so the toggle is
-                                // inert and the arrows never fade.
-                                BarPill(pillHeight, pillGap) { barContent(false, {}, { 1f }) }
+                                // inert and the arrows never leave the bar.
+                                BarPill(pillHeight, pillGap) { barContent(false, {}, 0f) }
                             },
                             content = questionsPane,
                         )
@@ -518,10 +533,12 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
             }
         } else {
             // The question list is a sheet pinned to the bottom: collapsed it shows just the bar. Its
-            // content has a fixed height — a bar over a list tall enough to reach the status bar — so
-            // the sheet's anchors don't move under the user's finger. Sizing or fading content from the
-            // live drag offset makes the gesture fight its own layout, which is how taps and list
-            // scrolls got eaten after a drag.
+            // content has a fixed height — a bar over a list tall enough to reach the app bar — so the
+            // sheet's anchors don't move under the user's finger. What the drag changes is what the
+            // sheet looks like, not what it measures: its shadow, its own surface, the bar's toggle and
+            // its arrows all follow the drag. Sizing or fading content from the live drag offset is what
+            // makes the gesture fight its own layout, which is how taps and list scrolls got eaten after
+            // a drag.
             BoxWithConstraints(
                 Modifier
                     .fillMaxSize()
@@ -529,14 +546,39 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     // its height instead.
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(sideInsets)),
             ) {
-                // The bar is as tall as the collapsed peek, and the list runs up to the status bar. The
-                // navigation bar's room is at the end of the list, so it takes no height away from it.
-                val gridHeight = (maxHeight - topReserved - barSlotHeight - navBarInset).coerceAtLeast(0.dp)
-                val arrowsHidden by animateFloatAsState(if (listExpanded) 1f else 0f)
+                // The list's height, and the lines the sheet's top edge rests on: on the peek line shut,
+                // and on the room it keeps above itself once it's open. The navigation bar's room is at
+                // the end of the list, so it takes no height away from it.
+                val geometry = sheetGeometry(
+                    available = maxHeight,
+                    barSlotHeight = barSlotHeight,
+                    navBarInset = navBarInset,
+                    openTopRoom = openTopRoom,
+                )
+                val restOffset = with(density) { geometry.restOffset.toPx() }
+                val openOffset = with(density) { geometry.openOffset.toPx() }
+
+                // How far the list has been dragged open — 0 where the peek leaves it, 1 fully expanded
+                // — and how much of its open look it has taken on. The sheet's shadow and surface, the
+                // bar's toggle and its arrows all follow the second one, and all of them are done by the
+                // time [SHEET_COVERED_AT] of the drag is behind it.
+                val openProgress by remember(sheetState, restOffset, openOffset) {
+                    derivedStateOf {
+                        if (!sheetState.hasPartiallyExpandedState || !sheetState.hasExpandedState) {
+                            0f
+                        } else {
+                            sheetOpenProgress(sheetState.requireOffset(), restOffset, openOffset)
+                        }
+                    }
+                }
+                val cover = sheetCover(openProgress)
+
+                // The sheet's own surface, which is drawn behind everything the sheet holds: it wraps
+                // the question list at rest and grows up over the bar's slot until it covers the sheet.
+                val surfaceHeight = sheetSurfaceHeight(cover, geometry.listHeight, barSlotHeight)
 
                 // The sheet rests with its top on the line the peek gives it; anything above that
                 // line means the list is on its way open, if only by a hair, and the message leaves.
-                val restOffset = with(LocalDensity.current) { (maxHeight - barSlotHeight - navBarInset).toPx() }
                 val messageHidden by remember(sheetState, restOffset) {
                     derivedStateOf {
                         sheetState.hasPartiallyExpandedState &&
@@ -552,39 +594,53 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     scaffoldState = rememberBottomSheetScaffoldState(sheetState, snackbarHostState),
                     snackbarHost = {},
                     containerColor = Color.Transparent,
-                    // Closed, the pill floats straight over the page; open, it sits on the warm
-                    // sheet the question list is drawn on.
-                    sheetContainerColor = if (listExpanded) colors.sheet else Color.Transparent,
+                    // The sheet's own surface is drawn inside it instead, so that it can grow over the
+                    // bar's slot as the list is dragged open.
+                    sheetContainerColor = Color.Transparent,
                     sheetPeekHeight = barSlotHeight + navBarInset,
-                    sheetShadowElevation = QuestionSheetShadow,
+                    sheetShadowElevation = sheetShadowElevation(cover, QuestionSheetShadow),
                     sheetDragHandle = null,
                     topBar = topBar,
                     sheetContent = {
-                        Column(Modifier.fillMaxWidth()) {
-                            BarPill(pillHeight, pillGap) {
-                                barContent(listExpanded, ::toggleList, { 1f - arrowsHidden })
-                            }
-                            Column(
+                        Box(Modifier.fillMaxWidth()) {
+                            // The sheet's own surface, behind everything the sheet holds: it wraps the
+                            // question list at rest and grows up over the bar's slot as the list is
+                            // dragged open, covering the sheet by [SHEET_COVERED_AT] of the way.
+                            Box(
                                 Modifier
-                                    .height(gridHeight)
+                                    .align(Alignment.BottomStart)
                                     .fillMaxWidth()
+                                    .height(surfaceHeight)
                                     .clip(RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius))
-                                    .background(colors.sheet)
-                                    .verticalScroll(rememberScrollState()),
-                            ) {
-                                QuestionGrid(
-                                    questions = questions,
-                                    sections = sections,
-                                    currentIndex = currentIndex,
-                                    selectedAnswers = selectedAnswers,
-                                    revealCorrectness = revealCorrectness,
-                                    finished = finished,
-                                    onSelectQuestion = {
-                                        goTo(it)
-                                        scope.launch { sheetState.partialExpand() }
-                                    },
-                                )
-                                Spacer(Modifier.height(navBarInset))
+                                    .background(colors.sheet),
+                            )
+                            Column(Modifier.fillMaxWidth()) {
+                                BarPill(pillHeight, pillGap) {
+                                    barContent(listExpanded, ::toggleList, cover)
+                                }
+                                Column(
+                                    Modifier
+                                        .height(geometry.listHeight)
+                                        .fillMaxWidth()
+                                        // Clipped to the same rounded top its surface is drawn with, so
+                                        // a scrolled chip can't square its corners off.
+                                        .clip(RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius))
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    QuestionGrid(
+                                        questions = questions,
+                                        sections = sections,
+                                        currentIndex = currentIndex,
+                                        selectedAnswers = selectedAnswers,
+                                        revealCorrectness = revealCorrectness,
+                                        finished = finished,
+                                        onSelectQuestion = {
+                                            goTo(it)
+                                            scope.launch { sheetState.partialExpand() }
+                                        },
+                                    )
+                                    Spacer(Modifier.height(navBarInset))
+                                }
                             }
                         }
                     },
@@ -809,13 +865,14 @@ private fun RowScope.PracticeBarContent(
     showListToggle: Boolean,
     listExpanded: Boolean,
     canFinish: Boolean,
+    /** How much of the sheet's open look the bar has taken on: 0 while the list is shut, 1 once it's covered. */
+    cover: Float,
     /** The arrows sit beside the question instead, so the bar leaves them out. */
     showArrows: Boolean,
     onBack: () -> Unit,
     onToggleList: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
-    arrowAlpha: () -> Float,
     onFinish: () -> Unit,
     /** The debug answers, or null in a release build, where the menu leaves them out. */
     onDebugAnswers: ((PracticeUiEvent) -> Unit)?,
@@ -826,7 +883,7 @@ private fun RowScope.PracticeBarContent(
         BarIconButton(IconArrowBack, strings.back, onClick = onBack)
     }
     if (showListToggle) {
-        QuestionListToggle(expanded = listExpanded, onClick = onToggleList)
+        QuestionListToggle(expanded = listExpanded, cover = cover, onClick = onToggleList)
     }
     Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
         Text(
@@ -861,22 +918,26 @@ private fun RowScope.PracticeBarContent(
         }
     }
     // The arrows are beside the question wherever the page has room for them. They make no sense
-    // while the question list covers the questions, which is what [arrowAlpha] is for.
+    // while the question list covers the questions, so they leave the bar as it opens — gone, not
+    // just faded out, since there is nothing left for them to step through.
     if (showArrows) {
-        Row(Modifier.graphicsLayer { alpha = arrowAlpha() }) {
-            val usable = arrowAlpha() > 0.5f
-            BarIconButton(
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                strings.previousQuestion,
-                onClick = onPrevious,
-                enabled = usable && currentIndex > 0,
-            )
-            BarIconButton(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                strings.nextQuestion,
-                onClick = onNext,
-                enabled = usable && currentIndex < questionCount - 1,
-            )
+        val arrowsAlpha = 1f - cover
+        if (arrowsAlpha > 0f) {
+            Row(Modifier.graphicsLayer { alpha = arrowsAlpha }) {
+                val usable = arrowsAlpha > 0.5f
+                BarIconButton(
+                    Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    strings.previousQuestion,
+                    onClick = onPrevious,
+                    enabled = usable && currentIndex > 0,
+                )
+                BarIconButton(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    strings.nextQuestion,
+                    onClick = onNext,
+                    enabled = usable && currentIndex < questionCount - 1,
+                )
+            }
         }
     }
     // Finishing is the only option, so there's no menu once the test is finished.
@@ -943,32 +1004,40 @@ private val SnackbarAboveSheet = 4.dp
 /** How far the sheet has to move off its resting line before the message gets out of the way. */
 private const val SHEET_OPEN_TOLERANCE = 1.5f
 
-/** A question-list icon that turns into an X (and back) as the question list opens. */
+/**
+ * A question-list icon that turns into an X (and back) as the question list opens. It follows the
+ * drag the way the rest of the sheet does: [cover] is how far open the list has been dragged, and
+ * the icon that has faded out is gone rather than just invisible. [expanded] is the state the list
+ * is heading for, which is what a tap on it does.
+ */
 @Composable
-private fun QuestionListToggle(expanded: Boolean, onClick: () -> Unit) {
-    val progress by animateFloatAsState(if (expanded) 1f else 0f)
+private fun QuestionListToggle(expanded: Boolean, cover: Float, onClick: () -> Unit) {
     Box(
         modifier = Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            IconMenu,
-            contentDescription = if (expanded) null else strings.questionList,
-            tint = Color.White,
-            modifier = Modifier.size(24.dp).graphicsLayer {
-                alpha = 1f - progress
-                rotationZ = 90f * progress
-            },
-        )
-        Icon(
-            IconClose,
-            contentDescription = if (expanded) strings.closeQuestionList else null,
-            tint = Color.White,
-            modifier = Modifier.size(24.dp).graphicsLayer {
-                alpha = progress
-                rotationZ = -90f * (1f - progress)
-            },
-        )
+        if (cover < 1f) {
+            Icon(
+                IconMenu,
+                contentDescription = if (expanded) null else strings.questionList,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp).graphicsLayer {
+                    alpha = 1f - cover
+                    rotationZ = 90f * cover
+                },
+            )
+        }
+        if (cover > 0f) {
+            Icon(
+                IconClose,
+                contentDescription = if (expanded) strings.closeQuestionList else null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp).graphicsLayer {
+                    alpha = cover
+                    rotationZ = -90f * (1f - cover)
+                },
+            )
+        }
     }
 }
 
@@ -1294,5 +1363,23 @@ private fun PracticeScreenExpandedPreview() {
 private fun PracticeScreenLandscapePreview() {
     AppPreview {
         PracticeScreen(practiceState(), onEvent = {}, onOpenResults = {})
+    }
+}
+
+/** The bar's list toggle as the sheet is dragged open: the menu turns into a cross as it's covered. */
+@Preview(widthDp = 400, heightDp = 180)
+@Composable
+private fun QuestionListTogglePreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("LIST TOGGLE: SHUT, HALF COVERED, COVERED")
+            PreviewRow {
+                listOf(0f, 0.15f, 0.3f, 0.6f, 1f).forEach { cover ->
+                    NavyPill(Modifier.width(64.dp), height = 56.dp) {
+                        QuestionListToggle(expanded = cover >= 0.5f, cover = cover, onClick = {})
+                    }
+                }
+            }
+        }
     }
 }

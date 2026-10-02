@@ -21,7 +21,7 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 internal const val LIBRARIES_RESOURCE = "files/aboutlibraries.json"
 
 data class AboutUiState(
-    /** What the platform says this build is; `null` where it says nothing, as the web build does. */
+    /** What the platform says this build is; `null` where it says nothing. */
     val version: String?,
     val query: String,
     /** Every library the app is built from, before the search has left any of them out. */

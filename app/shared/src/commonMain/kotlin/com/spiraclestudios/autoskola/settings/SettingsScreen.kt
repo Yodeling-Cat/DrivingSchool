@@ -203,7 +203,7 @@ fun SettingsScreen(
                     SettingsNavRow(
                         title = strings.aboutApp,
                         // Its subtitle, because the version is part of what this entry is rather than a
-                        // note under it. The web build reports none, and the row then simply has no
+                        // note under it. A platform that reports none leaves the row without a
                         // subtitle, the same as any other row without one.
                         subtitle = state.appVersion?.let { strings.aboutVersion(it) },
                         onClick = onOpenAbout,
@@ -357,7 +357,7 @@ private fun SettingsScreenCheckingPreview() {
     }
 }
 
-/** No version to report, which is the web build: the row keeps its place with no subtitle. */
+/** No version to report, which leaves the row in place with no subtitle. */
 @Preview(widthDp = 400, heightDp = 700)
 @Composable
 private fun SettingsScreenNoVersionPreview() {

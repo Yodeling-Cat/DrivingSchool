@@ -66,7 +66,7 @@ const val ANALYTICS_PLATFORM_PROPERTY = "platform"
 
 /**
  * The super property that says which version of the app sent an event. Left off where the platform
- * reports no version - the web build - rather than sent empty.
+ * reports no version rather than sent empty.
  */
 const val ANALYTICS_APP_VERSION_PROPERTY = "app_version"
 

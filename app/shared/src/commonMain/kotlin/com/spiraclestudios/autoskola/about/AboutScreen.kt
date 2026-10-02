@@ -195,7 +195,7 @@ private fun AboutScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) { AboutScreen(previewState(), onEvent = {}, onBack = {}) }
 }
 
-/** The web build, which has no version of its own: the line goes rather than reading "Version ". */
+/** A platform that reports no version: the line goes rather than reading "Version ". */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun AboutScreenWithoutVersionPreview() {

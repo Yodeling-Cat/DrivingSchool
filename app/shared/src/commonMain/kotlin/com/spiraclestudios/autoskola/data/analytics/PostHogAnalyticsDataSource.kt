@@ -88,8 +88,8 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
         // filtered out of the real users' insights. There is one PostHog project for both builds,
         // because the free plan allows only one.
         PostHog.register(ANALYTICS_ENVIRONMENT_PROPERTY, analyticsEnvironment(debug))
-        // The platform, always, and the app version wherever the platform reports one - the web
-        // build reports none, and the property is left off rather than sent empty.
+        // The platform, always, and the app version wherever the platform reports one - where it
+        // does not, the property is left off rather than sent empty.
         PostHog.register(ANALYTICS_PLATFORM_PROPERTY, platformName())
         appVersion()?.let { PostHog.register(ANALYTICS_APP_VERSION_PROPERTY, it) }
     }

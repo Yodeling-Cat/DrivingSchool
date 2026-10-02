@@ -102,7 +102,8 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.0"
+        // The version every Gradle-built target of this app reports (see the root build file).
+        versionName = rootProject.version.toString()
     }
     packaging {
         resources {

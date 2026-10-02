@@ -33,7 +33,7 @@ data class SettingsUiState(
      * from before the selected bank is found — and again if an update removed that bank.
      */
     val exam: ExamLabel?,
-    /** What the platform reports, or `null` where it reports none — the web build, for one. */
+    /** What the platform reports, or `null` where it reports none. */
     val appVersion: String?,
 ) {
     /**

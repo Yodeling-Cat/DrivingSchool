@@ -13,6 +13,12 @@ plugins {
     alias(libs.plugins.aboutLibraries) apply false
 }
 
+// The app's own version, in the one place a Gradle build can stamp into what it builds: the
+// Android install (`app/androidApp/build.gradle.kts`) and the web bundle
+// (`app/shared/build.gradle.kts`). iOS takes its version from the Xcode project's
+// MARKETING_VERSION, which nothing here can reach (see `AppVersion.ios.kt`).
+version = "1.0"
+
 // Style checks for every module: `./gradlew ktlintCheck`, or `ktlintFormat` to fix what it can.
 subprojects {
     apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)

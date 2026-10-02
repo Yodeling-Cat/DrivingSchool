@@ -110,3 +110,36 @@ kotlin {
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
+
+/**
+ * The version this build is, written into a generated source the web targets compile: a page is
+ * served from a file rather than installed, so nothing on it would otherwise know which build it
+ * is. It is the root project's version, which is also what an Android install reports.
+ */
+val generateWebAppVersion by tasks.registering {
+    val version = rootProject.version.toString()
+    val outputDir = layout.buildDirectory.dir("generated/webAppVersion")
+    inputs.property("appVersion", version)
+    outputs.dir(outputDir)
+    doLast {
+        val source = outputDir.get().file("com/spiraclestudios/autoskola/WEB_APP_VERSION.kt").asFile
+        source.parentFile.mkdirs()
+        source.writeText(
+            buildString {
+                appendLine("package com.spiraclestudios.autoskola")
+                appendLine()
+                appendLine("/** The version this web build is, written by the Gradle build that made it. */")
+                appendLine("internal const val WEB_APP_VERSION: String = \"$version\"")
+            },
+        )
+    }
+}
+
+// Wired once the project has been evaluated: the Kotlin plugin builds the source set that holds
+// `src/webMain` while it is finishing, so asking for one by name earlier is asking for a name that
+// does not exist yet. It is the group source set both web targets compile, which is where a web
+// build's own code lives (beside NavigationState.web.kt) - and a task provider as a source
+// directory is what makes the compilation wait for the file.
+gradle.projectsEvaluated {
+    kotlin.sourceSets.getByName("webMain").kotlin.srcDir(generateWebAppVersion)
+}

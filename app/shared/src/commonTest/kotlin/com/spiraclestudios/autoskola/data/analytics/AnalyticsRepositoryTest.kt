@@ -30,6 +30,17 @@ class AnalyticsRepositoryTest {
     }
 
     @Test
+    fun aNewEventIsGatedByTheAnalyticsAnswerToo() {
+        val fixture = Fixture()
+
+        fixture.repository.capture(AnalyticsEvent.TestCompleted, mapOf("kind" to "practice_test"))
+        fixture.repository.capture(AnalyticsEvent.QuestionImageFailed)
+
+        assertEquals(emptyList(), fixture.sink.events)
+        assertEquals(emptyList(), fixture.sink.properties)
+    }
+
+    @Test
     fun crashReportingAloneSendsNoEvents() {
         val fixture = Fixture(crashReporting = true)
 

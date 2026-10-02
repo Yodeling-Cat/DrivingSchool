@@ -5,6 +5,7 @@ import com.posthog.kmp.PostHog
 import com.posthog.kmp.PostHogBeforeSend
 import com.posthog.kmp.PostHogConfig
 import com.posthog.kmp.PostHogContext
+import com.spiraclestudios.autoskola.appVersion
 
 /**
  * Sends events and crashes to PostHog Cloud (EU).
@@ -75,7 +76,11 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
                 // The consent gate, read at send time rather than at setup time. This is the only
                 // way to honour a switch flipped later: PostHog.setup cannot be called twice, so
                 // the crash-reporting answer cannot be baked into ErrorTrackingConfig.
-                beforeSend = listOf(PostHogBeforeSend { event -> if (isAllowed(event.event)) event else null }),
+                beforeSend = listOf(
+                    PostHogBeforeSend { event ->
+                        if (isEventAllowed(event.event, crashReporting, analyticsEnabled)) event else null
+                    },
+                ),
             ),
             context,
         )
@@ -83,10 +88,11 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
         // filtered out of the real users' insights. There is one PostHog project for both builds,
         // because the free plan allows only one.
         PostHog.register(ANALYTICS_ENVIRONMENT_PROPERTY, analyticsEnvironment(debug))
+        // The platform, always, and the app version wherever the platform reports one - the web
+        // build reports none, and the property is left off rather than sent empty.
+        PostHog.register(ANALYTICS_PLATFORM_PROPERTY, platformName())
+        appVersion()?.let { PostHog.register(ANALYTICS_APP_VERSION_PROPERTY, it) }
     }
-
-    /** Whether an event of this name is covered by one of the two answers the user gave. */
-    private fun isAllowed(event: String): Boolean = if (event == EXCEPTION_EVENT) crashReporting else analyticsEnabled
 
     private companion object {
         /**
@@ -98,8 +104,34 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
         const val API_KEY = "phc_n7PQCT2Y6esab4DaF7AYyq3BXtb7RCP7CbS9XdnFivHx"
 
         const val APP_PACKAGE = "com.spiraclestudios.autoskola"
-
-        /** The event name PostHog's error tracking sends for a captured exception. */
-        const val EXCEPTION_EVENT = "\$exception"
     }
+}
+
+/**
+ * Every event name the app sends on purpose, named from [AnalyticsEvent] so a new event cannot be
+ * added without the analytics answer covering it.
+ */
+internal val ANALYTICS_EVENT_NAMES: Set<String> =
+    AnalyticsEvent.entries.mapTo(mutableSetOf()) { it.eventName }
+
+/** The event name PostHog's error tracking sends for a captured exception. */
+private const val EXCEPTION_EVENT = "\$exception"
+
+/**
+ * The event name PostHog sends for [AnalyticsDataSource.screen] - its own name for a screen view,
+ * not one of ours, so it is listed here rather than in [ANALYTICS_EVENT_NAMES].
+ */
+private const val SCREEN_EVENT = "\$screen"
+
+/**
+ * Whether an event of this name is covered by one of the two answers the user gave. Every event
+ * the app sends on purpose, and the screen view with them, is covered by the analytics answer; a
+ * crash report is covered by the crash-reporting answer instead. Anything else is dropped: nothing
+ * the SDK might send on its own may leave without the answer that covers it.
+ */
+internal fun isEventAllowed(event: String, crashReporting: Boolean, analytics: Boolean): Boolean = when (event) {
+    EXCEPTION_EVENT -> crashReporting
+    SCREEN_EVENT -> analytics
+    in ANALYTICS_EVENT_NAMES -> analytics
+    else -> false
 }

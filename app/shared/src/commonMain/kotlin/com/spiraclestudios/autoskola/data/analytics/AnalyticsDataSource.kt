@@ -13,6 +13,33 @@ enum class AnalyticsEvent(val eventName: String) {
 
     /** The user picked the exam they are preparing for, at the end of the selection wizard. */
     ExamSelected("exam_selected"),
+
+    /** A test, a mistakes retest or a situations drill was started or continued. */
+    TestStarted("test_started"),
+
+    /** A test or a mistakes retest was finished and scored. */
+    TestCompleted("test_completed"),
+
+    /** An attempt was left unfinished - discarded, or walked away from with answers in it. */
+    TestAbandoned("test_abandoned"),
+
+    /** The user answered the consent screen by pressing one of its two buttons. */
+    ConsentAnswered("consent_answered"),
+
+    /** The user changed one of the two consent switches in Settings. */
+    ConsentChanged("consent_changed"),
+
+    /** The user picked a language different from the one in use. */
+    LanguageChanged("language_changed"),
+
+    /** A situation was opened from the intersections list, which only the screen view can't say. */
+    SituationOpened("situation_opened"),
+
+    /** The selected question bank no longer exists, e.g. an update removed it. */
+    BankMissing("bank_missing"),
+
+    /** A question's picture could not be loaded. */
+    QuestionImageFailed("question_image_failed"),
 }
 
 /**
@@ -30,6 +57,18 @@ const val ANALYTICS_ENVIRONMENT_DEVELOPMENT = "debug"
 
 /** The value of [ANALYTICS_ENVIRONMENT_PROPERTY] for a build a user has. */
 const val ANALYTICS_ENVIRONMENT_RELEASE = "release"
+
+/**
+ * The super property that says which platform an event came from: the same value on every event,
+ * so a platform's numbers can be read on their own. The web targets both answer "web".
+ */
+const val ANALYTICS_PLATFORM_PROPERTY = "platform"
+
+/**
+ * The super property that says which version of the app sent an event. Left off where the platform
+ * reports no version - the web build - rather than sent empty.
+ */
+const val ANALYTICS_APP_VERSION_PROPERTY = "app_version"
 
 /** The environment a build reports itself as, from whether it is a developer's build. */
 internal fun analyticsEnvironment(developmentBuild: Boolean): String =

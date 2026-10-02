@@ -77,6 +77,37 @@ class FeedbackViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun thePlatformSaysWhetherTheReportGoesThroughAMailApp() = runTest {
+        // The phones: the press opens an email app on the report, already written.
+        assertTrue(observe(viewModel.uiState).value.hasEmailApp)
+
+        // A browser: it says where to write, and offers the details to paste.
+        val browser = FeedbackViewModel(version = null, device = "a browser", emailApp = false)
+        assertFalse(observe(browser.uiState).value.hasEmailApp)
+    }
+
+    @Test
+    fun theCopyOfTheDetailsIsSaidBackOnceItWasMade() = runTest {
+        val state = observe(viewModel.uiState)
+
+        assertFalse(state.value.copied)
+
+        viewModel.onEvent(FeedbackUiEvent.Copied)
+
+        assertTrue(state.value.copied)
+    }
+
+    @Test
+    fun changingWhatGoesInTheReportForgetsTheCopyThatWasMade() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(FeedbackUiEvent.Copied)
+
+        viewModel.onEvent(FeedbackUiEvent.IncludeDeviceInfo(false))
+
+        assertFalse(state.value.copied)
+    }
+
+    @Test
     fun aBuildWithNothingToReportStillSends() = runTest {
         // The web build: no version of its own, and a device only if the user asks for it.
         val web = FeedbackViewModel(version = null, device = null)

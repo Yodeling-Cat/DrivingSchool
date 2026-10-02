@@ -2,15 +2,12 @@
 
 package com.spiraclestudios.autoskola
 
-import kotlinx.browser.window
-
 /**
- * The address bar rather than a new tab: a browser hands `mailto:` to whatever the system opens
- * for mail and stays on the page, where a new tab would only come up blank. Whether the machine
- * has a mail handler at all is not something a page can ask, so this answers that it was handed
- * over.
+ * A page opens nothing: `mailto:` goes to whatever the system happens to have registered for mail,
+ * and often nothing does, so the feedback screen does not offer a press here at all - it says
+ * where to write and offers the report as text to copy ([hasEmailApp]).
  */
-actual fun openEmail(url: String): Boolean {
-    window.location.href = url
-    return true
-}
+actual fun openEmail(url: String): Boolean = false
+
+/** A page has no email app of its own to open; the user writes the mail in theirs. */
+actual fun hasEmailApp(): Boolean = false

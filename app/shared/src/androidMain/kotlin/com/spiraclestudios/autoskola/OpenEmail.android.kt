@@ -14,3 +14,6 @@ actual fun openEmail(url: String): Boolean {
     val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     return runCatching { context.startActivity(intent) }.isSuccess
 }
+
+/** A phone has an email app to open a report in; whether this one has is what [openEmail] answers. */
+actual fun hasEmailApp(): Boolean = true

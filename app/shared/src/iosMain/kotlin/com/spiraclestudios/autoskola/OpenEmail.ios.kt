@@ -14,3 +14,6 @@ actual fun openEmail(url: String): Boolean {
     application.openURL(nsUrl, options = emptyMap<Any?, Any>(), completionHandler = null)
     return true
 }
+
+/** A phone has an email app to open a report in; whether this one has is what [openEmail] answers. */
+actual fun hasEmailApp(): Boolean = true

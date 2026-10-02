@@ -37,15 +37,22 @@ internal fun feedbackBody(
     message: String,
     device: String?,
     version: String?,
-): String = listOf(
-    message.trim(),
-    listOfNotNull(
-        version?.let(strings.feedbackVersionLine),
-        device?.let(strings.feedbackDeviceLine),
-    ).joinToString("\n"),
-)
+): String = listOf(message.trim(), feedbackDetails(strings, device, version))
     .filter { it.isNotEmpty() }
     .joinToString("\n\n")
+
+/**
+ * What the report says about itself, one line each: the build it came from, and - when the user
+ * asked for it - the device it was written on.
+ *
+ * A browser's user is told to paste this into the email they write themselves, so it is also what
+ * the screen shows them and what the copy button takes. It is empty when a platform has nothing to
+ * name and the device was left out, which is a case the screen is written for rather than a bug.
+ */
+internal fun feedbackDetails(strings: Strings, device: String?, version: String?): String = listOfNotNull(
+    version?.let(strings.feedbackVersionLine),
+    device?.let(strings.feedbackDeviceLine),
+).joinToString("\n")
 
 /**
  * Percent-encodes [value] for the query of a `mailto:` address: everything but the unreserved

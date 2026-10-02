@@ -10,3 +10,14 @@ package com.spiraclestudios.autoskola
  * opens for mail, and cannot say either way.
  */
 expect fun openEmail(url: String): Boolean
+
+/**
+ * Whether this platform is one the app can hand a report to an email app on, which is what decides
+ * how the feedback screen lets it leave.
+ *
+ * The phones say yes: both have an email app they can open a composer in, and can say when they
+ * have none. A browser says no, and not because of the user's machine - a page cannot tell whether
+ * anything is registered for mail, and the handover is unreliable enough that the report is better
+ * written in the mail app the user already has open.
+ */
+expect fun hasEmailApp(): Boolean

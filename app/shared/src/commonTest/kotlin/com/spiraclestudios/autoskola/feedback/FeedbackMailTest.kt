@@ -82,6 +82,33 @@ class FeedbackMailTest {
     }
 
     @Test
+    fun theDetailsAreTheBuildAndTheDeviceItCameFrom() {
+        assertEquals("App version: 1.4.2", feedbackDetails(english, device = null, version = "1.4.2"))
+        assertEquals(
+            "App version: 1.4.2\nDevice: Pixel 7 · Android 14",
+            feedbackDetails(english, device = "Pixel 7 · Android 14", version = "1.4.2"),
+        )
+        // The web build: no version of its own, and a device only if the user hands it over.
+        assertEquals("Device: a browser", feedbackDetails(english, device = "a browser", version = null))
+    }
+
+    @Test
+    fun aPlatformWithNothingToSayAboutItselfHasNoDetails() {
+        assertEquals("", feedbackDetails(english, device = null, version = null))
+    }
+
+    @Test
+    fun theBodyIsTheMessageAndThoseVerySameDetails() {
+        AppLanguage.entries.forEach { language ->
+            val strings = language.strings
+            val details = feedbackDetails(strings, device = "A device", version = "9.9")
+
+            assertTrue(details.isNotEmpty(), language.name)
+            assertEquals("Hello\n\n$details", feedbackBody(strings, "Hello", device = "A device", version = "9.9"))
+        }
+    }
+
+    @Test
     fun everyLanguageNamesTheAppAndTheBuildInTheReport() {
         AppLanguage.entries.forEach { language ->
             val strings = language.strings

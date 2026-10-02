@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.copyToClipboard
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.openEmail
@@ -40,6 +45,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajCard
+import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -59,7 +65,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun FeedbackRoute(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // Read here, not inside the press below: the press is not a composable scope.
+    // Read here, not inside the presses below: a press is not a composable scope.
     val words = strings
     FeedbackScreen(
         state = state,
@@ -75,23 +81,27 @@ fun FeedbackRoute(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMod
                 if (!openEmail(mailto)) viewModel.onEvent(FeedbackUiEvent.NoEmailApp)
             }
         },
+        onCopy = { details ->
+            copyToClipboard(details)
+            viewModel.onEvent(FeedbackUiEvent.Copied)
+        },
     )
 }
 
 /**
- * Writing a report: what the user wants to say, whether the device it was written on goes with it,
- * and the press that opens their email app on it.
+ * Writing a report, and getting it to us.
  *
- * Nothing is sent from here. The composer opens with the report already written, and the user
- * reads it, changes it, sends it or closes it - which is also why a written report is kept after
- * the press rather than cleared: it may be opened twice, and it is theirs.
+ * On the phones that is a press that opens their email app on the report already written: nothing
+ * is sent from here, the composer opens in front of the user, and they read it, change it, send it
+ * or close it. That press is why a written report is kept after it rather than cleared - it may be
+ * opened twice, and it is theirs. The press sits at the bottom of the screen while what is written
+ * scrolls above it: a message worth sending is longer than a phone in landscape has room for, and
+ * the way out of the screen should not be the thing that scrolled away. A device with no email app
+ * at all is told about rather than left looking like the press worked.
  *
- * The press sits at the bottom of the screen and what is written scrolls above it: a message worth
- * sending is longer than a phone in landscape has room for, and the way out of the screen should
- * not be the thing that scrolled away.
- *
- * If the platform has no email app at all, the screen says so rather than leaving the press
- * looking like it worked.
+ * A browser is not offered that press: it cannot open a mail app the way a phone does, so the
+ * screen says where to write to us instead, and draws the block of build and device the user
+ * pastes into their own mail app - selectable, and copyable with one press.
  */
 @Composable
 fun FeedbackScreen(
@@ -99,8 +109,11 @@ fun FeedbackScreen(
     onEvent: (FeedbackUiEvent) -> Unit,
     onBack: () -> Unit,
     onSend: () -> Unit,
+    onCopy: (String) -> Unit,
 ) {
     val colors = Naj.colors
+    // The same block the phones write into the mail, drawn here for the user to paste themselves.
+    val details = feedbackDetails(strings, state.device, state.appVersion)
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             Box(
@@ -115,26 +128,55 @@ fun FeedbackScreen(
                 ) {
                     FeedbackHeader(onBack)
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                // The press brings its own room when it is there; without one the
+                                // column ends the screen and has to keep clear of the edge itself.
+                                bottom = if (state.hasEmailApp) 8.dp else 24.dp,
+                            ),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
                         MessageField(state, onEvent)
-                        DeviceInfoRow(state, onEvent)
+                        if (state.hasEmailApp) {
+                            DeviceInfoRow(state, onEvent)
+                        } else {
+                            // The switch keeps the device out of a report the app writes into a
+                            // composer itself. Here the user pastes the block by hand, and the way
+                            // they see what they are pasting is the card - so there is nothing to
+                            // switch off, and a switch that hid the card would hide the point of
+                            // the screen.
+                            SelectionContainer {
+                                Text(
+                                    strings.feedbackSendTo(FEEDBACK_ADDRESS),
+                                    style = Naj.type.body,
+                                    color = colors.ink,
+                                )
+                            }
+                            if (details.isNotEmpty()) {
+                                DetailsCard(details, copied = state.copied, onCopy = { onCopy(details) })
+                            }
+                        }
                     }
                 }
             }
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            if (state.hasEmailApp) {
                 Column(
-                    modifier = Modifier
-                        .widthIn(max = ContentWidth.Narrow)
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp + LocalNavBarInset.current),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    SendButton(state, onSend)
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = ContentWidth.Narrow)
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp + LocalNavBarInset.current),
+                    ) {
+                        SendButton(state, onSend)
+                    }
                 }
             }
         }
@@ -275,28 +317,88 @@ private fun SendButton(state: FeedbackUiState, onSend: () -> Unit) {
     }
 }
 
+/**
+ * The block a browser's user pastes into their own email: what the report says about the build and
+ * the device, with the press that takes it.
+ *
+ * The text is in a selection as well as on the clipboard, because a page's clipboard is the one
+ * thing the app cannot check it wrote to, and taking it by hand is the way through for anyone the
+ * press does not reach.
+ */
+@Composable
+private fun DetailsCard(
+    details: String,
+    copied: Boolean,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Naj.colors
+    NajCard(modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    strings.feedbackIncludeDetails,
+                    style = Naj.type.rowSubtitle,
+                    color = colors.muted,
+                    modifier = Modifier.weight(1f),
+                )
+                // The corner of the card, where the thing it does to the text below it belongs.
+                OutlinePill(
+                    text = if (copied) strings.feedbackCopied else strings.feedbackCopy,
+                    icon = if (copied) Icons.Filled.Check else Icons.Outlined.ContentCopy,
+                    onClick = onCopy,
+                    height = 36.dp,
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            SelectionContainer {
+                Text(details, style = Naj.type.option, color = colors.ink)
+            }
+        }
+    }
+}
+
 // ── Previews ──
 
-/** A report half written, on the phone the screen is designed around. */
+/** The phone the screen is designed around, and what its report would name. */
+private val previewPhone = "Pixel 7 · Android 14 (API 34)"
+
+/** What a browser can report instead, which is all the web build has to name a device with. */
+private val previewBrowser =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+/**
+ * A report half written: on a phone unless asked for the browser, which is the screen's other
+ * shape - the address it says to write to, and the block the user pastes into their own mail app.
+ */
 private fun previewFeedback(
     message: String = "",
     includeDeviceInfo: Boolean = false,
     messageMissing: Boolean = false,
     noEmailApp: Boolean = false,
+    hasEmailApp: Boolean = true,
+    copied: Boolean = false,
+    device: String = previewPhone,
+    appVersion: String? = "1.4.2",
 ): FeedbackUiState = FeedbackUiState(
     message = message,
     includeDeviceInfo = includeDeviceInfo,
-    device = "Pixel 7 · Android 14 (API 34)",
-    appVersion = "1.4.2",
+    device = device,
+    appVersion = appVersion,
+    hasEmailApp = hasEmailApp,
     messageMissing = messageMissing,
     noEmailApp = noEmailApp,
+    copied = copied,
 )
 
 /** The screen as it opens: nothing written, and the device left out of the report. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun FeedbackScreenPreview() {
-    AppPreview { FeedbackScreen(previewFeedback(), onEvent = {}, onBack = {}, onSend = {}) }
+    AppPreview { FeedbackScreen(previewFeedback(), onEvent = {}, onBack = {}, onSend = {}, onCopy = {}) }
 }
 
 /** A report being written, with the device it was written on going in with it. */
@@ -312,6 +414,7 @@ private fun FeedbackScreenWrittenPreview() {
             onEvent = {},
             onBack = {},
             onSend = {},
+            onCopy = {},
         )
     }
 }
@@ -320,7 +423,9 @@ private fun FeedbackScreenWrittenPreview() {
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun FeedbackScreenMessageMissingPreview() {
-    AppPreview { FeedbackScreen(previewFeedback(messageMissing = true), onEvent = {}, onBack = {}, onSend = {}) }
+    AppPreview {
+        FeedbackScreen(previewFeedback(messageMissing = true), onEvent = {}, onBack = {}, onSend = {}, onCopy = {})
+    }
 }
 
 /** A device with no email app: the press has nowhere to go, so the screen says so. */
@@ -333,6 +438,7 @@ private fun FeedbackScreenNoEmailAppPreview() {
             onEvent = {},
             onBack = {},
             onSend = {},
+            onCopy = {},
         )
     }
 }
@@ -347,20 +453,71 @@ private fun FeedbackScreenSlovakPreview() {
             onEvent = {},
             onBack = {},
             onSend = {},
+            onCopy = {},
         )
     }
 }
 
-/** A desktop browser, where the column is capped rather than stretched. */
+/**
+ * The browser the web build actually is: no version of its own, a device only the user-agent
+ * string names, and no press - the address to write to, and the block to paste.
+ */
 @Preview(widthDp = 1100, heightDp = 900)
 @Composable
-private fun FeedbackScreenDesktopPreview() {
+private fun FeedbackScreenBrowserPreview() {
     AppPreview {
         FeedbackScreen(
-            previewFeedback(message = "The timer kept counting after I answered.", includeDeviceInfo = true),
+            previewFeedback(
+                message = "The timer kept counting after I answered.",
+                hasEmailApp = false,
+                device = previewBrowser,
+                appVersion = null,
+            ),
             onEvent = {},
             onBack = {},
             onSend = {},
+            onCopy = {},
+        )
+    }
+}
+
+/** The copy taken: the press says so, and the block it took is on the clipboard. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun FeedbackScreenBrowserCopiedPreview() {
+    AppPreview {
+        FeedbackScreen(
+            previewFeedback(
+                message = "The timer kept counting after I answered.",
+                hasEmailApp = false,
+                copied = true,
+                device = previewBrowser,
+                appVersion = null,
+            ),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+            onCopy = {},
+        )
+    }
+}
+
+/** The browser in the longest of the four translations: the address line and the card's words. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun FeedbackScreenBrowserSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        FeedbackScreen(
+            previewFeedback(
+                message = "Časovač na otázke 12 sa stále počítal.",
+                hasEmailApp = false,
+                device = previewBrowser,
+                appVersion = null,
+            ),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+            onCopy = {},
         )
     }
 }
@@ -375,6 +532,7 @@ private fun FeedbackScreenLandscapePreview() {
             onEvent = {},
             onBack = {},
             onSend = {},
+            onCopy = {},
         )
     }
 }

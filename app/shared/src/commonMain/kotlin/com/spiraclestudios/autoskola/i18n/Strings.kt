@@ -211,8 +211,8 @@ class Strings(
     val aboutTitle: String,
     /** The Settings section the row that opens the screen sits under. */
     val settingsApp: String,
-    /** That row, which names the app it is about. */
-    val settingsAbout: String,
+    /** What the screen, and the row in Settings that opens it, are both called. */
+    val aboutApp: String,
     /** Which build the user is running, e.g. "Version 1.0". */
     val aboutVersion: (version: String) -> String,
     /** The heading over the list of the projects the app is built from. */
@@ -365,7 +365,7 @@ private val EnglishStrings = Strings(
     settingsChangeExam = "Change exam",
     aboutTitle = "About",
     settingsApp = "App",
-    settingsAbout = "About the app",
+    aboutApp = "About the app",
     aboutVersion = { "Version $it" },
     aboutLibraries = "Open source libraries",
     aboutLibrariesIntro = "Naj Autoškola is built with these open source projects. Tap one to see " +
@@ -505,7 +505,7 @@ private val SlovakStrings = Strings(
     settingsChangeExam = "Zmeniť skúšku",
     aboutTitle = "O aplikácii",
     settingsApp = "Aplikácia",
-    settingsAbout = "O aplikácii",
+    aboutApp = "O aplikácii",
     aboutVersion = { "Verzia $it" },
     aboutLibraries = "Knižnice s otvoreným kódom",
     aboutLibrariesIntro = "Naj Autoškola je postavená na týchto open source projektoch. Ťuknutím na " +
@@ -645,7 +645,7 @@ private val HungarianStrings = Strings(
     settingsChangeExam = "Vizsga módosítása",
     aboutTitle = "Névjegy",
     settingsApp = "Alkalmazás",
-    settingsAbout = "Az alkalmazásról",
+    aboutApp = "Az alkalmazásról",
     aboutVersion = { "$it verzió" },
     aboutLibraries = "Nyílt forráskódú könyvtárak",
     aboutLibrariesIntro = "A Legjobb Autósiskola ezekre a nyílt forráskódú projektekre épül. " +
@@ -785,7 +785,7 @@ private val CzechStrings = Strings(
     settingsChangeExam = "Změnit zkoušku",
     aboutTitle = "O aplikaci",
     settingsApp = "Aplikace",
-    settingsAbout = "O aplikaci",
+    aboutApp = "O aplikaci",
     aboutVersion = { "Verze $it" },
     aboutLibraries = "Knihovny s otevřeným kódem",
     aboutLibrariesIntro = "Nej Autoškola staví na těchto open source projektech. Klepnutím na " +

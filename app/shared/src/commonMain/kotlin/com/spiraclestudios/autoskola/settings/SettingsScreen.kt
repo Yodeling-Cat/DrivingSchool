@@ -123,7 +123,7 @@ fun SettingsScreen(
 
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
                 SettingsNavRow(
-                    title = strings.settingsAbout,
+                    title = strings.aboutApp,
                     onClick = onOpenAbout,
                     leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
                 )

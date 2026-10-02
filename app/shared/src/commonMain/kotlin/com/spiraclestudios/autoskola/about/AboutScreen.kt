@@ -37,7 +37,6 @@ import com.spiraclestudios.autoskola.ui.NajSearchField
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.RoundButton
-import com.spiraclestudios.autoskola.ui.SectionLabel
 import com.spiraclestudios.autoskola.ui.previewLibraries
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
@@ -123,23 +122,23 @@ private fun LibraryList(libraries: List<Library>, modifier: Modifier = Modifier)
     )
 }
 
-/** What the app is, and what it is built from: the words the library list sits under. */
+/**
+ * What the app is, and what it is built from: the words the library list sits under, each block
+ * opened by the same heading the design gives a group of content.
+ */
 @Composable
 private fun AboutIntro(modifier: Modifier = Modifier) {
     val colors = Naj.colors
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(strings.aboutApp, style = Naj.type.sectionHeading, color = colors.ink)
+        Spacer(Modifier.height(10.dp))
         Text(strings.disclaimerIndependent, style = Naj.type.body, color = colors.muted)
         Spacer(Modifier.height(12.dp))
         Text(strings.disclaimerSource, style = Naj.type.body, color = colors.muted)
-        Spacer(Modifier.height(10.dp))
-        SectionLabel(strings.aboutLibraries, Modifier.padding(start = 6.dp))
-        Spacer(Modifier.height(4.dp))
-        Text(
-            strings.aboutLibrariesIntro,
-            style = Naj.type.rowSubtitle,
-            color = colors.muted,
-            modifier = Modifier.padding(start = 6.dp),
-        )
+        Spacer(Modifier.height(22.dp))
+        Text(strings.aboutLibraries, style = Naj.type.sectionHeading, color = colors.ink)
+        Spacer(Modifier.height(8.dp))
+        Text(strings.aboutLibrariesIntro, style = Naj.type.rowSubtitle, color = colors.muted)
     }
 }
 

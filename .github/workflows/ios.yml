@@ -5,8 +5,10 @@ name: iOS
 # so an Intel runner has no target it could link.
 #
 # Linting comes first and the build needs it, so a style slip stops the workflow before the slow
-# Kotlin/Native compile starts. See `xcodebuild` below for what "compiles cleanly" means: Swift and
-# Clang warnings are errors, so a new warning fails the job.
+# Kotlin/Native compile starts. The Kotlin sources are linted in the Android workflow only — same
+# files, same ktlint, and both workflows run on the same events, so doing it here would just be the
+# same check twice. See `xcodebuild` below for what "compiles cleanly" means: Swift and Clang
+# warnings are errors, so a new warning fails the job.
 
 on:
   push:
@@ -34,18 +36,6 @@ jobs:
       - name: SwiftLint
         run: swiftlint lint --strict --reporter github-actions-logging
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          # Gradle 9.6 and AGP 9.4 both want a modern JDK, and this is the one the build is
-          # developed against.
-          java-version: "25"
-
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: ktlint
-        run: ./gradlew ktlintCheck
-
   build:
     name: Build
     needs: lint
@@ -63,6 +53,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
+          # The Xcode build phase shells out to ./gradlew, and Gradle 9.6 with AGP 9.4 wants a
+          # modern JDK — this is the one the build is developed against.
           java-version: "25"
 
       - uses: gradle/actions/setup-gradle@v4

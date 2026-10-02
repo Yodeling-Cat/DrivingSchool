@@ -22,6 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -118,9 +122,23 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     Spacer(Modifier.height(24.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Read out here, not inside: the semantics block below is not a composable
+                        // scope, so `strings` is out of reach within it.
+                        val agreementRequired = strings.consentAgreeRequired
                         Checkbox(
                             checked = state.documentsAccepted,
                             onCheckedChange = { onEvent(ConsentUiEvent.SetDocumentsAccepted(it)) },
+                            modifier = Modifier.semantics {
+                                // The mark is a colour, so it reaches nobody who cannot see it. The
+                                // box carries the same message as state, and announces it, because
+                                // the press that set it left the focus down on the button.
+                                if (state.agreementError) {
+                                    // `this.` on purpose: `error` alone would be ambiguous with
+                                    // kotlin.error, which throws instead.
+                                    this.error(agreementRequired)
+                                    liveRegion = LiveRegionMode.Polite
+                                }
+                            },
                             colors = CheckboxDefaults.colors(
                                 checkedColor = colors.primaryDeep,
                                 // The one cue that the narrower button needs this: it is enabled
@@ -132,7 +150,8 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                         Text(
                             strings.consentAgree,
                             style = Naj.type.body,
-                            color = colors.ink,
+                            // Red as well as the box, for anyone the red border alone does not reach.
+                            color = if (state.agreementError) colors.wrongOn else colors.ink,
                             modifier = Modifier.padding(start = 4.dp),
                         )
                     }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.NajSwitch
+import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.ScreenHeader
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -54,6 +56,12 @@ fun ConsentRoute(viewModel: ConsentViewModel = koinViewModel()) {
  *
  * The continue button stays disabled until the agreement is ticked. The switches do not gate it —
  * refusing both is a valid answer, because neither is required to use the app.
+ *
+ * Two buttons, not one. "Accept all" answers both questions in a single act and is always live;
+ * "Accept chosen" keeps whatever the switches say and waits for the documents to be ticked. That
+ * leaves the wary user a way through with both answers off, which has to be as easy as agreeing —
+ * and either way the answer comes from a press, which is what the pre-ticked switch it replaces
+ * could never do.
  *
  * Both switches start off, and that is a requirement rather than a default waiting to be improved:
  * a pre-ticked box is not valid consent under the GDPR or the ePrivacy Directive, so the answer has
@@ -128,20 +136,45 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    DocumentLink(strings.legalPrivacyPolicy) { onOpenDocument(LegalDocument.PrivacyPolicy) }
-                    DocumentLink(strings.legalTermsOfUse) { onOpenDocument(LegalDocument.TermsOfUse) }
+                    // Side by side and centred, in a FlowRow so they can wrap: the Slovak and Czech
+                    // names for these two documents are long enough to run past a phone together.
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        DocumentLink(strings.legalPrivacyPolicy) { onOpenDocument(LegalDocument.PrivacyPolicy) }
+                        Text(
+                            "•",
+                            style = Naj.type.body,
+                            color = colors.muted,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        )
+                        DocumentLink(strings.legalTermsOfUse) { onOpenDocument(LegalDocument.TermsOfUse) }
+                    }
                 }
             }
-            Box(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
-                contentAlignment = Alignment.Center,
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                PrimaryPill(
-                    text = strings.consentContinue,
-                    onClick = { onEvent(ConsentUiEvent.Continue) },
-                    enabled = state.canContinue,
-                    height = 56.dp,
-                )
+                Column(
+                    modifier = Modifier.widthIn(max = ContentWidth.Narrow).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    PrimaryPill(
+                        text = strings.consentAcceptAll,
+                        onClick = { onEvent(ConsentUiEvent.AcceptAll) },
+                        height = 56.dp,
+                        fillWidth = true,
+                    )
+                    OutlinePill(
+                        text = strings.consentAcceptChosen,
+                        onClick = { onEvent(ConsentUiEvent.AcceptChosen) },
+                        enabled = state.canAcceptChosen,
+                        height = 56.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -220,13 +253,26 @@ private fun ConsentScreenAnsweredPreview() {
     }
 }
 
-/** The longest of the four translations, to check the page still fits. */
+/** The other way through: the documents agreed to with both answers left off. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenRefusedBothPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(documentsAccepted = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** The longest of the four translations, to check the two button labels and the links still fit. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun ConsentScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
         ConsentScreen(
-            previewConsentState.copy(language = AppLanguage.Slovak),
+            previewConsentState.copy(language = AppLanguage.Slovak, documentsAccepted = true),
             onEvent = {},
             onOpenDocument = {},
         )

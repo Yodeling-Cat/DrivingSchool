@@ -54,7 +54,8 @@ class Strings(
     val consentAgree: String,
     val legalPrivacyPolicy: String,
     val legalTermsOfUse: String,
-    val consentContinue: String,
+    val consentAcceptAll: String,
+    val consentAcceptChosen: String,
     /** The Settings section that carries the same two answers, so they can be changed later. */
     val settingsPrivacy: String,
     // Exam selection. Titles carry the word that the design sets in coral italic separately, so a
@@ -259,18 +260,17 @@ private val EnglishStrings = Strings(
         "anything differs, the official exam and current law apply.",
     disclaimerAccept = "I understand",
     consentTitle = "Your data, your choice",
-    consentSubtitle = "This app can send two things, to help us fix it and improve it. Both are off " +
-        "unless you turn them on.",
+    consentSubtitle = "This app can send two things, to help us fix it and improve it.",
     consentCrashReportingTitle = "Crash reports",
-    consentCrashReportingDescription = "If the app crashes, send the stack trace, the device model and " +
-        "the app version, so we can fix it.",
+    consentCrashReportingDescription = "If the app crashes, it sends us what went wrong, along with " +
+        "your device model and the app version.",
     consentAnalyticsTitle = "Usage statistics",
-    consentAnalyticsDescription = "Send anonymous events about which screens and exams are used, so we " +
-        "know what to improve.",
+    consentAnalyticsDescription = "Tracks usage metrics and events while you use the app.",
     consentAgree = "I agree to the Privacy Policy and the Terms of Use",
     legalPrivacyPolicy = "Privacy Policy",
     legalTermsOfUse = "Terms of Use",
-    consentContinue = "Agree and continue",
+    consentAcceptAll = "Accept all",
+    consentAcceptChosen = "Accept chosen",
     settingsPrivacy = "Privacy",
     examSelectionCountryTitleBefore = "Which country's test are you",
     examSelectionCountryTitleAccent = "taking?",
@@ -413,18 +413,17 @@ private val SlovakStrings = Strings(
         "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
     disclaimerAccept = "Rozumiem",
     consentTitle = "Vaše dáta, vaša voľba",
-    consentSubtitle = "Aplikácia môže odosielať dve veci, aby sme ju mohli opraviť a vylepšiť. Obe sú " +
-        "vypnuté, kým ich nezapnete.",
+    consentSubtitle = "Aplikácia môže odosielať dve veci, aby sme ju mohli opraviť a vylepšiť.",
     consentCrashReportingTitle = "Hlásenia o zlyhaniach",
-    consentCrashReportingDescription = "Ak aplikácia spadne, pošlite nám záznam o chybe, model zariadenia " +
-        "a verziu aplikácie, aby sme ju mohli opraviť.",
+    consentCrashReportingDescription = "Ak aplikácia spadne, pošle nám, čo sa pokazilo, model " +
+        "zariadenia a verziu aplikácie.",
     consentAnalyticsTitle = "Štatistiky používania",
-    consentAnalyticsDescription = "Posielajte anonymné udalosti o tom, ktoré obrazovky a testy sa " +
-        "používajú, aby sme vedeli, čo zlepšiť.",
+    consentAnalyticsDescription = "Sleduje štatistiky používania a udalosti počas používania aplikácie.",
     consentAgree = "Súhlasím so Zásadami ochrany osobných údajov a Podmienkami používania",
     legalPrivacyPolicy = "Zásady ochrany osobných údajov",
     legalTermsOfUse = "Podmienky používania",
-    consentContinue = "Súhlasiť a pokračovať",
+    consentAcceptAll = "Prijať všetko",
+    consentAcceptChosen = "Prijať vybrané",
     settingsPrivacy = "Súkromie",
     examSelectionCountryTitleBefore = "Na skúšku ktorej krajiny sa",
     examSelectionCountryTitleAccent = "pripravujete?",
@@ -567,18 +566,18 @@ private val HungarianStrings = Strings(
         "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
     disclaimerAccept = "Értem",
     consentTitle = "Az Ön adatai, az Ön döntése",
-    consentSubtitle = "Az alkalmazás két dolgot küldhet, hogy javíthassuk és fejleszthessük. Mindkettő " +
-        "ki van kapcsolva, amíg be nem kapcsolja.",
+    consentSubtitle = "Az alkalmazás két dolgot küldhet, hogy javíthassuk és fejleszthessük.",
     consentCrashReportingTitle = "Hibajelentések",
-    consentCrashReportingDescription = "Ha az alkalmazás lefagy, küldje el a hiba nyomkövetését, a " +
-        "készülék típusát és az alkalmazás verzióját, hogy javíthassuk.",
+    consentCrashReportingDescription = "Ha az alkalmazás lefagy, elküldi, mi hibázott, a készülék " +
+        "típusát és az alkalmazás verzióját.",
     consentAnalyticsTitle = "Használati statisztikák",
-    consentAnalyticsDescription = "Küldjön névtelen eseményeket arról, mely képernyőket és vizsgákat " +
-        "használja, hogy tudjuk, mit fejlesszünk.",
+    consentAnalyticsDescription = "Használati mérőszámokat és eseményeket követ nyomon, miközben " +
+        "használja az alkalmazást.",
     consentAgree = "Elfogadom az Adatvédelmi szabályzatot és a Felhasználási feltételeket",
     legalPrivacyPolicy = "Adatvédelmi szabályzat",
     legalTermsOfUse = "Felhasználási feltételek",
-    consentContinue = "Elfogadás és tovább",
+    consentAcceptAll = "Összes elfogadása",
+    consentAcceptChosen = "Kiválasztottak elfogadása",
     settingsPrivacy = "Adatvédelem",
     examSelectionCountryTitleBefore = "Melyik ország vizsgájára",
     examSelectionCountryTitleAccent = "készül?",
@@ -721,18 +720,17 @@ private val CzechStrings = Strings(
         "něco liší, platí oficiální zkouška a aktuální předpisy.",
     disclaimerAccept = "Rozumím",
     consentTitle = "Vaše data, vaše volba",
-    consentSubtitle = "Aplikace může odesílat dvě věci, abychom ji mohli opravit a vylepšit. Obě jsou " +
-        "vypnuté, dokud je nezapnete.",
+    consentSubtitle = "Aplikace může odesílat dvě věci, abychom ji mohli opravit a vylepšit.",
     consentCrashReportingTitle = "Hlášení o pádech",
-    consentCrashReportingDescription = "Pokud aplikace spadne, pošlete nám záznam o chybě, model zařízení " +
-        "a verzi aplikace, abychom ji mohli opravit.",
+    consentCrashReportingDescription = "Pokud aplikace spadne, pošle nám, co se pokazilo, model " +
+        "zařízení a verzi aplikace.",
     consentAnalyticsTitle = "Statistiky používání",
-    consentAnalyticsDescription = "Posílejte anonymní události o tom, které obrazovky a testy se " +
-        "používají, abychom věděli, co zlepšit.",
+    consentAnalyticsDescription = "Sleduje statistiky používání a události při používání aplikace.",
     consentAgree = "Souhlasím se Zásadami ochrany osobních údajů a Podmínkami použití",
     legalPrivacyPolicy = "Zásady ochrany osobních údajů",
     legalTermsOfUse = "Podmínky použití",
-    consentContinue = "Souhlasit a pokračovat",
+    consentAcceptAll = "Přijmout vše",
+    consentAcceptChosen = "Přijmout vybrané",
     settingsPrivacy = "Soukromí",
     examSelectionCountryTitleBefore = "Na zkoušku které země se",
     examSelectionCountryTitleAccent = "připravujete?",

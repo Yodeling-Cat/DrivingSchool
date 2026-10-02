@@ -22,14 +22,14 @@ class ConsentViewModelTest : ViewModelTest() {
         assertFalse(state.documentsAccepted)
         assertFalse(state.crashReportingEnabled)
         assertFalse(state.analyticsEnabled)
-        assertFalse(state.canContinue)
+        assertFalse(state.canAcceptChosen)
     }
 
     @Test
-    fun continueIsRefusedUntilTheDocumentsAreAccepted() = runTest {
+    fun theNarrowerButtonIsRefusedUntilTheDocumentsAreAccepted() = runTest {
         observe(viewModel.uiState)
 
-        viewModel.onEvent(ConsentUiEvent.Continue)
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
         assertEquals(0, repositories.preferences.preferences.value.legalAcceptedVersion)
         assertEquals(emptyList(), repositories.analyticsSink.events)
@@ -40,7 +40,7 @@ class ConsentViewModelTest : ViewModelTest() {
         observe(viewModel.uiState)
 
         viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
-        viewModel.onEvent(ConsentUiEvent.Continue)
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
         assertEquals(CURRENT_LEGAL_VERSION, repositories.preferences.preferences.value.legalAcceptedVersion)
     }
@@ -63,11 +63,43 @@ class ConsentViewModelTest : ViewModelTest() {
 
         // The user agreed to the documents but left both switches off, so nothing may be sent.
         viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
-        viewModel.onEvent(ConsentUiEvent.Continue)
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
         assertEquals(emptyList(), repositories.analyticsSink.events)
 
         viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
-        viewModel.onEvent(ConsentUiEvent.Continue)
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun acceptingEverythingAnswersBothQuestionsWithoutTouchingTheSwitches() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.AcceptAll)
+
+        val preferences = repositories.preferences.preferences.value
+        assertTrue(preferences.crashReportingEnabled)
+        assertTrue(preferences.analyticsEnabled)
+        assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
+        // The press is the only thing that could have answered: no switch was touched.
+        assertEquals(true to true, repositories.analyticsSink.consents.last())
+    }
+
+    @Test
+    fun acceptingEverythingNeedsNoTickOnTheAgreement() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertTrue(state.value.documentsAccepted)
+    }
+
+    @Test
+    fun acceptingEverythingSendsTheOnboardingEventInThatOnePress() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.AcceptAll)
 
         assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), repositories.analyticsSink.events)
     }

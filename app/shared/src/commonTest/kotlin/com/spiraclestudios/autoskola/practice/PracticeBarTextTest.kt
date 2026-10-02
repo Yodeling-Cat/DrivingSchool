@@ -9,7 +9,13 @@ class PracticeBarTextTest {
 
     @Test
     fun aPhoneInLandscapeReadsTheTestNameBesideTheQuestionNumber() {
-        assertEquals("Test 2 · Otázka 9 z 40", barQuestionLine("Test 2", "Otázka 9 z 40"))
+        assertEquals("Test 2 · ", barQuestionPrefix("Test 2"))
+    }
+
+    @Test
+    fun theCountIsDrawnOneSpaceBehindTheNumberOfTheQuestion() {
+        // The bar draws the two runs one after the other, and must read "9 / 40".
+        assertEquals("9 / 40", "9" + barQuestionCount("/ 40"))
     }
 
     @Test
@@ -21,7 +27,7 @@ class PracticeBarTextTest {
     fun theSeparatorIsDrawnAsADotAndNeverAsTheEscapeThatWritesIt() {
         // Written with a doubled backslash, "\u00b7" is the six characters of the escape and the bar
         // reads them out on a phone in landscape.
-        val line = barQuestionLine("Test 2", "Otázka 9 z 40")
+        val line = barQuestionPrefix("Test 2")
         assertTrue(line.contains('·'), line)
         assertFalse(line.contains('\\'), line)
     }

@@ -142,6 +142,9 @@ private val BarPillGap = 8.dp
 private val BarPillHeightCompact = 56.dp
 private val BarPillGapCompact = 4.dp
 
+/** The count a question is drawn against: white at 0.55, the dimming the design's own bar shows. */
+private val BarCountText = Color.White.copy(alpha = 0.55f)
+
 /** The width of the question column on a wide screen, with the arrows beside it. */
 private val QuestionColumnWidth = 660.dp
 
@@ -886,16 +889,30 @@ private fun RowScope.PracticeBarContent(
         QuestionListToggle(expanded = listExpanded, cover = cover, onClick = onToggleList)
     }
     Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-        Text(
+        // The question the test is on, counted against how many there are: the count sits dimmed
+        // behind the number, and a phone in landscape has the test's name before both.
+        Row {
             if (compactHeight) {
-                barQuestionLine(testName, strings.questionOutOf(currentIndex + 1, questionCount))
-            } else {
-                strings.questionOutOf(currentIndex + 1, questionCount)
-            },
-            style = Naj.type.barNumber,
-            color = Color.White,
-            maxLines = 1,
-        )
+                Text(
+                    barQuestionPrefix(testName),
+                    style = Naj.type.barNumber,
+                    color = Color.White,
+                    maxLines = 1,
+                )
+            }
+            Text(
+                strings.questionCounter(currentIndex + 1),
+                style = Naj.type.barNumber,
+                color = Color.White,
+                maxLines = 1,
+            )
+            Text(
+                barQuestionCount(strings.questionCount(questionCount)),
+                style = Naj.type.barNumber,
+                color = BarCountText,
+                maxLines = 1,
+            )
+        }
         // Phones in landscape hide the top bar, so the time runs in the bar's second line there,
         // and only the time itself turns red when the test is over it.
         if (compactHeight) {

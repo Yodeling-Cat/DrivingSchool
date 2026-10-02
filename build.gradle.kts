@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.ktlint) apply false
+    alias(libs.plugins.aboutLibraries) apply false
 }
 
 // Style checks for every module: `./gradlew ktlintCheck`, or `ktlintFormat` to fix what it can.

@@ -27,6 +27,13 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
 - iOS app: open the [/app/iosApp](./app/iosApp) directory in Xcode and run it from there.
 
+### Open source libraries
+
+The About screen's list of open source libraries is generated and committed, like the question
+banks. Refresh it after adding, removing or bumping a dependency:
+
+- `./gradlew :app:shared:exportLibraryDefinitions`
+
 ### Running tests
 
 Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:

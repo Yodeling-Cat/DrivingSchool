@@ -7,6 +7,21 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.aboutLibraries)
+}
+
+aboutLibraries {
+    library {
+        // One entry per library rather than one per platform artifact: without this the list would
+        // hold `collection-jvm` next to `collection-wasm-js` and name each of them twice.
+        mergePlatformArtifacts = true
+    }
+    export {
+        // Committed, like the question banks: the plugin is not wired into the build, so
+        // `./gradlew :app:shared:exportLibraryDefinitions` is what refreshes it.
+        outputFile = file("src/commonMain/composeResources/files/aboutlibraries.json")
+        prettyPrint = true
+    }
 }
 
 kotlin {
@@ -70,6 +85,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.multiplatformSettings.noArg)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.aboutlibraries.compose.m3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

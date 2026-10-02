@@ -22,7 +22,11 @@ data class SettingsUiState(
     /** The two answers the consent screen asked for, which the user can change here. */
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
-    /** `null` while the exam loads. */
+    /**
+     * `null` when there is no exam to name. The exam cannot be unset once chosen, but
+     * `ExamRepository.current` re-resolves on a cold subscription, so this is what the row is drawn
+     * from before the selected bank is found — and again if an update removed that bank.
+     */
     val exam: ExamLabel?,
     /** What the platform reports, or `null` where it reports none — the web build, for one. */
     val appVersion: String?,

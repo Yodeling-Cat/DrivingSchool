@@ -356,10 +356,13 @@ private fun SettingsScreenNoVersionPreview() {
     }
 }
 
-/** No exam yet: the row keeps its place without a category to name. */
+/**
+ * The exam row before its bank resolves, and after an update has taken that bank away: no
+ * category to name and no mark to draw. Not a state the user can reach by their own choice.
+ */
 @Preview(widthDp = 400, heightDp = 700)
 @Composable
-private fun SettingsScreenNoExamPreview() {
+private fun SettingsScreenNoExamYetPreview() {
     AppPreview {
         SettingsScreen(
             state = SettingsUiState(

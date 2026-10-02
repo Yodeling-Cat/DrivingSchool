@@ -54,6 +54,11 @@ fun ConsentRoute(viewModel: ConsentViewModel = koinViewModel()) {
  *
  * The continue button stays disabled until the agreement is ticked. The switches do not gate it —
  * refusing both is a valid answer, because neither is required to use the app.
+ *
+ * Both switches start off, and that is a requirement rather than a default waiting to be improved:
+ * a pre-ticked box is not valid consent under the GDPR or the ePrivacy Directive, so the answer has
+ * to come from the user acting rather than from the user not objecting. `plans/privacy-and-terms.md`
+ * records the same thing from the other side.
  */
 @Composable
 fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOpenDocument: (LegalDocument) -> Unit) {

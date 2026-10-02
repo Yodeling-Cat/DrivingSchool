@@ -26,6 +26,13 @@ internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt
 }
 
 /**
+ * How much of a test is behind the user: the questions that carry an answer, and the ones left open -
+ * which is what a question never answered reads as once the test is finished.
+ */
+internal fun answeredAndSkipped(answers: Map<Int, Int>, questionCount: Int): Pair<Int, Int> =
+    answers.size to (questionCount - answers.size).coerceAtLeast(0)
+
+/**
  * How long the answered question stays on screen before the test moves on. Long enough for the
  * pick to be seen registering, short enough not to feel like a wait.
  */

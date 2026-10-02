@@ -221,6 +221,9 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     val finished = state.finished
     val revealCorrectness = revealsCorrectness(checkImmediately, finished)
     val selectedAnswers = state.answers
+
+    // How much of the test is answered, and how much is left open: what the bar counts once it opens.
+    val (answered, skipped) = answeredAndSkipped(selectedAnswers, questions.size)
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
     val currentIndex = pagerState.currentPage
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = true)
@@ -388,6 +391,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
             listExpanded = listExpanded,
             canFinish = !finished,
             cover = cover,
+            answered = answered,
+            skipped = skipped,
             showArrows = !arrowsBeside,
             onBack = ::handleBack,
             onToggleList = onToggleList,
@@ -856,6 +861,32 @@ private fun BarPill(height: Dp, gap: Dp, content: @Composable RowScope.() -> Uni
     }
 }
 
+/**
+ * The bar's second line, which turns over as the question list opens: what the question is worth while
+ * the list is shut, and how much of the test is behind the user once it's open. The two cross-fade with
+ * the drag itself, so the count is the line in place by the time the sheet has taken its open look.
+ */
+@Composable
+private fun BarTestLine(shut: String, open: String, cover: Float) {
+    val colors = Naj.colors
+    Box {
+        Text(
+            shut,
+            style = Naj.type.tiny,
+            color = colors.roadYellow,
+            maxLines = 1,
+            modifier = Modifier.graphicsLayer { alpha = 1f - cover },
+        )
+        Text(
+            open,
+            style = Naj.type.tiny,
+            color = colors.roadYellow,
+            maxLines = 1,
+            modifier = Modifier.graphicsLayer { alpha = cover },
+        )
+    }
+}
+
 @Composable
 private fun RowScope.PracticeBarContent(
     compactHeight: Boolean,
@@ -870,6 +901,9 @@ private fun RowScope.PracticeBarContent(
     canFinish: Boolean,
     /** How much of the sheet's open look the bar has taken on: 0 while the list is shut, 1 once it's covered. */
     cover: Float,
+    /** How much of the test is behind the user: the questions answered, and the ones left open. */
+    answered: Int,
+    skipped: Int,
     /** The arrows sit beside the question instead, so the bar leaves them out. */
     showArrows: Boolean,
     onBack: () -> Unit,
@@ -913,15 +947,16 @@ private fun RowScope.PracticeBarContent(
                 maxLines = 1,
             )
         }
+        // The count the second line turns over to once the question list is open.
+        val testLine = barAnsweredLine(strings.answeredCount(answered), strings.skippedCount(skipped))
         // Phones in landscape hide the top bar, so the time runs in the bar's second line there,
         // and only the time itself turns red when the test is over it.
         if (compactHeight) {
             Row {
-                Text(
-                    barPointsLine(strings.points(points)),
-                    style = Naj.type.tiny,
-                    color = colors.roadYellow,
-                    maxLines = 1,
+                BarTestLine(
+                    shut = barBeforeClock(strings.points(points)),
+                    open = barBeforeClock(testLine),
+                    cover = cover,
                 )
                 ElapsedLabel(
                     elapsed,
@@ -931,7 +966,7 @@ private fun RowScope.PracticeBarContent(
                 )
             }
         } else {
-            Text(strings.points(points), style = Naj.type.tiny, color = colors.roadYellow, maxLines = 1)
+            BarTestLine(shut = strings.points(points), open = testLine, cover = cover)
         }
     }
     // The arrows are beside the question wherever the page has room for them. They make no sense

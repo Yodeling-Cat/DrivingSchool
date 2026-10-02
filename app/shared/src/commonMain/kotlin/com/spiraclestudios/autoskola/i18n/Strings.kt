@@ -170,6 +170,12 @@ class Strings(
 
     /** How many the test has, drawn dimmed with the slash that counts them off: e.g. "/ 50". */
     val questionCount: (total: Int) -> String,
+
+    /** E.g. "6 answered": the questions of the test that carry an answer. */
+    val answeredCount: (count: Int) -> String,
+
+    /** E.g. "1 skipped": the questions the test was left with open. */
+    val skippedCount: (count: Int) -> String,
     val points: (count: Int) -> String,
     val questionList: String,
     val closeQuestionList: String,
@@ -362,6 +368,8 @@ private val EnglishStrings = Strings(
     questionsAnswered = "Questions answered",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
+    answeredCount = { count -> "$count answered" },
+    skippedCount = { count -> "$count skipped" },
     points = { if (it == 1) "Worth 1 point" else "Worth $it points" },
     questionList = "Question list",
     closeQuestionList = "Close question list",
@@ -523,6 +531,8 @@ private val SlovakStrings = Strings(
     questionsAnswered = "Zodpovedané otázky",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
+    answeredCount = { "$it " + westSlavicPlural(it, "zodpovedaná", "zodpovedané", "zodpovedaných") },
+    skippedCount = { "$it " + westSlavicPlural(it, "nezodpovedaná", "nezodpovedané", "nezodpovedaných") },
     points = { "za $it " + westSlavicPlural(it, "bod", "body", "bodov") },
     questionList = "Zoznam otázok",
     closeQuestionList = "Zavrieť zoznam otázok",
@@ -685,6 +695,9 @@ private val HungarianStrings = Strings(
     questionsAnswered = "Megválaszolt kérdések",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
+    // Hungarian counts with a singular after the numeral: "6 megválaszolt", not "6 megválaszoltak".
+    answeredCount = { "$it megválaszolt" },
+    skippedCount = { "$it kihagyott" },
     points = { "$it pontot ér" },
     questionList = "Kérdések listája",
     closeQuestionList = "Kérdéslista bezárása",
@@ -846,6 +859,8 @@ private val CzechStrings = Strings(
     questionsAnswered = "Zodpovězené otázky",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
+    answeredCount = { "$it " + westSlavicPlural(it, "zodpovězená", "zodpovězené", "zodpovězených") },
+    skippedCount = { "$it " + westSlavicPlural(it, "nezodpovězená", "nezodpovězené", "nezodpovězených") },
     points = { "za $it " + westSlavicPlural(it, "bod", "body", "bodů") },
     questionList = "Seznam otázek",
     closeQuestionList = "Zavřít seznam otázek",

@@ -12,5 +12,8 @@ internal fun barQuestionPrefix(testName: String): String = "$testName · "
  */
 internal fun barQuestionCount(count: String): String = " $count"
 
+/** E.g. "6 zodpovedaných · 1 nezodpovedaná": how much of the test is behind the user. */
+internal fun barAnsweredLine(answered: String, skipped: String): String = "$answered · $skipped"
+
 /** E.g. "za 3 body · ", the clock it introduces following in the same line. */
-internal fun barPointsLine(points: String): String = "$points · "
+internal fun barBeforeClock(label: String): String = "$label · "

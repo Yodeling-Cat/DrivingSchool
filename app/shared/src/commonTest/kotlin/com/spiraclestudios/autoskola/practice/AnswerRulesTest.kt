@@ -36,6 +36,20 @@ class AnswerRulesTest {
     }
 
     @Test
+    fun aTestCountsWhatIsAnsweredAndWhatIsLeftOpen() {
+        val answers = mapOf(0 to 1, 1 to 0, 2 to 3)
+
+        assertEquals(3 to 2, answeredAndSkipped(answers, questionCount = 5))
+        assertEquals(0 to 5, answeredAndSkipped(emptyMap(), questionCount = 5))
+        assertEquals(5 to 0, answeredAndSkipped((0 until 5).associateWith { 0 }, questionCount = 5))
+    }
+
+    @Test
+    fun aTestWithNoQuestionsHasNothingAnsweredOrLeftOpen() {
+        assertEquals(0 to 0, answeredAndSkipped(emptyMap(), questionCount = 0))
+    }
+
+    @Test
     fun answersMoveTheTestOnOnlyWhenThatIsAskedForAndNothingIsRevealed() {
         assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false))
         assertFalse(advances(advanceAfterAnswer = false, checkImmediately = false))

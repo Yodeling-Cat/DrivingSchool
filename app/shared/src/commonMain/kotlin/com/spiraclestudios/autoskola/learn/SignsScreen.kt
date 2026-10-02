@@ -1,6 +1,5 @@
 package com.spiraclestudios.autoskola.learn
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,13 +21,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +34,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -50,6 +44,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
+import com.spiraclestudios.autoskola.ui.NajSearchField
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.RoundButton
@@ -84,8 +79,9 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
             Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
                 Column(Modifier.widthIn(max = ContentWidth.Reading).fillMaxWidth()) {
                     SignsHeader(state, onEvent, onBack)
-                    SignSearchField(
+                    NajSearchField(
                         query = (state as? SignsUiState.Ready)?.query.orEmpty(),
+                        placeholder = strings.signsSearchPlaceholder,
                         onQueryChange = { onEvent(SignsUiEvent.Search(it)) },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
@@ -244,54 +240,6 @@ private fun SignRow(sign: SignItem, page: DpSize, modifier: Modifier = Modifier)
                 Spacer(Modifier.height(3.dp))
             }
             Text(sign.description, style = Naj.type.option, color = colors.muted)
-        }
-    }
-}
-
-@Composable
-private fun SignSearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = Naj.colors
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(shape)
-            .background(colors.card)
-            .border(BorderStroke(1.5.dp, colors.emptyOutline), shape)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(Icons.Filled.Search, contentDescription = null, tint = colors.muted, modifier = Modifier.size(20.dp))
-        Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) {
-                Text(strings.signsSearchPlaceholder, style = Naj.type.option, color = colors.muted)
-            }
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
-                textStyle = Naj.type.option.copy(color = colors.ink),
-                cursorBrush = SolidColor(colors.primaryDeep),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (query.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable { onQueryChange("") },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = strings.clearSearch,
-                    tint = colors.muted,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
         }
     }
 }

@@ -21,6 +21,16 @@ data class AppUiState(val language: AppLanguage, val destination: AppDestination
 /** Decides what the app shows at the top level: onboarding until it's done, then the exam. */
 class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : ViewModel() {
 
+    /**
+     * Whether the exam has been shown at least once. Choosing another exam (settings → change exam)
+     * re-resolves it — `ExamRepository.current` emits [CurrentExam.Loading] for every new selection
+     * — and from then on the app stays inside the exam while that happens, instead of going back to
+     * [AppDestination.Loading]. The loading screen would take the screens the choice was made from
+     * down with it: they are entries on the back stack under the exam, and the wizard that was
+     * still running on top of them would start again from its first step.
+     */
+    private var examShown = false
+
     val uiState: StateFlow<AppUiState> =
         combine(preferences.preferences, exams.current, ::state)
             .stateIn(
@@ -29,13 +39,20 @@ class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : 
                 state(preferences.preferences.value, CurrentExam.Loading),
             )
 
-    private fun state(preferences: Preferences, exam: CurrentExam) = AppUiState(
-        language = preferences.language,
-        destination = when {
+    private fun state(preferences: Preferences, exam: CurrentExam): AppUiState {
+        val destination = when {
             preferences.legalAcceptedVersion < CURRENT_LEGAL_VERSION -> AppDestination.Disclaimer
-            exam is CurrentExam.Loading -> AppDestination.Loading
+
             exam is CurrentExam.Ready -> AppDestination.Exam
+
+            // The exam being read again, after it has been shown once: stay where the user is.
+            exam is CurrentExam.Loading && examShown -> AppDestination.Exam
+
+            exam is CurrentExam.Loading -> AppDestination.Loading
+
             else -> AppDestination.ChooseExam
-        },
-    )
+        }
+        if (destination == AppDestination.Exam) examShown = true
+        return AppUiState(preferences.language, destination)
+    }
 }

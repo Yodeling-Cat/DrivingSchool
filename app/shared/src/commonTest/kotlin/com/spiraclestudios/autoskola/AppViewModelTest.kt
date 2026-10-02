@@ -1,19 +1,40 @@
 package com.spiraclestudios.autoskola
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
+import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
+import com.spiraclestudios.autoskola.data.banks.testBank
+import com.spiraclestudios.autoskola.data.banks.testBankInfo
+import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
     private fun viewModel() = AppViewModel(repositories.preferences, repositories.exams)
+
+    /** The app over two banks, so the exam can be moved from one to another, neither read yet. */
+    private val exams = ExamRepository(
+        preferences = repositories.preferences,
+        banks = QuestionBankRepository(
+            FakeQuestionBankDataSource(
+                index = listOf(testBankInfo("sk-sk", 1), testBankInfo("sk-en", 1)),
+                banks = listOf(testBank("sk-sk"), testBank("sk-en")),
+            ),
+        ),
+        attempts = repositories.attempts,
+    )
 
     @Test
     fun disclaimerComesFirst() = runTest {
@@ -44,6 +65,29 @@ class AppViewModelTest : ViewModelTest() {
         repositories.preferences.select(TestSelection("gone", LicenseCategory.B))
 
         assertEquals(AppDestination.ChooseExam, observe(viewModel().uiState).value.destination)
+    }
+
+    @Test
+    fun changingTheExamNeverLeavesIt() = runTest {
+        repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+        repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        val viewModel = AppViewModel(repositories.preferences, exams)
+        val seen = mutableListOf<AppDestination>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect { seen += it.destination }
+        }
+        assertEquals(AppDestination.Exam, viewModel.uiState.value.destination)
+
+        // The other category of the same bank, then a bank nothing has read yet: both re-resolve
+        // the exam, and neither is a reason to leave it.
+        repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.C))
+        repositories.preferences.select(TestSelection("sk-en", LicenseCategory.B))
+
+        // Once the app shows the exam it stays there while the exam it was asked for loads: a
+        // destination of Loading takes the screens the choice is made from - settings, and the
+        // wizard opened on top of it - down with it, so the wizard starts again from the top.
+        // From the first exam on, the exam is the only destination the app is handed.
+        assertEquals(listOf(AppDestination.Exam), seen.dropWhile { it != AppDestination.Exam })
     }
 
     @Test

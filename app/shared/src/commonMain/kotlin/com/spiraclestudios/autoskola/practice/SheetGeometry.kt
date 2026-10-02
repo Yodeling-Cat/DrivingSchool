@@ -53,13 +53,29 @@ internal fun sheetOpenProgress(offset: Float, restOffset: Float, openOffset: Flo
 }
 
 /**
+ * [progress] taken as a share of the stretch of it between [from] and [to]: 0 up to [from], 1 from
+ * [to] on, and the straight line between the two. A stretch with no width in it is over at once.
+ */
+internal fun ramped(progress: Float, from: Float, to: Float): Float {
+    if (to <= from) return if (progress >= from) 1f else 0f
+    return ((progress - from) / (to - from)).coerceIn(0f, 1f)
+}
+
+/**
  * How much of that open look the sheet has taken on: 0 at rest, 1 from [SHEET_COVERED_AT] of the
  * drag onwards.
  */
-internal fun sheetCover(openProgress: Float): Float = (openProgress / SHEET_COVERED_AT).coerceIn(0f, 1f)
+internal fun sheetCover(openProgress: Float): Float = ramped(openProgress, from = 0f, to = SHEET_COVERED_AT)
 
-/** The sheet's shadow: none while it rests over the page, all of [full] once it's covered. */
-internal fun sheetShadowElevation(cover: Float, full: Dp): Dp = full * cover
+/**
+ * How much of its shadow the sheet throws: none of it while the sheet is still coming up and taking
+ * its open look — everything else the drag changes is done by [SHEET_COVERED_AT] — and from there a
+ * ramp of its own to all of it at fully expanded.
+ */
+internal fun sheetShadowCover(openProgress: Float): Float = ramped(openProgress, from = SHEET_COVERED_AT, to = 1f)
+
+/** The sheet's shadow at [shadow] of its own: nothing over the page, all of [full] when it's open. */
+internal fun sheetShadowElevation(shadow: Float, full: Dp): Dp = full * shadow
 
 /**
  * The height of the sheet's own surface: the question list's height with the bar's slot growing

@@ -151,8 +151,8 @@ private val QuestionColumnWidth = 660.dp
 /**
  * The shadow the question sheet throws on the page beneath it while it's open. The sheet and the
  * page are both light, so the shadow is the only thing separating them — the Material default is
- * barely visible. It's back at nothing while the sheet is shut, which is what [sheetShadowElevation]
- * ramps up as the sheet is dragged open.
+ * barely visible. It comes up over the stretch of the drag left after the sheet has its open look —
+ * from [SHEET_COVERED_AT] of the way open to fully expanded — which is what [sheetShadowCover] measures.
  */
 private val QuestionSheetShadow = 24.dp
 
@@ -567,9 +567,9 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 val openOffset = with(density) { geometry.openOffset.toPx() }
 
                 // How far the list has been dragged open — 0 where the peek leaves it, 1 fully expanded
-                // — and how much of its open look it has taken on. The sheet's shadow and surface, the
-                // bar's toggle and its arrows all follow the second one, and all of them are done by the
-                // time [SHEET_COVERED_AT] of the drag is behind it.
+                // — and how much of its open look it has taken on. The sheet's surface, the bar's
+                // toggle and its arrows all follow the second one, and all of them are done by the time
+                // [SHEET_COVERED_AT] of the drag is behind it.
                 val openProgress by remember(sheetState, restOffset, openOffset) {
                     derivedStateOf {
                         if (!sheetState.hasPartiallyExpandedState || !sheetState.hasExpandedState) {
@@ -580,6 +580,10 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     }
                 }
                 val cover = sheetCover(openProgress)
+
+                // The shadow ramps from that point to fully expanded instead: the sheet lies flat on
+                // the page while it is still coming up, and starts casting one once it is open.
+                val shadowCover = sheetShadowCover(openProgress)
 
                 // The sheet's own surface, which is drawn behind everything the sheet holds: it wraps
                 // the question list at rest and grows up over the bar's slot until it covers the sheet.
@@ -606,7 +610,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     // bar's slot as the list is dragged open.
                     sheetContainerColor = Color.Transparent,
                     sheetPeekHeight = barSlotHeight + navBarInset,
-                    sheetShadowElevation = sheetShadowElevation(cover, QuestionSheetShadow),
+                    sheetShadowElevation = sheetShadowElevation(shadowCover, QuestionSheetShadow),
                     sheetDragHandle = null,
                     topBar = topBar,
                     sheetContent = {

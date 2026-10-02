@@ -47,8 +47,8 @@ class SheetGeometryTest {
 
         assertEquals(0f, shut)
         assertEquals(1f, open)
-        assertEquals(0.dp, sheetShadowElevation(sheetCover(shut), full = 24.dp))
-        assertEquals(24.dp, sheetShadowElevation(sheetCover(open), full = 24.dp))
+        assertEquals(0.dp, sheetShadowElevation(sheetShadowCover(shut), full = 24.dp))
+        assertEquals(24.dp, sheetShadowElevation(sheetShadowCover(open), full = 24.dp))
         assertEquals(592.dp, sheetSurfaceHeight(sheetCover(shut), window.listHeight, barSlotHeight = 84.dp))
         assertEquals(676.dp, sheetSurfaceHeight(sheetCover(open), window.listHeight, barSlotHeight = 84.dp))
     }
@@ -80,9 +80,42 @@ class SheetGeometryTest {
     }
 
     @Test
-    fun halfTheOpenLookIsHalfTheShadowOverHalfTheBarSlot() {
-        assertEquals(12.dp, sheetShadowElevation(cover = 0.5f, full = 24.dp))
+    fun theSheetStaysFlatOverThePageUntilItHasItsOpenLook() {
+        // The sheet is still coming up, and nothing it throws on the page is drawn yet.
+        assertEquals(0f, sheetShadowCover(openProgress = 0f))
+        assertEquals(0f, sheetShadowCover(openProgress = 0.15f))
+        assertEquals(0f, sheetShadowCover(openProgress = SHEET_COVERED_AT))
+        assertEquals(0.dp, sheetShadowElevation(sheetShadowCover(0.15f), full = 24.dp))
+    }
+
+    @Test
+    fun theShadowRisesFromThereToAllOfItFullyExpanded() {
+        val halfway = (SHEET_COVERED_AT + 1f) / 2f
+
+        assertEquals(0.5f, sheetShadowCover(halfway), 1e-5f)
+        assertEquals(1f, sheetShadowCover(openProgress = 1f))
+    }
+
+    @Test
+    fun theShadowGrowsWithTheShareOfItTheSheetHas() {
+        assertEquals(0.dp, sheetShadowElevation(shadow = 0f, full = 24.dp))
+        assertEquals(12.dp, sheetShadowElevation(shadow = 0.5f, full = 24.dp))
+        assertEquals(24.dp, sheetShadowElevation(shadow = 1f, full = 24.dp))
+    }
+
+    @Test
+    fun theOpenLookRisesFromThePeekLineToThePointItIsWhole() {
+        assertEquals(0f, sheetCover(openProgress = 0f))
+        assertEquals(0.5f, sheetCover(openProgress = SHEET_COVERED_AT / 2f), 1e-5f)
+        assertEquals(1f, sheetCover(SHEET_COVERED_AT))
+        // Half of the look is half of the bar's slot grown into the surface behind the list.
         assertEquals(642.dp, sheetSurfaceHeight(cover = 0.5f, listHeight = 600.dp, barSlotHeight = 84.dp))
+    }
+
+    @Test
+    fun aStretchOfTheDragWithNoWidthIsDoneWithIt() {
+        assertEquals(0f, ramped(progress = 0.2f, from = 0.5f, to = 0.5f))
+        assertEquals(1f, ramped(progress = 0.5f, from = 0.5f, to = 0.5f))
     }
 
     @Test

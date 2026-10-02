@@ -26,6 +26,7 @@ import androidx.navigationevent.NavigationEvent.Companion.EDGE_LEFT
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.spiraclestudios.autoskola.about.AboutRoute
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.feedback.FeedbackRoute
 import com.spiraclestudios.autoskola.home.HomeRoute
 import com.spiraclestudios.autoskola.learn.IntersectionsRoute
 import com.spiraclestudios.autoskola.learn.LearnPlaceholderScreen
@@ -74,6 +75,9 @@ data object ChangeExamKey : NavKey
 data object AboutKey : NavKey
 
 @Serializable
+data object FeedbackKey : NavKey
+
+@Serializable
 data class PracticeKey(val attemptId: String) : NavKey
 
 @Serializable
@@ -92,6 +96,7 @@ private val navConfiguration = SavedStateConfiguration {
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
             subclass(AboutKey::class, AboutKey.serializer())
+            subclass(FeedbackKey::class, FeedbackKey.serializer())
             subclass(PracticeKey::class, PracticeKey.serializer())
             subclass(ResultsKey::class, ResultsKey.serializer())
         }
@@ -212,6 +217,7 @@ fun ExamNavigation() {
                     SettingsRoute(
                         onChangeExam = { backStack.add(ChangeExamKey) },
                         onOpenAbout = { backStack.add(AboutKey) },
+                        onOpenFeedback = { backStack.add(FeedbackKey) },
                     )
                 }
             }
@@ -235,6 +241,7 @@ fun ExamNavigation() {
                 ExamSelectionRoute(onBack = pop, onDone = { backStack.popIfTop(ChangeExamKey) })
             }
             entry<AboutKey> { AboutRoute(onBack = pop) }
+            entry<FeedbackKey> { FeedbackRoute(onBack = pop) }
         },
     )
 }
@@ -282,6 +289,7 @@ internal fun NavKey.analyticsScreenName(): String = when (this) {
     SettingsKey -> "settings"
     ChangeExamKey -> "change_exam"
     AboutKey -> "about"
+    FeedbackKey -> "feedback"
     is PracticeKey -> "practice"
     is ResultsKey -> "results"
     else -> "unknown"

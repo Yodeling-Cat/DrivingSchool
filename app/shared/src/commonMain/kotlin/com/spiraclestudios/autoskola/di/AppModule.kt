@@ -21,6 +21,7 @@ import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
+import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.isDebugBuild
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
@@ -77,6 +78,9 @@ val appModule = module {
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { AboutViewModel() }
+    // Both of these read the platform's own answers as their defaults, which Koin must not
+    // resolve for them.
+    viewModel { FeedbackViewModel() }
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
 }

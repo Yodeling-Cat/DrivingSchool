@@ -266,6 +266,27 @@ class Strings(
     val aboutLibrariesIntro: String,
     val aboutLibrariesSearch: String,
     val aboutLibrariesNothingFound: String,
+    // Feedback
+    /** The screen's own title, and the row in Settings that opens it. */
+    val feedbackTitle: String,
+    /** What the screen is for: the sentence under the title. */
+    val feedbackIntro: String,
+    /** What the empty message field says. */
+    val feedbackMessageHint: String,
+    /** The answer to whether the report carries the device it was written on. */
+    val feedbackIncludeDeviceInfo: String,
+    val feedbackIncludeDeviceInfoDescription: String,
+    val feedbackSend: String,
+    /** Announced rather than drawn: see the app's feedback-and-semantics notes. */
+    val feedbackMessageMissing: String,
+    /** The platform has no email app to open, which is said rather than silently ignored. */
+    val feedbackNoEmailApp: String,
+    /** The subject of the report, which names the app: "Feedback: Naj Autoškola". */
+    val feedbackSubject: (appName: String) -> String,
+    /** The build the report came from, which every report carries: "App version: 1.0". */
+    val feedbackVersionLine: (version: String) -> String,
+    /** What the report was written on: "Device: Pixel 7 · Android 14". */
+    val feedbackDeviceLine: (device: String) -> String,
 )
 
 /** Slovak and Czech plurals: 1 / 2–4 / 5+ (and 0). */
@@ -447,6 +468,17 @@ private val EnglishStrings = Strings(
         "its licence, and everyone who wrote it.",
     aboutLibrariesSearch = "Search libraries",
     aboutLibrariesNothingFound = "No library matches your search",
+    feedbackTitle = "Send feedback",
+    feedbackIntro = "Found a bug, or have an idea? Write it here, and it opens in your email app.",
+    feedbackMessageHint = "Your message…",
+    feedbackIncludeDeviceInfo = "Include device information",
+    feedbackIncludeDeviceInfoDescription = "Your phone's model, its system version and the app version.",
+    feedbackSend = "Send",
+    feedbackMessageMissing = "Write a message first.",
+    feedbackNoEmailApp = "No email app was found on this device.",
+    feedbackSubject = { "Feedback: $it" },
+    feedbackVersionLine = { "App version: $it" },
+    feedbackDeviceLine = { "Device: $it" },
 )
 
 private val SlovakStrings = Strings(
@@ -616,6 +648,17 @@ private val SlovakStrings = Strings(
         "niektorý z nich zobrazíte jeho licenciu aj všetkých, ktorí ho napísali.",
     aboutLibrariesSearch = "Hľadať knižnice",
     aboutLibrariesNothingFound = "Hľadanému výrazu nezodpovedá žiadna knižnica",
+    feedbackTitle = "Poslať spätnú väzbu",
+    feedbackIntro = "Našli ste chybu alebo máte nápad? Napíšte to sem a otvorí sa vaša e-mailová aplikácia.",
+    feedbackMessageHint = "Vaša správa…",
+    feedbackIncludeDeviceInfo = "Pridať informácie o zariadení",
+    feedbackIncludeDeviceInfoDescription = "Model telefónu, verzia systému a verzia aplikácie.",
+    feedbackSend = "Odoslať",
+    feedbackMessageMissing = "Najprv napíšte správu.",
+    feedbackNoEmailApp = "V tomto zariadení sa nenašla e-mailová aplikácia.",
+    feedbackSubject = { "Spätná väzba: $it" },
+    feedbackVersionLine = { "Verzia aplikácie: $it" },
+    feedbackDeviceLine = { "Zariadenie: $it" },
 )
 
 private val HungarianStrings = Strings(
@@ -787,6 +830,17 @@ private val HungarianStrings = Strings(
         "Koppintson az egyikre a licencéhez és a készítőihez.",
     aboutLibrariesSearch = "Keresés a könyvtárakban",
     aboutLibrariesNothingFound = "Egyetlen könyvtár sem felel meg a keresésnek",
+    feedbackTitle = "Visszajelzés küldése",
+    feedbackIntro = "Hibát találtál, vagy ötleted van? Írd le ide, és megnyílik az e-mail alkalmazásod.",
+    feedbackMessageHint = "Az üzeneted…",
+    feedbackIncludeDeviceInfo = "Eszközadatok mellékelése",
+    feedbackIncludeDeviceInfoDescription = "A telefon típusa, a rendszer verziója és az alkalmazás verziója.",
+    feedbackSend = "Küldés",
+    feedbackMessageMissing = "Előbb írj egy üzenetet.",
+    feedbackNoEmailApp = "Ezen az eszközön nincs e-mail alkalmazás.",
+    feedbackSubject = { "Visszajelzés: $it" },
+    feedbackVersionLine = { "Alkalmazás verziója: $it" },
+    feedbackDeviceLine = { "Eszköz: $it" },
 )
 
 private val CzechStrings = Strings(
@@ -956,4 +1010,15 @@ private val CzechStrings = Strings(
         "některý z nich zobrazíte jeho licenci i všechny, kdo ho napsali.",
     aboutLibrariesSearch = "Hledat knihovny",
     aboutLibrariesNothingFound = "Hledanému výrazu neodpovídá žádná knihovna",
+    feedbackTitle = "Poslat zpětnou vazbu",
+    feedbackIntro = "Našli jste chybu nebo máte nápad? Napište to sem a otevře se vaše e-mailová aplikace.",
+    feedbackMessageHint = "Vaše zpráva…",
+    feedbackIncludeDeviceInfo = "Přidat informace o zařízení",
+    feedbackIncludeDeviceInfoDescription = "Model telefonu, verze systému a verze aplikace.",
+    feedbackSend = "Odeslat",
+    feedbackMessageMissing = "Nejprve napište zprávu.",
+    feedbackNoEmailApp = "V tomto zařízení nebyla nalezena e-mailová aplikace.",
+    feedbackSubject = { "Zpětná vazba: $it" },
+    feedbackVersionLine = { "Verze aplikace: $it" },
+    feedbackDeviceLine = { "Zařízení: $it" },
 )

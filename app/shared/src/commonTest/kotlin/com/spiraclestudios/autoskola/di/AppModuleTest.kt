@@ -13,6 +13,7 @@ import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.testSignCatalogue
+import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
@@ -57,6 +58,7 @@ class AppModuleTest : ViewModelTest() {
         koin.get<SituationViewModel> { parametersOf(1) }
         koin.get<SettingsViewModel>()
         koin.get<AboutViewModel>()
+        koin.get<FeedbackViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }
         koin.get<AnalyticsRepository>()

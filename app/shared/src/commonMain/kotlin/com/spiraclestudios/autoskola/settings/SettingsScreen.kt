@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -62,13 +63,19 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Connects [SettingsScreen] to its [SettingsViewModel] and to navigation. */
 @Composable
-fun SettingsRoute(onChangeExam: () -> Unit, onOpenAbout: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
+fun SettingsRoute(
+    onChangeExam: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenFeedback: () -> Unit,
+    viewModel: SettingsViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     SettingsScreen(
         state = state,
         onEvent = viewModel::onEvent,
         onChangeExam = onChangeExam,
         onOpenAbout = onOpenAbout,
+        onOpenFeedback = onOpenFeedback,
         onOpenDocument = { openUrl(it.url) },
     )
 }
@@ -79,6 +86,7 @@ fun SettingsScreen(
     onEvent: (SettingsUiEvent) -> Unit,
     onChangeExam: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenFeedback: () -> Unit,
     onOpenDocument: (LegalDocument) -> Unit,
 ) {
     val colors = Naj.colors
@@ -180,6 +188,13 @@ fun SettingsScreen(
                 }
 
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
+                SettingsNavRow(
+                    title = strings.feedbackTitle,
+                    onClick = onOpenFeedback,
+                    // The envelope, because what the screen does is open the user's mail app on
+                    // the report they write.
+                    leading = { SettingsRowIcon(Icons.Outlined.MailOutline, colors.primaryDeep, colors.mintGlow) },
+                )
                 SettingsNavRow(
                     title = strings.aboutApp,
                     // Its subtitle, because the version is part of what this entry is rather than a
@@ -305,6 +320,7 @@ private fun SettingsScreenPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenFeedback = {},
             onOpenDocument = {},
         )
     }
@@ -328,6 +344,7 @@ private fun SettingsScreenCheckingPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenFeedback = {},
             onOpenDocument = {},
         )
     }
@@ -351,6 +368,7 @@ private fun SettingsScreenNoVersionPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenFeedback = {},
             onOpenDocument = {},
         )
     }
@@ -377,6 +395,7 @@ private fun SettingsScreenNoExamYetPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenFeedback = {},
             onOpenDocument = {},
         )
     }

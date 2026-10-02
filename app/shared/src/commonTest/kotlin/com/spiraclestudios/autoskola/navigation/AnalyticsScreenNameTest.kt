@@ -22,6 +22,7 @@ class AnalyticsScreenNameTest {
         SettingsKey,
         ChangeExamKey,
         AboutKey,
+        FeedbackKey,
         PracticeKey("attempt"),
         ResultsKey("attempt"),
     )

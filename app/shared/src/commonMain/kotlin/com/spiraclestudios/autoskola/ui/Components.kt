@@ -105,10 +105,20 @@ fun NajCard(
     }
 }
 
-/** A row inside a [NajCard]; cards stack rows with a hairline divider, as the design does. */
+/**
+ * A row inside a [NajCard]; cards stack rows with a hairline divider, as the design does. [startInset]
+ * is how far the line is held back from the start, for a list whose rows have something in front of
+ * their text and the line should start where the text does.
+ */
 @Composable
-fun CardDivider() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Naj.colors.divider))
+fun CardDivider(startInset: Dp = 0.dp) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = startInset)
+            .height(1.dp)
+            .background(Naj.colors.divider),
+    )
 }
 
 /** The 44pt round white button used for back, close and picture actions. */

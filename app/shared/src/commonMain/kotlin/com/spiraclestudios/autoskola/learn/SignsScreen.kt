@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -49,6 +49,8 @@ import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.previewSignGroups
+import com.spiraclestudios.autoskola.ui.previewSignItem
+import com.spiraclestudios.autoskola.ui.previewSignItems
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,6 +58,16 @@ import org.koin.compose.viewmodel.koinViewModel
 /** The width of the column a sign's picture and number sit in, and how tall the picture may get. */
 private val SignImageColumnWidth = 72.dp
 private val SignImageMaxHeight = 52.dp
+
+/** The room a sign's row keeps at its sides, and the gap between its picture and its text. */
+private val SignRowPadding = 16.dp
+private val SignRowGap = 14.dp
+
+/**
+ * Where a sign's text begins, measured from the start of its row: what the row pads itself with, the
+ * picture it draws beside the text, and the gap in between. The line under a sign starts here.
+ */
+private val SignTextStart = SignRowPadding + SignImageColumnWidth + SignRowGap
 
 /** Connects [SignsScreen] to its [SignsViewModel] and to navigation. */
 @Composable
@@ -157,6 +169,9 @@ private fun SignList(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        // The line under a sign separates it from the one below, so the last sign of the list - the
+        // last sign of the last group still showing any - goes without one.
+        val lastGroupShown = groups.indexOfLast { !it.folded && it.signs.isNotEmpty() }
         groups.forEachIndexed { index, group ->
             stickyHeader(key = "header-$index") {
                 SignGroupHeading(
@@ -167,9 +182,9 @@ private fun SignList(
                 )
             }
             if (!group.folded) {
-                items(group.signs, key = { it.number }) { sign ->
-                    SignRow(sign, page)
-                    CardDivider()
+                itemsIndexed(group.signs, key = { _, sign -> sign.number }) { signIndex, sign ->
+                    val last = index == lastGroupShown && signIndex == group.signs.lastIndex
+                    SignRow(sign, page, divider = !last)
                 }
             }
         }
@@ -220,27 +235,39 @@ private fun SignGroupHeading(
     CardDivider()
 }
 
-/** One sign: its picture and number, its name, and what the regulation says it means. */
+/**
+ * One sign: its picture and number, its name, and what the regulation says it means. [divider] draws
+ * the hairline separating it from the sign below, which the list's last sign goes without; the line
+ * starts where the sign's text does and runs to the end of the list item.
+ */
 @Composable
-private fun SignRow(sign: SignItem, page: DpSize, modifier: Modifier = Modifier) {
+private fun SignRow(
+    sign: SignItem,
+    page: DpSize,
+    divider: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     val colors = Naj.colors
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Column(Modifier.width(SignImageColumnWidth), horizontalAlignment = Alignment.CenterHorizontally) {
-            EnlargeableImage(uri = sign.imageUri, page = page, maxHeight = SignImageMaxHeight)
-            Spacer(Modifier.height(4.dp))
-            Text(sign.number, style = Naj.type.secondary, color = colors.muted)
-        }
-        Column(Modifier.weight(1f)) {
-            // A few signs are a number plate: the picture is their name, and the number is the text.
-            if (sign.name.isNotBlank()) {
-                Text(sign.name, style = Naj.type.rowTitle, color = colors.ink)
-                Spacer(Modifier.height(3.dp))
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = SignRowPadding, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SignRowGap),
+        ) {
+            Column(Modifier.width(SignImageColumnWidth), horizontalAlignment = Alignment.CenterHorizontally) {
+                EnlargeableImage(uri = sign.imageUri, page = page, maxHeight = SignImageMaxHeight)
+                Spacer(Modifier.height(4.dp))
+                Text(sign.number, style = Naj.type.secondary, color = colors.muted)
             }
-            Text(sign.description, style = Naj.type.option, color = colors.muted)
+            Column(Modifier.weight(1f)) {
+                // A few signs are a number plate: the picture is their name, and the number is the text.
+                if (sign.name.isNotBlank()) {
+                    Text(sign.name, style = Naj.type.rowTitle, color = colors.ink)
+                    Spacer(Modifier.height(3.dp))
+                }
+                Text(sign.description, style = Naj.type.option, color = colors.muted)
+            }
         }
+        if (divider) CardDivider(startInset = SignTextStart)
     }
 }
 
@@ -313,6 +340,23 @@ private fun SignGroupHeadingPreview() {
             SignGroupHeading(previewSignGroups[2].kind, previewSignGroups[2].group, folded = true, onToggle = {})
             PreviewLabel("without a heading inside the kind")
             SignGroupHeading(previewSignGroups[3].kind, previewSignGroups[3].group, folded = false, onToggle = {})
+        }
+    }
+}
+
+/** A sign's row with the line that separates it from the sign below, and the last one, which has none. */
+@Preview(widthDp = 400, heightDp = 420)
+@Composable
+private fun SignRowPreview() {
+    val page = DpSize(400.dp, 420.dp)
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("with the next sign below it")
+            SignRow(previewSignItems[0], page)
+            PreviewLabel("a number plate, whose picture is its name")
+            SignRow(previewSignItem("231", "", "Značka označuje najvyššiu dovolenú rýchlosť."), page)
+            PreviewLabel("the list's last sign: no line")
+            SignRow(previewSignItems[1], page, divider = false)
         }
     }
 }

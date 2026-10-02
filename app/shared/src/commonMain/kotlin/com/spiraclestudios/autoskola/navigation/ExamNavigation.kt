@@ -25,6 +25,7 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.navigationevent.NavigationEvent.Companion.EDGE_LEFT
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.spiraclestudios.autoskola.about.AboutRoute
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.home.HomeRoute
 import com.spiraclestudios.autoskola.learn.IntersectionsRoute
 import com.spiraclestudios.autoskola.learn.LearnPlaceholderScreen
@@ -133,6 +134,7 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.screenSlide(direction:
 @Composable
 fun ExamNavigation() {
     val navigation = koinInject<NavigationState>()
+    val analytics = koinInject<AnalyticsRepository>()
     // Where the app was left, unless rememberSaveable kept a stack of its own (a rotation, or a
     // process the system killed with its state intact).
     val startKeys = remember { backStackOf(navigation.initialRoute()) }
@@ -141,7 +143,14 @@ fun ExamNavigation() {
     // Every screen of the stack is in the route, so what is kept - the URL, or the stored route - is
     // the whole way down, not only the screen on top.
     val route = routeOf(backStack)
-    LaunchedEffect(route) { navigation.record(route) }
+    LaunchedEffect(route) {
+        navigation.record(route)
+        // The screen on top is the one being looked at. Reported here rather than from each screen,
+        // because every route change passes through this one effect — so a screen cannot be added
+        // to the app and quietly go uncounted. Onboarding is not on this stack and reports itself
+        // from `App`.
+        analytics.screen(backStack.last().analyticsScreenName())
+    }
 
     // A browser's back and forward buttons move the address bar; the app follows them.
     DisposableEffect(navigation) {
@@ -253,4 +262,27 @@ internal fun LearnSection.key(): NavKey = when (this) {
     LearnSection.RoadSigns -> SignsKey
     LearnSection.Intersections -> IntersectionsKey
     LearnSection.Legislation -> LegislationKey
+}
+
+/**
+ * What a screen reports itself as. A `when` over the keys rather than a name on each one, because
+ * this is already the file that lists them all.
+ *
+ * The fallback is deliberately visible rather than silent: a key added without a name here shows up
+ * in the data as "unknown", which is a number somebody will ask about, instead of quietly going
+ * missing. `AnalyticsScreenNameTest` fails on either.
+ */
+internal fun NavKey.analyticsScreenName(): String = when (this) {
+    HomeKey -> "home"
+    LearnKey -> "learn"
+    SignsKey -> "signs"
+    IntersectionsKey -> "intersections"
+    is SituationKey -> "situation"
+    LegislationKey -> "legislation"
+    SettingsKey -> "settings"
+    ChangeExamKey -> "change_exam"
+    AboutKey -> "about"
+    is PracticeKey -> "practice"
+    is ResultsKey -> "results"
+    else -> "unknown"
 }

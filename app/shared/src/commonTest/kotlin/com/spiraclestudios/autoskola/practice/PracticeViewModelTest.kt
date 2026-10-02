@@ -22,6 +22,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PracticeViewModelTest : ViewModelTest() {
@@ -99,6 +101,12 @@ class PracticeViewModelTest : ViewModelTest() {
         testScheduler.runCurrent()
     }
 
+    /** Lets [duration] of the test's virtual time pass, work due at the end of the wait included. */
+    private fun TestScope.millisPass(duration: Duration) {
+        testScheduler.advanceTimeBy(duration.inWholeMilliseconds)
+        testScheduler.runCurrent()
+    }
+
     @Test
     fun showsTheAttemptsQuestionsInOrder() = runTest {
         val attempt = startTest(checkImmediately = true)
@@ -150,14 +158,19 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun answeringMovesOnToTheNextQuestionWhenAutoAdvanceIsOn() = runTest {
+    fun answeringMovesOnToTheNextQuestionShortlyAfterTheAnswer() = runTest {
         autoAdvance()
         val attempt = startTest()
         val (viewModel, state) = open(attempt)
 
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
 
+        // The pick shows on the question it was given on first, so it is seen before the test moves on.
         assertEquals(mapOf(0 to 1), state.ready.answers)
+        millisPass(AUTO_ADVANCE_DELAY_MILLIS - 1.milliseconds)
+        assertNull(state.ready.advanceToPage)
+
+        millisPass(1.milliseconds)
         assertEquals(1, state.ready.advanceToPage)
 
         // The screen reports the move, so it isn't asked for a second time.
@@ -174,6 +187,7 @@ class PracticeViewModelTest : ViewModelTest() {
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
 
         assertEquals(mapOf(0 to 1), state.ready.answers)
+        millisPass(AUTO_ADVANCE_DELAY_MILLIS)
         assertNull(state.ready.advanceToPage)
     }
 
@@ -187,6 +201,7 @@ class PracticeViewModelTest : ViewModelTest() {
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = last, answerIndex = 0))
 
         assertEquals(mapOf(last to 0), state.ready.answers)
+        millisPass(AUTO_ADVANCE_DELAY_MILLIS)
         assertNull(state.ready.advanceToPage)
     }
 
@@ -199,6 +214,7 @@ class PracticeViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
 
+        millisPass(AUTO_ADVANCE_DELAY_MILLIS)
         assertNull(state.ready.advanceToPage)
     }
 

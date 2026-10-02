@@ -1,5 +1,7 @@
 package com.spiraclestudios.autoskola.practice
 
+import kotlin.time.Duration.Companion.milliseconds
+
 /** How one answer option is shown. */
 internal enum class AnswerState { Neutral, Selected, Correct, Wrong }
 
@@ -22,6 +24,12 @@ internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt
     allAnswered -> FinishPrompt.Finish
     else -> null
 }
+
+/**
+ * How long the answered question stays on screen before the test moves on. Long enough for the
+ * pick to be seen registering, short enough not to feel like a wait.
+ */
+internal val AUTO_ADVANCE_DELAY_MILLIS = 500.milliseconds
 
 /**
  * Whether answering question [questionIndex] of a test with [count] questions moves straight on to

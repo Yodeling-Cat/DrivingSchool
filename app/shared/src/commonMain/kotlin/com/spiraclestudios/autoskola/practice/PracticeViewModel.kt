@@ -361,8 +361,15 @@ class PracticeViewModel(
         )
     }
 
-    /** Records an attempt left unfinished - discarded, or walked away from with answers in it. */
+    /**
+     * Records an attempt left unfinished - discarded, or walked away from with answers in it.
+     *
+     * A finished attempt is neither. Backing out of the results review is how the review is left,
+     * not how the test was abandoned, and reporting it would send test_abandoned for the very
+     * attempt that just sent test_completed, so one run would count as both.
+     */
     private fun recordAbandoned(attempt: TestAttempt) {
+        if (attempt.isFinished) return
         analytics.capture(
             AnalyticsEvent.TestAbandoned,
             testAbandonedProperties(

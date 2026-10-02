@@ -655,6 +655,21 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun leavingAFinishedTestRecordsNoAbandonment() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val attempt = startTest()
+        val (viewModel, _) = open(attempt)
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+        viewModel.onEvent(PracticeUiEvent.Finish)
+        // The finish already reported itself; what back does next is the question.
+        repositories.analyticsSink.clear()
+
+        viewModel.onEvent(PracticeUiEvent.Leave)
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
     fun aQuestionImageThatFailsToLoadIsRecorded() = runTest {
         repositories.preferences.setAnalyticsEnabled(true)
         val attempt = startTest()

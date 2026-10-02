@@ -23,4 +23,16 @@ class RecordingAnalyticsDataSource : AnalyticsDataSource {
     override fun setConsent(crashReporting: Boolean, analytics: Boolean) {
         consents += crashReporting to analytics
     }
+
+    /**
+     * Forgets everything recorded, for a test that checks one phase of a flow at a time. All four
+     * at once: clearing `events` and leaving `properties` behind is how a later assertion ends up
+     * reading the previous phase's values.
+     */
+    fun clear() {
+        events.clear()
+        properties.clear()
+        screens.clear()
+        consents.clear()
+    }
 }

@@ -26,6 +26,7 @@ koin = "4.2.2"
 leakcanary = "2.14"
 coil = "3.4.0"
 posthog = "0.5.2"
+posthogAndroidPlugin = "1.7.0"
 materialIconsExtended = "1.7.3"
 aboutlibraries = "15.2.0"
 
@@ -83,4 +84,5 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
+posthogAndroid = { id = "com.posthog.android", version.ref = "posthogAndroidPlugin" }
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }

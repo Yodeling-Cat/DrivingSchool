@@ -1,10 +1,74 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    // Applied further down, and only when the symbol-upload credentials are present.
+    alias(libs.plugins.posthogAndroid) apply false
+}
+
+/**
+ * PostHog's symbol upload is optional. The credentials it needs are a secret, so they live only
+ * where release builds run — CI's environment, or a local `.env` that is gitignored — and a
+ * developer is not expected to have them.
+ *
+ * With none of them the plugin is never applied, so a developer's release build minifies and skips
+ * the upload rather than failing. The trade is that crash reports from such a build are
+ * unreadable, which is what the message below says (see docs/error-reporting.md).
+ */
+val postHogDotenv: Map<String, String> = rootProject.file(".env")
+    .takeIf { it.isFile }
+    ?.readLines()
+    ?.mapNotNull { line ->
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) return@mapNotNull null
+        trimmed.substringBefore("=").trim() to trimmed.substringAfter("=", "").trim()
+    }
+    ?.toMap()
+    .orEmpty()
+
+fun postHogCredential(name: String): String? {
+    val fromEnvironment = providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+    return fromEnvironment ?: postHogDotenv[name]?.takeIf { it.isNotBlank() }
+}
+
+/**
+ * Whether `posthog-cli` is on PATH. The plugin shells out to it, and without it the upload task
+ * fails the whole release build rather than skipping — so having the credentials is not enough.
+ */
+fun postHogCliIsInstalled(): Boolean {
+    val path = providers.environmentVariable("PATH").orNull ?: return false
+    val names = if (System.getProperty("os.name").startsWith("Windows")) {
+        listOf("posthog-cli.cmd", "posthog-cli.exe", "posthog-cli")
+    } else {
+        listOf("posthog-cli")
+    }
+    return path.split(File.pathSeparator)
+        .any { dir -> names.any { name -> File(dir, name).isFile } }
+}
+
+// Named so they cannot shadow the task properties of the same name inside configureEach below,
+// which would read as a self-assignment and fail with a circular-evaluation error.
+val symbolUploadApiKey = postHogCredential("POSTHOG_CLI_API_KEY")
+val symbolUploadProjectId = postHogCredential("POSTHOG_CLI_PROJECT_ID")
+
+if (symbolUploadApiKey != null && symbolUploadProjectId != null && postHogCliIsInstalled()) {
+    apply(plugin = "com.posthog.android")
+    tasks.withType<com.posthog.android.PostHogCliExecTask>().configureEach {
+        postHogHost = postHogCredential("POSTHOG_CLI_HOST")
+        postHogProjectId = symbolUploadProjectId
+        postHogApiKey = symbolUploadApiKey
+    }
+} else {
+    logger.lifecycle(
+        "PostHog symbol upload is off. The release build is still minified, but crash reports " +
+            "from it will not be symbolicated. To turn it on, this machine needs " +
+            "POSTHOG_CLI_API_KEY and POSTHOG_CLI_PROJECT_ID in the environment or in .env, and " +
+            "posthog-cli on PATH. See docs/error-reporting.md.",
+    )
 }
 
 kotlin {

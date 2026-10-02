@@ -16,22 +16,16 @@ are unreadable until that mapping reaches PostHog.
 `BuildConfig` fields, which the shared module reads by name because it generates none of its own.
 Compose, Koin, kotlinx.serialization, Coil and AndroidX ship their own consumer rules.
 
-**Not wired up yet.** PostHog's Gradle plugin uploads the mapping, but it needs credentials that do
-not live in the repo, so it is deliberately not applied: it would fail every release build until
-they exist. Adding it is the next step, and it is two things:
+**Wired up, and optional.** PostHog's Gradle plugin is applied by `app/androidApp/build.gradle.kts`
+**only when this machine has both the credentials and `posthog-cli` on PATH**. A machine with
+neither — every developer's, and any CI job that is not a release — builds a minified release and
+uploads nothing, instead of failing. The build prints what it skipped and why.
 
-1. Add the plugin to `app/androidApp/build.gradle.kts` — the **app module**, not the root, or it
-   logs a warning and does nothing:
+Both conditions are needed. The plugin shells out to `posthog-cli` and a missing binary fails the
+whole release build rather than skipping the upload, so credentials alone are not enough.
 
-   ```kotlin
-   plugins {
-       id("com.posthog.android") version "1.7.0"
-   }
-   ```
-
-2. The plugin's only extension settings are `uploadNativeSymbols` and
-   `includeNativeSymbolSources`, both about native code. **Credentials are not configured there.**
-   They come from the environment on the machine that runs the release build:
+Credentials are read from the environment first, then from a `.env` at the repo root. `.env` is
+gitignored; `.env.example` names the three variables. They come from:
 
    ```
    POSTHOG_CLI_HOST=https://eu.posthog.com        # note: no "i."

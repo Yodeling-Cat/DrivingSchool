@@ -11,3 +11,11 @@ import com.spiraclestudios.autoskola.bank.PracticeTest
  */
 fun notPassedTests(tests: List<PracticeTest>, results: Map<Int, TestResult>): List<PracticeTest> =
     tests.filter { results[it.number]?.passed != true }
+
+/**
+ * Whether the driver has finished and passed every test of the exam, which is the last rung of the
+ * rating card's ladder: it is only ever true of an exam that has tests in it, so a bank with none
+ * is not a licence the driver has earned.
+ */
+fun everyTestPassed(tests: List<PracticeTest>, results: Map<Int, TestResult>): Boolean =
+    tests.isNotEmpty() && notPassedTests(tests, results).isEmpty()

@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.StoreListing
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
@@ -12,8 +13,11 @@ import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.exam.TestPick
+import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
+import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.stats.AttemptKind
+import com.spiraclestudios.autoskola.storeListing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -61,7 +65,15 @@ data class HomeProgress(
     val mistakeCount: Int,
     val questionsAnswered: Int,
     val questionPoolSize: Int,
+    /** Finished practice tests, counting every take; what the rating card's milestones count up. */
+    val finishedTests: Int,
 )
+
+/**
+ * The card asking the user to rate the app in the store it names. Which store that is, and whether
+ * there is one at all, is the platform's answer (see [storeListing]); the screen only draws it.
+ */
+data class RateCard(val storeName: String)
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
@@ -72,6 +84,8 @@ sealed interface HomeUiState {
         val progress: HomeProgress,
         /** Whether any test has not been passed yet, which is what the "not passed" pill acts on. */
         val hasNotPassedTests: Boolean,
+        /** The card asking for a store rating, or `null` where it isn't shown. */
+        val rateCard: RateCard? = null,
         /** An attempt to open; the screen navigates to it and then sends [HomeUiEvent.AttemptOpened]. */
         val openAttemptId: String? = null,
         /** Set when the picked test is already under way, so the screen asks what to do. */
@@ -104,11 +118,20 @@ sealed interface HomeUiEvent {
     data object DismissPassedPrompt : HomeUiEvent
     data object PracticeMistakes : HomeUiEvent
     data object AttemptOpened : HomeUiEvent
+
+    /** The card's button: the user is taken to the store to rate the app, which ends the asking. */
+    data object RateApp : HomeUiEvent
+
+    /** The card's cross: not now, which the app asks again about later in the ladder. */
+    data object DismissRateCard : HomeUiEvent
 }
 
 class HomeViewModel(
     exams: ExamRepository,
     private val analytics: AnalyticsRepository,
+    private val review: ReviewRepository,
+    /** The store this build can be rated in, or `null` where it has none (the web, today's iOS). */
+    private val store: StoreListing? = storeListing,
     private val random: Random = Random.Default,
 ) : ViewModel() {
 
@@ -124,12 +147,24 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(HomeUiState.Loading)
-            combine(session.progress, openAttemptId, resumePrompt, passedPrompt) { progress, open, prompt, passed ->
+            combine(
+                session.progress,
+                openAttemptId,
+                resumePrompt,
+                passedPrompt,
+                review.request,
+            ) { progress, open, prompt, passed, request ->
+                // The card is due at the milestones the asking is measured in, and only where the
+                // platform has a store page to send the driver to.
+                val allPassed = everyTestPassed(session.tests, progress.results)
                 HomeUiState.Ready(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
                     progress = progress.toHomeProgress(),
                     hasNotPassedTests = notPassedTests(session.tests, progress.results).isNotEmpty(),
+                    rateCard = store
+                        ?.takeIf { request.isDue(progress.finishedTests, allPassed) }
+                        ?.let { RateCard(storeName = it.name) },
                     openAttemptId = open,
                     resumePrompt = prompt,
                     passedPrompt = passed,
@@ -224,6 +259,26 @@ class HomeViewModel(
                 resumePrompt.value = null
                 passedPrompt.value = null
             }
+
+            // The card's two answers. The cross only closes the app's ask, so the ladder knows how
+            // many tests had been done when it was closed and when to put it again; the press on the
+            // button takes the user out to the store, and the asking is over whether or not they
+            // went on to write the rating.
+            HomeUiEvent.DismissRateCard -> viewModelScope.launch {
+                val ready = shown ?: return@launch
+                review.dismissed(
+                    finishedTests = ready.progress.finishedTests,
+                    everyTestPassed = everyTestPassed(ready.tests, ready.progress.results),
+                )
+            }
+
+            HomeUiEvent.RateApp -> {
+                val listing = store?.takeIf { shown?.rateCard != null } ?: return
+                viewModelScope.launch {
+                    review.rated()
+                    openUrl(listing.url)
+                }
+            }
         }
     }
 
@@ -236,6 +291,7 @@ class HomeViewModel(
         mistakeCount = mistakeCount,
         questionsAnswered = questionsAnswered,
         questionPoolSize = poolSize,
+        finishedTests = finishedTests,
     )
 
     /**

@@ -9,6 +9,7 @@ import com.spiraclestudios.autoskola.bank.QuestionBankInfo
 import com.spiraclestudios.autoskola.bank.Section
 import com.spiraclestudios.autoskola.home.HomeProgress
 import com.spiraclestudios.autoskola.home.PassedPrompt
+import com.spiraclestudios.autoskola.home.RateCard
 import com.spiraclestudios.autoskola.home.ResumableTest
 import com.spiraclestudios.autoskola.home.ResumePrompt
 import com.spiraclestudios.autoskola.learn.SignGroupItem
@@ -273,7 +274,8 @@ internal fun previewResults(vararg results: Pair<Int, TestResult>): Map<Int, Tes
 
 /**
  * The progress the home screen shows: [results] are the finished tests, [inProgress] the numbers
- * with an attempt still open, and [resumable] the one the resume card offers.
+ * with an attempt still open, [resumable] the one the resume card offers, and [finishedTests] the
+ * tests done counting every take, which is what the rating card's milestones count up.
  */
 internal fun previewProgress(
     results: Map<Int, TestResult> = emptyMap(),
@@ -282,6 +284,7 @@ internal fun previewProgress(
     mistakeCount: Int = 0,
     questionsAnswered: Int = 0,
     questionPoolSize: Int = 1150,
+    finishedTests: Int = results.size,
 ) = HomeProgress(
     results = results,
     inProgress = inProgress,
@@ -289,7 +292,11 @@ internal fun previewProgress(
     mistakeCount = mistakeCount,
     questionsAnswered = questionsAnswered,
     questionPoolSize = questionPoolSize,
+    finishedTests = finishedTests,
 )
+
+/** The card asking the user to rate the app, in the store it names. */
+internal fun previewRateCard(storeName: String = "Play Store") = RateCard(storeName)
 
 /**
  * How a finished attempt went, as the results screen reads it: [correct] and [wrong] answers, the

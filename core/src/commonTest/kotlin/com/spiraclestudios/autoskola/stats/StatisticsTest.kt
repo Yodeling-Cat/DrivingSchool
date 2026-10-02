@@ -146,6 +146,24 @@ class StatisticsTest {
     }
 
     @Test
+    fun everyFinishedTestCountsTowardsTheOnesDone() {
+        val stats = Statistics.of(
+            listOf(
+                attempt("first", finishedAt = 10),
+                // The same test taken again is another test done.
+                attempt("again", finishedAt = 20, answers = arrayOf(answer(1, false, 15))),
+                // A drill is practice, not a test, and neither is an attempt left open or thrown away.
+                attempt("drill", testNumber = null, kind = AttemptKind.Situations, finishedAt = 30),
+                attempt("open", startedAt = 35),
+                attempt("thrown-away", testNumber = 2, discardedAt = 40),
+            ),
+            checkImmediately = false,
+        )
+
+        assertEquals(2, stats.finishedTests)
+    }
+
+    @Test
     fun attemptsSurviveEncoding() {
         val original = attempt("x", finishedAt = 10, answers = arrayOf(answer(1, true, 5)))
         assertEquals(original, TestAttempt.decode(original.encode()))

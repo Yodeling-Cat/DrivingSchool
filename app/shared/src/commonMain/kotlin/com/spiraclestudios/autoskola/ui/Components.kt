@@ -153,7 +153,7 @@ fun RoundButton(
     }
 }
 
-/** A transparent icon button, for the ones that live inside a bar. */
+/** A transparent icon button, for the ones that live inside a bar or on a card. */
 @Composable
 fun BarIconButton(
     icon: ImageVector,

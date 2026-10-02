@@ -25,6 +25,13 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
             .associate { it.testNumber!! to it.result!! }
 
     /**
+     * How many practice tests have been finished, counting every take: a test taken again is
+     * another test done, and one finished below the pass mark counts like any other. What the home
+     * screen's rating card measures its milestones in.
+     */
+    val finishedTests: Int get() = attempts.count { it.kind == AttemptKind.PracticeTest && it.isFinished }
+
+    /**
      * Most recently touched attempt that is neither finished nor discarded, and can be continued:
      * only a numbered practice test. A repeat of the questions the user got wrong is left where it
      * was, so the home screen doesn't offer to continue a drill they walked away from.

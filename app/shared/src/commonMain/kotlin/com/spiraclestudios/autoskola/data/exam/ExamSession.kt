@@ -29,6 +29,8 @@ data class ExamProgress(
     val mistakeCount: Int,
     val questionsAnswered: Int,
     val poolSize: Int,
+    /** Finished practice tests, counting every take; what the rating card measures in. */
+    val finishedTests: Int,
 )
 
 /**
@@ -106,6 +108,7 @@ class ExamSession(
             mistakeCount = stats.mistakes.count { it in pool },
             questionsAnswered = stats.questions.keys.count { it in pool },
             poolSize = pool.size,
+            finishedTests = stats.finishedTests,
         )
     }
 

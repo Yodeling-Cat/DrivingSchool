@@ -6,6 +6,8 @@ import com.spiraclestudios.autoskola.bank.practiceTests
 import com.spiraclestudios.autoskola.data.banks.testBank
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class NotPassedTest {
 
@@ -37,5 +39,20 @@ class NotPassedTest {
         val results = tests.associate { it.number to result(passed = true) }
 
         assertEquals(emptyList(), notPassedTests(tests, results))
+    }
+
+    @Test
+    fun everyTestPassedOnlyOnceNothingIsLeft() {
+        assertFalse(everyTestPassed(tests, results = emptyMap()))
+        assertFalse(everyTestPassed(tests, mapOf(1 to result(passed = true))))
+        assertFalse(everyTestPassed(tests, mapOf(1 to result(passed = true), 2 to result(passed = false))))
+
+        val allPassed = tests.associate { it.number to result(passed = true) }
+        assertTrue(everyTestPassed(tests, allPassed))
+    }
+
+    @Test
+    fun anExamWithNoTestsIsNotAPassedOne() {
+        assertFalse(everyTestPassed(tests = emptyList(), results = emptyMap()))
     }
 }

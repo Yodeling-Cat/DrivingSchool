@@ -173,6 +173,16 @@ class Strings(
     val practiceMistakes: String,
     val mistakesToReview: (count: Int) -> String,
     val mistakesTestName: String,
+
+    /** The card asking the user to rate the app in the store, which sits under the mistakes card. */
+    val rateCardTitle: String,
+
+    /** Its words, naming the store the user is asked to rate the app in: "the Play Store". */
+    val rateCardMessage: (store: String) -> String,
+    val rateCardAction: String,
+
+    /** What the card's cross says to a screen reader, which is all it ever says. */
+    val rateCardDismiss: String,
     val questionsAnswered: String,
     // Practice
     /** The question the practice bar is on, on its own: e.g. "7". */
@@ -409,6 +419,10 @@ private val EnglishStrings = Strings(
     practiceMistakes = "Practice mistakes",
     mistakesToReview = { if (it == 0) "No mistakes to review" else "$it to review" },
     mistakesTestName = "Mistakes",
+    rateCardTitle = "Enjoying the app?",
+    rateCardMessage = { store -> "A quick rating in the $store helps other learner drivers find it." },
+    rateCardAction = "Rate the app",
+    rateCardDismiss = "Dismiss",
     questionsAnswered = "Questions answered",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
@@ -593,6 +607,10 @@ private val SlovakStrings = Strings(
     practiceMistakes = "Precvičiť chyby",
     mistakesToReview = { if (it == 0) "Žiadne chyby na zopakovanie" else "Na zopakovanie: $it" },
     mistakesTestName = "Chyby",
+    rateCardTitle = "Baví vás aplikácia?",
+    rateCardMessage = { store -> "Rýchle hodnotenie v $store pomôže ďalším vodičom nájsť aplikáciu." },
+    rateCardAction = "Ohodnotiť aplikáciu",
+    rateCardDismiss = "Zavrieť",
     questionsAnswered = "Zodpovedané otázky",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
@@ -778,6 +796,10 @@ private val HungarianStrings = Strings(
     practiceMistakes = "Hibák gyakorlása",
     mistakesToReview = { if (it == 0) "Nincs ismétlendő hiba" else "Ismétlendő: $it" },
     mistakesTestName = "Hibák",
+    rateCardTitle = "Tetszik az alkalmazás?",
+    rateCardMessage = { store -> "Értékelés a $store áruházban segít másoknak megtalálni az alkalmazást." },
+    rateCardAction = "Alkalmazás értékelése",
+    rateCardDismiss = "Bezárás",
     questionsAnswered = "Megválaszolt kérdések",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },
@@ -963,6 +985,10 @@ private val CzechStrings = Strings(
     practiceMistakes = "Procvičit chyby",
     mistakesToReview = { if (it == 0) "Žádné chyby k zopakování" else "K zopakování: $it" },
     mistakesTestName = "Chyby",
+    rateCardTitle = "Baví vás aplikace?",
+    rateCardMessage = { store -> "Rychlé hodnocení v $store pomůže dalším řidičům najít aplikaci." },
+    rateCardAction = "Ohodnotit aplikaci",
+    rateCardDismiss = "Zavřít",
     questionsAnswered = "Zodpovězené otázky",
     questionCounter = { number -> "$number" },
     questionCount = { total -> "/ $total" },

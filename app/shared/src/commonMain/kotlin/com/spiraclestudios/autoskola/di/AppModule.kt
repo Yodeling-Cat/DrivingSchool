@@ -18,6 +18,7 @@ import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.banks.ResourceQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
@@ -59,6 +60,7 @@ val appModule = module {
     single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
     single { AnalyticsRepository(get(), get()) }
+    single { ReviewRepository(get()) }
     single { ExamRepository(get(), get(), get(), get()) }
 
     // Navigation
@@ -72,7 +74,7 @@ val appModule = module {
     viewModelOf(::DisclaimerViewModel)
     viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
-    viewModel { HomeViewModel(get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }

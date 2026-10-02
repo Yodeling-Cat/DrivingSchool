@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,7 +56,9 @@ import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
+import com.spiraclestudios.autoskola.practice.IconClose
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BarIconButton
 import com.spiraclestudios.autoskola.ui.CardRadius
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.DashedCircleIcon
@@ -66,10 +69,13 @@ import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalHeightClass
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.LocalWidthClass
+import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PagePadding
 import com.spiraclestudios.autoskola.ui.PickerPill
 import com.spiraclestudios.autoskola.ui.PillHeight
+import com.spiraclestudios.autoskola.ui.PreviewBoard
+import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RedoTestDialog
 import com.spiraclestudios.autoskola.ui.ResumeDialog
@@ -85,6 +91,7 @@ import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewExamLong
 import com.spiraclestudios.autoskola.ui.previewPassedPrompt
 import com.spiraclestudios.autoskola.ui.previewProgress
+import com.spiraclestudios.autoskola.ui.previewRateCard
 import com.spiraclestudios.autoskola.ui.previewResults
 import com.spiraclestudios.autoskola.ui.previewResumable
 import com.spiraclestudios.autoskola.ui.previewResumePrompt
@@ -112,6 +119,9 @@ private const val RESUME_GRAIN = 0.4f
 private val ResumeShadow = Color(0x99FF9600)
 
 private val MistakesCardHeight = 68.dp
+
+/** The icon tile the rating card opens with, the size of the mistakes card's badge. */
+private val RateTileSize = 44.dp
 private val HomeBandWidth = 410.dp
 private val GridGap = 12.dp
 private val SectionGap = 16.dp
@@ -220,6 +230,15 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         fullWidthItem {
             MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
         }
+        state.rateCard?.let { card ->
+            fullWidthItem {
+                RateCard(
+                    card = card,
+                    onRate = { onEvent(HomeUiEvent.RateApp) },
+                    onDismiss = { onEvent(HomeUiEvent.DismissRateCard) },
+                )
+            }
+        }
         fullWidthItem {
             Text(
                 text = strings.allTests,
@@ -264,6 +283,13 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                     stacked = true,
                 )
                 MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
+                state.rateCard?.let { card ->
+                    RateCard(
+                        card = card,
+                        onRate = { onEvent(HomeUiEvent.RateApp) },
+                        onDismiss = { onEvent(HomeUiEvent.DismissRateCard) },
+                    )
+                }
             }
         }
         // What the grid and the resume banner have to draw in is the pane's own content width, and it
@@ -636,6 +662,62 @@ private fun MistakesCard(count: Int, onClick: () -> Unit, modifier: Modifier = M
     }
 }
 
+/**
+ * The card asking the user to rate the app in the store it names, which sits under the mistakes
+ * card: the button opens the app's page there, and the cross at its top right puts it away without
+ * leaving the app. Neither answer is the user's only chance - the view model holds the ladder the
+ * asking climbs - so the card carries no explanation of what closing it means.
+ */
+@Composable
+private fun RateCard(
+    card: RateCard,
+    onRate: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Naj.colors
+
+    NajCard(modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 8.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // The star and its yellow: the same warm tile the resume card is cut from, because a
+            // rating is what the driver is being asked for rather than what they owe.
+            IconTile(
+                size = RateTileSize,
+                background = Brush.linearGradient(listOf(colors.resumeTop, colors.resumeBottom)),
+            ) {
+                Icon(
+                    Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = colors.resumeOn,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Column(Modifier.weight(1f).padding(top = 2.dp)) {
+                Text(text = strings.rateCardTitle, style = Naj.type.cardTitle, color = colors.ink)
+                Spacer(Modifier.height(4.dp))
+                Text(text = strings.rateCardMessage(card.storeName), style = Naj.type.rowSubtitle, color = colors.muted)
+            }
+            BarIconButton(
+                IconClose,
+                contentDescription = strings.rateCardDismiss,
+                onClick = onDismiss,
+                tint = colors.muted,
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        PrimaryPill(
+            text = strings.rateCardAction,
+            onClick = onRate,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        )
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
 /** One test in the grid: its number, and how it stands. */
 @Composable
 private fun TestTileItem(
@@ -748,6 +830,7 @@ private fun homeState(
     resumable: ResumableTest? = previewResumable(),
     mistakeCount: Int = 12,
     questionsAnswered: Int = 236,
+    rateCard: RateCard? = null,
     resumePrompt: ResumePrompt? = null,
     passedPrompt: PassedPrompt? = null,
     exam: ExamLabel = previewExam,
@@ -758,6 +841,7 @@ private fun homeState(
         tests = tests,
         progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
         hasNotPassedTests = notPassedTests(tests, results).isNotEmpty(),
+        rateCard = rateCard,
         resumePrompt = resumePrompt,
         passedPrompt = passedPrompt,
     )
@@ -903,5 +987,37 @@ private fun HomeScreenResumePromptPreview() {
 private fun HomeScreenPassedPromptPreview() {
     AppPreview {
         HomeScreen(homeState(passedPrompt = previewPassedPrompt()), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** The phone layout with the card asking for a store rating, under the mistakes card. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenRateCardPreview() {
+    AppPreview {
+        HomeScreen(homeState(rateCard = previewRateCard()), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** The desktop layout, where the card sits in the band under the mistakes card as well. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun HomeScreenRateCardExpandedPreview() {
+    AppPreview {
+        HomeScreen(homeState(rateCard = previewRateCard()), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** The card itself, in each of the two stores it can name. */
+@Preview(widthDp = 400, heightDp = 330)
+@Composable
+private fun RateCardPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("PLAY STORE")
+            RateCard(previewRateCard(), onRate = {}, onDismiss = {})
+            PreviewLabel("APP STORE")
+            RateCard(previewRateCard("App Store"), onRate = {}, onDismiss = {})
+        }
     }
 }

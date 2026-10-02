@@ -15,6 +15,7 @@ import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +56,9 @@ class TestRepositories(bank: QuestionBank = testBank()) {
     val attempts = AttemptRepository(SettingsAttemptDataSource(settings), now = { ++clock })
     val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
+
+    /** How far the app has got in asking the user to rate it, over the same in-memory storage. */
+    val review = ReviewRepository(settings)
 
     /** What the tests asserted was sent, and the consent gate in front of it. */
     val analyticsSink = RecordingAnalyticsDataSource()

@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.home
 
+import com.spiraclestudios.autoskola.StoreListing
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
@@ -24,7 +25,13 @@ class HomeViewModelTest : ViewModelTest() {
     private val repositories = TestRepositories().apply {
         preferences.select(TestSelection("sk-sk", LicenseCategory.B))
     }
-    private val viewModel by lazy { HomeViewModel(repositories.exams, repositories.analytics, Random(42)) }
+
+    /** The store the rating card sends the user to, which the host platform need not have one of. */
+    private val store = StoreListing(name = "Play Store", url = "https://example.test/app")
+
+    private val viewModel by lazy {
+        HomeViewModel(repositories.exams, repositories.analytics, repositories.review, store, Random(42))
+    }
 
     private val StateFlow<HomeUiState>.ready get() = assertIs<HomeUiState.Ready>(value)
 
@@ -367,5 +374,91 @@ class HomeViewModelTest : ViewModelTest() {
             mapOf("kind" to "mistakes", "resumed" to false),
             repositories.analyticsSink.properties.single(),
         )
+    }
+
+    @Test
+    fun theRateCardComesAfterTenFinishedTests() = runTest {
+        val state = observe(viewModel.uiState)
+
+        // Nine tests done, failed ones among them: not yet.
+        repeat(9) { finishTest(testNumber = 1, passed = false) }
+        assertNull(state.ready.rateCard)
+
+        finishTest(testNumber = 1, passed = false)
+
+        assertEquals(RateCard("Play Store"), state.ready.rateCard)
+    }
+
+    @Test
+    fun dismissingTheCardPutsItAwayUntilTwentyMoreTestsHaveBeenDone() = runTest {
+        val state = observe(viewModel.uiState)
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+
+        viewModel.onEvent(HomeUiEvent.DismissRateCard)
+        assertNull(state.ready.rateCard)
+
+        repeat(19) { finishTest(testNumber = 1, passed = false) }
+        assertNull(state.ready.rateCard)
+
+        finishTest(testNumber = 1, passed = false)
+        assertEquals(RateCard("Play Store"), state.ready.rateCard)
+    }
+
+    @Test
+    fun theLastCardWaitsUntilEveryTestHasBeenPassed() = runTest {
+        val state = observe(viewModel.uiState)
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+        viewModel.onEvent(HomeUiEvent.DismissRateCard)
+        repeat(20) { finishTest(testNumber = 1, passed = false) }
+        assertEquals(RateCard("Play Store"), state.ready.rateCard)
+
+        viewModel.onEvent(HomeUiEvent.DismissRateCard)
+        assertNull(state.ready.rateCard)
+
+        // Tests done after the last card was closed are not what it waits for: the exam has to be
+        // passed in full, both of its tests.
+        repeat(5) { finishTest(testNumber = 1, passed = false) }
+        finishTest(testNumber = 2, passed = false)
+        assertNull(state.ready.rateCard)
+
+        finishTest(testNumber = 1, passed = true)
+        assertNull(state.ready.rateCard)
+
+        finishTest(testNumber = 2, passed = true)
+        assertEquals(RateCard("Play Store"), state.ready.rateCard)
+    }
+
+    @Test
+    fun goingToTheStoreStopsTheAsking() = runTest {
+        val state = observe(viewModel.uiState)
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+
+        viewModel.onEvent(HomeUiEvent.RateApp)
+
+        assertNull(state.ready.rateCard)
+        repeat(30) { finishTest(testNumber = 1, passed = false) }
+        finishTest(testNumber = 1, passed = true)
+        finishTest(testNumber = 2, passed = true)
+        assertNull(state.ready.rateCard)
+    }
+
+    @Test
+    fun nothingIsAskedWhereThereIsNoStoreToRateTheAppIn() = runTest {
+        // The web build has no store, and neither has an iOS build whose page cannot be addressed
+        // yet: the card is left off rather than sending the driver nowhere.
+        val withoutStore = HomeViewModel(
+            repositories.exams,
+            repositories.analytics,
+            repositories.review,
+            store = null,
+            random = Random(42),
+        )
+        val state = observe(withoutStore.uiState)
+
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+        finishTest(testNumber = 1, passed = true)
+        finishTest(testNumber = 2, passed = true)
+
+        assertNull(state.ready.rateCard)
     }
 }

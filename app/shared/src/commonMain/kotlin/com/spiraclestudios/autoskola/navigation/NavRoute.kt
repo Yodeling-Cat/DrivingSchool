@@ -20,6 +20,7 @@ fun routeSegment(key: NavKey): String? = when (key) {
     LegislationKey -> "legislation"
     SettingsKey -> "settings"
     ChangeExamKey -> "change-exam"
+    AboutKey -> "about"
     is PracticeKey -> "practice/${key.attemptId}"
     is ResultsKey -> "results/${key.attemptId}"
     is SituationKey -> "situation/${key.number}"
@@ -62,6 +63,7 @@ private fun keyAt(segments: List<String>, index: Int): Pair<NavKey, Int>? = when
     "legislation" -> LegislationKey to 1
     "settings" -> SettingsKey to 1
     "change-exam" -> ChangeExamKey to 1
+    "about" -> AboutKey to 1
     "practice" -> segments.getOrNull(index + 1)?.let { PracticeKey(it) to 2 }
     "results" -> segments.getOrNull(index + 1)?.let { ResultsKey(it) to 2 }
     "situation" -> segments.getOrNull(index + 1)?.toIntOrNull()?.let { SituationKey(it) to 2 }

@@ -24,6 +24,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigationevent.NavigationEvent.Companion.EDGE_LEFT
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.spiraclestudios.autoskola.about.AboutRoute
 import com.spiraclestudios.autoskola.home.HomeRoute
 import com.spiraclestudios.autoskola.learn.IntersectionsRoute
 import com.spiraclestudios.autoskola.learn.LearnPlaceholderScreen
@@ -69,6 +70,9 @@ data object SettingsKey : NavKey
 data object ChangeExamKey : NavKey
 
 @Serializable
+data object AboutKey : NavKey
+
+@Serializable
 data class PracticeKey(val attemptId: String) : NavKey
 
 @Serializable
@@ -86,6 +90,7 @@ private val navConfiguration = SavedStateConfiguration {
             subclass(LegislationKey::class, LegislationKey.serializer())
             subclass(SettingsKey::class, SettingsKey.serializer())
             subclass(ChangeExamKey::class, ChangeExamKey.serializer())
+            subclass(AboutKey::class, AboutKey.serializer())
             subclass(PracticeKey::class, PracticeKey.serializer())
             subclass(ResultsKey::class, ResultsKey.serializer())
         }
@@ -195,7 +200,10 @@ fun ExamNavigation() {
             entry<LegislationKey> { LearnPlaceholderScreen(LearnSection.Legislation, onBack = pop) }
             entry<SettingsKey>(metadata = tabMetadata) {
                 NavigationShell(NavTab.Settings, selectTab) {
-                    SettingsRoute(onChangeExam = { backStack.add(ChangeExamKey) })
+                    SettingsRoute(
+                        onChangeExam = { backStack.add(ChangeExamKey) },
+                        onOpenAbout = { backStack.add(AboutKey) },
+                    )
                 }
             }
             entry<PracticeKey> { key ->
@@ -217,6 +225,7 @@ fun ExamNavigation() {
             entry<ChangeExamKey> {
                 ExamSelectionRoute(onBack = pop, onDone = { backStack.popIfTop(ChangeExamKey) })
             }
+            entry<AboutKey> { AboutRoute(onBack = pop) }
         },
     )
 }

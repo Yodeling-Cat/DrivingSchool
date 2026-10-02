@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.di
 
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
+import com.spiraclestudios.autoskola.about.AboutViewModel
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerDataSource
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.answers.SettingsPracticeAnswerDataSource
@@ -61,6 +62,7 @@ val appModule = module {
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
+    viewModel { AboutViewModel() }
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
 }

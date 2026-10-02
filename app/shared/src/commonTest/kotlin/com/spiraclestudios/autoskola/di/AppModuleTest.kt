@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.di
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
+import com.spiraclestudios.autoskola.about.AboutViewModel
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.testBank
@@ -47,6 +48,7 @@ class AppModuleTest : ViewModelTest() {
         koin.get<IntersectionsViewModel>()
         koin.get<SituationViewModel> { parametersOf(1) }
         koin.get<SettingsViewModel>()
+        koin.get<AboutViewModel>()
         koin.get<PracticeViewModel> { parametersOf("attempt-id") }
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }
     }

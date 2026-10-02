@@ -36,6 +36,7 @@ class NavRouteTest {
             listOf(HomeKey, PracticeKey("1759301234567-9x")),
             listOf(HomeKey, PracticeKey("1-abc"), ResultsKey("1-abc")),
             listOf(HomeKey, SettingsKey, ChangeExamKey),
+            listOf(HomeKey, SettingsKey, AboutKey),
         )
 
         for (stack in stacks) {
@@ -54,6 +55,7 @@ class NavRouteTest {
             LegislationKey,
             SettingsKey,
             ChangeExamKey,
+            AboutKey,
             PracticeKey("1-abc"),
             ResultsKey("1-abc"),
         )

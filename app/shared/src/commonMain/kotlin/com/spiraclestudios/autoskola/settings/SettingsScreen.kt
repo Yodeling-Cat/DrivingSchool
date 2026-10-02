@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,13 +53,18 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Connects [SettingsScreen] to its [SettingsViewModel] and to navigation. */
 @Composable
-fun SettingsRoute(onChangeExam: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
+fun SettingsRoute(onChangeExam: () -> Unit, onOpenAbout: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(state, viewModel::onEvent, onChangeExam)
+    SettingsScreen(state, viewModel::onEvent, onChangeExam, onOpenAbout)
 }
 
 @Composable
-fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, onChangeExam: () -> Unit) {
+fun SettingsScreen(
+    state: SettingsUiState,
+    onEvent: (SettingsUiEvent) -> Unit,
+    onChangeExam: () -> Unit,
+    onOpenAbout: () -> Unit,
+) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
         Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
@@ -82,32 +89,13 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
                     )
                 }
                 SectionLabel(strings.settingsExam, Modifier.padding(start = 6.dp))
-                NajCard {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onChangeExam)
-                            .padding(start = 10.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        // The same icon and colour the licence step offers the category in.
-                        state.exam?.let { LicenceIcon(it.category) }
-                        Column(Modifier.weight(1f)) {
-                            Text(strings.settingsChangeExam, style = Naj.type.rowTitle, color = colors.ink)
-                            Text(
-                                state.exam?.shortTitle.orEmpty(),
-                                style = Naj.type.rowSubtitle,
-                                color = colors.muted,
-                            )
-                        }
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = colors.primaryDeep,
-                        )
-                    }
-                }
+                SettingsNavRow(
+                    title = strings.settingsChangeExam,
+                    subtitle = state.exam?.shortTitle.orEmpty(),
+                    onClick = onChangeExam,
+                    // The same icon and colour the licence step offers the category in.
+                    leading = { state.exam?.let { LicenceIcon(it.category) } },
+                )
 
                 SectionLabel(strings.settingsAnswers, Modifier.padding(start = 6.dp))
                 NajCard {
@@ -132,8 +120,61 @@ fun SettingsScreen(state: SettingsUiState, onEvent: (SettingsUiEvent) -> Unit, o
                         onCheckedChange = { onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(it)) },
                     )
                 }
+
+                SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
+                SettingsNavRow(
+                    title = strings.settingsAbout,
+                    onClick = onOpenAbout,
+                    leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
+                )
             }
         }
+    }
+}
+
+/**
+ * A setting that opens another screen: a mark, what it is, and the chevron that says it goes
+ * somewhere. The whole row is the target.
+ */
+@Composable
+private fun SettingsNavRow(
+    title: String,
+    leading: @Composable () -> Unit,
+    onClick: () -> Unit,
+    subtitle: String? = null,
+) {
+    val colors = Naj.colors
+    NajCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(start = 10.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            leading()
+            Column(Modifier.weight(1f)) {
+                Text(title, style = Naj.type.rowTitle, color = colors.ink)
+                subtitle?.let {
+                    Spacer(Modifier.height(3.dp))
+                    Text(it, style = Naj.type.rowSubtitle, color = colors.muted)
+                }
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.primaryDeep,
+            )
+        }
+    }
+}
+
+/** The square mark a setting leads with, on the colour the setting is about. */
+@Composable
+private fun SettingsRowIcon(icon: ImageVector, tint: Color, background: Color) {
+    IconTile(size = 40.dp, background = Brush.linearGradient(listOf(background, background))) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -146,7 +187,7 @@ private fun SettingsSwitchRow(
     title: String,
     description: String,
     checked: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     iconTint: Color,
     iconBackground: Color,
     onCheckedChange: (Boolean) -> Unit,
@@ -161,9 +202,7 @@ private fun SettingsSwitchRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        IconTile(size = 40.dp, background = Brush.linearGradient(listOf(iconBackground, iconBackground))) {
-            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
-        }
+        SettingsRowIcon(icon, iconTint, iconBackground)
         Column(Modifier.weight(1f)) {
             Text(
                 title,
@@ -194,6 +233,7 @@ private fun SettingsScreenPreview() {
             ),
             onEvent = {},
             onChangeExam = {},
+            onOpenAbout = {},
         )
     }
 }
@@ -212,6 +252,7 @@ private fun SettingsScreenCheckingPreview() {
             ),
             onEvent = {},
             onChangeExam = {},
+            onOpenAbout = {},
         )
     }
 }
@@ -230,6 +271,7 @@ private fun SettingsScreenNoExamPreview() {
             ),
             onEvent = {},
             onChangeExam = {},
+            onOpenAbout = {},
         )
     }
 }

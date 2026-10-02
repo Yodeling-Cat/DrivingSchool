@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.ui
 
+import com.mikepenz.aboutlibraries.Libs
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.PracticeTest
@@ -303,3 +304,65 @@ internal fun previewSectionSummaries(correct: Int = 36, wrong: Int = 3, unanswer
         ),
     )
 }
+
+/**
+ * The libraries the About screen's previews list, as the AboutLibraries plugin writes them. A
+ * preview has no way to read `files/aboutlibraries.json`, so these four entries stand in for it:
+ * real coordinates, real licence, and descriptions kept short.
+ */
+private val PREVIEW_LIBRARIES_JSON = """
+    {
+      "libraries": [
+        {
+          "uniqueId": "io.insert-koin:koin-core",
+          "artifactVersion": "4.2.2",
+          "name": "Koin",
+          "description": "KOIN - Kotlin simple Dependency Injection Framework",
+          "website": "https://insert-koin.io/",
+          "developers": [{ "name": "Arnaud Giuliani" }],
+          "scm": { "url": "https://github.com/InsertKoinIO/koin" },
+          "licenses": ["Apache-2.0"]
+        },
+        {
+          "uniqueId": "io.coil-kt.coil3:coil",
+          "artifactVersion": "3.4.0",
+          "name": "coil",
+          "description": "An image loading library for Android and Compose Multiplatform.",
+          "website": "https://github.com/coil-kt/coil",
+          "developers": [{ "name": "Coil Contributors" }],
+          "scm": { "url": "https://github.com/coil-kt/coil" },
+          "licenses": ["Apache-2.0"]
+        },
+        {
+          "uniqueId": "androidx.compose.ui:ui",
+          "artifactVersion": "1.12.0",
+          "name": "Compose UI",
+          "description": "Compose UI primitives, the drawing, measurement and layout of the toolkit.",
+          "website": "https://developer.android.com/jetpack/androidx/releases/compose-ui",
+          "developers": [{ "name": "The Android Open Source Project" }],
+          "organization": { "name": "The Android Open Source Project" },
+          "scm": { "url": "https://cs.android.com/androidx/platform/frameworks/support" },
+          "licenses": ["Apache-2.0"]
+        },
+        {
+          "uniqueId": "io.ktor:ktor-client-core",
+          "artifactVersion": "3.4.3",
+          "name": "ktor-client-core",
+          "description": "Ktor is a framework for quickly creating connected applications in Kotlin.",
+          "website": "https://ktor.io/",
+          "developers": [{ "name": "JetBrains" }],
+          "scm": { "url": "https://github.com/ktorio/ktor" },
+          "licenses": ["Apache-2.0"]
+        }
+      ],
+      "licenses": {
+        "Apache-2.0": {
+          "name": "Apache License 2.0",
+          "url": "https://spdx.org/licenses/Apache-2.0.html"
+        }
+      }
+    }
+""".trimIndent()
+
+/** The four libraries above, as the About screen reads them out of the generated document. */
+internal val previewLibraries: Libs = Libs.Builder().withJson(PREVIEW_LIBRARIES_JSON).build()

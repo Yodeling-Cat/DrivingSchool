@@ -206,6 +206,20 @@ class Strings(
     val settingsAdvanceAfterAnswerDescription: String,
     val settingsExam: String,
     val settingsChangeExam: String,
+    // About
+    /** The screen's own title. */
+    val aboutTitle: String,
+    /** The Settings section the row that opens the screen sits under. */
+    val settingsApp: String,
+    /** That row, which names the app it is about. */
+    val settingsAbout: String,
+    /** Which build the user is running, e.g. "Version 1.0". */
+    val aboutVersion: (version: String) -> String,
+    /** The heading over the list of the projects the app is built from. */
+    val aboutLibraries: String,
+    val aboutLibrariesIntro: String,
+    val aboutLibrariesSearch: String,
+    val aboutLibrariesNothingFound: String,
 )
 
 /** Slovak and Czech plurals: 1 / 2–4 / 5+ (and 0). */
@@ -349,6 +363,15 @@ private val EnglishStrings = Strings(
         "Available only when answers aren't checked immediately.",
     settingsExam = "Exam",
     settingsChangeExam = "Change exam",
+    aboutTitle = "About",
+    settingsApp = "App",
+    settingsAbout = "About Naj Autoškola",
+    aboutVersion = { "Version $it" },
+    aboutLibraries = "Open source libraries",
+    aboutLibrariesIntro = "Naj Autoškola is built with these open source projects. Tap one to see " +
+        "its licence, and everyone who wrote it.",
+    aboutLibrariesSearch = "Search libraries",
+    aboutLibrariesNothingFound = "No library matches your search",
 )
 
 private val SlovakStrings = Strings(
@@ -480,6 +503,15 @@ private val SlovakStrings = Strings(
         "Dostupné len vtedy, keď sa odpoveď nevyhodnocuje hneď.",
     settingsExam = "Skúška",
     settingsChangeExam = "Zmeniť skúšku",
+    aboutTitle = "O aplikácii",
+    settingsApp = "Aplikácia",
+    settingsAbout = "O aplikácii Naj Autoškola",
+    aboutVersion = { "Verzia $it" },
+    aboutLibraries = "Knižnice s otvoreným kódom",
+    aboutLibrariesIntro = "Naj Autoškola je postavená na týchto open source projektoch. Ťuknutím na " +
+        "niektorý z nich zobrazíte jeho licenciu aj všetkých, ktorí ho napísali.",
+    aboutLibrariesSearch = "Hľadať knižnice",
+    aboutLibrariesNothingFound = "Hľadanému výrazu nezodpovedá žiadna knižnica",
 )
 
 private val HungarianStrings = Strings(
@@ -611,6 +643,15 @@ private val HungarianStrings = Strings(
         "Csak akkor érhető el, ha a válaszokat nem értékeli ki azonnal.",
     settingsExam = "Vizsga",
     settingsChangeExam = "Vizsga módosítása",
+    aboutTitle = "Névjegy",
+    settingsApp = "Alkalmazás",
+    settingsAbout = "Névjegy",
+    aboutVersion = { "$it verzió" },
+    aboutLibraries = "Nyílt forráskódú könyvtárak",
+    aboutLibrariesIntro = "A Legjobb Autósiskola ezekre a nyílt forráskódú projektekre épül. " +
+        "Koppintson az egyikre a licencéhez és a készítőihez.",
+    aboutLibrariesSearch = "Keresés a könyvtárakban",
+    aboutLibrariesNothingFound = "Egyetlen könyvtár sem felel meg a keresésnek",
 )
 
 private val CzechStrings = Strings(
@@ -742,4 +783,13 @@ private val CzechStrings = Strings(
         "Dostupné jen tehdy, když se odpověď nevyhodnocuje ihned.",
     settingsExam = "Zkouška",
     settingsChangeExam = "Změnit zkoušku",
+    aboutTitle = "O aplikaci",
+    settingsApp = "Aplikace",
+    settingsAbout = "O aplikaci Nej Autoškola",
+    aboutVersion = { "Verze $it" },
+    aboutLibraries = "Knihovny s otevřeným kódem",
+    aboutLibrariesIntro = "Nej Autoškola staví na těchto open source projektech. Klepnutím na " +
+        "některý z nich zobrazíte jeho licenci i všechny, kdo ho napsali.",
+    aboutLibrariesSearch = "Hledat knihovny",
+    aboutLibrariesNothingFound = "Hledanému výrazu neodpovídá žádná knihovna",
 )

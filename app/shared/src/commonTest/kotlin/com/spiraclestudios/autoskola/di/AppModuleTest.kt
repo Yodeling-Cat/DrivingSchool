@@ -17,6 +17,7 @@ import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
 import com.spiraclestudios.autoskola.learn.SituationViewModel
+import com.spiraclestudios.autoskola.onboarding.ConsentViewModel
 import com.spiraclestudios.autoskola.onboarding.DisclaimerViewModel
 import com.spiraclestudios.autoskola.onboarding.ExamSelectionViewModel
 import com.spiraclestudios.autoskola.practice.PracticeViewModel
@@ -48,6 +49,7 @@ class AppModuleTest : ViewModelTest() {
 
         koin.get<AppViewModel>()
         koin.get<DisclaimerViewModel>()
+        koin.get<ConsentViewModel>()
         koin.get<ExamSelectionViewModel>()
         koin.get<HomeViewModel>()
         koin.get<SignsViewModel>()

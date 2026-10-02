@@ -43,6 +43,18 @@ class Strings(
     val disclaimerIndependent: String,
     val disclaimerSource: String,
     val disclaimerAccept: String,
+    // Consent. The two switches are separate answers, and the documents are linked rather than
+    // summarised: a user cannot agree to what they cannot read.
+    val consentTitle: String,
+    val consentSubtitle: String,
+    val consentCrashReportingTitle: String,
+    val consentCrashReportingDescription: String,
+    val consentAnalyticsTitle: String,
+    val consentAnalyticsDescription: String,
+    val consentAgree: String,
+    val legalPrivacyPolicy: String,
+    val legalTermsOfUse: String,
+    val consentContinue: String,
     // Exam selection. Titles carry the word that the design sets in coral italic separately, so a
     // translation can put it wherever its grammar wants instead of guessing from the sentence.
     val examSelectionCountryTitleBefore: String,
@@ -244,6 +256,19 @@ private val EnglishStrings = Strings(
         "the Ministry of Interior of the Slovak Republic (minv.sk). We copy them as published, but if " +
         "anything differs, the official exam and current law apply.",
     disclaimerAccept = "I understand",
+    consentTitle = "Your data, your choice",
+    consentSubtitle = "This app can send two things, to help us fix it and improve it. Both are off " +
+        "unless you turn them on.",
+    consentCrashReportingTitle = "Crash reports",
+    consentCrashReportingDescription = "If the app crashes, send the stack trace, the device model and " +
+        "the app version, so we can fix it.",
+    consentAnalyticsTitle = "Usage statistics",
+    consentAnalyticsDescription = "Send anonymous events about which screens and exams are used, so we " +
+        "know what to improve.",
+    consentAgree = "I agree to the Privacy Policy and the Terms of Use",
+    legalPrivacyPolicy = "Privacy Policy",
+    legalTermsOfUse = "Terms of Use",
+    consentContinue = "Agree and continue",
     examSelectionCountryTitleBefore = "Which country's test are you",
     examSelectionCountryTitleAccent = "taking?",
     examSelectionCountrySubtitle = "You can change this later.",
@@ -384,6 +409,19 @@ private val SlovakStrings = Strings(
         "Ministerstvo vnútra Slovenskej republiky (minv.sk). Preberáme ich v zverejnenom znení, ale ak sa " +
         "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
     disclaimerAccept = "Rozumiem",
+    consentTitle = "Vaše dáta, vaša voľba",
+    consentSubtitle = "Aplikácia môže odosielať dve veci, aby sme ju mohli opraviť a vylepšiť. Obe sú " +
+        "vypnuté, kým ich nezapnete.",
+    consentCrashReportingTitle = "Hlásenia o zlyhaniach",
+    consentCrashReportingDescription = "Ak aplikácia spadne, pošlite nám záznam o chybe, model zariadenia " +
+        "a verziu aplikácie, aby sme ju mohli opraviť.",
+    consentAnalyticsTitle = "Štatistiky používania",
+    consentAnalyticsDescription = "Posielajte anonymné udalosti o tom, ktoré obrazovky a testy sa " +
+        "používajú, aby sme vedeli, čo zlepšiť.",
+    consentAgree = "Súhlasím so Zásadami ochrany osobných údajov a Podmienkami používania",
+    legalPrivacyPolicy = "Zásady ochrany osobných údajov",
+    legalTermsOfUse = "Podmienky používania",
+    consentContinue = "Súhlasiť a pokračovať",
     examSelectionCountryTitleBefore = "Na skúšku ktorej krajiny sa",
     examSelectionCountryTitleAccent = "pripravujete?",
     examSelectionCountrySubtitle = "Neskôr to môžete zmeniť.",
@@ -524,6 +562,19 @@ private val HungarianStrings = Strings(
         "hivatalos kérdésbankból származnak (minv.sk). A közzétett formában vesszük át őket, de eltérés " +
         "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
     disclaimerAccept = "Értem",
+    consentTitle = "Az Ön adatai, az Ön döntése",
+    consentSubtitle = "Az alkalmazás két dolgot küldhet, hogy javíthassuk és fejleszthessük. Mindkettő " +
+        "ki van kapcsolva, amíg be nem kapcsolja.",
+    consentCrashReportingTitle = "Hibajelentések",
+    consentCrashReportingDescription = "Ha az alkalmazás lefagy, küldje el a hiba nyomkövetését, a " +
+        "készülék típusát és az alkalmazás verzióját, hogy javíthassuk.",
+    consentAnalyticsTitle = "Használati statisztikák",
+    consentAnalyticsDescription = "Küldjön névtelen eseményeket arról, mely képernyőket és vizsgákat " +
+        "használja, hogy tudjuk, mit fejlesszünk.",
+    consentAgree = "Elfogadom az Adatvédelmi szabályzatot és a Felhasználási feltételeket",
+    legalPrivacyPolicy = "Adatvédelmi szabályzat",
+    legalTermsOfUse = "Felhasználási feltételek",
+    consentContinue = "Elfogadás és tovább",
     examSelectionCountryTitleBefore = "Melyik ország vizsgájára",
     examSelectionCountryTitleAccent = "készül?",
     examSelectionCountrySubtitle = "Ezt később módosíthatja.",
@@ -664,6 +715,19 @@ private val CzechStrings = Strings(
         "Ministerstvo vnitra Slovenské republiky (minv.sk). Přebíráme je ve zveřejněném znění, ale pokud se " +
         "něco liší, platí oficiální zkouška a aktuální předpisy.",
     disclaimerAccept = "Rozumím",
+    consentTitle = "Vaše data, vaše volba",
+    consentSubtitle = "Aplikace může odesílat dvě věci, abychom ji mohli opravit a vylepšit. Obě jsou " +
+        "vypnuté, dokud je nezapnete.",
+    consentCrashReportingTitle = "Hlášení o pádech",
+    consentCrashReportingDescription = "Pokud aplikace spadne, pošlete nám záznam o chybě, model zařízení " +
+        "a verzi aplikace, abychom ji mohli opravit.",
+    consentAnalyticsTitle = "Statistiky používání",
+    consentAnalyticsDescription = "Posílejte anonymní události o tom, které obrazovky a testy se " +
+        "používají, abychom věděli, co zlepšit.",
+    consentAgree = "Souhlasím se Zásadami ochrany osobních údajů a Podmínkami použití",
+    legalPrivacyPolicy = "Zásady ochrany osobních údajů",
+    legalTermsOfUse = "Podmínky použití",
+    consentContinue = "Souhlasit a pokračovat",
     examSelectionCountryTitleBefore = "Na zkoušku které země se",
     examSelectionCountryTitleAccent = "připravujete?",
     examSelectionCountrySubtitle = "Později to můžete změnit.",

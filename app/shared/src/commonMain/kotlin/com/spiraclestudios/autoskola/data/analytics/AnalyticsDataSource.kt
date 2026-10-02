@@ -28,8 +28,12 @@ interface AnalyticsDataSource {
     fun screen(name: String)
 
     /**
-     * Turns recording on or off. Consent is the app's decision (see [AnalyticsRepository]); the
-     * data source only obeys it.
+     * Told what the user has consented to — two separate answers, because they are two separate
+     * questions. Reading consent is the app's job (see [AnalyticsRepository]); the data source only
+     * obeys it.
+     *
+     * @param crashReporting unhandled exceptions may be reported
+     * @param analytics events we record on purpose may be sent
      */
-    fun setEnabled(enabled: Boolean)
+    fun setConsent(crashReporting: Boolean, analytics: Boolean)
 }

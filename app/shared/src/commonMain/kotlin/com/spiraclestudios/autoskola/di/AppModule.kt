@@ -27,6 +27,7 @@ import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
 import com.spiraclestudios.autoskola.learn.SituationViewModel
 import com.spiraclestudios.autoskola.navigation.navigationState
+import com.spiraclestudios.autoskola.onboarding.ConsentViewModel
 import com.spiraclestudios.autoskola.onboarding.DisclaimerViewModel
 import com.spiraclestudios.autoskola.onboarding.ExamSelectionViewModel
 import com.spiraclestudios.autoskola.practice.PracticeViewModel
@@ -63,6 +64,7 @@ val appModule = module {
     // ViewModels
     viewModelOf(::AppViewModel)
     viewModelOf(::DisclaimerViewModel)
+    viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get()) }
     viewModelOf(::SignsViewModel)

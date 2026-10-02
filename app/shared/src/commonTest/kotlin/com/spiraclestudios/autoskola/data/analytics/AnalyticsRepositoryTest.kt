@@ -4,67 +4,80 @@ import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class AnalyticsRepositoryTest {
 
-    /** A repository over a fake sink, with the disclaimer already accepted or not. */
-    private fun repository(accepted: Boolean = false): Pair<AnalyticsRepository, RecordingAnalyticsDataSource> {
-        val analytics = RecordingAnalyticsDataSource()
-        val preferences = PreferencesRepository(MapSettings()).apply { if (accepted) acceptDisclaimer() }
-        return AnalyticsRepository(analytics, preferences) to analytics
+    /** A repository over a fake sink, with the two answers already given or not. */
+    private class Fixture(crashReporting: Boolean = false, analytics: Boolean = false) {
+        val sink = RecordingAnalyticsDataSource()
+        val preferences = PreferencesRepository(MapSettings()).apply {
+            setCrashReportingEnabled(crashReporting)
+            setAnalyticsEnabled(analytics)
+        }
+        val repository = AnalyticsRepository(sink, preferences)
     }
 
     @Test
-    fun recordsNothingBeforeConsent() {
-        val (analytics, sink) = repository(accepted = false)
+    fun sendsNothingUntilOneOfTheTwoQuestionsIsAnswered() {
+        val fixture = Fixture()
 
-        analytics.capture(AnalyticsEvent.OnboardingCompleted)
-        analytics.screen("Home")
+        fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
+        fixture.repository.screen("Home")
 
-        assertEquals(emptyList(), sink.events)
-        assertEquals(emptyList(), sink.screens)
+        assertEquals(emptyList(), fixture.sink.events)
+        assertEquals(emptyList(), fixture.sink.screens)
+        assertEquals(listOf(false to false), fixture.sink.consents)
     }
 
     @Test
-    fun recordsAfterConsent() {
-        val (analytics, sink) = repository(accepted = true)
+    fun crashReportingAloneSendsNoEvents() {
+        val fixture = Fixture(crashReporting = true)
 
-        analytics.capture(AnalyticsEvent.ExamSelected, mapOf("bank_id" to "sk-b"))
+        fixture.repository.capture(AnalyticsEvent.ExamSelected)
+        fixture.repository.screen("Home")
 
-        assertEquals(listOf(AnalyticsEvent.ExamSelected), sink.events)
-        assertEquals(mapOf("bank_id" to "sk-b"), sink.properties.single())
+        assertEquals(emptyList(), fixture.sink.events)
+        assertEquals(emptyList(), fixture.sink.screens)
+        // The data source is still told, because crash reports have to keep flowing on their own.
+        assertEquals(listOf(true to false), fixture.sink.consents)
     }
 
     @Test
-    fun anEarlierAcceptanceStartsRecording() {
-        val (analytics, sink) = repository(accepted = true)
+    fun analyticsAloneSendsEvents() {
+        val fixture = Fixture(analytics = true)
 
-        assertTrue(analytics.isEnabled.value)
-        assertEquals(listOf(true), sink.enableCalls)
+        fixture.repository.capture(AnalyticsEvent.ExamSelected, mapOf("bank_id" to "sk-b"))
+
+        assertEquals(listOf(AnalyticsEvent.ExamSelected), fixture.sink.events)
+        assertEquals(mapOf("bank_id" to "sk-b"), fixture.sink.properties.single())
+        assertEquals(listOf(false to true), fixture.sink.consents)
     }
 
     @Test
-    fun acceptingTurnsRecordingOn() {
-        val (analytics, sink) = repository(accepted = false)
+    fun anUnchangedAnswerIsNotPushedAgain() {
+        val fixture = Fixture(analytics = true)
 
-        analytics.setEnabled(true)
-        analytics.capture(AnalyticsEvent.OnboardingCompleted)
+        fixture.repository.syncConsent()
+        fixture.repository.syncConsent()
 
-        assertEquals(listOf(false, true), sink.enableCalls)
-        assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), sink.events)
+        assertEquals(listOf(false to true), fixture.sink.consents)
     }
 
     @Test
-    fun withdrawingConsentStopsRecording() {
-        val (analytics, sink) = repository(accepted = true)
+    fun withdrawingAnalyticsStopsEventsAndTellsTheSdk() {
+        val fixture = Fixture(crashReporting = true, analytics = true)
 
-        analytics.setEnabled(false)
-        analytics.capture(AnalyticsEvent.ExamSelected)
-        analytics.screen("Home")
+        fixture.repository.capture(AnalyticsEvent.ExamSelected)
+        assertEquals(1, fixture.sink.events.size)
 
-        assertEquals(listOf(true, false), sink.enableCalls)
-        assertEquals(emptyList(), sink.events)
-        assertEquals(emptyList(), sink.screens)
+        // A screen that flips a switch writes the preference first, then asks for the push.
+        fixture.preferences.setAnalyticsEnabled(false)
+        fixture.repository.syncConsent()
+
+        // Crash reporting is untouched, so the SDK is told the new pair rather than switched off.
+        assertEquals(listOf(true to true, true to false), fixture.sink.consents)
+
+        fixture.repository.capture(AnalyticsEvent.ExamSelected)
+        assertEquals(1, fixture.sink.events.size)
     }
 }

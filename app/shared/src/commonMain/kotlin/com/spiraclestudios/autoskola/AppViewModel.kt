@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
+import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -31,7 +32,7 @@ class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : 
     private fun state(preferences: Preferences, exam: CurrentExam) = AppUiState(
         language = preferences.language,
         destination = when {
-            !preferences.disclaimerAccepted -> AppDestination.Disclaimer
+            preferences.legalAcceptedVersion < CURRENT_LEGAL_VERSION -> AppDestination.Disclaimer
             exam is CurrentExam.Loading -> AppDestination.Loading
             exam is CurrentExam.Ready -> AppDestination.Exam
             else -> AppDestination.ChooseExam

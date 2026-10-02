@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.data.analytics
 
 import com.posthog.kmp.ErrorTrackingConfig
 import com.posthog.kmp.PostHog
+import com.posthog.kmp.PostHogBeforeSend
 import com.posthog.kmp.PostHogConfig
 import com.posthog.kmp.PostHogContext
 
@@ -19,53 +20,69 @@ import com.posthog.kmp.PostHogContext
 class PostHogAnalyticsDataSource(private val context: PostHogContext?, private val debug: Boolean = false) :
     AnalyticsDataSource {
 
-    private var enabled = false
+    private var crashReporting = false
+    private var analyticsEnabled = false
     private var started = false
 
-    override fun setEnabled(enabled: Boolean) {
-        this.enabled = enabled
-        if (enabled) {
+    private val anyConsent: Boolean get() = crashReporting || analyticsEnabled
+
+    override fun setConsent(crashReporting: Boolean, analytics: Boolean) {
+        this.crashReporting = crashReporting
+        this.analyticsEnabled = analytics
+        if (anyConsent) {
             ensureStarted()
+            // PostHog has one off switch for everything, so it is only thrown when neither answer
+            // allows anything to leave. Which events actually go is decided per event, in
+            // beforeSend below.
+            if (started) PostHog.optIn()
         } else if (started) {
             PostHog.optOut()
         }
     }
 
     override fun capture(event: AnalyticsEvent, properties: Map<String, Any>) {
-        if (!enabled) return
+        if (!analyticsEnabled) return
         ensureStarted()
         PostHog.capture(event.eventName, properties)
     }
 
     override fun screen(name: String) {
-        if (!enabled) return
+        if (!analyticsEnabled) return
         ensureStarted()
         PostHog.screen(name)
     }
 
     /** Starts PostHog once, and only when there is something to send with. */
     private fun ensureStarted() {
-        if (started || context == null) return
+        if (started || context == null || !anyConsent) return
         started = true
         PostHog.setup(
             PostHogConfig(
                 apiKey = API_KEY,
                 host = PostHogConfig.HOST_EU,
                 debug = debug,
-                // Consent decides this, not the SDK default, so a run that starts before the
-                // terms are accepted queues nothing.
-                optOut = !enabled,
-                captureApplicationLifecycleEvents = true,
+                optOut = !anyConsent,
+                // Nothing the SDK would send on its own: lifecycle events and page views are
+                // product analytics, and they would go without passing the analytics answer.
+                captureApplicationLifecycleEvents = false,
+                captureScreenViews = false,
                 // Crashes on every target: on the web PostHog records unhandled errors and
                 // unhandled promise rejections, console errors stay off (plans/privacy-and-terms.md).
                 errorTracking = ErrorTrackingConfig(
                     autoCapture = true,
                     inAppIncludes = listOf(APP_PACKAGE),
                 ),
+                // The consent gate, read at send time rather than at setup time. This is the only
+                // way to honour a switch flipped later: PostHog.setup cannot be called twice, so
+                // the crash-reporting answer cannot be baked into ErrorTrackingConfig.
+                beforeSend = listOf(PostHogBeforeSend { event -> if (isAllowed(event.event)) event else null }),
             ),
             context,
         )
     }
+
+    /** Whether an event of this name is covered by one of the two answers the user gave. */
+    private fun isAllowed(event: String): Boolean = if (event == EXCEPTION_EVENT) crashReporting else analyticsEnabled
 
     private companion object {
         /**
@@ -77,5 +94,8 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
         const val API_KEY = "phc_n7PQCT2Y6esab4DaF7AYyq3BXtb7RCP7CbS9XdnFivHx"
 
         const val APP_PACKAGE = "com.spiraclestudios.autoskola"
+
+        /** The event name PostHog's error tracking sends for a captured exception. */
+        const val EXCEPTION_EVENT = "\$exception"
     }
 }

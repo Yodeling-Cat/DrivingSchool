@@ -50,14 +50,14 @@ import com.spiraclestudios.autoskola.ui.theme.rememberGrainShader
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun DisclaimerRoute(viewModel: DisclaimerViewModel = koinViewModel()) {
+fun DisclaimerRoute(onContinue: () -> Unit, viewModel: DisclaimerViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    DisclaimerScreen(state, viewModel::onEvent)
+    DisclaimerScreen(state, viewModel::onEvent, onContinue)
 }
 
-/** First screen after install. Shown until the user confirms it. */
+/** First screen after install: what this app is, and what it is not. */
 @Composable
-fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> Unit) {
+fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> Unit, onContinue: () -> Unit) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors))) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -102,7 +102,7 @@ fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> U
             ) {
                 PrimaryPill(
                     text = strings.disclaimerAccept,
-                    onClick = { onEvent(DisclaimerUiEvent.Accept) },
+                    onClick = onContinue,
                     height = 56.dp,
                 )
             }
@@ -155,7 +155,7 @@ private fun Paragraph(text: String) {
 @Composable
 private fun DisclaimerScreenPreview() {
     AppPreview {
-        DisclaimerScreen(DisclaimerUiState(AppLanguage.English), onEvent = {})
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.English), onEvent = {}, onContinue = {})
     }
 }
 
@@ -164,6 +164,6 @@ private fun DisclaimerScreenPreview() {
 @Composable
 private fun DisclaimerScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
-        DisclaimerScreen(DisclaimerUiState(AppLanguage.Slovak), onEvent = {})
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.Slovak), onEvent = {}, onContinue = {})
     }
 }

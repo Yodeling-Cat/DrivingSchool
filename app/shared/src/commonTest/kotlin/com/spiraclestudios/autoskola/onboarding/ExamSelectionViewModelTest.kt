@@ -96,7 +96,8 @@ class ExamSelectionViewModelTest : ViewModelTest() {
 
     @Test
     fun choosingACategoryRecordsTheExam() = runTest {
-        analytics.setEnabled(true)
+        preferences.setAnalyticsEnabled(true)
+        analytics.syncConsent()
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))

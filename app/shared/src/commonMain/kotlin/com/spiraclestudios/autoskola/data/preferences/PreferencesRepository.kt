@@ -12,7 +12,18 @@ import kotlinx.coroutines.flow.update
 data class TestSelection(val bankId: String, val category: LicenseCategory)
 
 data class Preferences(
-    val disclaimerAccepted: Boolean,
+    /**
+     * The privacy policy and terms version the user has accepted, 0 until they accept one. The
+     * consent screen writes it, and anything below [CURRENT_LEGAL_VERSION] asks again.
+     */
+    val legalAcceptedVersion: Int,
+    /**
+     * Whether the user lets us collect crash reports. Deliberately its own answer rather than part
+     * of accepting the terms: consent has to be specific to what it covers.
+     */
+    val crashReportingEnabled: Boolean,
+    /** Whether the user lets us collect usage analytics. Independent of [crashReportingEnabled]. */
+    val analyticsEnabled: Boolean,
     /** `null` until the user has picked an exam in onboarding. */
     val selection: TestSelection?,
     /** UI language; follows the device language until the user picks one. */
@@ -32,9 +43,22 @@ class PreferencesRepository(private val settings: Settings) {
     private val state = MutableStateFlow(read())
     val preferences: StateFlow<Preferences> = state.asStateFlow()
 
-    fun acceptDisclaimer() {
-        settings.putBoolean(KEY_DISCLAIMER, true)
-        state.update { it.copy(disclaimerAccepted = true) }
+    /** Records that the user agreed to the documents at [version]. */
+    fun acceptLegal(version: Int) {
+        settings.putInt(KEY_LEGAL_VERSION, version)
+        state.update { it.copy(legalAcceptedVersion = version) }
+    }
+
+    /** The answer to "send crash reports?", which the user can change at any time in Settings. */
+    fun setCrashReportingEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_CRASH_REPORTING, enabled)
+        state.update { it.copy(crashReportingEnabled = enabled) }
+    }
+
+    /** The answer to "send usage analytics?", which the user can change at any time in Settings. */
+    fun setAnalyticsEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_ANALYTICS, enabled)
+        state.update { it.copy(analyticsEnabled = enabled) }
     }
 
     fun selectLanguage(language: AppLanguage) {
@@ -66,7 +90,9 @@ class PreferencesRepository(private val settings: Settings) {
     }
 
     private fun read() = Preferences(
-        disclaimerAccepted = settings.getBoolean(KEY_DISCLAIMER, false),
+        legalAcceptedVersion = settings.getInt(KEY_LEGAL_VERSION, 0),
+        crashReportingEnabled = settings.getBoolean(KEY_CRASH_REPORTING, false),
+        analyticsEnabled = settings.getBoolean(KEY_ANALYTICS, false),
         selection = readSelection(),
         language = AppLanguage.fromCode(settings.getStringOrNull(KEY_LANGUAGE)) ?: AppLanguage.system(),
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
@@ -80,7 +106,9 @@ class PreferencesRepository(private val settings: Settings) {
     }
 
     private companion object {
-        const val KEY_DISCLAIMER = "disclaimer_accepted"
+        const val KEY_LEGAL_VERSION = "legal_accepted_version"
+        const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
+        const val KEY_ANALYTICS = "analytics_enabled"
         const val KEY_BANK = "question_bank"
         const val KEY_CATEGORY = "license_category"
         const val KEY_LANGUAGE = "app_language"

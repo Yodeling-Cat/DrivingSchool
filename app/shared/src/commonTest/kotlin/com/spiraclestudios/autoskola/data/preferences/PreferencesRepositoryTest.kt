@@ -15,7 +15,9 @@ class PreferencesRepositoryTest {
     @Test
     fun onboardingStateIsEmptyOnFirstLaunch() {
         val preferences = PreferencesRepository(MapSettings()).preferences.value
-        assertFalse(preferences.disclaimerAccepted)
+        assertEquals(0, preferences.legalAcceptedVersion)
+        assertFalse(preferences.crashReportingEnabled)
+        assertFalse(preferences.analyticsEnabled)
         assertNull(preferences.selection)
     }
 
@@ -23,13 +25,23 @@ class PreferencesRepositoryTest {
     fun onboardingChoicesSurviveRestart() {
         val settings = MapSettings()
         PreferencesRepository(settings).apply {
-            acceptDisclaimer()
+            acceptLegal(CURRENT_LEGAL_VERSION)
             select(TestSelection("sk-hu", LicenseCategory.CE))
         }
 
         val restored = PreferencesRepository(settings).preferences.value
-        assertTrue(restored.disclaimerAccepted)
+        assertEquals(CURRENT_LEGAL_VERSION, restored.legalAcceptedVersion)
         assertEquals(TestSelection("sk-hu", LicenseCategory.CE), restored.selection)
+    }
+
+    @Test
+    fun theTwoSharingAnswersAreSeparateAndSurviveRestart() {
+        val settings = MapSettings()
+        PreferencesRepository(settings).setCrashReportingEnabled(true)
+
+        val restored = PreferencesRepository(settings).preferences.value
+        assertTrue(restored.crashReportingEnabled)
+        assertFalse(restored.analyticsEnabled)
     }
 
     @Test
@@ -70,10 +82,10 @@ class PreferencesRepositoryTest {
     @Test
     fun changesAreEmittedImmediately() {
         val repository = PreferencesRepository(MapSettings())
-        repository.acceptDisclaimer()
+        repository.acceptLegal(CURRENT_LEGAL_VERSION)
         repository.selectLanguage(AppLanguage.Czech)
 
-        assertTrue(repository.preferences.value.disclaimerAccepted)
+        assertEquals(CURRENT_LEGAL_VERSION, repository.preferences.value.legalAcceptedVersion)
         assertEquals(AppLanguage.Czech, repository.preferences.value.language)
     }
 

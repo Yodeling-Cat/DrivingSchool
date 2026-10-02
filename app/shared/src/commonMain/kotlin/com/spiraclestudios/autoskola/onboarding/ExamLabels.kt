@@ -56,9 +56,9 @@ private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
 )
 
 private val bankTitles = mapOf(
-    "sk" to "Vodičský preukaz · slovensky",
-    "hu" to "Vezetői engedély · magyarul",
-    "en" to "Driver's licence · in English",
+    "sk" to "Vodičský preukaz · Slovensky",
+    "hu" to "Vezetői engedély · Magyarul",
+    "en" to "Driver's licence · English",
 )
 
 /** E.g. "Auto (B)" for Slovak, "Car with trailer (B+E)" for English. */
@@ -92,7 +92,7 @@ data class ExamLabel(val category: LicenseCategory, val bankLanguage: String) {
     /** E.g. "Auto (B)". */
     val name: String get() = category.displayName(bankLanguage)
 
-    /** E.g. "Vodičský preukaz · slovensky". */
+    /** E.g. "Vodičský preukaz · Slovensky". */
     val title: String get() = bankTitle(bankLanguage)
 
     /**

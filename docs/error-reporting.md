@@ -76,7 +76,17 @@ npm install -g @posthog/cli
 - `ENABLE_USER_SCRIPT_SANDBOXING` = `No` — the script walks directories and runs `posthog-cli`,
   which the sandbox forbids
 
-**A Run Script build phase, last**, after the phases that produce the app and the dSYMs:
+**This is already wired up.** `iosApp.xcodeproj` has an **Upload PostHog Debug Symbols** phase,
+placed last, which runs [app/iosApp/upload-symbols.sh](./../app/iosApp/upload-symbols.sh). That
+script is the source of truth. It exits 0 rather than failing the build when the configuration is
+not Release, when `posthog-cli` is missing, or when there are no credentials — the same
+"optional, and say so" rule the Gradle side follows.
+
+It reads the bundle id and version from the built `Info.plist` with `PlistBuddy`, because this
+project defines no `MARKETING_VERSION` or `CURRENT_PROJECT_VERSION` build settings for a script to
+read.
+
+The rest of this section describes what that script does, so the setup reads in one place:
 
 ```bash
 if [[ "${CONFIGURATION:-}" != "Release" ]]; then

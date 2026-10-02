@@ -75,6 +75,7 @@
 				8311564F20604C42D0F6FAD1 /* Sources */,
 				97AC21D7DC87C32CE741E36A /* Frameworks */,
 				DFFA990227FBDB3F222758E8 /* Resources */,
+				C4A7E1B90D3F4A2E8B6C5D71 /* Upload PostHog Debug Symbols */,
 			);
 			buildRules = (
 			);
@@ -156,6 +157,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/../..\"\n./gradlew :app:shared:embedAndSignAppleFrameworkForXcode\n";
+		};
+		C4A7E1B90D3F4A2E8B6C5D71 /* Upload PostHog Debug Symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)",
+			);
+			name = "Upload PostHog Debug Symbols";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/upload-symbols.sh\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 

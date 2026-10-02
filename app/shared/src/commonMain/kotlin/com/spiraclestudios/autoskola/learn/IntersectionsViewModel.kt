@@ -6,6 +6,7 @@ import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.situationOpenedProperties
 import com.spiraclestudios.autoskola.data.analytics.testStartedProperties
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
@@ -170,7 +171,7 @@ class IntersectionsViewModel(
 
             is IntersectionsUiEvent.OpenSituation -> analytics.capture(
                 AnalyticsEvent.SituationOpened,
-                mapOf("number" to event.number),
+                situationOpenedProperties(event.number),
             )
         }
     }

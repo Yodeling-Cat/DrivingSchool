@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.data.exam
 
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.bankMissingProperties
 import com.spiraclestudios.autoskola.data.attempts.AttemptRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
@@ -60,6 +61,6 @@ class ExamRepository(
     private fun reportMissing(selection: TestSelection) {
         if (reportedMissing == selection) return
         reportedMissing = selection
-        analytics.capture(AnalyticsEvent.BankMissing, mapOf("bank_id" to selection.bankId))
+        analytics.capture(AnalyticsEvent.BankMissing, bankMissingProperties(selection.bankId))
     }
 }

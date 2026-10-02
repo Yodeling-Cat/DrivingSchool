@@ -63,6 +63,12 @@ internal fun testAbandonedProperties(kind: AttemptKind, answersGiven: Int, durat
         "duration_seconds" to durationSeconds,
     )
 
+/** The properties `bank_missing` carries: the bank that could no longer be resolved. */
+internal fun bankMissingProperties(bankId: String): Map<String, Any> = mapOf("bank_id" to bankId)
+
+/** The properties `situation_opened` carries: which situation was opened. */
+internal fun situationOpenedProperties(number: Int): Map<String, Any> = mapOf("number" to number)
+
 /** The properties `consent_answered` carries: the answers committed, and the button pressed. */
 internal fun consentAnsweredProperties(crashReporting: Boolean, analytics: Boolean, choice: String): Map<String, Any> =
     mapOf(

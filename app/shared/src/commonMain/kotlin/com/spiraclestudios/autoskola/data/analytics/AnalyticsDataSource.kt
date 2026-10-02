@@ -16,6 +16,26 @@ enum class AnalyticsEvent(val eventName: String) {
 }
 
 /**
+ * The super property that says which build an event came from, and the two values it takes.
+ *
+ * PostHog's free plan allows one project, so a development build cannot have one of its own and
+ * its events cannot be kept out of the real users' by where they are sent. It is tagged instead,
+ * and filtered out of an insight by hand — which is why the property has to be on every event,
+ * including a crash report.
+ */
+const val ANALYTICS_ENVIRONMENT_PROPERTY = "environment"
+
+/** The value of [ANALYTICS_ENVIRONMENT_PROPERTY] for a build a developer runs. */
+const val ANALYTICS_ENVIRONMENT_DEVELOPMENT = "debug"
+
+/** The value of [ANALYTICS_ENVIRONMENT_PROPERTY] for a build a user has. */
+const val ANALYTICS_ENVIRONMENT_RELEASE = "release"
+
+/** The environment a build reports itself as, from whether it is a developer's build. */
+internal fun analyticsEnvironment(developmentBuild: Boolean): String =
+    if (developmentBuild) ANALYTICS_ENVIRONMENT_DEVELOPMENT else ANALYTICS_ENVIRONMENT_RELEASE
+
+/**
  * Where events go. Write-only: nothing reads analytics back, and an implementation must never
  * throw into the app, because a dropped event is not a failed test attempt.
  */

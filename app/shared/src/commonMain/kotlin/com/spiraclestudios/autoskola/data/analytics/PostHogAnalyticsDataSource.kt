@@ -79,6 +79,10 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
             ),
             context,
         )
+        // Every event carries which build it came from, so a developer's own traffic can be
+        // filtered out of the real users' insights. There is one PostHog project for both builds,
+        // because the free plan allows only one.
+        PostHog.register(ANALYTICS_ENVIRONMENT_PROPERTY, analyticsEnvironment(debug))
     }
 
     /** Whether an event of this name is covered by one of the two answers the user gave. */

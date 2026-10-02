@@ -476,7 +476,7 @@ private fun CountTile(
     }
 }
 
-/** The two ways out: review the answers, or go back to where the attempt was begun. */
+/** The two ways out: go back to where the attempt was begun, or review the answers. */
 @Composable
 private fun Actions(
     onReview: () -> Unit,
@@ -485,8 +485,8 @@ private fun Actions(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinePill(text = strings.reviewAnswers, onClick = onReview, modifier = Modifier.weight(1f))
-        PrimaryPill(text = doneLabel, onClick = onDone, modifier = Modifier.weight(1f))
+        OutlinePill(text = doneLabel, onClick = onDone, modifier = Modifier.weight(1f))
+        PrimaryPill(text = strings.reviewAnswers, onClick = onReview, modifier = Modifier.weight(1f))
     }
 }
 

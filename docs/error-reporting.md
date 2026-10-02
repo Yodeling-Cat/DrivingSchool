@@ -50,6 +50,20 @@ AGP 9.3.3 / 9.4.1 / 9.5.0-alpha06. This project is on AGP 9.4.1, so it is in the
 
 Kotlin/Native and Swift frames both need the dSYMs, minified or not. This is a Mac-side job.
 
+**First, iOS is not wired up at all yet.** The Kotlin Multiplatform SDK links the native
+`posthog-ios` package through Kotlin's SwiftPM integration, which has to be generated and added to
+the Xcode project before anything on iOS reports:
+
+```
+./gradlew :app:shared:integrateLinkagePackage
+```
+
+That writes a `KotlinMultiplatformLinkedPackage` directory and adds it to `app/iosApp`; the
+generated package and the Xcode project changes are both committed. **It has not been run**, so
+today the iOS app links no PostHog: no events and no crash reports leave it, and the dSYM upload
+below would have nothing to symbolicate. Everything after that in this section is only reachable
+once that step is done.
+
 **Install the CLI** on the build machine:
 
 ```bash

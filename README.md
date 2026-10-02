@@ -16,6 +16,39 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Server.
 
 * [/server](./server/src/main/kotlin) is for the Ktor server application.
 
+### Setting up your machine
+
+Nothing here is needed to build, run or test the app locally. It covers where crash reports and
+usage analytics go.
+
+**Analytics and crash reporting need no setup to work in a debug build** on Android and on the web:
+they report to the project the app ships with, and start as soon as you accept the consent screen
+and switch one of the two answers on. Until you do, the app sends nothing — so if you see no events,
+check the switches before anything else. iOS is not wired up yet: the native `posthog-ios` package
+still has to be linked into the Xcode project, which [docs/error-reporting.md](./docs/error-reporting.md)
+describes.
+
+**A `.env` is about release builds, not about seeing your events.** A minified release rewrites the
+app's own stack frames, so the mapping file R8 produces has to be uploaded to PostHog or that
+build's crash reports arrive as a list of obfuscated frames. The upload needs a secret, read from
+the environment or from a `.env` at the repo root (gitignored — copy [.env.example](./.env.example)):
+
+- `POSTHOG_CLI_API_KEY` — a **personal** API key (`phx_…`), *not* the project token the app ships
+  with. Create it under Settings → Personal API keys, with the **error tracking write** and
+  **organization read** scopes.
+- `POSTHOG_CLI_PROJECT_ID` — the numeric project id, from Project settings.
+- `POSTHOG_CLI_HOST` — `https://eu.posthog.com` for the EU cloud. Note there is no `i.`: the app
+  ingests events to `eu.i.posthog.com`, while the CLI talks to `eu.posthog.com`.
+
+`posthog-cli` must also be on your PATH (`npm install -g @posthog/cli`).
+
+- **Only running debug builds?** Nothing to do.
+- **Building a release on your machine?** Then this is mandatory, or that build's crash reports are
+  unreadable. The build still succeeds, and says that it skipped the upload.
+- **CI builds your releases?** The same three values belong in the release job's secrets, with
+  `posthog-cli` installed on the runner. That is where they are supposed to live — a release build
+  should not depend on secrets sitting on a laptop.
+
 ### Running the apps
 
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:

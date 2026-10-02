@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.testStartedProperties
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
@@ -88,7 +91,11 @@ sealed interface HomeUiEvent {
     data object AttemptOpened : HomeUiEvent
 }
 
-class HomeViewModel(exams: ExamRepository, private val random: Random = Random.Default) : ViewModel() {
+class HomeViewModel(
+    exams: ExamRepository,
+    private val analytics: AnalyticsRepository,
+    private val random: Random = Random.Default,
+) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
         .map { (it as? CurrentExam.Ready)?.session }
@@ -125,6 +132,7 @@ class HomeViewModel(exams: ExamRepository, private val random: Random = Random.D
                 val underWay = session.openAttemptFor(test)
                 if (underWay == null) {
                     openAttemptId.value = session.startOrResume(test).id
+                    started(AttemptKind.PracticeTest, resumed = false)
                 } else {
                     resumePrompt.value = ResumePrompt(
                         attemptId = underWay.id,
@@ -141,23 +149,35 @@ class HomeViewModel(exams: ExamRepository, private val random: Random = Random.D
                 if (candidates.isNotEmpty()) onEvent(HomeUiEvent.StartTest(candidates.random(random).number))
             }
 
-            HomeUiEvent.Resume -> openAttemptId.value = shown?.progress?.resumable?.attemptId
+            HomeUiEvent.Resume -> shown?.progress?.resumable?.let { resumable ->
+                openAttemptId.value = resumable.attemptId
+                started(resumable.kind, resumed = true)
+            }
 
             HomeUiEvent.ContinueTest -> {
-                openAttemptId.value = resumePrompt.value?.attemptId
+                resumePrompt.value?.let {
+                    openAttemptId.value = it.attemptId
+                    started(AttemptKind.PracticeTest, resumed = true)
+                }
                 resumePrompt.value = null
             }
 
             HomeUiEvent.StartOver -> resumePrompt.value?.let { prompt ->
                 val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 resumePrompt.value = null
-                viewModelScope.launch { openAttemptId.value = session.restart(test).id }
+                viewModelScope.launch {
+                    openAttemptId.value = session.restart(test).id
+                    started(AttemptKind.PracticeTest, resumed = false)
+                }
             }
 
             HomeUiEvent.DismissResumePrompt -> resumePrompt.value = null
 
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
-                session.startMistakes()?.let { openAttemptId.value = it.id }
+                session.startMistakes()?.let {
+                    openAttemptId.value = it.id
+                    started(AttemptKind.Mistakes, resumed = false)
+                }
             }
 
             HomeUiEvent.AttemptOpened -> {
@@ -177,4 +197,13 @@ class HomeViewModel(exams: ExamRepository, private val random: Random = Random.D
         questionsAnswered = questionsAnswered,
         questionPoolSize = poolSize,
     )
+
+    /**
+     * Records an attempt being opened, and whether it is a saved one being continued rather than a
+     * new one being created. Only an attempt the user is actually taken into is recorded: asking
+     * what to do about a test already under way is not yet starting or continuing it.
+     */
+    private fun started(kind: AttemptKind, resumed: Boolean) {
+        analytics.capture(AnalyticsEvent.TestStarted, testStartedProperties(kind, resumed))
+    }
 }

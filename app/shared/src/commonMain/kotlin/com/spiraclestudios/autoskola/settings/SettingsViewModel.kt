@@ -3,7 +3,12 @@ package com.spiraclestudios.autoskola.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.appVersion
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ANALYTICS
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_CRASH_REPORTING
+import com.spiraclestudios.autoskola.data.analytics.consentChangedProperties
+import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.Preferences
@@ -65,18 +70,35 @@ class SettingsViewModel(
 
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
-            is SettingsUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
+            is SettingsUiEvent.SelectLanguage -> {
+                analytics.languageChanged(preferences.preferences.value.language, event.language)
+                preferences.selectLanguage(event.language)
+            }
 
             is SettingsUiEvent.SetCheckAnswersImmediately -> preferences.setCheckAnswersImmediately(event.enabled)
 
             is SettingsUiEvent.SetAdvanceAfterAnswer -> preferences.setAdvanceAfterAnswer(event.enabled)
 
             is SettingsUiEvent.SetCrashReporting -> {
+                if (preferences.preferences.value.crashReportingEnabled != event.enabled) {
+                    // Recorded before the write, so the answer the gate reads is the one that was
+                    // in force when the user changed it - the event is the record of the change.
+                    analytics.capture(
+                        AnalyticsEvent.ConsentChanged,
+                        consentChangedProperties(CONSENT_SWITCH_CRASH_REPORTING, event.enabled),
+                    )
+                }
                 preferences.setCrashReportingEnabled(event.enabled)
                 analytics.syncConsent()
             }
 
             is SettingsUiEvent.SetAnalytics -> {
+                if (preferences.preferences.value.analyticsEnabled != event.enabled) {
+                    analytics.capture(
+                        AnalyticsEvent.ConsentChanged,
+                        consentChangedProperties(CONSENT_SWITCH_ANALYTICS, event.enabled),
+                    )
+                }
                 preferences.setAnalyticsEnabled(event.enabled)
                 analytics.syncConsent()
             }

@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.settings
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
@@ -74,5 +75,71 @@ class SettingsViewModelTest : ViewModelTest() {
         assertFalse(state.value.advanceAfterAnswer)
         assertFalse(repositories.preferences.preferences.value.advanceAfterAnswer)
         assertFalse(state.value.canAdvanceAfterAnswer)
+    }
+
+    @Test
+    fun changingAConsentSwitchRecordsTheChange() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetCrashReporting(true))
+
+        assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("switch" to "crash_reporting", "enabled" to true),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun turningAnalyticsOffRecordsTheChangeTheUserJustMade() = runTest {
+        // The answer in force when the switch is pressed is still "on", so the withdrawal is
+        // recorded; the preference is then written, and nothing more is sent from then on.
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(SettingsUiEvent.SetAnalytics(false))
+
+        assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("switch" to "analytics", "enabled" to false),
+            repositories.analyticsSink.properties.single(),
+        )
+        assertFalse(repositories.preferences.preferences.value.analyticsEnabled)
+    }
+
+    @Test
+    fun settingASwitchToWhatItAlreadyIsRecordsNothing() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+        repositories.analyticsSink.events.clear()
+
+        viewModel.onEvent(SettingsUiEvent.SetAnalytics(true))
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun pickingADifferentLanguageRecordsIt() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SelectLanguage(AppLanguage.Hungarian))
+
+        assertEquals(listOf(AnalyticsEvent.LanguageChanged), repositories.analyticsSink.events)
+        assertEquals(mapOf("to" to "hu"), repositories.analyticsSink.properties.single())
+    }
+
+    @Test
+    fun pickingTheLanguageAlreadyInUseRecordsNothing() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+        val current = repositories.preferences.preferences.value.language
+
+        viewModel.onEvent(SettingsUiEvent.SelectLanguage(current))
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
     }
 }

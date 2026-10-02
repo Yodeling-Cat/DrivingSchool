@@ -2,6 +2,9 @@ package com.spiraclestudios.autoskola.data.exam
 
 import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
 import com.spiraclestudios.autoskola.data.attempts.AttemptRepository
 import com.spiraclestudios.autoskola.data.attempts.SettingsAttemptDataSource
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
@@ -21,10 +24,13 @@ import kotlin.test.assertIs
 class ExamRepositoryTest {
 
     private val preferences = PreferencesRepository(MapSettings())
+    private val sink = RecordingAnalyticsDataSource()
+    private val analytics = AnalyticsRepository(sink, preferences)
     private val repository = ExamRepository(
         preferences = preferences,
         banks = QuestionBankRepository(FakeQuestionBankDataSource.of(testBank("sk-sk"))),
         attempts = AttemptRepository(SettingsAttemptDataSource(MapSettings())),
+        analytics = analytics,
     )
 
     @Test
@@ -49,5 +55,19 @@ class ExamRepositoryTest {
         preferences.select(TestSelection("gone", LicenseCategory.B))
 
         assertEquals(CurrentExam.Missing, repository.current.take(2).last())
+    }
+
+    @Test
+    fun aMissingBankIsReportedOnceHoweverOftenTheFlowIsRead() = runTest {
+        // Reporting it from the flow itself would fire once per collector, and the app reads the
+        // current exam from several screens, so it is reported once per occurrence instead.
+        preferences.setAnalyticsEnabled(true)
+        preferences.select(TestSelection("gone", LicenseCategory.B))
+
+        repository.current.take(2).toList()
+        repository.current.take(2).toList()
+
+        assertEquals(listOf(AnalyticsEvent.BankMissing), sink.events)
+        assertEquals(mapOf("bank_id" to "gone"), sink.properties.single())
     }
 }

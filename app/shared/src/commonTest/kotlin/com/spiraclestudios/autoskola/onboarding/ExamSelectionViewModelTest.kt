@@ -10,6 +10,7 @@ import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -132,5 +133,16 @@ class ExamSelectionViewModelTest : ViewModelTest() {
         viewModel.onEvent(ExamSelectionUiEvent.StepBack)
         assertEquals(ExamSelectionStep.ChooseCountry, state.value.step)
         assertFalse(state.value.done)
+    }
+
+    @Test
+    fun pickingADifferentLanguageRecordsIt() = runTest {
+        preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ExamSelectionUiEvent.SelectLanguage(AppLanguage.Hungarian))
+
+        assertEquals(listOf(AnalyticsEvent.LanguageChanged), analyticsSink.events)
+        assertEquals(mapOf("to" to "hu"), analyticsSink.properties.single())
     }
 }

@@ -34,6 +34,7 @@ class AppViewModelTest : ViewModelTest() {
             ),
         ),
         attempts = repositories.attempts,
+        analytics = repositories.analytics,
     )
 
     @Test

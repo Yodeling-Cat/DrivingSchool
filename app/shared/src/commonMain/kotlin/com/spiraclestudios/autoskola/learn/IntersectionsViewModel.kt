@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import com.spiraclestudios.autoskola.bank.Question
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.testStartedProperties
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
@@ -11,6 +14,7 @@ import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.situations.isSolvedBy
 import com.spiraclestudios.autoskola.situations.situations
+import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.ui.displayText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -84,6 +88,9 @@ sealed interface IntersectionsUiEvent {
 
     /** The screen opened the attempt [IntersectionsUiState.Ready.openAttemptId] asked for. */
     data object AttemptOpened : IntersectionsUiEvent
+
+    /** The driver opened one situation of the list, which the screen view alone can't say. */
+    data class OpenSituation(val number: Int) : IntersectionsUiEvent
 }
 
 /** The situations at intersections: the drawings the exam asks about, and what it asks about them. */
@@ -91,6 +98,7 @@ class IntersectionsViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
     private val answers: PracticeAnswerRepository,
+    private val analytics: AnalyticsRepository,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -127,6 +135,7 @@ class IntersectionsViewModel(
                 val underWay = session.openSituationsAttempt()
                 if (underWay == null) {
                     openAttemptId.value = drill(session, startOver = false)
+                    if (openAttemptId.value != null) started(resumed = false)
                 } else {
                     drillPrompt.value = DrillPrompt(
                         attemptId = underWay.id,
@@ -137,13 +146,19 @@ class IntersectionsViewModel(
             }
 
             IntersectionsUiEvent.ContinueDrill -> {
-                openAttemptId.value = drillPrompt.value?.attemptId
+                drillPrompt.value?.let {
+                    openAttemptId.value = it.attemptId
+                    started(resumed = true)
+                }
                 drillPrompt.value = null
             }
 
             IntersectionsUiEvent.StartOverDrill -> {
                 drillPrompt.value = null
-                viewModelScope.launch { openAttemptId.value = drill(session, startOver = true) }
+                viewModelScope.launch {
+                    openAttemptId.value = drill(session, startOver = true)
+                    if (openAttemptId.value != null) started(resumed = false)
+                }
             }
 
             IntersectionsUiEvent.DismissDrillPrompt -> drillPrompt.value = null
@@ -152,7 +167,20 @@ class IntersectionsViewModel(
                 openAttemptId.value = null
                 drillPrompt.value = null
             }
+
+            is IntersectionsUiEvent.OpenSituation -> analytics.capture(
+                AnalyticsEvent.SituationOpened,
+                mapOf("number" to event.number),
+            )
         }
+    }
+
+    /** Records a drill being opened, and whether it is a saved one being continued. */
+    private fun started(resumed: Boolean) {
+        analytics.capture(
+            AnalyticsEvent.TestStarted,
+            testStartedProperties(AttemptKind.Situations, resumed),
+        )
     }
 
     /**

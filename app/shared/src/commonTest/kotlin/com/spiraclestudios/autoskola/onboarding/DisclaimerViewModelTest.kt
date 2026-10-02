@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.onboarding
 
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
@@ -10,7 +11,7 @@ import kotlin.test.assertEquals
 class DisclaimerViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
-    private val viewModel by lazy { DisclaimerViewModel(repositories.preferences) }
+    private val viewModel by lazy { DisclaimerViewModel(repositories.preferences, repositories.analytics) }
 
     @Test
     fun languageCanBeChangedBeforeContinuing() = runTest {
@@ -28,5 +29,16 @@ class DisclaimerViewModelTest : ViewModelTest() {
 
         assertEquals(0, repositories.preferences.preferences.value.legalAcceptedVersion)
         assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun pickingADifferentLanguageIsRecordedWhenAnalyticsIsOn() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(DisclaimerUiEvent.SelectLanguage(AppLanguage.Hungarian))
+
+        assertEquals(listOf(AnalyticsEvent.LanguageChanged), repositories.analyticsSink.events)
+        assertEquals(mapOf("to" to "hu"), repositories.analyticsSink.properties.single())
     }
 }

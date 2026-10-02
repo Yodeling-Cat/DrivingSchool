@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.bank.Section
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.testAbandonedProperties
+import com.spiraclestudios.autoskola.data.analytics.testCompletedProperties
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
@@ -16,6 +20,7 @@ import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.stats.answersByIndex
 import com.spiraclestudios.autoskola.stats.isFullyAnswered
 import com.spiraclestudios.autoskola.stats.resumeIndex
+import com.spiraclestudios.autoskola.stats.summary
 import com.spiraclestudios.autoskola.stats.wasAnswered
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -111,6 +116,9 @@ sealed interface PracticeUiEvent {
 
     /** Debug builds only: fill in every question that is still unanswered, with the right option. */
     data object AnswerAllCorrectly : PracticeUiEvent
+
+    /** A question's picture could not be loaded, which is a real error path kept silent today. */
+    data object ImageFailed : PracticeUiEvent
 }
 
 class PracticeViewModel(
@@ -119,6 +127,7 @@ class PracticeViewModel(
     private val banks: QuestionBankRepository,
     private val preferences: PreferencesRepository,
     private val practiceAnswers: PracticeAnswerRepository,
+    private val analytics: AnalyticsRepository,
     private val allottedTimeSeconds: Long = TestAttempt.OFFICIAL_DURATION_SECONDS,
     /** Which option the debug shortcut picks, injected so a test can pin it down. */
     private val random: Random = Random.Default,
@@ -295,6 +304,7 @@ class PracticeViewModel(
                 stopTimer()
                 val finalElapsed = elapsedSeconds.value ?: 0L
                 session.finish(attemptId, finalElapsed)
+                recordCompleted(session, finalElapsed)
                 openResults.value = true
             }
 
@@ -302,7 +312,9 @@ class PracticeViewModel(
             // so the attempt goes rather than waiting to be picked up again. One that was answered
             // stays as it is, and the screen closes.
             PracticeUiEvent.Leave -> viewModelScope.launch {
-                if (session.attempt(attemptId).first()?.wasAnswered == true) {
+                val attempt = session.attempt(attemptId).first() ?: return@launch
+                recordAbandoned(attempt)
+                if (attempt.wasAnswered) {
                     close.value = true
                 } else {
                     session.discard(attemptId)
@@ -326,7 +338,39 @@ class PracticeViewModel(
             PracticeUiEvent.AnswerAllRandomly -> answerAll { random.nextInt(it.answers.size) }
 
             PracticeUiEvent.AnswerAllCorrectly -> answerAll { it.correct }
+
+            PracticeUiEvent.ImageFailed -> analytics.capture(AnalyticsEvent.QuestionImageFailed)
         }
+    }
+
+    /**
+     * Records a finished attempt. The kind decides whether `passed` goes at all: a situations drill
+     * is only reported on, so it carries no verdict (see [testCompletedProperties]).
+     */
+    private suspend fun recordCompleted(session: ExamSession, elapsedSeconds: Long) {
+        val attempt = session.attempt(attemptId).first() ?: return
+        val summary = attempt.summary(session.questionsOf(attempt))
+        analytics.capture(
+            AnalyticsEvent.TestCompleted,
+            testCompletedProperties(
+                kind = attempt.kind,
+                durationSeconds = elapsedSeconds,
+                wrongCount = summary.wrong,
+                passed = summary.result.passed,
+            ),
+        )
+    }
+
+    /** Records an attempt left unfinished - discarded, or walked away from with answers in it. */
+    private fun recordAbandoned(attempt: TestAttempt) {
+        analytics.capture(
+            AnalyticsEvent.TestAbandoned,
+            testAbandonedProperties(
+                kind = attempt.kind,
+                answersGiven = attempt.answers.size,
+                durationSeconds = elapsedSeconds.value ?: attempt.elapsedSeconds,
+            ),
+        )
     }
 
     /**

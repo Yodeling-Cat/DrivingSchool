@@ -117,7 +117,17 @@ fun IntersectionsScreen(
                             if (state.situations.isEmpty()) {
                                 SituationsEmpty(Modifier.weight(1f))
                             } else {
-                                SituationList(state.situations, page, onOpenSituation, Modifier.weight(1f))
+                                SituationList(
+                                    situations = state.situations,
+                                    page = page,
+                                    // Reported before navigating, so which situation was opened is
+                                    // known: the screen view that follows only says "situation".
+                                    onOpenSituation = { number ->
+                                        onEvent(IntersectionsUiEvent.OpenSituation(number))
+                                        onOpenSituation(number)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
                     }
                 }

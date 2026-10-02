@@ -6,6 +6,7 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
@@ -79,7 +80,10 @@ class ExamSelectionViewModel(
 
     fun onEvent(event: ExamSelectionUiEvent) {
         when (event) {
-            is ExamSelectionUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
+            is ExamSelectionUiEvent.SelectLanguage -> {
+                analytics.languageChanged(preferences.preferences.value.language, event.language)
+                preferences.selectLanguage(event.language)
+            }
 
             is ExamSelectionUiEvent.ChooseCountry -> {
                 val banksForCountry = banksState.value.orEmpty().filter { it.country == event.country }

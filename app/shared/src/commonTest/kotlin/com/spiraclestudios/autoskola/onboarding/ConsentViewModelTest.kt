@@ -106,7 +106,7 @@ class ConsentViewModelTest : ViewModelTest() {
         viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
         viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
-        assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), repositories.analyticsSink.events)
+        assertEquals(AnalyticsEvent.OnboardingCompleted, repositories.analyticsSink.events.last())
     }
 
     @Test
@@ -138,6 +138,37 @@ class ConsentViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(ConsentUiEvent.AcceptAll)
 
-        assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), repositories.analyticsSink.events)
+        assertEquals(AnalyticsEvent.OnboardingCompleted, repositories.analyticsSink.events.last())
+    }
+
+    @Test
+    fun acceptingEverythingRecordsBothAnswersAndTheChoice() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertEquals(
+            listOf(AnalyticsEvent.ConsentAnswered, AnalyticsEvent.OnboardingCompleted),
+            repositories.analyticsSink.events,
+        )
+        assertEquals(
+            mapOf("crash_reporting" to true, "analytics" to true, "choice" to "accept_all"),
+            repositories.analyticsSink.properties.first(),
+        )
+    }
+
+    @Test
+    fun acceptingTheChosenAnswersRecordsWhatTheyWere() = runTest {
+        observe(viewModel.uiState)
+        viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
+        viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        assertEquals(
+            mapOf("crash_reporting" to true, "analytics" to true, "choice" to "accept_chosen"),
+            repositories.analyticsSink.properties.first(),
+        )
     }
 }

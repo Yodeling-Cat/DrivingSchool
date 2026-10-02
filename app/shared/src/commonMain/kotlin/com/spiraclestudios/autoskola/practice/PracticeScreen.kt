@@ -418,6 +418,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                         skipped = questionSkipped(selectedAnswers[page], finished),
                         bottomRoom = questionBottomRoom,
                         onSelect = { onEvent(PracticeUiEvent.Answer(page, it)) },
+                        onImageError = { onEvent(PracticeUiEvent.ImageFailed) },
                     )
                 }
                 if (arrowsBeside) besideArrows()
@@ -983,6 +984,8 @@ private fun QuestionPage(
     /** The room the pinned bar takes at the bottom, which the page's content has to clear. */
     bottomRoom: Dp,
     onSelect: (Int) -> Unit,
+    /** Called when this question's picture could not be loaded. */
+    onImageError: () -> Unit,
 ) {
     val revealed = locked
     val wide = LocalWidthClass.current != WidthClass.Compact
@@ -1042,6 +1045,7 @@ private fun QuestionPage(
                             uri = imageUri,
                             page = page,
                             maxHeight = ImageSideBySideMaxHeight,
+                            onError = onImageError,
                         )
                     }
                 }
@@ -1054,7 +1058,7 @@ private fun QuestionPage(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     imageUri?.let { uri ->
-                        EnlargeableImage(uri = uri, page = page)
+                        EnlargeableImage(uri = uri, page = page, onError = onImageError)
                     }
                     questionText()
                     if (skipped) SkippedNotice()

@@ -56,7 +56,7 @@ val appModule = module {
     single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
     single { AnalyticsRepository(get(), get()) }
-    single { ExamRepository(get(), get(), get()) }
+    single { ExamRepository(get(), get(), get(), get()) }
 
     // Navigation
     single { navigationState(get()) }
@@ -66,13 +66,13 @@ val appModule = module {
     viewModelOf(::DisclaimerViewModel)
     viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
-    viewModel { HomeViewModel(get()) }
+    viewModel { HomeViewModel(get(), get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { AboutViewModel() }
-    viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get()) }
+    viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
 }
 

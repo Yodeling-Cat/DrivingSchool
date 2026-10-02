@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_CHOICE_ACCEPT_ALL
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_CHOICE_ACCEPT_CHOSEN
+import com.spiraclestudios.autoskola.data.analytics.consentAnsweredProperties
+import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -107,7 +111,10 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
 
     fun onEvent(event: ConsentUiEvent) {
         when (event) {
-            is ConsentUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
+            is ConsentUiEvent.SelectLanguage -> {
+                analytics.languageChanged(preferences.preferences.value.language, event.language)
+                preferences.selectLanguage(event.language)
+            }
 
             is ConsentUiEvent.SetDocumentsAccepted -> {
                 documentsAccepted.value = event.accepted
@@ -126,7 +133,7 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
                 stagedAnalytics.value = true
                 documentsAccepted.value = true
                 agreementError.value = false
-                commitAnswers()
+                commitAnswers(CONSENT_CHOICE_ACCEPT_ALL)
             }
 
             ConsentUiEvent.AcceptChosen -> {
@@ -136,7 +143,7 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
                     agreementError.value = true
                     return
                 }
-                commitAnswers()
+                commitAnswers(CONSENT_CHOICE_ACCEPT_CHOSEN)
             }
         }
     }
@@ -146,13 +153,18 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
      * user's, the SDK is told, and the onboarding is recorded.
      *
      * The write comes before the capture on purpose — [AnalyticsRepository] reads the answer on
-     * every event, so this is what lets the onboarding event be sent at all.
+     * every event, so this is what lets the onboarding event be sent at all. [choice] is the button
+     * that was pressed, which is how the two ways through are told apart in the data.
      */
-    private fun commitAnswers() {
+    private fun commitAnswers(choice: String) {
         preferences.setCrashReportingEnabled(stagedCrashReporting.value)
         preferences.setAnalyticsEnabled(stagedAnalytics.value)
         analytics.syncConsent()
         preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+        analytics.capture(
+            AnalyticsEvent.ConsentAnswered,
+            consentAnsweredProperties(stagedCrashReporting.value, stagedAnalytics.value, choice),
+        )
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
     }
 }

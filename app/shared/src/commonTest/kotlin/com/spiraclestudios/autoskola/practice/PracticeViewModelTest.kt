@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.practice
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.TestAttempt
@@ -45,6 +46,7 @@ class PracticeViewModelTest : ViewModelTest() {
             repositories.banks,
             repositories.preferences,
             repositories.answers,
+            repositories.analytics,
         )
         return viewModel to observe(viewModel.uiState)
     }
@@ -60,6 +62,7 @@ class PracticeViewModelTest : ViewModelTest() {
             repositories.banks,
             repositories.preferences,
             repositories.answers,
+            repositories.analytics,
         )
         return viewModel to observe(viewModel.uiState)
     }
@@ -588,5 +591,91 @@ class PracticeViewModelTest : ViewModelTest() {
             // The screen closes once the leaving has been dealt with; the test waits to be continued.
             assertTrue(state.ready.close)
         }
+    }
+
+    @Test
+    fun finishingATestRecordsItWithItsVerdict() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+
+        viewModel.onEvent(PracticeUiEvent.Finish)
+
+        assertEquals(listOf(AnalyticsEvent.TestCompleted), repositories.analyticsSink.events)
+        val properties = repositories.analyticsSink.properties.single()
+        assertEquals("practice_test", properties["kind"])
+        assertEquals(true, properties["passed"])
+    }
+
+    @Test
+    fun finishingASituationsDrillRecordsNoVerdict() = runTest {
+        val drills = TestRepositories(testSituationsBank()).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+            preferences.setAnalyticsEnabled(true)
+        }
+        val session = drills.exams.currentSession()
+        val drill = assertNotNull(session.startSituations(session.bank.questions))
+        val (viewModel, state) = open(drill, drills)
+        state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+
+        viewModel.onEvent(PracticeUiEvent.Finish)
+
+        val properties = drills.analyticsSink.properties.single()
+        assertEquals("situations", properties["kind"])
+        assertFalse(properties.containsKey("passed"))
+    }
+
+    @Test
+    fun leavingAnUnansweredTestRecordsItAsAbandoned() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val attempt = startTest()
+        val (viewModel, _) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Leave)
+
+        assertEquals(listOf(AnalyticsEvent.TestAbandoned), repositories.analyticsSink.events)
+        val properties = repositories.analyticsSink.properties.single()
+        assertEquals("practice_test", properties["kind"])
+        assertEquals(0, properties["answers_given"])
+    }
+
+    @Test
+    fun leavingATestWithAnswersRecordsHowMuchWasDone() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+        viewModel.onEvent(PracticeUiEvent.Leave)
+
+        val properties = repositories.analyticsSink.properties.single()
+        assertEquals(1, properties["answers_given"])
+        assertTrue(state.ready.close)
+    }
+
+    @Test
+    fun aQuestionImageThatFailsToLoadIsRecorded() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val attempt = startTest()
+        val (viewModel, _) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.ImageFailed)
+
+        assertEquals(listOf(AnalyticsEvent.QuestionImageFailed), repositories.analyticsSink.events)
+        assertEquals(emptyMap<String, Any>(), repositories.analyticsSink.properties.single())
+    }
+
+    @Test
+    fun nothingIsSentWhileAnalyticsIsOff() = runTest {
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+
+        state.ready.questions.indices.forEach { viewModel.onEvent(PracticeUiEvent.Answer(it, answerIndex = 0)) }
+        viewModel.onEvent(PracticeUiEvent.Finish)
+        viewModel.onEvent(PracticeUiEvent.ImageFailed)
+        viewModel.onEvent(PracticeUiEvent.Leave)
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,12 +91,20 @@ internal fun EnlargeableImage(
     modifier: Modifier = Modifier,
     maxHeight: Dp = ImageMaxHeight,
     shape: Shape = pictureShape(uri),
+    /** Called once when the picture fails to load, which otherwise shows as empty space. */
+    onError: () -> Unit = {},
 ) {
     // The pictures are drawn bigger than they are, so the sharper filter is what keeps their edges
     // from turning into steps: bicubic on Skia, the platform's best on Android.
     val painter = rememberAsyncImagePainter(uri, filterQuality = FilterQuality.High)
     val imageState by painter.state.collectAsState()
     val density = LocalDensity.current
+
+    // Coil reports a failed load in the painter's state rather than through a callback. Keyed on
+    // the state so it is reported once per failure rather than on every recomposition.
+    LaunchedEffect(imageState) {
+        if (imageState is AsyncImagePainter.State.Error) onError()
+    }
 
     /** Whether the enlarged copy is open. */
     var enlarged by remember(uri) { mutableStateOf(false) }

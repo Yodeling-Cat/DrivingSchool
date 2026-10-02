@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.home
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
@@ -22,7 +23,7 @@ class HomeViewModelTest : ViewModelTest() {
     private val repositories = TestRepositories().apply {
         preferences.select(TestSelection("sk-sk", LicenseCategory.B))
     }
-    private val viewModel by lazy { HomeViewModel(repositories.exams, Random(42)) }
+    private val viewModel by lazy { HomeViewModel(repositories.exams, repositories.analytics, Random(42)) }
 
     private val StateFlow<HomeUiState>.ready get() = assertIs<HomeUiState.Ready>(value)
 
@@ -213,5 +214,73 @@ class HomeViewModelTest : ViewModelTest() {
             session.answer(attempt.id, question, chosen)
         }
         session.finish(attempt.id)
+    }
+
+    @Test
+    fun startingATestRecordsItAsNewlyStarted() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 2))
+
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "practice_test", "resumed" to false),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun resumingATestRecordsItAsContinued() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(HomeUiEvent.Resume)
+
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "practice_test", "resumed" to true),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun askingWhatToDoAboutAnAttemptUnderWayRecordsNothing() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        repositories.analyticsSink.events.clear()
+
+        // The prompt is not a start or a continuation yet, so it must not be recorded as one.
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+        assertNotNull(state.ready.resumePrompt)
+    }
+
+    @Test
+    fun practisingMistakesRecordsAMistakesRetest() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        val attempt = repositories.attempts.get(state.ready.openAttemptId!!)!!
+        val session = repositories.exams.currentSession()
+        session.questionsOf(attempt).forEach { session.answer(attempt.id, it, chosen = 1) }
+        session.finish(attempt.id)
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(HomeUiEvent.PracticeMistakes)
+
+        assertEquals(
+            mapOf("kind" to "mistakes", "resumed" to false),
+            repositories.analyticsSink.properties.single(),
+        )
     }
 }

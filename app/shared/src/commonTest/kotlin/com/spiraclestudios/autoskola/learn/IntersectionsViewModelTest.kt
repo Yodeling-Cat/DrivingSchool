@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.learn
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.banks.testQuestion
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
@@ -28,6 +29,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
             repositories.exams,
             repositories.banks,
             repositories.answers,
+            repositories.analytics,
         )
     }
 
@@ -36,7 +38,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
         val fresh = TestRepositories(testSituationsBank())
 
         val state = observe(
-            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.answers).uiState,
+            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.answers, fresh.analytics).uiState,
         )
 
         assertEquals(IntersectionsUiState.Loading, state.value)
@@ -89,6 +91,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
                 repositories.exams,
                 repositories.banks,
                 repositories.answers,
+                repositories.analytics,
             ).uiState,
         )
 
@@ -276,5 +279,55 @@ class IntersectionsViewModelTest : ViewModelTest() {
         repositories.answers.answer("sk-sk", 1, questionId = 1814, chosen = 0)
 
         assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).situations.first().solved)
+    }
+
+    @Test
+    fun drillingRecordsASituationsStart() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.preferences.setAnalyticsEnabled(true)
+        val viewModel = viewModel(repositories)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "situations", "resumed" to false),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun carryingOnADrillRecordsItAsContinued() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.preferences.setAnalyticsEnabled(true)
+        val viewModel = viewModel(repositories)
+        observe(viewModel.uiState)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
+        viewModel.onEvent(IntersectionsUiEvent.Drill)
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(IntersectionsUiEvent.ContinueDrill)
+
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "situations", "resumed" to true),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun openingASituationRecordsWhichOneWasOpened() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        repositories.preferences.setAnalyticsEnabled(true)
+        val viewModel = viewModel(repositories)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(IntersectionsUiEvent.OpenSituation(number = 2))
+
+        assertEquals(listOf(AnalyticsEvent.SituationOpened), repositories.analyticsSink.events)
+        assertEquals(mapOf("number" to 2), repositories.analyticsSink.properties.single())
     }
 }

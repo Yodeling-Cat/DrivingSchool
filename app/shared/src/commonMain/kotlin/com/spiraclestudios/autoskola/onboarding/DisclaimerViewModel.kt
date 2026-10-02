@@ -2,6 +2,8 @@ package com.spiraclestudios.autoskola.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +17,8 @@ sealed interface DisclaimerUiEvent {
     data class SelectLanguage(val language: AppLanguage) : DisclaimerUiEvent
 }
 
-class DisclaimerViewModel(private val preferences: PreferencesRepository) : ViewModel() {
+class DisclaimerViewModel(private val preferences: PreferencesRepository, private val analytics: AnalyticsRepository) :
+    ViewModel() {
 
     val uiState: StateFlow<DisclaimerUiState> = preferences.preferences
         .map { DisclaimerUiState(it.language) }
@@ -27,7 +30,10 @@ class DisclaimerViewModel(private val preferences: PreferencesRepository) : View
 
     fun onEvent(event: DisclaimerUiEvent) {
         when (event) {
-            is DisclaimerUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
+            is DisclaimerUiEvent.SelectLanguage -> {
+                analytics.languageChanged(preferences.preferences.value.language, event.language)
+                preferences.selectLanguage(event.language)
+            }
         }
     }
 }

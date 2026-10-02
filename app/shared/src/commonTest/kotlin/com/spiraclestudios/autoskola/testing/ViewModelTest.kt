@@ -55,11 +55,12 @@ class TestRepositories(bank: QuestionBank = testBank()) {
     val attempts = AttemptRepository(SettingsAttemptDataSource(settings), now = { ++clock })
     val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
-    val exams = ExamRepository(preferences, banks, attempts)
 
     /** What the tests asserted was sent, and the consent gate in front of it. */
     val analyticsSink = RecordingAnalyticsDataSource()
     val analytics = AnalyticsRepository(analyticsSink, preferences)
+
+    val exams = ExamRepository(preferences, banks, attempts, analytics)
 }
 
 /** The session of the selected exam, once it has loaded. */

@@ -43,6 +43,13 @@ data class ExamSelectionUiState(
         get() = KNOWN_COUNTRIES.map { country ->
             CountryOption(country, available = banks.orEmpty().any { it.country == country })
         }
+
+    /**
+     * True while there is a step behind the one on screen. Back then walks the wizard instead of
+     * leaving it; on the first step there is nothing to undo, so back means leaving the screen.
+     */
+    val hasPreviousStep: Boolean
+        get() = step != ExamSelectionStep.ChooseCountry
 }
 
 sealed interface ExamSelectionUiEvent {

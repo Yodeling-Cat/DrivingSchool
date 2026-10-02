@@ -136,6 +136,24 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun everyStepButTheFirstHasOneBehindIt() = runTest {
+        val state = observe(viewModel.uiState)
+        assertFalse(state.value.hasPreviousStep)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
+        assertTrue(state.value.hasPreviousStep)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
+        assertTrue(state.value.hasPreviousStep)
+
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertTrue(state.value.hasPreviousStep)
+
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertFalse(state.value.hasPreviousStep)
+    }
+
+    @Test
     fun pickingADifferentLanguageRecordsIt() = runTest {
         preferences.setAnalyticsEnabled(true)
         observe(viewModel.uiState)

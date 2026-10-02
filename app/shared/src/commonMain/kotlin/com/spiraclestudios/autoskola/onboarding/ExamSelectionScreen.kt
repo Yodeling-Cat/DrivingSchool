@@ -40,6 +40,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -83,6 +86,8 @@ fun ExamSelectionRoute(
 /**
  * A three-step wizard for the exam to prepare for: country, then the language to take it in,
  * then the license category. [onBack] is `null` during onboarding, where a choice is required.
+ * Its back button and the system's walk the same steps, and both only leave the screen from the
+ * first one.
  */
 @Composable
 fun ExamSelectionScreen(
@@ -100,12 +105,22 @@ fun ExamSelectionScreen(
         // Going back a step is handled here (it's pure navigation within the screen); only
         // leaving the wizard entirely goes through onBack.
         val onStepBack: (() -> Unit)? = when {
-            state.step != ExamSelectionStep.ChooseCountry -> {
+            state.hasPreviousStep -> {
                 { onEvent(ExamSelectionUiEvent.StepBack) }
             }
 
             else -> onBack
         }
+        // The system's back button - Android's gesture or key - walks the wizard exactly as the
+        // header's button does. With no step behind this one it stands aside, so back then does
+        // what it otherwise would: leave the screen (and, in onboarding, the app). Placed with the
+        // header's decision so the two can't disagree about where a step starts.
+        val systemBackState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
+        NavigationBackHandler(
+            state = systemBackState,
+            isBackEnabled = state.hasPreviousStep,
+            onBackCompleted = { onEvent(ExamSelectionUiEvent.StepBack) },
+        )
         // Only onboarding offers the app-language picker; when the user opened this from another
         // screen, the language is changed in settings.
         val pickerLanguage = state.language.takeIf { onBack == null }

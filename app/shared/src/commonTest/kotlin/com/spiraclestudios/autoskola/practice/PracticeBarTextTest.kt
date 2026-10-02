@@ -14,8 +14,13 @@ class PracticeBarTextTest {
 
     @Test
     fun theCountIsDrawnOneSpaceBehindTheNumberOfTheQuestion() {
-        // The bar draws the two runs one after the other, and must read "9 / 40".
-        assertEquals("9 / 40", "9" + barQuestionCount("/ 40"))
+        // The counter is the number, then the count one space behind it: "9 / 40".
+        assertEquals("9 / 40", questionCounterLabel("9", "/ 40"))
+    }
+
+    @Test
+    fun aSectionIsCountedAsWhatOfItIsAnswered() {
+        assertEquals("6 / 12", questionCounterLabel("6", "/ 12"))
     }
 
     @Test

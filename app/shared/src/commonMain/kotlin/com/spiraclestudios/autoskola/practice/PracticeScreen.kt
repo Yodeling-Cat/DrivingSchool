@@ -941,7 +941,7 @@ private fun RowScope.PracticeBarContent(
                 maxLines = 1,
             )
             Text(
-                barQuestionCount(strings.questionCount(questionCount)),
+                questionCountRun(strings.questionCount(questionCount)),
                 style = Naj.type.barNumber,
                 color = BarCountText,
                 maxLines = 1,
@@ -1238,8 +1238,21 @@ private fun QuestionGrid(
                 Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
             }
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
-                Row {
+                // The section, and how much of it the user has answered: the list is open to be read
+                // as much for that as for the numbers.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(section.title.uppercase(), style = Naj.type.capsLabel, color = colors.muted)
+                    Text(
+                        questionCounterLabel(
+                            strings.questionCounter(answeredAmong(selectedAnswers, indices)),
+                            strings.questionCount(indices.size),
+                        ),
+                        style = Naj.type.capsLabel,
+                        color = colors.muted,
+                    )
                 }
                 Spacer(Modifier.height(10.dp))
                 FlowRow(
@@ -1432,6 +1445,25 @@ private fun QuestionListTogglePreview() {
                     }
                 }
             }
+        }
+    }
+}
+
+/** The question list as the sheet draws it: a section beside how much of it is answered. */
+@Preview(widthDp = 400, heightDp = 620)
+@Composable
+private fun QuestionGridPreview() {
+    AppPreview {
+        Box(Modifier.fillMaxSize().background(Naj.colors.sheet)) {
+            QuestionGrid(
+                questions = previewPracticeQuestions().map { it.question },
+                sections = previewSections,
+                currentIndex = 2,
+                selectedAnswers = mapOf(0 to 1, 1 to 0),
+                revealCorrectness = false,
+                finished = false,
+                onSelectQuestion = {},
+            )
         }
     }
 }

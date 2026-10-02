@@ -45,6 +45,16 @@ class AnswerRulesTest {
     }
 
     @Test
+    fun aSectionCountsOnlyItsOwnQuestionsAsAnswered() {
+        val answers = mapOf(2 to 1, 3 to 0, 9 to 2)
+
+        assertEquals(2, answeredAmong(answers, 0..5))
+        assertEquals(1, answeredAmong(answers, 8..9))
+        assertEquals(0, answeredAmong(answers, 5..7))
+        assertEquals(3, answeredAmong(answers, 0 until 10))
+    }
+
+    @Test
     fun aTestWithNoQuestionsHasNothingAnsweredOrLeftOpen() {
         assertEquals(0 to 0, answeredAndSkipped(emptyMap(), questionCount = 0))
     }

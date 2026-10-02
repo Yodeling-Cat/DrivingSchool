@@ -25,12 +25,18 @@ internal fun finishPrompt(allAnswered: Boolean, finished: Boolean): FinishPrompt
     else -> null
 }
 
+/** How many of the questions at [indices] carry an answer. */
+internal fun answeredAmong(answers: Map<Int, Int>, indices: Iterable<Int>): Int =
+    indices.count { answers.containsKey(it) }
+
 /**
  * How much of a test is behind the user: the questions that carry an answer, and the ones left open -
  * which is what a question never answered reads as once the test is finished.
  */
-internal fun answeredAndSkipped(answers: Map<Int, Int>, questionCount: Int): Pair<Int, Int> =
-    answers.size to (questionCount - answers.size).coerceAtLeast(0)
+internal fun answeredAndSkipped(answers: Map<Int, Int>, questionCount: Int): Pair<Int, Int> {
+    val answered = answeredAmong(answers, 0 until questionCount)
+    return answered to (questionCount - answered).coerceAtLeast(0)
+}
 
 /**
  * How long the answered question stays on screen before the test moves on. Long enough for the

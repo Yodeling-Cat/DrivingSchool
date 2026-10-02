@@ -15,14 +15,13 @@ import kotlinx.coroutines.flow.stateIn
 
 data class ConsentUiState(
     val language: AppLanguage,
-    /** The user ticked "I agree to both documents". Only the narrower button waits for it. */
+    /** The user ticked "I agree to both documents". */
     val documentsAccepted: Boolean,
+    /** "Accept chosen" was pressed without it, so the box is drawn as the thing that is missing. */
+    val agreementError: Boolean,
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
-) {
-    /** "Accept all" is always live; "Accept chosen" waits for the documents to be agreed to. */
-    val canAcceptChosen: Boolean get() = documentsAccepted
-}
+)
 
 sealed interface ConsentUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ConsentUiEvent
@@ -59,12 +58,19 @@ sealed interface ConsentUiEvent {
  * **Nothing is written until a button is pressed.** The switches are held here and only copied into
  * [PreferencesRepository] by [commitAnswers], so a switch left on and the screen abandoned is not an
  * answer the app ever recorded, and the SDK is never told to start under one.
+ *
+ * "Accept chosen" is deliberately not disabled while the agreement is unticked. A dead button cannot
+ * be pressed, so it cannot explain itself; this one is pressed and answers by marking the box that
+ * has to be ticked (see [ConsentUiState.agreementError]).
  */
 class ConsentViewModel(private val preferences: PreferencesRepository, private val analytics: AnalyticsRepository) :
     ViewModel() {
 
     /** Not persisted: reading the page is not the acceptance, ticking the box or pressing is. */
     private val documentsAccepted = MutableStateFlow(false)
+
+    /** Set by "Accept chosen" without the agreement, cleared as soon as it is ticked. */
+    private val agreementError = MutableStateFlow(false)
 
     /**
      * The answers as the switches show them, starting from whatever was answered last time — a
@@ -76,12 +82,14 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
     val uiState: StateFlow<ConsentUiState> = combine(
         preferences.preferences,
         documentsAccepted,
+        agreementError,
         stagedCrashReporting,
         stagedAnalytics,
-    ) { preferences, documentsAccepted, crashReporting, analytics ->
+    ) { preferences, documentsAccepted, agreementError, crashReporting, analytics ->
         ConsentUiState(
             language = preferences.language,
             documentsAccepted = documentsAccepted,
+            agreementError = agreementError,
             crashReportingEnabled = crashReporting,
             analyticsEnabled = analytics,
         )
@@ -91,6 +99,7 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
         ConsentUiState(
             language = preferences.preferences.value.language,
             documentsAccepted = false,
+            agreementError = false,
             crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
             analyticsEnabled = preferences.preferences.value.analyticsEnabled,
         ),
@@ -100,7 +109,12 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
         when (event) {
             is ConsentUiEvent.SelectLanguage -> preferences.selectLanguage(event.language)
 
-            is ConsentUiEvent.SetDocumentsAccepted -> documentsAccepted.value = event.accepted
+            is ConsentUiEvent.SetDocumentsAccepted -> {
+                documentsAccepted.value = event.accepted
+                // Ticking it is the answer the mark was asking for, so it goes as soon as it is
+                // given. Unticking is not an answer either way, so it leaves the mark alone.
+                if (event.accepted) agreementError.value = false
+            }
 
             // Held, not written. These are what the buttons commit.
             is ConsentUiEvent.SetCrashReporting -> stagedCrashReporting.value = event.enabled
@@ -111,13 +125,17 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
                 stagedCrashReporting.value = true
                 stagedAnalytics.value = true
                 documentsAccepted.value = true
+                agreementError.value = false
                 commitAnswers()
             }
 
             ConsentUiEvent.AcceptChosen -> {
                 // Refused in the ViewModel as well as on the button, so the rule holds whichever
-                // screen is driving it.
-                if (!uiState.value.canAcceptChosen) return
+                // screen is driving it. The mark is the whole of the refusal: nothing is committed.
+                if (!documentsAccepted.value) {
+                    agreementError.value = true
+                    return
+                }
                 commitAnswers()
             }
         }

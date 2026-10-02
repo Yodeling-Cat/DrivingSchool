@@ -20,19 +20,30 @@ class ConsentViewModelTest : ViewModelTest() {
         val state = observe(viewModel.uiState).value
 
         assertFalse(state.documentsAccepted)
-        assertFalse(state.crashReportingEnabled)
-        assertFalse(state.analyticsEnabled)
-        assertFalse(state.canAcceptChosen)
+        assertFalse(state.agreementError)
     }
 
     @Test
-    fun theNarrowerButtonIsRefusedUntilTheDocumentsAreAccepted() = runTest {
-        observe(viewModel.uiState)
+    fun theNarrowerButtonRefusesAndMarksTheBoxUntilTheDocumentsAreAccepted() = runTest {
+        val state = observe(viewModel.uiState)
 
         viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
+        assertTrue(state.value.agreementError)
         assertEquals(0, repositories.preferences.preferences.value.legalAcceptedVersion)
         assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun tickingTheAgreementClearsTheMark() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+        assertTrue(state.value.agreementError)
+
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+
+        assertFalse(state.value.agreementError)
     }
 
     @Test

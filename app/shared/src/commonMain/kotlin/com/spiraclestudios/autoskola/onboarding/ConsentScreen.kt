@@ -123,7 +123,9 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                             onCheckedChange = { onEvent(ConsentUiEvent.SetDocumentsAccepted(it)) },
                             colors = CheckboxDefaults.colors(
                                 checkedColor = colors.primaryDeep,
-                                uncheckedColor = colors.muted,
+                                // The one cue that the narrower button needs this: it is enabled
+                                // while unticked, so the press has to say what is missing.
+                                uncheckedColor = if (state.agreementError) colors.wrongOn else colors.muted,
                                 checkmarkColor = colors.mintGlow,
                             ),
                         )
@@ -170,7 +172,6 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     OutlinePill(
                         text = strings.consentAcceptChosen,
                         onClick = { onEvent(ConsentUiEvent.AcceptChosen) },
-                        enabled = state.canAcceptChosen,
                         height = 56.dp,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -223,6 +224,7 @@ private fun DocumentLink(text: String, onClick: () -> Unit) {
 private val previewConsentState = ConsentUiState(
     language = AppLanguage.English,
     documentsAccepted = false,
+    agreementError = false,
     crashReportingEnabled = false,
     analyticsEnabled = false,
 )
@@ -260,6 +262,19 @@ private fun ConsentScreenRefusedBothPreview() {
     AppPreview {
         ConsentScreen(
             previewConsentState.copy(documentsAccepted = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** The narrower button pressed before agreeing: the box is marked, and nothing was committed. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenAgreementMissingPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(agreementError = true),
             onEvent = {},
             onOpenDocument = {},
         )

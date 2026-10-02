@@ -141,15 +141,19 @@ fun FeedbackScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
-                        MessageField(state, onEvent)
                         if (state.hasEmailApp) {
+                            MessageField(state, onEvent)
                             DeviceInfoRow(state, onEvent)
                         } else {
-                            // The switch keeps the device out of a report the app writes into a
-                            // composer itself. Here the user pastes the block by hand, and the way
-                            // they see what they are pasting is the card - so there is nothing to
-                            // switch off, and a switch that hid the card would hide the point of
-                            // the screen.
+                            // No field at all in a browser: the report is written in the mail app
+                            // the user already has open, and a field here would only be a place to
+                            // type something this screen cannot carry anywhere.
+                            //
+                            // The switch below is the phones' too, and for the same reason it is
+                            // not drawn here: it keeps the device out of a report the app writes
+                            // into a composer itself, while a browser's user pastes the block by
+                            // hand - and the card is how they see what they are pasting, so a
+                            // switch that hid it would hide the point of the screen.
                             SelectionContainer {
                                 Text(
                                     strings.feedbackSendTo(FEEDBACK_ADDRESS),
@@ -459,8 +463,8 @@ private fun FeedbackScreenSlovakPreview() {
 }
 
 /**
- * The browser the web build actually is: no version of its own, a device only the user-agent
- * string names, and no press - the address to write to, and the block to paste.
+ * The browser the web build actually is: the version its build stamped in, a device only the
+ * user-agent string names, and no press - the address to write to, and the block to paste.
  */
 @Preview(widthDp = 1100, heightDp = 900)
 @Composable
@@ -471,7 +475,6 @@ private fun FeedbackScreenBrowserPreview() {
                 message = "The timer kept counting after I answered.",
                 hasEmailApp = false,
                 device = previewBrowser,
-                appVersion = null,
             ),
             onEvent = {},
             onBack = {},
@@ -492,7 +495,6 @@ private fun FeedbackScreenBrowserCopiedPreview() {
                 hasEmailApp = false,
                 copied = true,
                 device = previewBrowser,
-                appVersion = null,
             ),
             onEvent = {},
             onBack = {},
@@ -502,7 +504,10 @@ private fun FeedbackScreenBrowserCopiedPreview() {
     }
 }
 
-/** The browser in the longest of the four translations: the address line and the card's words. */
+/**
+ * The browser in the longest of the four translations, on a build that names no version of its
+ * own: the card is the device line alone, and the address line is the one to watch for width.
+ */
 @Preview(widthDp = 1100, heightDp = 900)
 @Composable
 private fun FeedbackScreenBrowserSlovakPreview() {

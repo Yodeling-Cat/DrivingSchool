@@ -29,7 +29,7 @@ internal fun feedbackMailto(
  *
  * The version goes in either way, because a report we cannot place against a build is one we
  * cannot act on. The device line only goes in when the user asked for it, and a platform that has
- * nothing to report (the web build has no version of its own) leaves its line out rather than
+ * nothing to report leaves its line out rather than
  * sending an empty one.
  */
 internal fun feedbackBody(

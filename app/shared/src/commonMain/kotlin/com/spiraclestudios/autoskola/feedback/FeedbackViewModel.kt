@@ -18,7 +18,7 @@ data class FeedbackUiState(
     val includeDeviceInfo: Boolean,
     /** What the device says about itself, or `null` where it says nothing. */
     val device: String?,
-    /** What the platform says this build is, or `null` where it says nothing, as the web build does. */
+    /** What the platform says this build is, or `null` where it says nothing. */
     val appVersion: String?,
     /** Whether this platform can open an email app on the report - the phones can, a browser cannot. */
     val hasEmailApp: Boolean,

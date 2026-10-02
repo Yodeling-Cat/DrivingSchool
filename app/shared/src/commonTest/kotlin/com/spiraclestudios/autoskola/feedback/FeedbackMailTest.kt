@@ -36,7 +36,7 @@ class FeedbackMailTest {
 
     @Test
     fun aBuildWithNoVersionLeavesTheLineOutRatherThanEmpty() {
-        // The web build: it is whatever was deployed last, and reports no version of its own.
+        // A platform that reports no version of its own: whatever was deployed last.
         assertEquals("Hello", feedbackBody(english, "Hello", device = null, version = null))
         assertEquals("Hello\n\nDevice: a browser", feedbackBody(english, "Hello", device = "a browser", version = null))
     }
@@ -88,7 +88,7 @@ class FeedbackMailTest {
             "App version: 1.4.2\nDevice: Pixel 7 · Android 14",
             feedbackDetails(english, device = "Pixel 7 · Android 14", version = "1.4.2"),
         )
-        // The web build: no version of its own, and a device only if the user hands it over.
+        // Nothing to name a build with, and a device only if the user hands it over.
         assertEquals("Device: a browser", feedbackDetails(english, device = "a browser", version = null))
     }
 

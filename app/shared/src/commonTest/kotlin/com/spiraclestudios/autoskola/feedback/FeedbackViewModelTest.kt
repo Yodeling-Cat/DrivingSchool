@@ -109,7 +109,7 @@ class FeedbackViewModelTest : ViewModelTest() {
 
     @Test
     fun aBuildWithNothingToReportStillSends() = runTest {
-        // The web build: no version of its own, and a device only if the user asks for it.
+        // A build with no version to name, and a device only if the user asks for it.
         val web = FeedbackViewModel(version = null, device = null)
         val state = observe(web.uiState)
 

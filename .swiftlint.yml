@@ -1,0 +1,27 @@
+# SwiftLint's configuration for the iOS app. `./gradlew ktlintCheck` covers Kotlin; this is the
+# Swift side, which is the entry point and the bridge that hosts the Compose view in UIKit.
+#
+# CI runs `swiftlint lint --strict`, which counts every finding as an error, so a rule enabled here
+# fails the build until the code satisfies it. Rules are therefore kept to the ones the Swift
+# compiler does not already cover: CI also builds with SWIFT_TREAT_WARNINGS_AS_ERRORS, so anything
+# the compiler already warns about is handled there.
+
+included:
+  - app/iosApp/iosApp
+
+excluded:
+  - app/iosApp/iosApp.xcodeproj
+  - app/iosApp/Configuration
+  - build
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - joined_default_parameter
+  - redundant_nil_coalescing
+  - toggle_bool
+
+line_length:
+  warning: 120
+  error: 200

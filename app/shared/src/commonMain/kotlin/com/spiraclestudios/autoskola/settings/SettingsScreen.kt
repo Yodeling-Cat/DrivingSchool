@@ -21,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -118,6 +120,29 @@ fun SettingsScreen(
                         iconTint = colors.disabledOn,
                         iconBackground = colors.neutralTint,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(it)) },
+                    )
+                }
+
+                SectionLabel(strings.settingsPrivacy, Modifier.padding(start = 6.dp))
+                NajCard {
+                    SettingsSwitchRow(
+                        title = strings.consentCrashReportingTitle,
+                        description = strings.consentCrashReportingDescription,
+                        checked = state.crashReportingEnabled,
+                        icon = Icons.Outlined.BugReport,
+                        iconTint = colors.primaryDeep,
+                        iconBackground = colors.mintGlow,
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetCrashReporting(it)) },
+                    )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    SettingsSwitchRow(
+                        title = strings.consentAnalyticsTitle,
+                        description = strings.consentAnalyticsDescription,
+                        checked = state.analyticsEnabled,
+                        icon = Icons.Outlined.Analytics,
+                        iconTint = colors.primaryDeep,
+                        iconBackground = colors.mintGlow,
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetAnalytics(it)) },
                     )
                 }
 
@@ -229,6 +254,8 @@ private fun SettingsScreenPreview() {
                 language = AppLanguage.English,
                 checkAnswersImmediately = false,
                 advanceAfterAnswer = true,
+                crashReportingEnabled = true,
+                analyticsEnabled = false,
                 exam = previewExam,
             ),
             onEvent = {},
@@ -248,6 +275,8 @@ private fun SettingsScreenCheckingPreview() {
                 language = AppLanguage.Slovak,
                 checkAnswersImmediately = true,
                 advanceAfterAnswer = false,
+                crashReportingEnabled = false,
+                analyticsEnabled = true,
                 exam = previewExam,
             ),
             onEvent = {},
@@ -267,6 +296,8 @@ private fun SettingsScreenNoExamPreview() {
                 language = AppLanguage.English,
                 checkAnswersImmediately = false,
                 advanceAfterAnswer = false,
+                crashReportingEnabled = true,
+                analyticsEnabled = true,
                 exam = null,
             ),
             onEvent = {},

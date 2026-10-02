@@ -17,7 +17,20 @@ class SettingsViewModelTest : ViewModelTest() {
     private val repositories = TestRepositories().apply {
         preferences.select(TestSelection("sk-sk", LicenseCategory.C))
     }
-    private val viewModel by lazy { SettingsViewModel(repositories.preferences, repositories.exams) }
+    private val viewModel by lazy {
+        SettingsViewModel(repositories.preferences, repositories.exams, repositories.analytics)
+    }
+
+    @Test
+    fun theTwoSharingAnswersCanBeChangedHere() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetCrashReporting(true))
+
+        assertEquals(true, state.value.crashReportingEnabled)
+        assertEquals(false, state.value.analyticsEnabled)
+        assertEquals(true, repositories.preferences.preferences.value.crashReportingEnabled)
+    }
 
     @Test
     fun showsTheCurrentChoices() = runTest {

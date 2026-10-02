@@ -55,6 +55,8 @@ class Strings(
     val legalPrivacyPolicy: String,
     val legalTermsOfUse: String,
     val consentContinue: String,
+    /** The Settings section that carries the same two answers, so they can be changed later. */
+    val settingsPrivacy: String,
     // Exam selection. Titles carry the word that the design sets in coral italic separately, so a
     // translation can put it wherever its grammar wants instead of guessing from the sentence.
     val examSelectionCountryTitleBefore: String,
@@ -269,6 +271,7 @@ private val EnglishStrings = Strings(
     legalPrivacyPolicy = "Privacy Policy",
     legalTermsOfUse = "Terms of Use",
     consentContinue = "Agree and continue",
+    settingsPrivacy = "Privacy",
     examSelectionCountryTitleBefore = "Which country's test are you",
     examSelectionCountryTitleAccent = "taking?",
     examSelectionCountrySubtitle = "You can change this later.",
@@ -422,6 +425,7 @@ private val SlovakStrings = Strings(
     legalPrivacyPolicy = "Zásady ochrany osobných údajov",
     legalTermsOfUse = "Podmienky používania",
     consentContinue = "Súhlasiť a pokračovať",
+    settingsPrivacy = "Súkromie",
     examSelectionCountryTitleBefore = "Na skúšku ktorej krajiny sa",
     examSelectionCountryTitleAccent = "pripravujete?",
     examSelectionCountrySubtitle = "Neskôr to môžete zmeniť.",
@@ -575,6 +579,7 @@ private val HungarianStrings = Strings(
     legalPrivacyPolicy = "Adatvédelmi szabályzat",
     legalTermsOfUse = "Felhasználási feltételek",
     consentContinue = "Elfogadás és tovább",
+    settingsPrivacy = "Adatvédelem",
     examSelectionCountryTitleBefore = "Melyik ország vizsgájára",
     examSelectionCountryTitleAccent = "készül?",
     examSelectionCountrySubtitle = "Ezt később módosíthatja.",
@@ -728,6 +733,7 @@ private val CzechStrings = Strings(
     legalPrivacyPolicy = "Zásady ochrany osobních údajů",
     legalTermsOfUse = "Podmínky použití",
     consentContinue = "Souhlasit a pokračovat",
+    settingsPrivacy = "Soukromí",
     examSelectionCountryTitleBefore = "Na zkoušku které země se",
     examSelectionCountryTitleAccent = "připravujete?",
     examSelectionCountrySubtitle = "Později to můžete změnit.",

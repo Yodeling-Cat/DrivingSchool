@@ -64,6 +64,9 @@ today the iOS app links no PostHog: no events and no crash reports leave it, and
 below would have nothing to symbolicate. Everything after that in this section is only reachable
 once that step is done.
 
+[plans/posthog-ios.md](./../plans/posthog-ios.md) is the plan for finishing it, including the risk
+that running the task rewrites `project.pbxproj` and takes the build phase below with it.
+
 **Install the CLI** on the build machine:
 
 ```bash

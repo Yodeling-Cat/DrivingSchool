@@ -82,6 +82,7 @@ import com.spiraclestudios.autoskola.ui.drawLicenceGlow
 import com.spiraclestudios.autoskola.ui.drawLicenceWaves
 import com.spiraclestudios.autoskola.ui.fullWidthItem
 import com.spiraclestudios.autoskola.ui.previewExam
+import com.spiraclestudios.autoskola.ui.previewExamLong
 import com.spiraclestudios.autoskola.ui.previewProgress
 import com.spiraclestudios.autoskola.ui.previewResults
 import com.spiraclestudios.autoskola.ui.previewResumable
@@ -735,10 +736,11 @@ private fun homeState(
     mistakeCount: Int = 12,
     questionsAnswered: Int = 236,
     resumePrompt: ResumePrompt? = null,
+    exam: ExamLabel = previewExam,
 ): HomeUiState.Ready {
     val tests = previewTests()
     return HomeUiState.Ready(
-        exam = previewExam,
+        exam = exam,
         tests = tests,
         progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
         hasNotPassedTests = notPassedTests(tests, results).isNotEmpty(),
@@ -752,6 +754,19 @@ private fun homeState(
 private fun HomeScreenPreview() {
     AppPreview {
         HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/**
+ * The same phone layout in an exam whose name the pill can't hold at this width: the wordmark keeps
+ * its one line and the pill gives way in the middle, so the category it starts with and the
+ * language it ends with both stay readable.
+ */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenLongExamNamePreview() {
+    AppPreview {
+        HomeScreen(homeState(exam = previewExamLong), onEvent = {}, onChangeExam = {})
     }
 }
 

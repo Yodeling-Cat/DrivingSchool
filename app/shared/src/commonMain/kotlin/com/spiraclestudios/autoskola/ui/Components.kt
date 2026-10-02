@@ -276,13 +276,17 @@ fun NavyPill(
     )
 }
 
-/** A small white pill that floats over the page: the exam switcher and the question timer. */
+/**
+ * A small white pill that floats over the page: the exam switcher and the question timer. Its
+ * [content] is a row the same way the pill is, so a label that has to give way can take a weight
+ * against the marks drawn beside it.
+ */
 @Composable
 fun WhitePill(
     modifier: Modifier = Modifier,
     height: Dp = 36.dp,
     tint: Color? = null,
-    content: @Composable () -> Unit,
+    content: @Composable RowScope.() -> Unit,
 ) {
     val colors = Naj.colors
     val shape = RoundedCornerShape(height / 2)

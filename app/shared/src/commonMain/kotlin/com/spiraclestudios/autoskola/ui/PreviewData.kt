@@ -37,6 +37,12 @@ internal val previewExam = ExamLabel(LicenseCategory.B, "sk")
 internal val previewExamHungarian = ExamLabel(LicenseCategory.B, "hu")
 
 /**
+ * The truck-and-trailer exam in Hungarian, which names its category with the longest label the app
+ * can show: the exam pill of a preview taken in it has to give way in the middle.
+ */
+internal val previewExamLong = ExamLabel(LicenseCategory.CE, "hu")
+
+/**
  * The signs the road-sign previews list, as the regulation groups them: two groups of the warning
  * signs, one of the regulatory signs, and the road markings, whose kind carries no heading. The
  * pictures are not loadable from a preview, so their URIs point nowhere: a row draws the same box

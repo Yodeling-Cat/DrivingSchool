@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +37,14 @@ fun PickerPill(
     val colors = Naj.colors
     Box(modifier.clip(RoundedCornerShape(percent = 50)).clickable(onClick = onClick)) {
         WhitePill(height = height) {
-            Text(text, style = Naj.type.tileStatus.copy(fontSize = PILL_CAPTION_SIZE.sp), color = colors.ink)
+            // The label gives way in the middle when the room it is given can't hold it: the exam's
+            // category is at the front and its language at the back, so both ends are worth keeping.
+            FittingText(
+                text = text,
+                style = Naj.type.tileStatus.copy(fontSize = PILL_CAPTION_SIZE.sp),
+                color = colors.ink,
+                modifier = Modifier.weight(1f, fill = false),
+            )
             Icon(
                 Icons.Filled.ArrowDropDown,
                 contentDescription = contentDescription,
@@ -51,7 +57,7 @@ fun PickerPill(
 
 // ── Previews ──
 
-@Preview(widthDp = 320, heightDp = 140)
+@Preview(widthDp = 320, heightDp = 220)
 @Composable
 private fun PickerPillPreview() {
     AppPreview {
@@ -62,6 +68,12 @@ private fun PickerPillPreview() {
                 PickerPill(text = "Slovenčina", contentDescription = "Language", onClick = {}, height = 44.dp)
                 PickerPill(text = "Nákladiak · SK", contentDescription = "Change exam", onClick = {})
             }
+            PreviewLabel("A LABEL LONGER THAN THE ROOM IT IS GIVEN")
+            PickerPill(
+                text = "Tehergépkocsi pótkocsival (C+E) · HU",
+                contentDescription = "Change exam",
+                onClick = {},
+            )
         }
     }
 }

@@ -54,7 +54,14 @@ android {
             applicationIdSuffix = debugApplicationIdSuffix
         }
         getByName("release") {
-            isMinifyEnabled = false
+            // Release builds are minified, so the mapping file exists and PostHog's symbol upload
+            // has something to send (docs/error-reporting.md). R8 rewrites the app's own frames,
+            // which is why proguard-rules.pro exists.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
     compileOptions {

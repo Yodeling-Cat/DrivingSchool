@@ -5,17 +5,20 @@ An unsymbolicated report from a release build is a list of frames nobody can rea
 needs its symbols uploaded. **Neither platform is wired up yet** — this is what each one needs, and
 when.
 
-## Android: nothing to do yet, on purpose
+## Android: the mapping now exists, the upload does not
 
-**Release builds are not minified.** `app/androidApp/build.gradle.kts` sets
-`isMinifyEnabled = false`, so R8 never runs, no `mapping.txt` exists, and Kotlin/JVM frames come
-through with their real names. There is nothing to symbolicate and no reason to upload anything.
+**Release builds are minified.** `app/androidApp/build.gradle.kts` sets `isMinifyEnabled = true`
+with `proguard-rules.pro` beside it, so R8 runs, `app/androidApp/build/outputs/mapping/release/mapping.txt`
+is produced, and the app's own frames come through obfuscated. Stack traces from a release build
+are unreadable until that mapping reaches PostHog.
 
-That also means PostHog's Gradle plugin would do nothing here. From `PostHogAndroidGradlePlugin.kt`
-it bails out of the mapping path for any variant where `isMinifyEnabled` is false, and the rest of
-its work is NDK `.so` symbols, which this app has none of.
+`proguard-rules.pro` keeps the one thing the app reaches reflectively — the application's
+`BuildConfig` fields, which the shared module reads by name because it generates none of its own.
+Compose, Koin, kotlinx.serialization, Coil and AndroidX ship their own consumer rules.
 
-**The moment minification is turned on**, stack traces go obfuscated and this becomes real work:
+**Not wired up yet.** PostHog's Gradle plugin uploads the mapping, but it needs credentials that do
+not live in the repo, so it is deliberately not applied: it would fail every release build until
+they exist. Adding it is the next step, and it is two things:
 
 1. Add the plugin to `app/androidApp/build.gradle.kts` — the **app module**, not the root, or it
    logs a warning and does nothing:

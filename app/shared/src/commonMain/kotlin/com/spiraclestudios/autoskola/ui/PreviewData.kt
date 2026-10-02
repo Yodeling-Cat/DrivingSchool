@@ -160,6 +160,22 @@ internal val previewSections = listOf(
     Section(id = 2, title = "Right of way", questionsPerTest = 1, points = 2),
 )
 
+/**
+ * A section whose title runs as long as the banks' own do — a bank sets its titles itself, in its own
+ * language — for the question list, which has to keep its count beside it whatever the title does.
+ */
+internal val previewLongSections = listOf(
+    Section(
+        id = 3,
+        title = "Uplatňovanie pravidiel prednosti v jazde a rýchlostné obmedzenia",
+        questionsPerTest = 2,
+        points = 1,
+    ),
+)
+
+/** Two sample questions of the long-titled section, so the list has something to count in it. */
+internal val previewLongSectionQuestions = (11..12).map { previewQuestion(id = it, section = 3) }
+
 /** One sample question; [id] decides the text, so a preview can pick the one it needs. */
 internal fun previewQuestion(id: Int, section: Int = 1, points: Int = 1) = Question(
     id = id,

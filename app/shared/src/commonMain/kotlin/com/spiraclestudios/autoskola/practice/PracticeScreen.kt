@@ -96,6 +96,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.bank.Section
+import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.isDebugBuild
 import com.spiraclestudios.autoskola.stats.AttemptKind
@@ -123,6 +124,8 @@ import com.spiraclestudios.autoskola.ui.WidthClass
 import com.spiraclestudios.autoskola.ui.contentGutter
 import com.spiraclestudios.autoskola.ui.displayText
 import com.spiraclestudios.autoskola.ui.previewExam
+import com.spiraclestudios.autoskola.ui.previewLongSectionQuestions
+import com.spiraclestudios.autoskola.ui.previewLongSections
 import com.spiraclestudios.autoskola.ui.previewPracticeQuestions
 import com.spiraclestudios.autoskola.ui.previewSections
 import com.spiraclestudios.autoskola.ui.theme.AccentedText
@@ -1242,13 +1245,19 @@ private fun QuestionGrid(
                 Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
             }
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
-                // The section, and how much of it the user has answered: the list is open to be read
-                // as much for that as for the numbers.
+                // The section, and how much of it the user has answered. The count is measured first and
+                // keeps its own width, while the title takes what is left of the row: a long one wraps
+                // onto another line rather than squeezing the count into a column of its own characters.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(section.title.uppercase(), style = Naj.type.capsLabel, color = colors.muted)
+                    Text(
+                        section.title.uppercase(),
+                        style = Naj.type.capsLabel,
+                        color = colors.muted,
+                        modifier = Modifier.weight(1f),
+                    )
                     Text(
                         questionCounterLabel(
                             strings.questionCounter(answeredAmong(selectedAnswers, indices)),
@@ -1464,6 +1473,25 @@ private fun QuestionGridPreview() {
                 sections = previewSections,
                 currentIndex = 2,
                 selectedAnswers = mapOf(0 to 1, 1 to 0),
+                revealCorrectness = false,
+                finished = false,
+                onSelectQuestion = {},
+            )
+        }
+    }
+}
+
+/** A section whose title runs long: the title wraps, and the count beside it keeps its own room. */
+@Preview(widthDp = 400, heightDp = 220)
+@Composable
+private fun QuestionGridLongTitlePreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        Box(Modifier.fillMaxSize().background(Naj.colors.sheet)) {
+            QuestionGrid(
+                questions = previewLongSectionQuestions,
+                sections = previewLongSections,
+                currentIndex = 0,
+                selectedAnswers = mapOf(0 to 1),
                 revealCorrectness = false,
                 finished = false,
                 onSelectQuestion = {},

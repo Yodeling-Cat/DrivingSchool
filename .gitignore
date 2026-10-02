@@ -19,6 +19,12 @@ captures
 node_modules/
 .claude/settings.local.json
 
+# Build secrets. PostHog's symbol-upload key goes in the environment, or in a local .env that the
+# Gradle plugin and the Xcode build phase read — never in the repo (docs/error-reporting.md).
+.env
+.env.*
+!.env.example
+
 # Question-bank importer
 tools/import/.venv/
 tools/import/cache/

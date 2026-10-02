@@ -188,22 +188,29 @@ fun SettingsScreen(
                 }
 
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
-                SettingsNavRow(
-                    title = strings.feedbackTitle,
-                    onClick = onOpenFeedback,
-                    // The envelope, because what the screen does is open the user's mail app on
-                    // the report they write.
-                    leading = { SettingsRowIcon(Icons.Outlined.MailOutline, colors.primaryDeep, colors.mintGlow) },
-                )
-                SettingsNavRow(
-                    title = strings.aboutApp,
-                    // Its subtitle, because the version is part of what this entry is rather than a
-                    // note under it. The web build reports none, and the row then simply has no
-                    // subtitle, the same as any other row without one.
-                    subtitle = state.appVersion?.let { strings.aboutVersion(it) },
-                    onClick = onOpenAbout,
-                    leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
-                )
+                NajCard {
+                    SettingsNavRow(
+                        title = strings.feedbackTitle,
+                        onClick = onOpenFeedback,
+                        // The envelope, because what the screen does is open the user's mail app on
+                        // the report they write.
+                        leading = { SettingsRowIcon(Icons.Outlined.MailOutline, colors.primaryDeep, colors.mintGlow) },
+                        // Square, so it reads as the first row of this card rather than a button
+                        // laid on top of it, the same as the privacy rows above.
+                        shape = RectangleShape,
+                    )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    SettingsNavRow(
+                        title = strings.aboutApp,
+                        // Its subtitle, because the version is part of what this entry is rather than a
+                        // note under it. The web build reports none, and the row then simply has no
+                        // subtitle, the same as any other row without one.
+                        subtitle = state.appVersion?.let { strings.aboutVersion(it) },
+                        onClick = onOpenAbout,
+                        leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
+                        shape = RectangleShape,
+                    )
+                }
             }
         }
     }

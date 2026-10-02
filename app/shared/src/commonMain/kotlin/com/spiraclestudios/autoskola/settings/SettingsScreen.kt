@@ -23,7 +23,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,9 +39,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.LicenceIcon
+import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.IconTile
@@ -57,7 +61,13 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SettingsRoute(onChangeExam: () -> Unit, onOpenAbout: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreen(state, viewModel::onEvent, onChangeExam, onOpenAbout)
+    SettingsScreen(
+        state = state,
+        onEvent = viewModel::onEvent,
+        onChangeExam = onChangeExam,
+        onOpenAbout = onOpenAbout,
+        onOpenDocument = { openUrl(it.url) },
+    )
 }
 
 @Composable
@@ -66,6 +76,7 @@ fun SettingsScreen(
     onEvent: (SettingsUiEvent) -> Unit,
     onChangeExam: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenDocument: (LegalDocument) -> Unit,
 ) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
@@ -125,6 +136,21 @@ fun SettingsScreen(
 
                 SectionLabel(strings.settingsPrivacy, Modifier.padding(start = 6.dp))
                 NajCard {
+                    // The documents stay readable after onboarding, which is the other half of
+                    // agreeing to them. They open in a browser; the answers below are what the
+                    // user can actually change.
+                    SettingsNavRow(
+                        title = strings.legalPrivacyPolicy,
+                        onClick = { onOpenDocument(LegalDocument.PrivacyPolicy) },
+                        leading = { SettingsRowIcon(Icons.Outlined.Policy, colors.primaryDeep, colors.mintGlow) },
+                    )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    SettingsNavRow(
+                        title = strings.legalTermsOfUse,
+                        onClick = { onOpenDocument(LegalDocument.TermsOfUse) },
+                        leading = { SettingsRowIcon(Icons.Outlined.Description, colors.primaryDeep, colors.mintGlow) },
+                    )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
                         title = strings.consentCrashReportingTitle,
                         description = strings.consentCrashReportingDescription,
@@ -261,6 +287,7 @@ private fun SettingsScreenPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenDocument = {},
         )
     }
 }
@@ -282,6 +309,7 @@ private fun SettingsScreenCheckingPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenDocument = {},
         )
     }
 }
@@ -303,6 +331,7 @@ private fun SettingsScreenNoExamPreview() {
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
+            onOpenDocument = {},
         )
     }
 }

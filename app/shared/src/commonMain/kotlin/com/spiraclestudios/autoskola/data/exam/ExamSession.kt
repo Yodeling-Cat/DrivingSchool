@@ -32,6 +32,22 @@ data class ExamProgress(
 )
 
 /**
+ * What picking one of the tests does, which the home screen asks about before doing it. Two of the
+ * three answers are questions rather than actions: an attempt under way could be carried on or
+ * started over, and a score that is already a pass could be kept or given up.
+ */
+sealed interface TestPick {
+    /** The test has an attempt under way, so carrying it on is not the only thing picking it means. */
+    data class UnderWay(val attempt: TestAttempt) : TestPick
+
+    /** The test was finished and passed: taking it again would give the score it has up. */
+    data class Passed(val result: TestResult) : TestPick
+
+    /** Nothing has been done with the test, so picking it starts it. */
+    data object Fresh : TestPick
+}
+
+/**
  * The user's work on one exam: one bank version and one license group. Holds the decisions
  * the screens act on (what to start or resume, what counts as a mistake, how a test is
  * scored) so they can be unit tested without any UI.
@@ -112,6 +128,17 @@ class ExamSession(
 
     /** The attempt for [test] that's still under way, or `null` if the test can simply be started. */
     suspend fun openAttemptFor(test: PracticeTest): TestAttempt? = statistics.first().openAttemptFor(test.number)
+
+    /**
+     * What picking [test] off the list means, read from the statistics in one go so the answers
+     * can't disagree with each other. An attempt under way comes first: a test that is being redone
+     * has a result behind it, and that is not what the user is looking at.
+     */
+    suspend fun pick(test: PracticeTest): TestPick = statistics.first().let { stats ->
+        stats.openAttemptFor(test.number)?.let(TestPick::UnderWay)
+            ?: stats.latestResults[test.number]?.takeIf(TestResult::passed)?.let(TestPick::Passed)
+            ?: TestPick.Fresh
+    }
 
     /** Continues [test] if it's already under way, otherwise starts a new attempt. */
     suspend fun startOrResume(test: PracticeTest): TestAttempt = openAttemptFor(test)

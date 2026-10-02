@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -132,6 +133,51 @@ class ExamSessionTest {
     fun aTestThatWasNeverStartedHasNoAttemptUnderWay() = runTest {
         val session = session()
         assertNull(session.openAttemptFor(session.tests.first()))
+    }
+
+    @Test
+    fun pickingATestSaysWhatIsBehindIt() = runTest {
+        val session = session()
+        val test = session.tests.first()
+
+        // Nothing done with it: picking it starts it.
+        assertEquals(TestPick.Fresh, session.pick(test))
+
+        val started = session.startOrResume(test)
+        assertEquals(TestPick.UnderWay(started), session.pick(test))
+
+        // Answered right throughout: four of four points is a pass, so taking it again would give
+        // that score up.
+        session.answerAll(started.id)
+        session.finish(started.id)
+        assertEquals(TestPick.Passed(TestResult(4, 4)), session.pick(test))
+    }
+
+    @Test
+    fun pickingATestThatFailedJustStartsItAgain() = runTest {
+        val session = session()
+        val test = session.tests.first()
+        val attempt = session.startOrResume(test)
+        session.answerAll(attempt.id, wrong = setOf(test.questions.first().id))
+        session.finish(attempt.id)
+
+        assertEquals(TestPick.Fresh, session.pick(test))
+    }
+
+    @Test
+    fun anAttemptUnderWayComesBeforeTheScoreTheTestAlreadyHas() = runTest {
+        val session = session()
+        val test = session.tests.first()
+        val passed = session.startOrResume(test)
+        session.answerAll(passed.id)
+        session.finish(passed.id)
+
+        // Taking the test again has it under way once more, and that is what picking it asks about:
+        // the score it would give up is only the question while nothing is in progress.
+        val redone = session.startOrResume(test)
+        session.answer(redone.id, test.questions.first(), chosen = 0)
+
+        assertEquals(redone.id, assertIs<TestPick.UnderWay>(session.pick(test)).attempt.id)
     }
 
     @Test

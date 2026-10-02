@@ -8,6 +8,7 @@ import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
 import com.spiraclestudios.autoskola.bank.Section
 import com.spiraclestudios.autoskola.home.HomeProgress
+import com.spiraclestudios.autoskola.home.PassedPrompt
 import com.spiraclestudios.autoskola.home.ResumableTest
 import com.spiraclestudios.autoskola.home.ResumePrompt
 import com.spiraclestudios.autoskola.learn.SignGroupItem
@@ -242,6 +243,13 @@ internal fun previewResumePrompt(testNumber: Int = 7, answered: Int = 12, total:
     testNumber = testNumber,
     answered = answered,
     total = total,
+)
+
+/** A test the user picked that they have already passed, so the home screen asks before redoing it. */
+internal fun previewPassedPrompt(testNumber: Int = 3, score: Int = 38, maxScore: Int = 40) = PassedPrompt(
+    testNumber = testNumber,
+    score = score,
+    maxScore = maxScore,
 )
 
 /** A finished attempt's score, keyed by test number the way the home screen reads it. */

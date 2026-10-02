@@ -11,6 +11,7 @@ import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
+import com.spiraclestudios.autoskola.data.exam.TestPick
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +46,12 @@ data class ResumePrompt(
     val total: Int,
 )
 
+/**
+ * A test the user picked that they have already passed, so the screen asks before it is taken
+ * again: redoing it gives up the score it has, which is a pass.
+ */
+data class PassedPrompt(val testNumber: Int, val score: Int, val maxScore: Int)
+
 /** Everything the home screen shows about the user's progress. */
 data class HomeProgress(
     val results: Map<Int, TestResult>,
@@ -69,6 +76,8 @@ sealed interface HomeUiState {
         val openAttemptId: String? = null,
         /** Set when the picked test is already under way, so the screen asks what to do. */
         val resumePrompt: ResumePrompt? = null,
+        /** Set when the picked test has already been passed, so the screen asks before redoing it. */
+        val passedPrompt: PassedPrompt? = null,
     ) : HomeUiState
 }
 
@@ -85,8 +94,14 @@ sealed interface HomeUiEvent {
     /** Throws the unfinished attempt away and starts the same test from the beginning. */
     data object StartOver : HomeUiEvent
 
+    /** Takes the test the [HomeUiState.Ready.passedPrompt] is about again, giving up its score. */
+    data object RedoTest : HomeUiEvent
+
     /** The user closed the prompt, leaving the test as it was. */
     data object DismissResumePrompt : HomeUiEvent
+
+    /** The user closed the passed prompt, leaving the score the test has. */
+    data object DismissPassedPrompt : HomeUiEvent
     data object PracticeMistakes : HomeUiEvent
     data object AttemptOpened : HomeUiEvent
 }
@@ -103,12 +118,13 @@ class HomeViewModel(
 
     private val openAttemptId = MutableStateFlow<String?>(null)
     private val resumePrompt = MutableStateFlow<ResumePrompt?>(null)
+    private val passedPrompt = MutableStateFlow<PassedPrompt?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<HomeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(HomeUiState.Loading)
-            combine(session.progress, openAttemptId, resumePrompt) { progress, open, prompt ->
+            combine(session.progress, openAttemptId, resumePrompt, passedPrompt) { progress, open, prompt, passed ->
                 HomeUiState.Ready(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
@@ -116,6 +132,7 @@ class HomeViewModel(
                     hasNotPassedTests = notPassedTests(session.tests, progress.results).isNotEmpty(),
                     openAttemptId = open,
                     resumePrompt = prompt,
+                    passedPrompt = passed,
                 )
             }
         }
@@ -127,19 +144,27 @@ class HomeViewModel(
         when (event) {
             is HomeUiEvent.StartTest -> viewModelScope.launch {
                 val test = session.tests.firstOrNull { it.number == event.testNumber } ?: return@launch
-                // A test that's already under way could be picked up or started again; only the
-                // user knows which, so ask instead of choosing for them.
-                val underWay = session.openAttemptFor(test)
-                if (underWay == null) {
-                    openAttemptId.value = session.startOrResume(test).id
-                    started(AttemptKind.PracticeTest, resumed = false)
-                } else {
-                    resumePrompt.value = ResumePrompt(
-                        attemptId = underWay.id,
+                // What the test already has decides what picking it means, and two of those -
+                // an attempt under way, a score that is already a pass - are the user's to choose
+                // between rather than ours.
+                when (val pick = session.pick(test)) {
+                    is TestPick.UnderWay -> resumePrompt.value = ResumePrompt(
+                        attemptId = pick.attempt.id,
                         testNumber = test.number,
-                        answered = underWay.answers.size,
-                        total = underWay.questionIds.size,
+                        answered = pick.attempt.answers.size,
+                        total = pick.attempt.questionIds.size,
                     )
+
+                    is TestPick.Passed -> passedPrompt.value = PassedPrompt(
+                        testNumber = test.number,
+                        score = pick.result.score,
+                        maxScore = pick.result.maxScore,
+                    )
+
+                    TestPick.Fresh -> {
+                        openAttemptId.value = session.startOrResume(test).id
+                        started(AttemptKind.PracticeTest, resumed = false)
+                    }
                 }
             }
 
@@ -173,6 +198,20 @@ class HomeViewModel(
 
             HomeUiEvent.DismissResumePrompt -> resumePrompt.value = null
 
+            // Redoing a passed test is starting it over, the way the prompt about an unfinished one
+            // does it: a fresh attempt from the beginning, with nothing of the old one in it. It is
+            // that attempt's score that takes the place of the pass the test already has.
+            HomeUiEvent.RedoTest -> passedPrompt.value?.let { prompt ->
+                val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
+                passedPrompt.value = null
+                viewModelScope.launch {
+                    openAttemptId.value = session.restart(test).id
+                    started(AttemptKind.PracticeTest, resumed = false)
+                }
+            }
+
+            HomeUiEvent.DismissPassedPrompt -> passedPrompt.value = null
+
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
                 session.startMistakes()?.let {
                     openAttemptId.value = it.id
@@ -183,6 +222,7 @@ class HomeViewModel(
             HomeUiEvent.AttemptOpened -> {
                 openAttemptId.value = null
                 resumePrompt.value = null
+                passedPrompt.value = null
             }
         }
     }

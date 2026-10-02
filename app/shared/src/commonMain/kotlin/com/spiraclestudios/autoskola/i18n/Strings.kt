@@ -150,6 +150,15 @@ class Strings(
     val continueTest: String,
     val resumePromptTitle: String,
     val startOver: String,
+
+    /** What the prompt says when the picked test has already been passed. */
+    val passedPromptTitle: String,
+
+    /** The same prompt's words, with the score that redoing the test would give up. */
+    val passedPromptMessage: (score: Int, max: Int) -> String,
+
+    /** The quiet answer to it: keep the score the test already has. */
+    val keepScore: String,
     val inProgress: String,
     val practiceMistakes: String,
     val mistakesToReview: (count: Int) -> String,
@@ -336,6 +345,12 @@ private val EnglishStrings = Strings(
     continueTest = "Continue",
     resumePromptTitle = "This test is already started",
     startOver = "Start over",
+    passedPromptTitle = "This test is already passed",
+    passedPromptMessage = { score, max ->
+        "You scored $score / $max here, enough to pass. Redoing the test starts it from the " +
+            "beginning, and you lose this score."
+    },
+    keepScore = "Keep my score",
     inProgress = "In progress",
     practiceMistakes = "Practice mistakes",
     mistakesToReview = { if (it == 0) "No mistakes to review" else "$it to review" },
@@ -490,6 +505,12 @@ private val SlovakStrings = Strings(
     continueTest = "Pokračovať",
     resumePromptTitle = "Tento test je už začatý",
     startOver = "Začať odznova",
+    passedPromptTitle = "Tento test je už úspešný",
+    passedPromptMessage = { score, max ->
+        "Dosiahli ste tu $score / $max, čo stačí na úspech. Nový test začne od začiatku " +
+            "a o toto skóre prídete."
+    },
+    keepScore = "Ponechať skóre",
     inProgress = "Rozpracovaný",
     practiceMistakes = "Precvičiť chyby",
     mistakesToReview = { if (it == 0) "Žiadne chyby na zopakovanie" else "Na zopakovanie: $it" },
@@ -645,6 +666,12 @@ private val HungarianStrings = Strings(
     continueTest = "Folytatás",
     resumePromptTitle = "Ez a teszt már elkezdődött",
     startOver = "Újrakezdés",
+    passedPromptTitle = "Ez a teszt már sikeres",
+    passedPromptMessage = { score, max ->
+        "Itt $score / $max pontot ért el, ami elég a sikerhez. Az újrakezdéssel a teszt elölről " +
+            "kezdődik, és elveszíti ezt az eredményt."
+    },
+    keepScore = "Pontszám megtartása",
     inProgress = "Folyamatban",
     practiceMistakes = "Hibák gyakorlása",
     mistakesToReview = { if (it == 0) "Nincs ismétlendő hiba" else "Ismétlendő: $it" },
@@ -799,6 +826,12 @@ private val CzechStrings = Strings(
     continueTest = "Pokračovat",
     resumePromptTitle = "Tento test je už zahájený",
     startOver = "Začít znovu",
+    passedPromptTitle = "Tento test je už úspěšný",
+    passedPromptMessage = { score, max ->
+        "Dosáhli jste zde $score / $max, což stačí k úspěchu. Nový test začne od začátku " +
+            "a o toto skóre přijdete."
+    },
+    keepScore = "Ponechat skóre",
     inProgress = "Rozpracovaný",
     practiceMistakes = "Procvičit chyby",
     mistakesToReview = { if (it == 0) "Žádné chyby k zopakování" else "K zopakování: $it" },

@@ -137,7 +137,7 @@ fun IntersectionsScreen(
         (state as? IntersectionsUiState.Ready)?.drillPrompt?.let { prompt ->
             ResumeDialog(
                 title = strings.drillPromptTitle,
-                summary = strings.resumeSummary(strings.situationsDrillName, prompt.answered, prompt.total),
+                summary = strings.resumeSummary(prompt.answered, prompt.total),
                 onContinue = { onEvent(IntersectionsUiEvent.ContinueDrill) },
                 onStartOver = { onEvent(IntersectionsUiEvent.StartOverDrill) },
                 onDismiss = { onEvent(IntersectionsUiEvent.DismissDrillPrompt) },

@@ -55,7 +55,6 @@ import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
-import com.spiraclestudios.autoskola.practice.attemptName
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardRadius
 import com.spiraclestudios.autoskola.ui.ContentWidth
@@ -72,6 +71,7 @@ import com.spiraclestudios.autoskola.ui.PagePadding
 import com.spiraclestudios.autoskola.ui.PickerPill
 import com.spiraclestudios.autoskola.ui.PillHeight
 import com.spiraclestudios.autoskola.ui.PrimaryPill
+import com.spiraclestudios.autoskola.ui.RedoTestDialog
 import com.spiraclestudios.autoskola.ui.ResumeDialog
 import com.spiraclestudios.autoskola.ui.ScreenHeader
 import com.spiraclestudios.autoskola.ui.TestStatus
@@ -83,6 +83,7 @@ import com.spiraclestudios.autoskola.ui.drawLicenceWaves
 import com.spiraclestudios.autoskola.ui.fullWidthItem
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewExamLong
+import com.spiraclestudios.autoskola.ui.previewPassedPrompt
 import com.spiraclestudios.autoskola.ui.previewProgress
 import com.spiraclestudios.autoskola.ui.previewResults
 import com.spiraclestudios.autoskola.ui.previewResumable
@@ -167,6 +168,7 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
     }
 
     state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
+    state.passedPrompt?.let { PassedPromptDialog(it, onEvent) }
 }
 
 /** The phone and medium layout: the cards in one scrolling column, then the tests as a grid. */
@@ -443,7 +445,7 @@ private fun ResumeCard(
     val colors = Naj.colors
     val shader = rememberGrainShader()
     val shape = RoundedCornerShape(if (wide) ResumeWideRadius else ResumeCardRadius)
-    val summary = strings.resumeSummary(attemptName(test.kind, test.testNumber), test.answered, test.total)
+    val summary = strings.resumeSummary(test.answered, test.total)
 
     Box(
         modifier = modifier
@@ -673,10 +675,21 @@ private fun TestTileItem(
 private fun ResumePromptDialog(prompt: ResumePrompt, onEvent: (HomeUiEvent) -> Unit) {
     ResumeDialog(
         title = strings.resumePromptTitle,
-        summary = strings.resumeSummary(strings.testName(prompt.testNumber), prompt.answered, prompt.total),
+        summary = strings.resumeSummary(prompt.answered, prompt.total),
         onContinue = { onEvent(HomeUiEvent.ContinueTest) },
         onStartOver = { onEvent(HomeUiEvent.StartOver) },
         onDismiss = { onEvent(HomeUiEvent.DismissResumePrompt) },
+    )
+}
+
+/** Asks whether to take a test that's already passed again, giving up the score it has. */
+@Composable
+private fun PassedPromptDialog(prompt: PassedPrompt, onEvent: (HomeUiEvent) -> Unit) {
+    RedoTestDialog(
+        title = strings.passedPromptTitle,
+        message = strings.passedPromptMessage(prompt.score, prompt.maxScore),
+        onRedo = { onEvent(HomeUiEvent.RedoTest) },
+        onDismiss = { onEvent(HomeUiEvent.DismissPassedPrompt) },
     )
 }
 
@@ -736,6 +749,7 @@ private fun homeState(
     mistakeCount: Int = 12,
     questionsAnswered: Int = 236,
     resumePrompt: ResumePrompt? = null,
+    passedPrompt: PassedPrompt? = null,
     exam: ExamLabel = previewExam,
 ): HomeUiState.Ready {
     val tests = previewTests()
@@ -745,6 +759,7 @@ private fun homeState(
         progress = previewProgress(results, inProgress, resumable, mistakeCount, questionsAnswered),
         hasNotPassedTests = notPassedTests(tests, results).isNotEmpty(),
         resumePrompt = resumePrompt,
+        passedPrompt = passedPrompt,
     )
 }
 
@@ -879,5 +894,14 @@ private fun HomeScreenExpandedPreview() {
 private fun HomeScreenResumePromptPreview() {
     AppPreview {
         HomeScreen(homeState(resumePrompt = previewResumePrompt()), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** What it asks when the picked test has already been passed: redo it, or keep that score. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenPassedPromptPreview() {
+    AppPreview {
+        HomeScreen(homeState(passedPrompt = previewPassedPrompt()), onEvent = {}, onChangeExam = {})
     }
 }

@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.home
 
+import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
@@ -214,6 +215,90 @@ class HomeViewModelTest : ViewModelTest() {
             session.answer(attempt.id, question, chosen)
         }
         session.finish(attempt.id)
+    }
+
+    @Test
+    fun pickingATestAlreadyPassedAsksBeforeRedoingIt() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        assertNull(state.ready.openAttemptId)
+        assertEquals(PassedPrompt(testNumber = 1, score = 4, maxScore = 4), state.ready.passedPrompt)
+    }
+
+    @Test
+    fun redoingAPassedTestStartsItFromTheBeginning() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.RedoTest)
+
+        assertNull(state.ready.passedPrompt)
+        val redone = assertNotNull(repositories.attempts.get(assertNotNull(state.ready.openAttemptId)))
+        assertEquals(1, redone.testNumber)
+        assertTrue(redone.answers.isEmpty())
+        // The score is only given up once the test is taken again: a finished attempt is final, so
+        // it stays until the new one replaces it as the test's latest result.
+        assertEquals(TestResult(4, 4), state.ready.progress.results[1])
+    }
+
+    @Test
+    fun dismissingThePassedPromptLeavesTheTestAsItWas() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.DismissPassedPrompt)
+
+        assertNull(state.ready.passedPrompt)
+        assertNull(state.ready.openAttemptId)
+        assertEquals(TestResult(4, 4), state.ready.progress.results[1])
+    }
+
+    @Test
+    fun aFailedTestIsStartedAgainWithoutAsking() = runTest {
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = false)
+
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        assertNull(state.ready.passedPrompt)
+        assertEquals(1, repositories.attempts.get(assertNotNull(state.ready.openAttemptId))!!.testNumber)
+    }
+
+    @Test
+    fun redoingAPassedTestRecordsItAsNewlyStarted() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(HomeUiEvent.RedoTest)
+
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "practice_test", "resumed" to false),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun askingWhetherToRedoAPassedTestRecordsNothing() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val state = observe(viewModel.uiState)
+        finishTest(testNumber = 1, passed = true)
+        repositories.analyticsSink.events.clear()
+
+        // The question is not a start yet, so it must not be recorded as one.
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+        assertNotNull(state.ready.passedPrompt)
     }
 
     @Test

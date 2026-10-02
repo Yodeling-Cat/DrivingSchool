@@ -39,7 +39,7 @@ sealed interface ConsentUiEvent {
     /** Agree to the documents and to both sharing questions in one act. */
     data object AcceptAll : ConsentUiEvent
 
-    /** Agree to the documents, leaving the two answers as the switches have them. */
+    /** Agree to the documents, at whatever the switches have been set to. */
     data object AcceptChosen : ConsentUiEvent
 }
 
@@ -55,6 +55,10 @@ sealed interface ConsentUiEvent {
  * chosen" is the same act with the answers left alone, and it is what keeps refusing as easy as
  * accepting. A pre-ticked switch would be neither — it would take the answer from the user not
  * touching it.
+ *
+ * **Nothing is written until a button is pressed.** The switches are held here and only copied into
+ * [PreferencesRepository] by [commitAnswers], so a switch left on and the screen abandoned is not an
+ * answer the app ever recorded, and the SDK is never told to start under one.
  */
 class ConsentViewModel(private val preferences: PreferencesRepository, private val analytics: AnalyticsRepository) :
     ViewModel() {
@@ -62,24 +66,35 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
     /** Not persisted: reading the page is not the acceptance, ticking the box or pressing is. */
     private val documentsAccepted = MutableStateFlow(false)
 
-    val uiState: StateFlow<ConsentUiState> =
-        combine(preferences.preferences, documentsAccepted) { preferences, documentsAccepted ->
-            ConsentUiState(
-                language = preferences.language,
-                documentsAccepted = documentsAccepted,
-                crashReportingEnabled = preferences.crashReportingEnabled,
-                analyticsEnabled = preferences.analyticsEnabled,
-            )
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            ConsentUiState(
-                language = preferences.preferences.value.language,
-                documentsAccepted = false,
-                crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
-                analyticsEnabled = preferences.preferences.value.analyticsEnabled,
-            ),
+    /**
+     * The answers as the switches show them, starting from whatever was answered last time — a
+     * re-consent after a policy change opens on the old answers rather than on nothing.
+     */
+    private val stagedCrashReporting = MutableStateFlow(preferences.preferences.value.crashReportingEnabled)
+    private val stagedAnalytics = MutableStateFlow(preferences.preferences.value.analyticsEnabled)
+
+    val uiState: StateFlow<ConsentUiState> = combine(
+        preferences.preferences,
+        documentsAccepted,
+        stagedCrashReporting,
+        stagedAnalytics,
+    ) { preferences, documentsAccepted, crashReporting, analytics ->
+        ConsentUiState(
+            language = preferences.language,
+            documentsAccepted = documentsAccepted,
+            crashReportingEnabled = crashReporting,
+            analyticsEnabled = analytics,
         )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        ConsentUiState(
+            language = preferences.preferences.value.language,
+            documentsAccepted = false,
+            crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
+            analyticsEnabled = preferences.preferences.value.analyticsEnabled,
+        ),
+    )
 
     fun onEvent(event: ConsentUiEvent) {
         when (event) {
@@ -87,37 +102,38 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
 
             is ConsentUiEvent.SetDocumentsAccepted -> documentsAccepted.value = event.accepted
 
-            is ConsentUiEvent.SetCrashReporting -> {
-                preferences.setCrashReportingEnabled(event.enabled)
-                analytics.syncConsent()
-            }
+            // Held, not written. These are what the buttons commit.
+            is ConsentUiEvent.SetCrashReporting -> stagedCrashReporting.value = event.enabled
 
-            is ConsentUiEvent.SetAnalytics -> {
-                preferences.setAnalyticsEnabled(event.enabled)
-                analytics.syncConsent()
-            }
+            is ConsentUiEvent.SetAnalytics -> stagedAnalytics.value = event.enabled
 
             ConsentUiEvent.AcceptAll -> {
-                // The answers the switches would carry, given in one act. Writing them before
-                // agreeing is also what lets the event below be sent at all.
+                stagedCrashReporting.value = true
+                stagedAnalytics.value = true
                 documentsAccepted.value = true
-                preferences.setCrashReportingEnabled(true)
-                preferences.setAnalyticsEnabled(true)
-                analytics.syncConsent()
-                agreeToTheDocuments()
+                commitAnswers()
             }
 
             ConsentUiEvent.AcceptChosen -> {
                 // Refused in the ViewModel as well as on the button, so the rule holds whichever
                 // screen is driving it.
                 if (!uiState.value.canAcceptChosen) return
-                agreeToTheDocuments()
+                commitAnswers()
             }
         }
     }
 
-    /** Both buttons end here: the documents are agreed to and the onboarding is recorded. */
-    private fun agreeToTheDocuments() {
+    /**
+     * The only place this screen writes anything, and both buttons end here: the answers become the
+     * user's, the SDK is told, and the onboarding is recorded.
+     *
+     * The write comes before the capture on purpose — [AnalyticsRepository] reads the answer on
+     * every event, so this is what lets the onboarding event be sent at all.
+     */
+    private fun commitAnswers() {
+        preferences.setCrashReportingEnabled(stagedCrashReporting.value)
+        preferences.setAnalyticsEnabled(stagedAnalytics.value)
+        analytics.syncConsent()
         preferences.acceptLegal(CURRENT_LEGAL_VERSION)
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
     }

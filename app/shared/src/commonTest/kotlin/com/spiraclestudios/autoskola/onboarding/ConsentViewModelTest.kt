@@ -53,8 +53,34 @@ class ConsentViewModelTest : ViewModelTest() {
 
         assertTrue(state.value.crashReportingEnabled)
         assertFalse(state.value.analyticsEnabled)
-        // The first push is the repository's own, from when it was built.
-        assertEquals(listOf(false to false, true to false), repositories.analyticsSink.consents)
+    }
+
+    @Test
+    fun aSwitchOnItsOwnCommitsNothing() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
+        viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
+
+        // Held, not written: the screen is still asking and the user can still walk away.
+        assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
+        assertFalse(repositories.preferences.preferences.value.analyticsEnabled)
+        // The only push is the repository's own, from when it was built.
+        assertEquals(listOf(false to false), repositories.analyticsSink.consents)
+    }
+
+    @Test
+    fun acceptingTheChosenAnswersCommitsWhatTheSwitchesShow() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        val preferences = repositories.preferences.preferences.value
+        assertTrue(preferences.crashReportingEnabled)
+        assertFalse(preferences.analyticsEnabled)
+        assertEquals(true to false, repositories.analyticsSink.consents.last())
     }
 
     @Test

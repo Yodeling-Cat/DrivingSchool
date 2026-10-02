@@ -65,7 +65,7 @@ private fun ResumeDialogPreview() {
                 PreviewLabel("a test that is already started")
                 ResumeDialog(
                     title = strings.resumePromptTitle,
-                    summary = strings.resumeSummary(strings.testName(7), 12, 40),
+                    summary = strings.resumeSummary( 12, 40),
                     onContinue = {},
                     onStartOver = {},
                     onDismiss = {},

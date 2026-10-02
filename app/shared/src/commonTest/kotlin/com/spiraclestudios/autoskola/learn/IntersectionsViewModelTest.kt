@@ -7,6 +7,7 @@ import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
+import com.spiraclestudios.autoskola.testing.currentSession
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,7 +27,6 @@ class IntersectionsViewModelTest : ViewModelTest() {
         return IntersectionsViewModel(
             repositories.exams,
             repositories.banks,
-            repositories.preferences,
             repositories.answers,
         )
     }
@@ -36,7 +36,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
         val fresh = TestRepositories(testSituationsBank())
 
         val state = observe(
-            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.preferences, fresh.answers).uiState,
+            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.answers).uiState,
         )
 
         assertEquals(IntersectionsUiState.Loading, state.value)
@@ -88,7 +88,6 @@ class IntersectionsViewModelTest : ViewModelTest() {
             IntersectionsViewModel(
                 repositories.exams,
                 repositories.banks,
-                repositories.preferences,
                 repositories.answers,
             ).uiState,
         )
@@ -114,17 +113,24 @@ class IntersectionsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun aDrillChecksTheAnswersAsTheDriverAsked() = runTest {
-        // A drill is learning, so it goes by the same setting the practice screen does.
+    fun aDrillGoesByTheSettingTheDriverHasNow() = runTest {
+        // A drill is learning, so it goes by the same setting the practice screen does - and the
+        // setting is read as it stands, not the one the drill was started under: an answer given
+        // after turning checking off can be taken back.
         val repositories = TestRepositories(testSituationsBank())
-        repositories.preferences.setCheckAnswersImmediately(false)
         val viewModel = viewModel(repositories)
         val state = observe(viewModel.uiState)
-
+        repositories.preferences.setCheckAnswersImmediately(true)
         viewModel.onEvent(IntersectionsUiEvent.Drill)
+        val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
+        val session = repositories.exams.currentSession()
+        val question = testQuestion(1813, section = 4)
+        session.answer(drill, question, chosen = 0)
 
-        val attemptId = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
-        assertFalse(assertNotNull(repositories.attempts.get(attemptId)).checkImmediately)
+        repositories.preferences.setCheckAnswersImmediately(false)
+        session.answer(drill, question, chosen = 1)
+
+        assertEquals(1, assertNotNull(repositories.attempts.get(drill)).answerFor(1813)?.chosen)
     }
 
     @Test
@@ -155,7 +161,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
         viewModel.onEvent(IntersectionsUiEvent.Drill)
         val drill = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
         viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
-        repositories.attempts.answer(drill, question = testQuestion(1813, section = 4), chosen = 0)
+        repositories.attempts.answer(drill, question = testQuestion(1813, section = 4), chosen = 0, locked = false)
 
         viewModel.onEvent(IntersectionsUiEvent.Drill)
 
@@ -188,7 +194,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
         viewModel.onEvent(IntersectionsUiEvent.Drill)
         val first = assertNotNull(assertIs<IntersectionsUiState.Ready>(state.value).openAttemptId)
         viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
-        repositories.attempts.answer(first, question = testQuestion(1813, section = 4), chosen = 0)
+        repositories.attempts.answer(first, question = testQuestion(1813, section = 4), chosen = 0, locked = false)
         viewModel.onEvent(IntersectionsUiEvent.Drill)
 
         viewModel.onEvent(IntersectionsUiEvent.StartOverDrill)

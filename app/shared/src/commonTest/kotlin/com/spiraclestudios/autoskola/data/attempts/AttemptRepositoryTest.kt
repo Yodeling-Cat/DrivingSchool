@@ -30,25 +30,25 @@ class AttemptRepositoryTest {
         )
     }
 
-    private suspend fun AttemptRepository.startTest(checkImmediately: Boolean = false) = start(
+    private suspend fun AttemptRepository.startTest() = start(
         bankId = "sk-sk",
         bankVersion = 1,
         category = LicenseCategory.B,
         kind = AttemptKind.PracticeTest,
         testNumber = 5,
         questions = questions,
-        checkImmediately = checkImmediately,
     )
 
-    private suspend fun AttemptRepository.statsB() = statistics("sk-sk", 1, LicenseCategory.B).first()
+    private suspend fun AttemptRepository.statsB() =
+        statistics("sk-sk", 1, LicenseCategory.B, checkImmediately = false).first()
 
     @Test
     fun answersAreRecordedAndSurviveRestart() = runTest {
         val repository = repository()
         val attempt = repository.startTest()
-        repository.answer(attempt.id, questions[0], chosen = 2)
-        repository.answer(attempt.id, questions[0], chosen = 0) // changed their mind
-        repository.answer(attempt.id, questions[1], chosen = 1)
+        repository.answer(attempt.id, questions[0], chosen = 2, locked = false)
+        repository.answer(attempt.id, questions[0], chosen = 0, locked = false) // changed their mind
+        repository.answer(attempt.id, questions[1], chosen = 1, locked = false)
 
         val restored = repository().get(attempt.id)!!
         assertEquals(listOf(1 to 0, 2 to 1), restored.answers.map { it.questionId to it.chosen })
@@ -61,7 +61,7 @@ class AttemptRepositoryTest {
     fun unfinishedTestCanBeResumedUntilFinished() = runTest {
         val repository = repository()
         val attempt = repository.startTest()
-        repository.answer(attempt.id, questions[0], chosen = 1)
+        repository.answer(attempt.id, questions[0], chosen = 1, locked = false)
 
         assertEquals(attempt.id, repository().statsB().resumable?.id)
 
@@ -75,7 +75,7 @@ class AttemptRepositoryTest {
     @Test
     fun statisticsFollowChanges() = runTest {
         val repository = repository()
-        val statistics = repository.statistics("sk-sk", 1, LicenseCategory.B)
+        val statistics = repository.statistics("sk-sk", 1, LicenseCategory.B, checkImmediately = false)
         assertNull(statistics.first().resumable)
 
         val attempt = repository.startTest()
@@ -91,7 +91,7 @@ class AttemptRepositoryTest {
         val attempt = repository.startTest()
         val observed = repository.attempt(attempt.id)
 
-        repository.answer(attempt.id, questions[0], chosen = 1)
+        repository.answer(attempt.id, questions[0], chosen = 1, locked = false)
 
         assertEquals(1, observed.first()!!.answerFor(1)!!.chosen)
         assertNull(repository.attempt("missing").first())
@@ -100,9 +100,9 @@ class AttemptRepositoryTest {
     @Test
     fun checkedAnswersCannotBeChanged() = runTest {
         val repository = repository()
-        val attempt = repository.startTest(checkImmediately = true)
-        repository.answer(attempt.id, questions[0], chosen = 1)
-        repository.answer(attempt.id, questions[0], chosen = 0)
+        val attempt = repository.startTest()
+        repository.answer(attempt.id, questions[0], chosen = 1, locked = true)
+        repository.answer(attempt.id, questions[0], chosen = 0, locked = true)
 
         assertEquals(1, repository.get(attempt.id)!!.answerFor(1)!!.chosen)
     }
@@ -112,8 +112,8 @@ class AttemptRepositoryTest {
         val repository = repository()
         repository.startTest()
 
-        assertNull(repository.statistics("sk-sk", 2, LicenseCategory.B).first().resumable)
-        assertNull(repository.statistics("sk-sk", 1, LicenseCategory.C).first().resumable)
+        assertNull(repository.statistics("sk-sk", 2, LicenseCategory.B, checkImmediately = false).first().resumable)
+        assertNull(repository.statistics("sk-sk", 1, LicenseCategory.C, checkImmediately = false).first().resumable)
     }
 
     @Test

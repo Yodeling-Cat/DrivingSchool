@@ -22,7 +22,7 @@ class HomeViewModelTest : ViewModelTest() {
     private val repositories = TestRepositories().apply {
         preferences.select(TestSelection("sk-sk", LicenseCategory.B))
     }
-    private val viewModel by lazy { HomeViewModel(repositories.exams, repositories.preferences, Random(42)) }
+    private val viewModel by lazy { HomeViewModel(repositories.exams, Random(42)) }
 
     private val StateFlow<HomeUiState>.ready get() = assertIs<HomeUiState.Ready>(value)
 
@@ -49,16 +49,6 @@ class HomeViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(HomeUiEvent.AttemptOpened)
         assertNull(state.ready.openAttemptId)
-    }
-
-    @Test
-    fun newTestsUseTheCheckAnswersSetting() = runTest {
-        val state = observe(viewModel.uiState)
-        repositories.preferences.setCheckAnswersImmediately(true)
-
-        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
-
-        assertTrue(repositories.attempts.get(state.ready.openAttemptId!!)!!.checkImmediately)
     }
 
     @Test
@@ -217,7 +207,7 @@ class HomeViewModelTest : ViewModelTest() {
      * wrong: three questions worth four points means any mistake is below the 90 % pass mark. */
     private suspend fun finishTest(testNumber: Int, passed: Boolean) {
         val session = repositories.exams.currentSession()
-        val attempt = session.startOrResume(session.tests.first { it.number == testNumber }, checkImmediately = false)
+        val attempt = session.startOrResume(session.tests.first { it.number == testNumber })
         session.questionsOf(attempt).forEach { question ->
             val chosen = if (passed) question.correct else question.answers.indices.first { it != question.correct }
             session.answer(attempt.id, question, chosen)

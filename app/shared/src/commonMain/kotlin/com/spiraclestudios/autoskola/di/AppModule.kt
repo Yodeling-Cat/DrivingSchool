@@ -64,7 +64,7 @@ val appModule = module {
     viewModelOf(::AppViewModel)
     viewModelOf(::DisclaimerViewModel)
     viewModelOf(::ExamSelectionViewModel)
-    viewModel { HomeViewModel(get(), get()) }
+    viewModel { HomeViewModel(get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }

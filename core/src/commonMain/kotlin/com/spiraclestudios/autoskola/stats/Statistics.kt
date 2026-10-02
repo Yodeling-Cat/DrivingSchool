@@ -43,9 +43,14 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
             .maxByOrNull { it.updatedAt }
 
     companion object {
-        fun of(attempts: List<TestAttempt>): Statistics {
+        /**
+         * Builds the aggregates for [attempts]. [checkImmediately] is the user's current setting:
+         * the answers of an unfinished attempt only count while answers are checked as they are
+         * picked, because only then are they final (see [TestAttempt.finalAnswers]).
+         */
+        fun of(attempts: List<TestAttempt>, checkImmediately: Boolean): Statistics {
             val byQuestion = attempts
-                .flatMap { it.finalAnswers }
+                .flatMap { it.finalAnswers(checkImmediately) }
                 .groupBy { it.questionId }
                 .mapValues { (id, answers) ->
                     val last = answers.maxBy { it.answeredAt }

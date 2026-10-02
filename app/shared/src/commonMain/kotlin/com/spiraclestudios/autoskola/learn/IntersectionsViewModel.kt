@@ -9,7 +9,6 @@ import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
-import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.situations.isSolvedBy
 import com.spiraclestudios.autoskola.situations.situations
 import com.spiraclestudios.autoskola.ui.displayText
@@ -91,7 +90,6 @@ sealed interface IntersectionsUiEvent {
 class IntersectionsViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
-    private val preferences: PreferencesRepository,
     private val answers: PracticeAnswerRepository,
 ) : ViewModel() {
 
@@ -163,11 +161,10 @@ class IntersectionsViewModel(
      */
     private suspend fun drill(session: ExamSession, startOver: Boolean): String? {
         val questions = situations(session.bank, session.category).flatMap { it.questions }
-        val checkImmediately = preferences.preferences.value.checkAnswersImmediately
         val attempt = if (startOver) {
-            session.restartSituations(questions, checkImmediately)
+            session.restartSituations(questions)
         } else {
-            session.startSituations(questions, checkImmediately)
+            session.startSituations(questions)
         }
         return attempt?.id
     }

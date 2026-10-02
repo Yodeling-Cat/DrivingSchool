@@ -8,7 +8,6 @@ import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
-import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -89,11 +88,7 @@ sealed interface HomeUiEvent {
     data object AttemptOpened : HomeUiEvent
 }
 
-class HomeViewModel(
-    exams: ExamRepository,
-    private val preferences: PreferencesRepository,
-    private val random: Random = Random.Default,
-) : ViewModel() {
+class HomeViewModel(exams: ExamRepository, private val random: Random = Random.Default) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
         .map { (it as? CurrentExam.Ready)?.session }
@@ -122,7 +117,6 @@ class HomeViewModel(
     fun onEvent(event: HomeUiEvent) {
         val session = session.value ?: return
         val shown = uiState.value as? HomeUiState.Ready
-        val checkImmediately = preferences.preferences.value.checkAnswersImmediately
         when (event) {
             is HomeUiEvent.StartTest -> viewModelScope.launch {
                 val test = session.tests.firstOrNull { it.number == event.testNumber } ?: return@launch
@@ -130,7 +124,7 @@ class HomeViewModel(
                 // user knows which, so ask instead of choosing for them.
                 val underWay = session.openAttemptFor(test)
                 if (underWay == null) {
-                    openAttemptId.value = session.startOrResume(test, checkImmediately).id
+                    openAttemptId.value = session.startOrResume(test).id
                 } else {
                     resumePrompt.value = ResumePrompt(
                         attemptId = underWay.id,
@@ -157,13 +151,13 @@ class HomeViewModel(
             HomeUiEvent.StartOver -> resumePrompt.value?.let { prompt ->
                 val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 resumePrompt.value = null
-                viewModelScope.launch { openAttemptId.value = session.restart(test, checkImmediately).id }
+                viewModelScope.launch { openAttemptId.value = session.restart(test).id }
             }
 
             HomeUiEvent.DismissResumePrompt -> resumePrompt.value = null
 
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
-                session.startMistakes(checkImmediately)?.let { openAttemptId.value = it.id }
+                session.startMistakes()?.let { openAttemptId.value = it.id }
             }
 
             HomeUiEvent.AttemptOpened -> {

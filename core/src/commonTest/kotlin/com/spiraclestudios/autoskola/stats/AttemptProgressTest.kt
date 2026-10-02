@@ -29,7 +29,6 @@ class AttemptProgressTest {
         kind = AttemptKind.PracticeTest,
         testNumber = 1,
         questionIds = questions.map { it.id },
-        checkImmediately = false,
         startedAt = 0,
         answers = answers.map { (id, chosen) ->
             AnswerRecord(questionId = id, chosen = chosen, correct = chosen == 0, answeredAt = 1)

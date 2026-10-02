@@ -7,6 +7,7 @@ import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.data.attempts.AttemptRepository
 import com.spiraclestudios.autoskola.data.attempts.SettingsAttemptDataSource
 import com.spiraclestudios.autoskola.data.banks.testBank
+import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -21,10 +22,12 @@ class ExamSessionTest {
 
     private var clock = 0L
     private val attempts = AttemptRepository(SettingsAttemptDataSource(MapSettings()), now = { ++clock })
+    private val preferences = PreferencesRepository(MapSettings())
 
     private val bank = testBank()
 
-    private fun session(category: LicenseCategory = LicenseCategory.B) = ExamSession(bank, category, attempts)
+    private fun session(category: LicenseCategory = LicenseCategory.B) =
+        ExamSession(bank, category, attempts, preferences)
 
     /** Answers every question of the attempt, wrongly for [wrong] question ids. */
     private suspend fun ExamSession.answerAll(attemptId: String, wrong: Set<Int> = emptySet()) {
@@ -36,14 +39,13 @@ class ExamSessionTest {
         val session = session()
         val questions = bank.questions.filter { it.id in listOf(1, 2) }
 
-        val drill = session.startSituations(questions, checkImmediately = true)
+        val drill = session.startSituations(questions)
 
         val started = assertNotNull(drill)
         assertEquals(AttemptKind.Situations, started.kind)
         // No test number: a drill is not one of the numbered tests, so it can't score one.
         assertNull(started.testNumber)
         assertEquals(listOf(1, 2), started.questionIds)
-        assertTrue(started.checkImmediately)
     }
 
     @Test
@@ -52,12 +54,12 @@ class ExamSessionTest {
         val session = session(LicenseCategory.B)
         val questionOfAnotherGroup = bank.questions.filter { it.id == 5 }
 
-        assertNull(session.startSituations(questionOfAnotherGroup, checkImmediately = false))
+        assertNull(session.startSituations(questionOfAnotherGroup))
     }
 
     @Test
     fun aDrillWithNoQuestionsStartsNothing() = runTest {
-        assertNull(session().startSituations(emptyList(), checkImmediately = false))
+        assertNull(session().startSituations(emptyList()))
     }
 
     @Test
@@ -67,43 +69,50 @@ class ExamSessionTest {
     }
 
     @Test
-    fun startingATestRecordsItsQuestionsAndMode() = runTest {
+    fun startingATestRecordsItsQuestions() = runTest {
         val session = session()
         val test = session.tests.first()
 
-        val attempt = session.startOrResume(test, checkImmediately = true)
+        val attempt = session.startOrResume(test)
 
         assertEquals(AttemptKind.PracticeTest, attempt.kind)
         assertEquals(test.number, attempt.testNumber)
         assertEquals(test.questions.map { it.id }, attempt.questionIds)
-        assertTrue(attempt.checkImmediately)
     }
 
     @Test
-    fun startingATestThatIsUnderWayResumesIt() = runTest {
+    fun resumingATestKeepsItAndGoesByTheSettingTheUserHasNow() = runTest {
+        // An attempt remembers nothing about the settings it was started under: continuing it goes
+        // by what the user has chosen since.
         val session = session()
         val test = session.tests.first()
-        val first = session.startOrResume(test, checkImmediately = false)
+        val first = session.startOrResume(test)
+        val question = test.questions.first()
 
-        val again = session.startOrResume(test, checkImmediately = true)
+        preferences.setCheckAnswersImmediately(false)
+        assertEquals(first.id, session.startOrResume(test).id)
+        session.answer(first.id, question, chosen = 0)
+        session.answer(first.id, question, chosen = 1)
+        assertEquals(1, attempts.get(first.id)!!.answerFor(question.id)!!.chosen)
 
-        assertEquals(first.id, again.id)
-        assertEquals(false, again.checkImmediately) // the mode is fixed when the attempt starts
+        // Checking answers as they are picked again locks what is there: the pick can't be taken back.
+        preferences.setCheckAnswersImmediately(true)
+        session.answer(first.id, question, chosen = 2)
+        assertEquals(1, attempts.get(first.id)!!.answerFor(question.id)!!.chosen)
     }
 
     @Test
     fun restartingThrowsAwayTheAttemptUnderWayAndStartsAFreshOne() = runTest {
         val session = session()
         val test = session.tests.first()
-        val started = session.startOrResume(test, checkImmediately = false)
+        val started = session.startOrResume(test)
         session.answer(started.id, test.questions.first(), 0)
 
-        val restarted = session.restart(test, checkImmediately = true)
+        val restarted = session.restart(test)
 
         assertNotEquals(started.id, restarted.id)
         assertEquals(test.questions.map { it.id }, restarted.questionIds)
         assertTrue(restarted.answers.isEmpty())
-        assertTrue(restarted.checkImmediately)
         assertNotNull(attempts.get(started.id)!!.discardedAt)
         assertEquals(restarted.id, session.openAttemptFor(test)?.id)
     }
@@ -113,7 +122,7 @@ class ExamSessionTest {
         val session = session()
         val test = session.tests.first()
 
-        val restarted = session.restart(test, checkImmediately = false)
+        val restarted = session.restart(test)
 
         assertEquals(test.number, restarted.testNumber)
         assertEquals(restarted.id, session.openAttemptFor(test)?.id)
@@ -129,7 +138,7 @@ class ExamSessionTest {
     fun finishingScoresTheRecordedAnswers() = runTest {
         val session = session()
         val test = session.tests.first()
-        val attempt = session.startOrResume(test, checkImmediately = false)
+        val attempt = session.startOrResume(test)
         val wrongQuestion = test.questions.first()
         session.answerAll(attempt.id, wrong = setOf(wrongQuestion.id))
 
@@ -147,10 +156,10 @@ class ExamSessionTest {
     fun startingAfterFinishingCreatesANewAttempt() = runTest {
         val session = session()
         val test = session.tests.first()
-        val first = session.startOrResume(test, checkImmediately = false)
+        val first = session.startOrResume(test)
         session.finish(first.id)
 
-        assertNotEquals(first.id, session.startOrResume(test, checkImmediately = false).id)
+        assertNotEquals(first.id, session.startOrResume(test).id)
     }
 
     @Test
@@ -159,19 +168,19 @@ class ExamSessionTest {
         // Get questions 4 and 5 (5 is C only) wrong in group C. Each test has only one
         // section-2 question, so go through all of them.
         c.tests.forEach { test ->
-            val cAttempt = c.startOrResume(test, checkImmediately = false)
+            val cAttempt = c.startOrResume(test)
             c.answerAll(cAttempt.id, wrong = setOf(4, 5))
             c.finish(cAttempt.id)
         }
         // And question 1 wrong in a group B test.
         val b = session()
-        val bAttempt = b.startOrResume(b.tests.first { t -> t.questions.any { it.id == 1 } }, checkImmediately = false)
+        val bAttempt = b.startOrResume(b.tests.first { t -> t.questions.any { it.id == 1 } })
         b.answerAll(bAttempt.id, wrong = setOf(1))
         b.finish(bAttempt.id)
 
         // Stats are per group, so group B only sees its own mistake.
         assertEquals(listOf(1), b.mistakes.first().map { it.id })
-        val retest = assertNotNull(b.startMistakes(checkImmediately = true))
+        val retest = assertNotNull(b.startMistakes())
         assertEquals(AttemptKind.Mistakes, retest.kind)
         assertEquals(listOf(1), retest.questionIds)
 
@@ -182,14 +191,15 @@ class ExamSessionTest {
 
     @Test
     fun noMistakesMeansNoRetest() = runTest {
-        assertNull(session().startMistakes(checkImmediately = false))
+        assertNull(session().startMistakes())
     }
 
     @Test
     fun progressSummarisesOpenAttemptsAndAnsweredQuestions() = runTest {
         val session = session()
         val test = session.tests.first()
-        val attempt = session.startOrResume(test, checkImmediately = true)
+        preferences.setCheckAnswersImmediately(true)
+        val attempt = session.startOrResume(test)
         session.answer(attempt.id, test.questions.first(), 0)
 
         val progress = session.progress.first()
@@ -198,19 +208,24 @@ class ExamSessionTest {
         assertEquals(attempt.id, progress.resumable?.id)
         assertEquals(1, progress.questionsAnswered) // locked answer counts
         assertEquals(4, progress.poolSize)
+
+        // Turning checking off makes that answer editable again, and what is editable isn't final:
+        // the statistics follow the setting, without the attempt having to be restarted.
+        preferences.setCheckAnswersImmediately(false)
+        assertEquals(0, session.progress.first().questionsAnswered)
     }
 
     @Test
     fun openAttemptIgnoresClosedAttemptsAndOtherBanks() = runTest {
         val session = session()
-        val attempt = session.startOrResume(session.tests.first(), checkImmediately = false)
+        val attempt = session.startOrResume(session.tests.first())
         assertEquals(attempt.id, session.openAttempt(attempt.id).first()?.id)
 
         attempts.discard(attempt.id)
         assertNull(session.openAttempt(attempt.id).first())
 
-        val otherVersion = ExamSession(bank.copy(version = 2), LicenseCategory.B, attempts)
-        val v2Attempt = otherVersion.startOrResume(otherVersion.tests.first(), checkImmediately = false)
+        val otherVersion = ExamSession(bank.copy(version = 2), LicenseCategory.B, attempts, preferences)
+        val v2Attempt = otherVersion.startOrResume(otherVersion.tests.first())
         assertNull(session.openAttempt(v2Attempt.id).first())
         assertNull(session.openAttempt(null).first())
     }
@@ -218,9 +233,9 @@ class ExamSessionTest {
     @Test
     fun attemptIncludesFinishedButNotDiscardedAttempts() = runTest {
         val session = session()
-        val finished = session.startOrResume(session.tests.first(), checkImmediately = false)
+        val finished = session.startOrResume(session.tests.first())
         session.finish(finished.id)
-        val discarded = session.startOrResume(session.tests.first(), checkImmediately = false)
+        val discarded = session.startOrResume(session.tests.first())
         attempts.discard(discarded.id)
 
         assertEquals(finished.id, session.attempt(finished.id).first()?.id)
@@ -234,7 +249,7 @@ class ExamSessionTest {
     @Test
     fun questionsOfAnAttemptKeepTheirOrder() = runTest {
         val session = session()
-        val attempt = session.startOrResume(session.tests.first(), checkImmediately = false)
+        val attempt = session.startOrResume(session.tests.first())
         assertEquals(attempt.questionIds, session.questionsOf(attempt).map { it.id })
     }
 }

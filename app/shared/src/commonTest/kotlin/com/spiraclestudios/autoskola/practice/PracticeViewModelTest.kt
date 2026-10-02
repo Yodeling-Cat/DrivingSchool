@@ -33,8 +33,9 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     private suspend fun startTest(checkImmediately: Boolean = false): TestAttempt {
+        repositories.preferences.setCheckAnswersImmediately(checkImmediately)
         val session = repositories.exams.currentSession()
-        return session.startOrResume(session.tests.first(), checkImmediately)
+        return session.startOrResume(session.tests.first())
     }
 
     private fun TestScope.open(attempt: TestAttempt): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
@@ -159,8 +160,8 @@ class PracticeViewModelTest : ViewModelTest() {
 
     @Test
     fun answeringMovesOnToTheNextQuestionShortlyAfterTheAnswer() = runTest {
-        autoAdvance()
         val attempt = startTest()
+        autoAdvance()
         val (viewModel, state) = open(attempt)
 
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
@@ -179,22 +180,33 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun aTestThatChecksAnswersImmediatelyStaysOnTheAnsweredQuestion() = runTest {
-        autoAdvance()
+    fun aSavedTestGoesByTheSettingsTheUserHasNowNotTheOnesItStartedWith() = runTest {
+        // Started with answers checked as they are picked, the user then turns that off in the
+        // settings and comes back to the test: it must not go on behaving as it did when it started.
         val attempt = startTest(checkImmediately = true)
         val (viewModel, state) = open(attempt)
+        assertTrue(state.ready.checkImmediately)
 
+        repositories.preferences.setCheckAnswersImmediately(false)
+        repositories.preferences.setAdvanceAfterAnswer(true)
+
+        assertFalse(state.ready.checkImmediately)
+
+        // The pick is neither revealed nor locked, so it can be taken back...
         viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
-
         assertEquals(mapOf(0 to 1), state.ready.answers)
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 2))
+        assertEquals(mapOf(0 to 2), state.ready.answers)
+
+        // ...and the test moves on by itself, as the settings now say.
         millisPass(AUTO_ADVANCE_DELAY_MILLIS)
-        assertNull(state.ready.advanceToPage)
+        assertEquals(1, state.ready.advanceToPage)
     }
 
     @Test
     fun theLastQuestionStaysOpenWhenAutoAdvanceIsOn() = runTest {
-        autoAdvance()
         val attempt = startTest()
+        autoAdvance()
         val (viewModel, state) = open(attempt)
         val last = state.ready.questions.lastIndex
 
@@ -207,8 +219,8 @@ class PracticeViewModelTest : ViewModelTest() {
 
     @Test
     fun aFinishedTestDoesNotMoveOn() = runTest {
-        autoAdvance()
         val attempt = startTest()
+        autoAdvance()
         repositories.attempts.finish(attempt.id, TestResult(0, 4))
         val (viewModel, state) = open(attempt)
 
@@ -490,7 +502,7 @@ class PracticeViewModelTest : ViewModelTest() {
             preferences.select(TestSelection("sk-sk", LicenseCategory.B))
         }
         val session = drills.exams.currentSession()
-        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val drill = assertNotNull(session.startSituations(session.bank.questions))
         val (viewModel, state) = open(drill, drills)
 
         viewModel.withScreen {
@@ -520,7 +532,7 @@ class PracticeViewModelTest : ViewModelTest() {
             preferences.select(TestSelection("sk-sk", LicenseCategory.B))
         }
         val session = drills.exams.currentSession()
-        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val drill = assertNotNull(session.startSituations(session.bank.questions))
         drills.attempts.updateElapsed(drill.id, 1_798L)
         val (viewModel, state) = open(drill, drills)
 
@@ -553,7 +565,7 @@ class PracticeViewModelTest : ViewModelTest() {
             preferences.select(TestSelection("sk-sk", LicenseCategory.B))
         }
         val session = drills.exams.currentSession()
-        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val drill = assertNotNull(session.startSituations(session.bank.questions))
         val (viewModel, state) = open(drill, drills)
 
         viewModel.withScreen { viewModel.onEvent(PracticeUiEvent.Leave) }

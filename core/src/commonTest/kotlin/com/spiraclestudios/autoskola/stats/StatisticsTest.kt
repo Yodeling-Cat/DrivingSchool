@@ -13,7 +13,6 @@ class StatisticsTest {
         testNumber: Int? = 1,
         kind: AttemptKind? = null,
         startedAt: Long = 0,
-        checkImmediately: Boolean = false,
         finishedAt: Long? = null,
         discardedAt: Long? = null,
         vararg answers: AnswerRecord,
@@ -25,7 +24,6 @@ class StatisticsTest {
         kind = kind ?: if (testNumber == null) AttemptKind.Mistakes else AttemptKind.PracticeTest,
         testNumber = testNumber,
         questionIds = listOf(1, 2, 3),
-        checkImmediately = checkImmediately,
         startedAt = startedAt,
         updatedAt = answers.maxOfOrNull { it.answeredAt } ?: startedAt,
         finishedAt = finishedAt,
@@ -53,6 +51,7 @@ class StatisticsTest {
                 ),
                 attempt("walked-away", testNumber = null, kind = AttemptKind.Situations),
             ),
+            checkImmediately = false,
         )
 
         assertNull(stats.resumable)
@@ -68,6 +67,7 @@ class StatisticsTest {
                 // Question 1 was later answered correctly, so it's no longer a mistake.
                 attempt("b", testNumber = null, finishedAt = 20, answers = arrayOf(answer(1, true, 15))),
             ),
+            checkImmediately = false,
         )
 
         assertEquals(listOf(2), stats.mistakes)
@@ -76,17 +76,20 @@ class StatisticsTest {
     }
 
     @Test
-    fun unfinishedAnswersOnlyCountWhenLocked() {
-        val stats = Statistics.of(
-            listOf(
-                // Editable answers in an unfinished attempt may still change: ignored.
-                attempt("editable", answers = arrayOf(answer(1, false, 5))),
-                // Checked-immediately answers are final even before the test is finished.
-                attempt("locked", checkImmediately = true, answers = arrayOf(answer(2, false, 6))),
-            ),
-        )
+    fun unfinishedAnswersOnlyCountWhileAnswersAreCheckedAsTheyArePicked() {
+        val answers = arrayOf(answer(1, false, 5))
+        val openAttempt = attempt("open", answers = answers)
 
-        assertEquals(listOf(2), stats.mistakes)
+        // Checked as they are picked, an answer is locked the moment it's given, so it is final
+        // even before the test is finished.
+        assertEquals(listOf(1), Statistics.of(listOf(openAttempt), checkImmediately = true).mistakes)
+
+        // With that off, the answer is still the user's to change, so it counts once the test is
+        // finished and not before. Which of the two applies is the user's setting as it stands now,
+        // not something the attempt remembers from when it was started.
+        assertEquals(emptyList(), Statistics.of(listOf(openAttempt), checkImmediately = false).mistakes)
+        val finished = attempt("finished", finishedAt = 9, answers = answers)
+        assertEquals(listOf(1), Statistics.of(listOf(finished), checkImmediately = false).mistakes)
     }
 
     @Test
@@ -98,6 +101,7 @@ class StatisticsTest {
                 attempt("discarded", testNumber = 3, startedAt = 10, discardedAt = 11),
                 attempt("done", testNumber = 4, startedAt = 12, finishedAt = 13),
             ),
+            checkImmediately = false,
         )
 
         assertEquals("newer", stats.resumable?.id)
@@ -112,6 +116,7 @@ class StatisticsTest {
                 attempt("test", startedAt = 1),
                 attempt("mistakes", testNumber = null, startedAt = 2, answers = arrayOf(answer(1, false, 9))),
             ),
+            checkImmediately = false,
         )
 
         assertEquals("test", stats.resumable?.id)
@@ -119,7 +124,10 @@ class StatisticsTest {
 
     @Test
     fun onlyAMistakesTestLeftOpenLeavesNothingToContinue() {
-        val stats = Statistics.of(listOf(attempt("mistakes", testNumber = null, startedAt = 1)))
+        val stats = Statistics.of(
+            listOf(attempt("mistakes", testNumber = null, startedAt = 1)),
+            checkImmediately = false,
+        )
 
         assertNull(stats.resumable)
     }
@@ -131,6 +139,7 @@ class StatisticsTest {
                 attempt("first", finishedAt = 10, answers = arrayOf(answer(1, true, 5))),
                 attempt("second", finishedAt = 20, answers = arrayOf(answer(1, false, 15))),
             ),
+            checkImmediately = false,
         )
 
         assertEquals(mapOf(1 to TestResult(0, 3)), stats.latestResults)

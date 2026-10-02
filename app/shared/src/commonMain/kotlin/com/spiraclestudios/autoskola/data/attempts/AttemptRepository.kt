@@ -31,9 +31,17 @@ class AttemptRepository(
     /** Serialises writes, so each read-modify-write sees the previous one. */
     private val writes = Mutex()
 
-    /** Statistics for one bank version and license group, updated whenever an attempt changes. */
-    fun statistics(bankId: String, bankVersion: Int, category: LicenseCategory): Flow<Statistics> =
-        dataSource.observe(bankId, bankVersion, category).map(Statistics::of)
+    /**
+     * Statistics for one bank version and license group, updated whenever an attempt changes.
+     * [checkImmediately] is the user's setting: it decides whether the answers of an attempt
+     * that is still under way count yet, so it is passed in rather than read here.
+     */
+    fun statistics(
+        bankId: String,
+        bankVersion: Int,
+        category: LicenseCategory,
+        checkImmediately: Boolean,
+    ): Flow<Statistics> = dataSource.observe(bankId, bankVersion, category).map { Statistics.of(it, checkImmediately) }
 
     /** Attempt [id] as it changes, or `null` if there's no such attempt. */
     fun attempt(id: String): Flow<TestAttempt?> = dataSource.observe(id)
@@ -47,7 +55,6 @@ class AttemptRepository(
         kind: AttemptKind,
         testNumber: Int?,
         questions: List<Question>,
-        checkImmediately: Boolean,
     ): TestAttempt = write {
         val startedAt = now()
         val attempt = TestAttempt(
@@ -58,17 +65,26 @@ class AttemptRepository(
             kind = kind,
             testNumber = testNumber,
             questionIds = questions.map { it.id },
-            checkImmediately = checkImmediately,
             startedAt = startedAt,
         )
         dataSource.upsert(attempt)
         attempt
     }
 
-    /** Records (or replaces) the answer to [question]. Ignored once the attempt is closed. */
-    suspend fun answer(attemptId: String, question: Question, chosen: Int) = update(attemptId) { attempt ->
+    /**
+     * Records (or replaces) the answer to [question]. Ignored once the attempt is closed, and a
+     * [locked] question keeps the answer it already has: an answer that was checked as it was
+     * picked is final. Whether answers are checked immediately is the user's setting, so the
+     * caller passes it in rather than the attempt remembering it.
+     */
+    suspend fun answer(
+        attemptId: String,
+        question: Question,
+        chosen: Int,
+        locked: Boolean,
+    ) = update(attemptId) { attempt ->
         if (!attempt.isOpen) return@update attempt
-        if (attempt.checkImmediately && attempt.answerFor(question.id) != null) return@update attempt
+        if (locked && attempt.answerFor(question.id) != null) return@update attempt
         val at = now()
         val record = AnswerRecord(question.id, chosen, correct = chosen == question.correct, answeredAt = at)
         attempt.copy(

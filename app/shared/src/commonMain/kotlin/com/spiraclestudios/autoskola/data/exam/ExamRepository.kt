@@ -39,6 +39,6 @@ class ExamRepository(
                 emit(CurrentExam.Missing)
                 return@transformLatest
             }
-            emit(CurrentExam.Ready(ExamSession(bank, selection.category, attempts)))
+            emit(CurrentExam.Ready(ExamSession(bank, selection.category, attempts, preferences)))
         }
 }

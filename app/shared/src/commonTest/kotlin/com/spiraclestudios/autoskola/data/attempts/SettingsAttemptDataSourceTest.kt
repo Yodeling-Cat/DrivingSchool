@@ -22,7 +22,6 @@ class SettingsAttemptDataSourceTest {
         kind = AttemptKind.PracticeTest,
         testNumber = 1,
         questionIds = listOf(1, 2),
-        checkImmediately = false,
         startedAt = 0,
     )
 

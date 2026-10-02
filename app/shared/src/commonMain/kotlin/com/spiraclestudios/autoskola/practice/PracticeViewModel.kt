@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -53,7 +54,11 @@ sealed interface PracticeUiState {
         val testNumber: Int?,
         val sections: List<Section>,
         val questions: List<PracticeQuestion>,
-        /** Fixed when the attempt starts, so changing the setting mid-test can't unlock answers. */
+        /**
+         * Whether the user checks answers as they are picked: the screen reveals what is right on a
+         * pick and locks it. This is the setting as it stands now, not the one the attempt was
+         * started under, so turning it off mid-test unlocks the test again.
+         */
         val checkImmediately: Boolean,
         /** Question index → answer index. */
         val answers: Map<Int, Int>,
@@ -132,9 +137,16 @@ class PracticeViewModel(
 
     private var isForeground = false
     private var isFinished = false
-    private var checksImmediately = false
     private var allAnswered = false
     private var kind: AttemptKind = AttemptKind.PracticeTest
+
+    /**
+     * Whether the user checks answers as they are picked, as their settings stand now: the attempt
+     * keeps no mode of its own, so a test that is continued follows what the user has chosen since.
+     */
+    private val checksImmediately: StateFlow<Boolean> = preferences.preferences
+        .map { it.checkAnswersImmediately }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, preferences.preferences.value.checkAnswersImmediately)
 
     /** How long the attempt being read is given; `null` when it isn't timed at all. */
     private var timeLimitSeconds: Long? = null
@@ -159,8 +171,10 @@ class PracticeViewModel(
                     onAttemptLoaded(attempt)
                 }
             }
-            combine(attemptFlow, screenRequests, advanceToPage, elapsedSeconds, showTimeLimitToast) {
-                    attempt,
+            // The mode comes from the settings, so the screen follows them when they change.
+            val attemptAndMode = combine(attemptFlow, checksImmediately) { attempt, check -> attempt to check }
+            combine(attemptAndMode, screenRequests, advanceToPage, elapsedSeconds, showTimeLimitToast) {
+                    (attempt, checkImmediately),
                     requests,
                     advanceTo,
                     elapsed,
@@ -171,11 +185,28 @@ class PracticeViewModel(
                     PracticeUiState.Closed
                 } else {
                     val effectiveElapsed = elapsed ?: attempt.elapsedSeconds
-                    ready(session, attempt, openResults, close, advanceTo, effectiveElapsed, showToast)
+                    ready(
+                        session,
+                        attempt,
+                        checkImmediately,
+                        openResults,
+                        close,
+                        advanceTo,
+                        effectiveElapsed,
+                        showToast,
+                    )
                 }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PracticeUiState.Loading)
+
+    init {
+        // Turning checking answers on while the test is open stops its clock when everything is
+        // answered, and turning it off starts it again.
+        viewModelScope.launch {
+            checksImmediately.drop(1).collect { updateTimer() }
+        }
+    }
 
     private fun onAttemptLoaded(attempt: TestAttempt) {
         kind = attempt.kind
@@ -190,7 +221,6 @@ class PracticeViewModel(
             }
         }
         isFinished = attempt.isFinished
-        checksImmediately = attempt.checkImmediately
         allAnswered = attempt.isFullyAnswered
         answered = attempt.answersByIndex().keys
         updateTimer()
@@ -198,7 +228,7 @@ class PracticeViewModel(
 
     private fun updateTimer() {
         val canTick = isForeground && !isFinished && elapsedSeconds.value != null &&
-            !stopsClockAtEnd(allAnswered, checksImmediately)
+            !stopsClockAtEnd(allAnswered, checksImmediately.value)
         if (canTick) {
             if (timerJob == null) {
                 timerJob = viewModelScope.launch {
@@ -335,14 +365,14 @@ class PracticeViewModel(
     }
 
     /**
-     * Whether answering question [index] moves the test on to the next one. The question order and
-     * whether the attempt reveals answers are fixed when it loads, so only the end of the test and
-     * the user's setting can change while it's open.
+     * Whether answering question [index] moves the test on to the next one. The question order is
+     * fixed when the attempt loads; what the user's settings say - advancing, and whether answers
+     * are checked as they are picked - is read as they stand now.
      */
     private fun nextPageAfter(index: Int): Int? {
         val advances = advancesAfterAnswer(
             advanceAfterAnswer = preferences.preferences.value.advanceAfterAnswer,
-            checkImmediately = checksImmediately,
+            checkImmediately = checksImmediately.value,
             finished = isFinished,
             questionIndex = index,
             count = questions?.size ?: 0,
@@ -353,6 +383,7 @@ class PracticeViewModel(
     private fun ready(
         session: ExamSession,
         attempt: TestAttempt,
+        checkImmediately: Boolean,
         openResults: Boolean,
         close: Boolean,
         advanceToPage: Int?,
@@ -369,7 +400,7 @@ class PracticeViewModel(
             testNumber = attempt.testNumber,
             sections = session.bank.sections,
             questions = questions,
-            checkImmediately = attempt.checkImmediately,
+            checkImmediately = checkImmediately,
             answers = attempt.answersByIndex(),
             initialPage = initialPage,
             allAnswered = attempt.isFullyAnswered,

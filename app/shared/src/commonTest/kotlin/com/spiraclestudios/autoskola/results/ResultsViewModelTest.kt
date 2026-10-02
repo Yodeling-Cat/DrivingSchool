@@ -26,7 +26,7 @@ class ResultsViewModelTest : ViewModelTest() {
 
     private suspend fun startTest(): TestAttempt {
         val session = repositories.exams.currentSession()
-        return session.startOrResume(session.tests.first(), checkImmediately = false)
+        return session.startOrResume(session.tests.first())
     }
 
     private fun TestScope.open(attempt: TestAttempt): StateFlow<ResultsUiState> =
@@ -82,7 +82,7 @@ class ResultsViewModelTest : ViewModelTest() {
             preferences.select(TestSelection("sk-sk", LicenseCategory.B))
         }
         val session = drills.exams.currentSession()
-        val drill = assertNotNull(session.startSituations(session.bank.questions, checkImmediately = false))
+        val drill = assertNotNull(session.startSituations(session.bank.questions))
         session.finish(drill.id)
 
         val state = assertIs<ResultsUiState.Ready>(

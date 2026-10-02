@@ -78,7 +78,9 @@ Governments periodically publish updated question sets. Each bank therefore has 
 
 Every test run is a `TestAttempt` (`:core`, `com.spiraclestudios.autoskola.stats`). It records the bank id and version, the license group, the questions in order, each answer with its timestamp, and the start, finish or discard times. `AttemptRepository` (`data/attempts/`) saves an attempt on every answer, so a test survives the app being killed and can be resumed.
 
-Everything else is derived from attempts by `Statistics`: latest result per test, the resumable attempt, per-question stats and mistakes. Don't store derived numbers separately. Answers count towards statistics only once they're final: either the attempt is finished, or it was taken in "check answers immediately" mode.
+Everything else is derived from attempts by `Statistics`: latest result per test, the resumable attempt, per-question stats and mistakes. Don't store derived numbers separately. Answers count towards statistics only once they're final: either the attempt is finished, or the user is checking answers immediately right now.
+
+An attempt stores no app-wide setting. Whether answers are checked as they're picked decides what the practice screen reveals and locks, and whether a running attempt's answers count yet, so `ExamSession` and the practice screen read it from `PreferencesRepository` every time they need it: a saved test that is continued goes by the settings the user has now, not the ones it was started under.
 
 ## Architecture
 
@@ -100,7 +102,7 @@ Screen (composable)  --UiEvent-->  ViewModel  --calls-->  Repository  --calls-->
 - Navigation that depends on the result of work goes through state: `HomeUiState.Ready.openAttemptId`, `ExamSelectionUiState.done`, `PracticeUiState.Closed`. The Route navigates and, if needed, sends an event to acknowledge it (`HomeUiEvent.AttemptOpened`). Pure navigation (back, "change exam") goes straight from the screen to a navigation callback.
 - Don't resolve UI strings in ViewModels. Put the facts in state (`AttemptKind`, test number, `ExamLabel`) and let the screen format them with `strings`.
 
-**Repositories** (`data/<area>/XRepository`) hold the rules and combine data sources. Examples: attempts are locked once closed, banks are cached, and the current exam is derived from preferences and banks. `ExamSession` holds the rules for one exam on top of `AttemptRepository`.
+**Repositories** (`data/<area>/XRepository`) hold the rules and combine data sources. Examples: attempts are locked once closed, banks are cached, and the current exam is derived from preferences and banks. `ExamSession` holds the rules for one exam on top of `AttemptRepository`, reading the user's settings as they stand now.
 
 **Data sources** (`data/<area>/XDataSource`) only store and load data. Each one is an interface with one implementation per backend:
 - `SettingsAttemptDataSource` stores attempts in `Settings`.

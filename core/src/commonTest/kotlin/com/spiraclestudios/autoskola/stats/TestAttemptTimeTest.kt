@@ -16,7 +16,6 @@ class TestAttemptTimeTest {
             kind = AttemptKind.PracticeTest,
             testNumber = 1,
             questionIds = listOf(1, 2, 3),
-            checkImmediately = false,
             startedAt = 1000L,
         )
         assertEquals(0L, attempt.elapsedSeconds)
@@ -32,7 +31,6 @@ class TestAttemptTimeTest {
             kind = AttemptKind.PracticeTest,
             testNumber = 1,
             questionIds = listOf(1, 2, 3),
-            checkImmediately = false,
             startedAt = 1000L,
             elapsedSeconds = 125L,
         )
@@ -42,7 +40,9 @@ class TestAttemptTimeTest {
 
     @Test
     fun decodesLegacyJsonWithoutElapsedSecondsAsZero() {
-        // Written before attempts recorded how long they took, so it has no "elapsedSeconds".
+        // Written before attempts recorded how long they took, so it has no "elapsedSeconds". The
+        // "checkImmediately" it carries is left over from when an attempt stored the mode it was
+        // started in: unknown keys are ignored, so those attempts still load.
         val json =
             """{"id":"a","bankId":"sk-sk","bankVersion":1,"category":"B","kind":"PracticeTest",""" +
                 """"testNumber":1,"questionIds":[1,2,3],"checkImmediately":false,"startedAt":1000}"""

@@ -34,8 +34,6 @@ data class TestAttempt(
     val testNumber: Int? = null,
     /** Questions in the order they were presented. */
     val questionIds: List<Int>,
-    /** Whether answers were checked (and locked) as soon as they were picked. */
-    val checkImmediately: Boolean,
     val startedAt: Long,
     /** Last time an answer was given or changed. */
     val updatedAt: Long = startedAt,
@@ -54,11 +52,15 @@ data class TestAttempt(
     fun answerFor(questionId: Int): AnswerRecord? = answers.firstOrNull { it.questionId == questionId }
 
     /**
-     * Answers that are final: all answers of a finished attempt, and every answer of an
-     * attempt in check-immediately mode (those can't be changed once given).
+     * Answers that are final, and so count towards statistics: all answers of a finished attempt,
+     * and every answer of an open attempt while the user checks answers as they are picked (a
+     * checked answer can't be changed once it's given).
+     *
+     * [checkImmediately] is the user's setting, read as it stands now: an attempt keeps no mode of
+     * its own, so a test that is continued goes by what the user has chosen since (see AGENTS.md).
      */
-    val finalAnswers: List<AnswerRecord>
-        get() = if (isFinished || checkImmediately) answers else emptyList()
+    fun finalAnswers(checkImmediately: Boolean): List<AnswerRecord> =
+        if (isFinished || checkImmediately) answers else emptyList()
 
     fun encode(): String = AttemptJson.encodeToString(serializer(), this)
 

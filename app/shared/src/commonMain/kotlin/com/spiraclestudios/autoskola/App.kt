@@ -16,6 +16,8 @@ import com.spiraclestudios.autoskola.navigation.ExamNavigation
 import com.spiraclestudios.autoskola.onboarding.ConsentRoute
 import com.spiraclestudios.autoskola.onboarding.DisclaimerRoute
 import com.spiraclestudios.autoskola.onboarding.ExamSelectionRoute
+import com.spiraclestudios.autoskola.screenstate.ProvideStoredScreenState
+import com.spiraclestudios.autoskola.screenstate.ScreenStateStorage
 import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.ProvideWindowSizeClasses
 import com.spiraclestudios.autoskola.ui.theme.NajAutoskolaTheme
@@ -30,6 +32,7 @@ fun App() {
         val viewModel = koinViewModel<AppViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val analytics = koinInject<AnalyticsRepository>()
+        val screenState = koinInject<ScreenStateStorage>()
         val strings = state.language.strings
         // Reading the disclaimer is not agreeing to anything, so the consent screen follows it and
         // is where the documents and the two sharing questions are answered. It is pure
@@ -53,19 +56,24 @@ fun App() {
         }
         CompositionLocalProvider(LocalStrings provides strings) {
             ProvideWindowSizeClasses {
-                when (state.destination) {
-                    AppDestination.Loading -> LoadingScreen()
+                // Everything inside - onboarding and every screen after it - keeps what
+                // rememberSaveable holds where a killed process can't reach it (see
+                // ProvideStoredScreenState).
+                ProvideStoredScreenState(screenState) {
+                    when (state.destination) {
+                        AppDestination.Loading -> LoadingScreen()
 
-                    AppDestination.Disclaimer -> if (consentStarted) {
-                        ConsentRoute()
-                    } else {
-                        DisclaimerRoute(onContinue = { consentStarted = true })
+                        AppDestination.Disclaimer -> if (consentStarted) {
+                            ConsentRoute()
+                        } else {
+                            DisclaimerRoute(onContinue = { consentStarted = true })
+                        }
+
+                        // Picking an exam here changes the destination, so there's nothing else to do when done.
+                        AppDestination.ChooseExam -> ExamSelectionRoute(onBack = null, onDone = {})
+
+                        AppDestination.Exam -> ExamNavigation()
                     }
-
-                    // Picking an exam here changes the destination, so there's nothing else to do when done.
-                    AppDestination.ChooseExam -> ExamSelectionRoute(onBack = null, onDone = {})
-
-                    AppDestination.Exam -> ExamNavigation()
                 }
             }
         }

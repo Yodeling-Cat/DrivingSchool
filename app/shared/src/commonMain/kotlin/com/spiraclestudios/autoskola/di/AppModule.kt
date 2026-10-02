@@ -32,6 +32,8 @@ import com.spiraclestudios.autoskola.onboarding.DisclaimerViewModel
 import com.spiraclestudios.autoskola.onboarding.ExamSelectionViewModel
 import com.spiraclestudios.autoskola.practice.PracticeViewModel
 import com.spiraclestudios.autoskola.results.ResultsViewModel
+import com.spiraclestudios.autoskola.screenstate.ScreenStateStorage
+import com.spiraclestudios.autoskola.screenstate.StoredScreenState
 import com.spiraclestudios.autoskola.settings.SettingsViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModel
@@ -60,6 +62,9 @@ val appModule = module {
 
     // Navigation
     single { navigationState(get()) }
+
+    // The state of the screens: which question a test was on, how far each screen was scrolled.
+    single<ScreenStateStorage> { StoredScreenState(get()) }
 
     // ViewModels
     viewModelOf(::AppViewModel)

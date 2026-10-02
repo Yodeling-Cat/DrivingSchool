@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -258,13 +259,17 @@ private fun SignRow(
                 Spacer(Modifier.height(4.dp))
                 Text(sign.number, style = Naj.type.secondary, color = colors.muted)
             }
-            Column(Modifier.weight(1f)) {
-                // A few signs are a number plate: the picture is their name, and the number is the text.
-                if (sign.name.isNotBlank()) {
-                    Text(sign.name, style = Naj.type.rowTitle, color = colors.ink)
-                    Spacer(Modifier.height(3.dp))
+            // Selectable, so a sign's name and what it means can be copied out - to look the rule up,
+            // say. The number stays out of it: it labels the picture beside it, not the text.
+            SelectionContainer(Modifier.weight(1f)) {
+                Column {
+                    // A few signs are a number plate: the picture is their name, and the number is the text.
+                    if (sign.name.isNotBlank()) {
+                        Text(sign.name, style = Naj.type.rowTitle, color = colors.ink)
+                        Spacer(Modifier.height(3.dp))
+                    }
+                    Text(sign.description, style = Naj.type.option, color = colors.muted)
                 }
-                Text(sign.description, style = Naj.type.option, color = colors.muted)
             }
         }
         if (divider) CardDivider(startInset = SignTextStart)

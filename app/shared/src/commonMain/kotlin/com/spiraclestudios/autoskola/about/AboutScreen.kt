@@ -22,7 +22,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mikepenz.aboutlibraries.Libs
-import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.mikepenz.aboutlibraries.ui.compose.variant.LibrariesDensity
 import com.mikepenz.aboutlibraries.ui.compose.variant.LibrariesVariant
@@ -75,9 +74,7 @@ fun AboutScreen(state: AboutUiState, onEvent: (AboutUiEvent) -> Unit, onBack: ()
                     // blink of an empty list would read as an app built from nothing.
                     state.loading -> AboutLoading(Modifier.weight(1f))
 
-                    state.nothingFound -> AboutNothingFound(Modifier.weight(1f))
-
-                    else -> LibraryList(state.shown, Modifier.weight(1f))
+                    else -> LibraryList(state, Modifier.weight(1f))
                 }
             }
         }
@@ -110,15 +107,20 @@ private fun AboutHeader(state: AboutUiState, onBack: () -> Unit) {
  * taking a phone's height away from a list that is long by nature.
  */
 @Composable
-private fun LibraryList(libraries: List<Library>, modifier: Modifier = Modifier) {
+private fun LibraryList(state: AboutUiState, modifier: Modifier = Modifier) {
     LibrariesContainer(
-        libraries = Libs(libraries = libraries, licenses = emptySet()),
+        libraries = Libs(libraries = state.shown, licenses = emptySet()),
         modifier = modifier.fillMaxWidth(),
         variant = LibrariesVariant.Refined,
         density = LibrariesDensity.Cozy,
         actionMode = LibraryActionMode.Chips,
         contentPadding = PaddingValues(bottom = 24.dp + LocalNavBarInset.current),
-        header = { item { AboutIntro() } },
+        header = {
+            item { AboutIntro() }
+            // A search that found nothing leaves the page as it is and says so where the rows
+            // would have been, so what the app is and what it is built from stay readable.
+            if (state.nothingFound) item { AboutNothingFound() }
+        },
     )
 }
 
@@ -153,7 +155,10 @@ private fun AboutLoading(modifier: Modifier = Modifier) {
 /** A search that found nothing, which is not the same as a build that carries no libraries. */
 @Composable
 private fun AboutNothingFound(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.TopCenter) {
+    Box(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(strings.aboutLibrariesNothingFound, style = Naj.type.body, color = Naj.colors.muted)
     }
 }

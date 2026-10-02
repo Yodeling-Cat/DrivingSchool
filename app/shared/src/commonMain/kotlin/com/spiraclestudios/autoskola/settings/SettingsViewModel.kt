@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.appVersion
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
@@ -23,6 +24,8 @@ data class SettingsUiState(
     val analyticsEnabled: Boolean,
     /** `null` while the exam loads. */
     val exam: ExamLabel?,
+    /** What the platform reports, or `null` where it reports none — the web build, for one. */
+    val appVersion: String?,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -44,6 +47,9 @@ class SettingsViewModel(
     exams: ExamRepository,
     private val analytics: AnalyticsRepository,
 ) : ViewModel() {
+
+    /** Read once: on Android the platform call is reflective, and the answer cannot change. */
+    private val version = appVersion()
 
     val uiState: StateFlow<SettingsUiState> =
         combine(preferences.preferences, exams.current, ::state)
@@ -80,5 +86,6 @@ class SettingsViewModel(
         crashReportingEnabled = preferences.crashReportingEnabled,
         analyticsEnabled = preferences.analyticsEnabled,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
+        appVersion = version,
     )
 }

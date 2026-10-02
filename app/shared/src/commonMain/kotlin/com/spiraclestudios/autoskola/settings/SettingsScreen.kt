@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,6 +47,7 @@ import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.LicenceIcon
 import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.CardRadius
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -143,12 +146,16 @@ fun SettingsScreen(
                         title = strings.legalPrivacyPolicy,
                         onClick = { onOpenDocument(LegalDocument.PrivacyPolicy) },
                         leading = { SettingsRowIcon(Icons.Outlined.Policy, colors.primaryDeep, colors.mintGlow) },
+                        // Square, so it reads as the first row of this card rather than a button
+                        // laid on top of it. The card clips its top corners to its own curve.
+                        shape = RectangleShape,
                     )
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsNavRow(
                         title = strings.legalTermsOfUse,
                         onClick = { onOpenDocument(LegalDocument.TermsOfUse) },
                         leading = { SettingsRowIcon(Icons.Outlined.Description, colors.primaryDeep, colors.mintGlow) },
+                        shape = RectangleShape,
                     )
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
@@ -175,6 +182,10 @@ fun SettingsScreen(
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
                 SettingsNavRow(
                     title = strings.aboutApp,
+                    // Its subtitle, because the version is part of what this entry is rather than a
+                    // note under it. The web build reports none, and the row then simply has no
+                    // subtitle, the same as any other row without one.
+                    subtitle = state.appVersion?.let { strings.aboutVersion(it) },
                     onClick = onOpenAbout,
                     leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
                 )
@@ -186,6 +197,11 @@ fun SettingsScreen(
 /**
  * A setting that opens another screen: a mark, what it is, and the chevron that says it goes
  * somewhere. The whole row is the target.
+ *
+ * It brings its own card, because most of these stand alone in the column. A row that is going
+ * inside a card already drawn passes [shape], or its card nests in that one and the row reads as a
+ * rounded button floating on the card rather than as part of it. The outer card clips to its own
+ * corners, so the top row of a group still follows the card's curve.
  */
 @Composable
 private fun SettingsNavRow(
@@ -193,9 +209,10 @@ private fun SettingsNavRow(
     leading: @Composable () -> Unit,
     onClick: () -> Unit,
     subtitle: String? = null,
+    shape: Shape = RoundedCornerShape(CardRadius),
 ) {
     val colors = Naj.colors
-    NajCard {
+    NajCard(shape = shape) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,6 +300,7 @@ private fun SettingsScreenPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = false,
                 exam = previewExam,
+                appVersion = "1.4.2",
             ),
             onEvent = {},
             onChangeExam = {},
@@ -305,6 +323,30 @@ private fun SettingsScreenCheckingPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
                 exam = previewExam,
+                appVersion = "1.4.2",
+            ),
+            onEvent = {},
+            onChangeExam = {},
+            onOpenAbout = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** No version to report, which is the web build: the row keeps its place with no subtitle. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun SettingsScreenNoVersionPreview() {
+    AppPreview {
+        SettingsScreen(
+            state = SettingsUiState(
+                language = AppLanguage.English,
+                checkAnswersImmediately = false,
+                advanceAfterAnswer = false,
+                crashReportingEnabled = false,
+                analyticsEnabled = false,
+                exam = previewExam,
+                appVersion = null,
             ),
             onEvent = {},
             onChangeExam = {},
@@ -327,6 +369,7 @@ private fun SettingsScreenNoExamPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
                 exam = null,
+                appVersion = "1.4.2",
             ),
             onEvent = {},
             onChangeExam = {},

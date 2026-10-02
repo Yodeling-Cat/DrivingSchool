@@ -3,10 +3,10 @@ plugins {
     alias(libs.plugins.ktor)
 }
 
-group = "uno.lux.autoskola"
+group = "com.spiraclestudios.autoskola"
 version = "1.0.0"
 application {
-    mainClass = "uno.lux.autoskola.ApplicationKt"
+    mainClass = "com.spiraclestudios.autoskola.ApplicationKt"
 }
 
 dependencies {

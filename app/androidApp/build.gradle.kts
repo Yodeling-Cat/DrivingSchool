@@ -23,14 +23,14 @@ dependencies {
 }
 
 /** The application id a released build ships under. */
-val releaseApplicationId = "uno.lux.autoskola"
+val releaseApplicationId = "com.spiraclestudios.autoskola"
 
 /** The id a debug build ships under, so it installs next to a released app and keeps its own data. */
 val debugApplicationIdSuffix = ".dev"
 val debugApplicationId = releaseApplicationId + debugApplicationIdSuffix
 
 android {
-    namespace = "uno.lux.autoskola"
+    namespace = "com.spiraclestudios.autoskola"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -84,6 +84,6 @@ tasks.register<Exec>("runDebug") {
         "am",
         "start",
         "-n",
-        "$debugApplicationId/uno.lux.autoskola.MainActivity",
+        "$debugApplicationId/com.spiraclestudios.autoskola.MainActivity",
     )
 }

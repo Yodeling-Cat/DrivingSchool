@@ -1,7 +1,7 @@
 TEAM_ID=
 
 PRODUCT_NAME=NajAutoskola
-PRODUCT_BUNDLE_IDENTIFIER=uno.lux.autoskola.NajAutoskola$(TEAM_ID)
+PRODUCT_BUNDLE_IDENTIFIER=com.spiraclestudios.autoskola.NajAutoskola$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0

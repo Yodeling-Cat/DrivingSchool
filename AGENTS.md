@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents (Claude Code, Codex, etc.) when 
 
 NajAutoskola is a Kotlin Multiplatform driving-school app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server. The KMP template's placeholders — a `Greeting`, a `Platform` interface with `getPlatform()`, the generated example tests and the Compose logo drawable — have been removed, so everything in the repo is app code.
 
-Root package is `uno.lux.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `uno.lux.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. Gradle root project name is `NajAutoskola`.
+Root package is `com.spiraclestudios.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `com.spiraclestudios.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. Gradle root project name is `NajAutoskola`.
 
 ## Tests first
 
@@ -34,7 +34,7 @@ Five Gradle modules are wired via `settings.gradle.kts` with typesafe project ac
 - **`:app:shared`** — Compose Multiplatform UI shared across Android/iOS/Web. Targets iOS, JS, Wasm, and `android` (the Android library target; no JVM target — the server cannot consume it). Exposes `api(projects.core)`. iOS framework is built as a static framework named `Shared`.
 - **`:app:androidApp`** — Android `com.android.application` entry. `MainActivity` just calls `App()` from `:app:shared`.
 - **`:app:webApp`** — Compose Multiplatform web entry; produces both JS and Wasm executables that mount `App()` via `ComposeViewport`.
-- **`:server`** — Ktor Netty server (`uno.lux.autoskola.ApplicationKt`), depends on `:core`.
+- **`:server`** — Ktor Netty server (`com.spiraclestudios.autoskola.ApplicationKt`), depends on `:core`.
 - **`app/iosApp/`** — Xcode project that links the `Shared` framework from `:app:shared` and calls `MainViewController()`.
 
 Cross-module rule of thumb: shared **business logic** that the server also needs goes in `:core`. Shared **UI** goes in `:app:shared/commonMain`. Anything Compose-related must not leak into `:core`.
@@ -59,7 +59,7 @@ UI text is translated into English, Slovak, Hungarian and Czech. Never hardcode 
 
 ## Question data
 
-Question banks and images are generated into `app/shared/src/commonMain/composeResources/files/` by `tools/import/` (run `./tools/import/import.sh`). Never hand-edit them. Sources, coverage and terms of use are in `docs/data-sources.md`; the importer is documented in `docs/importing-questions.md`. The bank model and practice-test generation live in `:core` (`uno.lux.autoskola.bank`).
+Question banks and images are generated into `app/shared/src/commonMain/composeResources/files/` by `tools/import/` (run `./tools/import/import.sh`). Never hand-edit them. Sources, coverage and terms of use are in `docs/data-sources.md`; the importer is documented in `docs/importing-questions.md`. The bank model and practice-test generation live in `:core` (`com.spiraclestudios.autoskola.bank`).
 
 ## Question bank versions
 
@@ -72,7 +72,7 @@ Governments periodically publish updated question sets. Each bank therefore has 
 
 ## Statistics
 
-Every test run is a `TestAttempt` (`:core`, `uno.lux.autoskola.stats`). It records the bank id and version, the license group, the questions in order, each answer with its timestamp, and the start, finish or discard times. `AttemptRepository` (`data/attempts/`) saves an attempt on every answer, so a test survives the app being killed and can be resumed.
+Every test run is a `TestAttempt` (`:core`, `com.spiraclestudios.autoskola.stats`). It records the bank id and version, the license group, the questions in order, each answer with its timestamp, and the start, finish or discard times. `AttemptRepository` (`data/attempts/`) saves an attempt on every answer, so a test survives the app being killed and can be resumed.
 
 Everything else is derived from attempts by `Statistics`: latest result per test, the resumable attempt, per-question stats and mistakes. Don't store derived numbers separately. Answers count towards statistics only once they're final: either the attempt is finished, or it was taken in "check answers immediately" mode.
 
@@ -171,7 +171,7 @@ See "Tests first" above for how we work. Commands:
 - Server: `./gradlew :server:test` (uses `ktor-server-test-host` + `kotlin-test-junit`).
 - Importer: `./tools/import/test.sh` (or `test.ps1`). `test_import_minv.py` covers parsing and matching with offline fixtures. `test_bank_output.py` checks the committed banks and images, so run it after every import.
 - Style: `./gradlew ktlintCheck` (ktlint, IntelliJ style, rules in `.editorconfig`). `./gradlew ktlintFormat` fixes most findings.
-- To run a single test, append `--tests "uno.lux.autoskola.SomeClassTest.someMethod"` to the Gradle task.
+- To run a single test, append `--tests "com.spiraclestudios.autoskola.SomeClassTest.someMethod"` to the Gradle task.
 
 ## Toolchain pinning
 

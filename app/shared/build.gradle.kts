@@ -30,7 +30,7 @@ kotlin {
     }
 
     android {
-        namespace = "uno.lux.autoskola.app.shared"
+        namespace = "com.spiraclestudios.autoskola.app.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

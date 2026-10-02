@@ -1,0 +1,134 @@
+package com.spiraclestudios.autoskola.practice
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class AnswerRulesTest {
+
+    @Test
+    fun answersLockOnlyOnceCheckedImmediately() {
+        assertFalse(isAnswerLocked(checkImmediately = false, finished = false, selected = 1))
+        assertFalse(isAnswerLocked(checkImmediately = true, finished = false, selected = null))
+        assertTrue(isAnswerLocked(checkImmediately = true, finished = false, selected = 1))
+    }
+
+    @Test
+    fun everyAnswerIsLockedOnceTheTestIsFinished() {
+        assertTrue(isAnswerLocked(checkImmediately = false, finished = true, selected = 1))
+        assertTrue(isAnswerLocked(checkImmediately = false, finished = true, selected = null))
+    }
+
+    @Test
+    fun correctnessIsRevealedWhenCheckingImmediatelyOrOnceFinished() {
+        assertFalse(revealsCorrectness(checkImmediately = false, finished = false))
+        assertTrue(revealsCorrectness(checkImmediately = true, finished = false))
+        assertTrue(revealsCorrectness(checkImmediately = false, finished = true))
+    }
+
+    @Test
+    fun finishPromptOffersToFinishThenToShowResults() {
+        assertEquals(null, finishPrompt(allAnswered = false, finished = false))
+        assertEquals(FinishPrompt.Finish, finishPrompt(allAnswered = true, finished = false))
+        assertEquals(FinishPrompt.ShowResults, finishPrompt(allAnswered = true, finished = true))
+        assertEquals(FinishPrompt.ShowResults, finishPrompt(allAnswered = false, finished = true))
+    }
+
+    @Test
+    fun answersMoveTheTestOnOnlyWhenThatIsAskedForAndNothingIsRevealed() {
+        assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false))
+        assertFalse(advances(advanceAfterAnswer = false, checkImmediately = false))
+        // A checked answer is shown on its own question, so there is nothing to move on from.
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = true))
+    }
+
+    @Test
+    fun theLastQuestionOfATestHasNowhereToMoveOnTo() {
+        assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 2, count = 4))
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 3, count = 4))
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, questionIndex = 0, count = 1))
+    }
+
+    @Test
+    fun aFinishedTestDoesNotMoveOn() {
+        assertFalse(advances(advanceAfterAnswer = true, checkImmediately = false, finished = true))
+    }
+
+    @Test
+    fun withoutCheckingOnlyTheSelectionIsShown() {
+        val states = (0..2).map { answerState(index = it, selected = 1, correct = 0, revealed = false) }
+        assertEquals(listOf(AnswerState.Neutral, AnswerState.Selected, AnswerState.Neutral), states)
+    }
+
+    @Test
+    fun checkingShowsTheCorrectAnswerAndTheWrongPick() {
+        val states = (0..2).map { answerState(index = it, selected = 1, correct = 0, revealed = true) }
+        assertEquals(listOf(AnswerState.Correct, AnswerState.Wrong, AnswerState.Neutral), states)
+    }
+
+    @Test
+    fun aCorrectPickIsJustCorrect() {
+        val states = (0..2).map { answerState(index = it, selected = 2, correct = 2, revealed = true) }
+        assertEquals(listOf(AnswerState.Neutral, AnswerState.Neutral, AnswerState.Correct), states)
+    }
+
+    @Test
+    fun questionListOnlyRevealsCorrectnessWhenCheckingImmediately() {
+        assertEquals(
+            ChipState.Unanswered,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = false),
+        )
+        assertEquals(
+            ChipState.Answered,
+            chipState(selected = 1, correct = 0, revealCorrectness = false, finished = false),
+        )
+        assertEquals(
+            ChipState.Incorrect,
+            chipState(selected = 1, correct = 0, revealCorrectness = true, finished = false),
+        )
+        assertEquals(
+            ChipState.Correct,
+            chipState(selected = 0, correct = 0, revealCorrectness = true, finished = false),
+        )
+    }
+
+    @Test
+    fun aQuestionLeftOpenInAFinishedTestIsSkipped() {
+        assertTrue(questionSkipped(selected = null, finished = true))
+        assertFalse(questionSkipped(selected = 1, finished = true))
+    }
+
+    @Test
+    fun aQuestionTheUserHasNotReachedYetIsNotSkipped() {
+        assertFalse(questionSkipped(selected = null, finished = false))
+        assertFalse(questionSkipped(selected = 1, finished = false))
+    }
+
+    @Test
+    fun questionListMarksSkippedQuestionsOnlyOnceTheTestIsFinished() {
+        assertEquals(
+            ChipState.Skipped,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = true),
+        )
+        assertEquals(
+            ChipState.Unanswered,
+            chipState(selected = null, correct = 0, revealCorrectness = true, finished = false),
+        )
+    }
+
+    /** [advancesAfterAnswer] with the parts a test doesn't care about filled in. */
+    private fun advances(
+        advanceAfterAnswer: Boolean,
+        checkImmediately: Boolean,
+        finished: Boolean = false,
+        questionIndex: Int = 0,
+        count: Int = 4,
+    ) = advancesAfterAnswer(
+        advanceAfterAnswer = advanceAfterAnswer,
+        checkImmediately = checkImmediately,
+        finished = finished,
+        questionIndex = questionIndex,
+        count = count,
+    )
+}

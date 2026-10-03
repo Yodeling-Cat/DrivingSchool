@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      The advertising id. The ads SDK declares this in its own manifest as well, and it is repeated
+      here so that what this app asks for is readable in the app's own manifest rather than only in a
+      dependency's, and so that removing the SDK takes the permission with it.
+
+      It is a normal permission: granted at install, and never asked for at runtime. What the user is
+      asked is the consent screen's ads switch, which decides whether an ad is requested at all.
+    -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -8,6 +18,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!--
+          The ads SDK reads its app id from here at startup. Without it the SDK throws rather than
+          serving nothing, so this is not an optional piece of configuration.
+
+          The value is the build type's: Google's demo app id in a debug build, this app's in a
+          release one. Both are in `app/androidApp/build.gradle.kts`, with the reasoning.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <activity
             android:exported="true"
             android:name=".MainActivity">

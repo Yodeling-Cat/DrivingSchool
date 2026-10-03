@@ -93,6 +93,20 @@ val releaseApplicationId = "com.spiraclestudios.autoskola"
 val debugApplicationIdSuffix = ".dev"
 val debugApplicationId = releaseApplicationId + debugApplicationIdSuffix
 
+/**
+ * The AdMob app id, which the ads SDK reads out of the manifest.
+ *
+ * There are two, and they must not be swapped: Google's demo id belongs to no account and can be
+ * used by anyone, while ours serves paid ads and reports against our account. A debug build showing
+ * the real id bills an impression for a developer's own tap, which is a policy problem as well as a
+ * waste; a release build showing the demo id serves nothing at all and shows up as no fill.
+ *
+ * The demo id is the default and a build type has to opt out of it, because that is the harmless
+ * way round for a build type to forget.
+ */
+val demoAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
+val releaseAdMobAppId = "ca-app-pub-7362127401681337~8243476603"
+
 android {
     namespace = "com.spiraclestudios.autoskola"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -104,6 +118,8 @@ android {
         versionCode = 1
         // The version every Gradle-built target of this app reports (see the root build file).
         versionName = rootProject.version.toString()
+        // The demo id here, and the real one in the release build type below.
+        manifestPlaceholders["admobAppId"] = demoAdMobAppId
     }
     packaging {
         resources {
@@ -119,6 +135,7 @@ android {
             applicationIdSuffix = debugApplicationIdSuffix
         }
         getByName("release") {
+            manifestPlaceholders["admobAppId"] = releaseAdMobAppId
             // Release builds are minified, so the mapping file exists and PostHog's symbol upload
             // has something to send (docs/error-reporting.md). R8 rewrites the app's own frames,
             // which is why proguard-rules.pro exists.

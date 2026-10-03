@@ -5,7 +5,7 @@ import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
 import com.spiraclestudios.autoskola.data.ads.AdDataSource
 import com.spiraclestudios.autoskola.data.ads.AdRepository
-import com.spiraclestudios.autoskola.data.ads.NoOpAdDataSource
+import com.spiraclestudios.autoskola.data.ads.platformAdDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.PostHogAnalyticsDataSource
@@ -56,8 +56,9 @@ val appModule = module {
     single<SignCatalogDataSource> { ResourceSignCatalogDataSource() }
     single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
     single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
-    // No ad SDK is wired up yet, so nothing is requested on any target; see `plans/ads.md`.
-    single<AdDataSource> { NoOpAdDataSource() }
+    // Android answers Google's SDK, which falls back to the no-op source until the entry point has
+    // handed over an application; iOS and the web answer the no-op one outright.
+    single<AdDataSource> { platformAdDataSource() }
 
     // Repositories
     single { AttemptRepository(get()) }

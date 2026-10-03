@@ -31,6 +31,13 @@ data class ExamProgress(
     val poolSize: Int,
     /** Finished practice tests, counting every take; what the rating card measures in. */
     val finishedTests: Int,
+    /**
+     * Practice tests started, counting every take and every abandoned one. What the ads gate counts
+     * its frequency in: the gate is the door into a test, so a test that was walked away from went
+     * through that door just the same, and counting only finished tests would let a driver who
+     * abandons their work past it for free. Drills are not tests and are not counted.
+     */
+    val practiceTestsStarted: Int,
 )
 
 /**
@@ -109,6 +116,7 @@ class ExamSession(
             questionsAnswered = stats.questions.keys.count { it in pool },
             poolSize = pool.size,
             finishedTests = stats.finishedTests,
+            practiceTestsStarted = stats.practiceTestsStarted,
         )
     }
 

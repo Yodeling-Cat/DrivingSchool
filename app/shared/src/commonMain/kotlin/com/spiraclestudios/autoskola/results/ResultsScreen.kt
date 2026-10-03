@@ -133,12 +133,20 @@ fun ResultsRoute(
 
         ResultsUiState.Closed -> LaunchedEffect(Unit) { onReview() }
 
-        is ResultsUiState.Ready -> ResultsScreen(
-            state = current,
-            onReview = onReview,
-            // A drill was begun from the situations, so that is where its way out leads.
-            onDone = if (current.hasVerdict) onDone else onDoneToList,
-        )
+        is ResultsUiState.Ready -> {
+            ResultsScreen(
+                state = current,
+                onReview = onReview,
+                // Both are the same event, because both may have to wait for an ad first: which
+                // screen the user ends up on is decided below, once the state says they are leaving.
+                onDone = { viewModel.onEvent(ResultsUiEvent.Done) },
+            )
+            if (current.leaving) {
+                // Navigating is the route's own decision and it is made once: a drill was begun from
+                // the situations, so that is where its way out leads.
+                LaunchedEffect(Unit) { if (current.hasVerdict) onDone() else onDoneToList() }
+            }
+        }
     }
 }
 

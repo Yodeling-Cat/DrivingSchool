@@ -94,7 +94,7 @@ val appModule = module {
     // resolve for them.
     viewModel { FeedbackViewModel() }
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get(), get()) }
-    viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get()) }
+    viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get(), get()) }
 }
 
 /**

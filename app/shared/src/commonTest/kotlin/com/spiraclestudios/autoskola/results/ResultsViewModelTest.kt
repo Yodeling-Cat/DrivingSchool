@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.results
 
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.TestAttempt
@@ -30,7 +31,7 @@ class ResultsViewModelTest : ViewModelTest() {
     }
 
     private fun TestScope.open(attempt: TestAttempt): StateFlow<ResultsUiState> =
-        observe(ResultsViewModel(attempt.id, repositories.exams).uiState)
+        observe(ResultsViewModel(attempt.id, repositories.exams, repositories.ads).uiState)
 
     @Test
     fun summarizesAFinishedAttempt() = runTest {
@@ -86,10 +87,59 @@ class ResultsViewModelTest : ViewModelTest() {
         session.finish(drill.id)
 
         val state = assertIs<ResultsUiState.Ready>(
-            observe(ResultsViewModel(drill.id, drills.exams).uiState).value,
+            observe(ResultsViewModel(drill.id, drills.exams, drills.ads).uiState).value,
         )
 
         assertFalse(state.hasVerdict)
+    }
+
+    @Test
+    fun dismissingTheResultShowsTheClosingAdAndThenLetsTheUserLeave() = runTest {
+        val attempt = startTest()
+        repositories.exams.currentSession().finish(attempt.id)
+        repositories.preferences.setAdsEnabled(true)
+        val viewModel = ResultsViewModel(attempt.id, repositories.exams, repositories.ads)
+        val state = observe(viewModel.uiState)
+        assertFalse(assertIs<ResultsUiState.Ready>(state.value).leaving)
+
+        viewModel.onEvent(ResultsUiEvent.Done)
+
+        assertEquals(listOf(AdSlot.ResultsInterstitial), repositories.adDataSource.shown)
+        // The leaving flag is what the route navigates on, so the user only goes once the ad is over.
+        assertTrue(assertIs<ResultsUiState.Ready>(state.value).leaving)
+    }
+
+    @Test
+    fun theClosingAdGivesWayToAGateThatIsAlreadyDue() = runTest {
+        // Nine practice tests started, so the driver's next tap is the gated one. Two fullscreen ads
+        // on one trip through the app is what the rule avoids, and the gate is the one worth paying
+        // for: this screen's ad yields rather than stacking with it.
+        val session = repositories.exams.currentSession()
+        val attempts = (0 until 9).map { index ->
+            session.restart(session.tests[index % session.tests.size]).also { session.finish(it.id) }
+        }
+        repositories.preferences.setAdsEnabled(true)
+
+        val viewModel = ResultsViewModel(attempts.last().id, repositories.exams, repositories.ads)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(ResultsUiEvent.Done)
+
+        assertEquals(emptyList(), repositories.adDataSource.shown)
+        // Yielding is not being stranded: the user still leaves.
+        assertTrue(assertIs<ResultsUiState.Ready>(state.value).leaving)
+    }
+
+    @Test
+    fun aDriverWhoHasNotAgreedToAdsLeavesWithoutWaitingForOne() = runTest {
+        val attempt = startTest()
+        repositories.exams.currentSession().finish(attempt.id)
+
+        val viewModel = ResultsViewModel(attempt.id, repositories.exams, repositories.ads)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(ResultsUiEvent.Done)
+
+        assertEquals(emptyList(), repositories.adDataSource.shown)
+        assertTrue(assertIs<ResultsUiState.Ready>(state.value).leaving)
     }
 
     @Test

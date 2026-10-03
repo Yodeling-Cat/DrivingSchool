@@ -2,7 +2,9 @@ package com.spiraclestudios.autoskola.results
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
+import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
@@ -12,12 +14,15 @@ import com.spiraclestudios.autoskola.stats.SectionSummary
 import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.stats.summary
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class ResultSection(val title: String, val summary: SectionSummary)
 
@@ -41,7 +46,29 @@ sealed interface ResultsUiState {
          * card has no stamp, no pass mark and no time to show.
          */
         val hasVerdict: Boolean,
+        /**
+         * Practice tests started, which is not drawn: it is what the closing ad is measured in,
+         * `plans/ads.md`'s rule being that the ad yields when the user\'s next tap would be gated.
+         * It is here rather than recomputed on the way out so that leaving costs no work.
+         */
+        val practiceTestsStarted: Int = 0,
+        /**
+         * Whether the user is on their way out, which the route navigates on. Set by
+         * [ResultsUiEvent.Done] once the closing ad - if there is one - is over, so the ad is
+         * finished with before the next screen appears rather than over it.
+         */
+        val leaving: Boolean = false,
     ) : ResultsUiState
+}
+
+sealed interface ResultsUiEvent {
+    /**
+     * The user is done with the result and going back to the list of tests. The one way out of this
+     * screen that may have an ad in it: going back to read the answers is pure navigation and is not
+     * asked about here, because a driver on their way to find out why an answer was wrong is the
+     * last person to interrupt with an advertisement.
+     */
+    data object Done : ResultsUiEvent
 }
 
 /**
@@ -50,21 +77,46 @@ sealed interface ResultsUiState {
  */
 internal fun hasVerdict(kind: AttemptKind): Boolean = kind != AttemptKind.Situations
 
-/** Shows how a finished attempt went. Only reads, so it has no events. */
-class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : ViewModel() {
+/** Shows how a finished attempt went. Only reads, apart from the one thing leaving does. */
+class ResultsViewModel(private val attemptId: String, exams: ExamRepository, private val ads: AdRepository) :
+    ViewModel() {
+
+    private val leaving = MutableStateFlow(false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<ResultsUiState> = exams.current
         .map { (it as? CurrentExam.Ready)?.session }
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(ResultsUiState.Loading)
-            session.attempt(attemptId).map { attempt ->
-                if (attempt?.isFinished == true) ready(session, attempt) else ResultsUiState.Closed
+            combine(session.attempt(attemptId), session.progress, leaving) { attempt, progress, leaving ->
+                if (attempt?.isFinished == true) {
+                    ready(session, attempt, progress, leaving)
+                } else {
+                    ResultsUiState.Closed
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ResultsUiState.Loading)
 
-    private fun ready(session: ExamSession, attempt: TestAttempt): ResultsUiState.Ready {
+    fun onEvent(event: ResultsUiEvent) {
+        when (event) {
+            // The ad first, and the flag after it: the route navigates on `leaving`, so the ad is
+            // over before anything else is drawn. A refusal - no consent, or Premium - and an ad
+            // that yields to the next gate both fall through to the same flag without waiting.
+            ResultsUiEvent.Done -> viewModelScope.launch {
+                val ready = uiState.value as? ResultsUiState.Ready
+                ready?.let { ads.showClosingAd(it.practiceTestsStarted) }
+                leaving.value = true
+            }
+        }
+    }
+
+    private fun ready(
+        session: ExamSession,
+        attempt: TestAttempt,
+        progress: ExamProgress,
+        leaving: Boolean,
+    ): ResultsUiState.Ready {
         val summary = attempt.summary(session.questionsOf(attempt))
         return ResultsUiState.Ready(
             exam = ExamLabel(session.category, session.bank.language),
@@ -76,6 +128,8 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository) : V
             },
             elapsedSeconds = attempt.elapsedSeconds,
             hasVerdict = hasVerdict(attempt.kind),
+            practiceTestsStarted = progress.practiceTestsStarted,
+            leaving = leaving,
         )
     }
 }

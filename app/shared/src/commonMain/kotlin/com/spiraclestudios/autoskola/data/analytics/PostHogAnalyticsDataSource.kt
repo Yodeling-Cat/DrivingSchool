@@ -74,7 +74,7 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
                     inAppIncludes = listOf(APP_PACKAGE),
                 ),
                 // The consent gate, read at send time rather than at setup time. This is the only
-                // way to honour a switch flipped later: PostHog.setup cannot be called twice, so
+                // way to honor a switch flipped later: PostHog.setup cannot be called twice, so
                 // the crash-reporting answer cannot be baked into ErrorTrackingConfig.
                 beforeSend = listOf(
                     PostHogBeforeSend { event ->

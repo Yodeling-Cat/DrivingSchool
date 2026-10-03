@@ -49,7 +49,7 @@ class SignSearchTest {
     }
 
     @Test
-    fun matchesInTheOrderTheCatalogueLists() {
+    fun matchesInTheOrderTheCatalogLists() {
         assertEquals(listOf("140", "601"), searchSigns(signs, "vozovk").map { it.number })
     }
 

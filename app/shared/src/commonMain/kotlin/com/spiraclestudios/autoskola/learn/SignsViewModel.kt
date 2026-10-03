@@ -2,9 +2,9 @@ package com.spiraclestudios.autoskola.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
+import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.signs.Sign
-import com.spiraclestudios.autoskola.signs.SignCatalogue
+import com.spiraclestudios.autoskola.signs.SignCatalog
 import com.spiraclestudios.autoskola.signs.SignGroup
 import com.spiraclestudios.autoskola.signs.groupSigns
 import com.spiraclestudios.autoskola.signs.searchSigns
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** One sign as the list draws it: the catalogue's text, and the picture's URI. */
+/** One sign as the list draws it: the catalog's text, and the picture's URI. */
 data class SignItem(
     val number: String,
     val name: String,
@@ -25,7 +25,7 @@ data class SignItem(
 
 /** One heading of the list and the signs listed under it. */
 data class SignGroupItem(
-    /** The part of the catalogue the signs come from, e.g. "VÝSTRAŽNÉ ZNAČKY". */
+    /** The part of the catalog the signs come from, e.g. "VÝSTRAŽNÉ ZNAČKY". */
     val kind: String,
     /** The heading inside it, e.g. "I. 4. Pohyb na ceste", or empty where it has none. */
     val group: String,
@@ -38,8 +38,8 @@ sealed interface SignsUiState {
     data object Loading : SignsUiState
 
     /**
-     * What the search left of the catalogue, under the headings the regulation lists the signs in.
-     * [total] is how many signs the catalogue holds altogether, which is what the screen reports
+     * What the search left of the catalog, under the headings the regulation lists the signs in.
+     * [total] is how many signs the catalog holds altogether, which is what the screen reports
      * while a search is running.
      */
     data class Ready(val groups: List<SignGroupItem>, val query: String, val total: Int) : SignsUiState {
@@ -59,7 +59,7 @@ sealed interface SignsUiEvent {
      * Folds the group this heading names away, leaving the heading, or opens it again.
      *
      * A group is named by its kind and its heading rather than by where it sits, so a heading that
-     * the catalogue lists twice - the two "Značky o (dávaní) prednosti v jazde" one per kind are
+     * the catalog lists twice - the two "Značky o (dávaní) prednosti v jazde" one per kind are
      * told apart by the kind - folds as the reader sees it.
      */
     data class ToggleGroup(val kind: String, val group: String) : SignsUiEvent
@@ -68,27 +68,27 @@ sealed interface SignsUiEvent {
     data object ToggleAllGroups : SignsUiEvent
 }
 
-class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewModel() {
+class SignsViewModel(private val catalogs: SignCatalogRepository) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
-    private val catalogue = MutableStateFlow<SignCatalogue?>(null)
+    private val catalog = MutableStateFlow<SignCatalog?>(null)
 
     /** The headings the reader has folded, which a search clears: its results open every group. */
     private val folded = MutableStateFlow(emptySet<GroupKey>())
 
     init {
-        viewModelScope.launch { catalogue.value = catalogues.bundled() }
+        viewModelScope.launch { catalog.value = catalogs.bundled() }
     }
 
-    val uiState: StateFlow<SignsUiState> = combine(catalogue, query, folded) { catalogue, query, folded ->
-        if (catalogue == null) {
+    val uiState: StateFlow<SignsUiState> = combine(catalog, query, folded) { catalog, query, folded ->
+        if (catalog == null) {
             SignsUiState.Loading
         } else {
             SignsUiState.Ready(
-                groups = groupsOf(catalogue, query).map { it.toItem(catalogue, folded) },
+                groups = groupsOf(catalog, query).map { it.toItem(catalog, folded) },
                 query = query,
-                total = catalogue.signs.size,
+                total = catalog.signs.size,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SignsUiState.Loading)
@@ -110,32 +110,32 @@ class SignsViewModel(private val catalogues: SignCatalogueRepository) : ViewMode
         }
     }
 
-    /** The groups of [catalogue] that a search for [query] leaves. */
-    private fun groupsOf(catalogue: SignCatalogue, query: String) = groupSigns(searchSigns(catalogue.signs, query))
+    /** The groups of [catalog] that a search for [query] leaves. */
+    private fun groupsOf(catalog: SignCatalog, query: String) = groupSigns(searchSigns(catalog.signs, query))
 
     /** Every group the list is showing now, which is what the bar's action folds away. */
     private fun everyGroup(): Set<GroupKey> {
-        val catalogue = catalogue.value ?: return emptySet()
-        return groupsOf(catalogue, query.value).map { GroupKey(it.kind, it.group) }.toSet()
+        val catalog = catalog.value ?: return emptySet()
+        return groupsOf(catalog, query.value).map { GroupKey(it.kind, it.group) }.toSet()
     }
 
-    private fun SignGroup.toItem(catalogue: SignCatalogue, folded: Set<GroupKey>) = SignGroupItem(
+    private fun SignGroup.toItem(catalog: SignCatalog, folded: Set<GroupKey>) = SignGroupItem(
         kind = kind,
         group = group,
-        signs = signs.map { it.toItem(catalogue) },
+        signs = signs.map { it.toItem(catalog) },
         folded = GroupKey(kind, group) in folded,
     )
 
-    private fun Sign.toItem(catalogue: SignCatalogue) = SignItem(
+    private fun Sign.toItem(catalog: SignCatalog) = SignItem(
         number = number,
         name = name,
         description = description,
-        imageUri = catalogues.imageUri(catalogue, this),
+        imageUri = catalogs.imageUri(catalog, this),
     )
 }
 
 /**
  * Names one heading of the list: the kind of sign it belongs to and the heading itself. The kind is
- * part of it because the catalogue has headings that read almost the same, one per kind.
+ * part of it because the catalog has headings that read almost the same, one per kind.
  */
 private data class GroupKey(val kind: String, val group: String)

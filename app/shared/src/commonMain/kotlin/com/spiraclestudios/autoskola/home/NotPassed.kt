@@ -15,7 +15,7 @@ fun notPassedTests(tests: List<PracticeTest>, results: Map<Int, TestResult>): Li
 /**
  * Whether the driver has finished and passed every test of the exam, which is the last rung of the
  * rating card's ladder: it is only ever true of an exam that has tests in it, so a bank with none
- * is not a licence the driver has earned.
+ * is not a license the driver has earned.
  */
 fun everyTestPassed(tests: List<PracticeTest>, results: Map<Int, TestResult>): Boolean =
     tests.isNotEmpty() && notPassedTests(tests, results).isEmpty()

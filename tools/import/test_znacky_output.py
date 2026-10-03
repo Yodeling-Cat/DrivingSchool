@@ -1,4 +1,4 @@
-"""Checks the committed sign catalogue that ships in the app. Run after every import."""
+"""Checks the committed sign catalog that ships in the app. Run after every import."""
 import collections
 import json
 import unittest
@@ -8,7 +8,7 @@ import import_znacky
 SIGNS = import_znacky.SIGNS_OUT
 IMAGES = import_znacky.RESOURCES / "images"
 
-# The number of signs the current import produced. It moves when the catalogue does, which is the
+# The number of signs the current import produced. It moves when the catalog does, which is the
 # point: a re-import that silently loses rows has to be looked at.
 SIGN_COUNT = 120
 
@@ -17,11 +17,11 @@ def load(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-class SignCatalogueOutputTest(unittest.TestCase):
+class SignCatalogOutputTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.catalogue = load(SIGNS / "sk-v1.json")
-        cls.signs = cls.catalogue["signs"]
+        cls.catalog = load(SIGNS / "sk-v1.json")
+        cls.signs = cls.catalog["signs"]
 
     def test_lists_every_sign_of_the_current_import(self):
         self.assertEqual(SIGN_COUNT, len(self.signs))
@@ -32,19 +32,19 @@ class SignCatalogueOutputTest(unittest.TestCase):
             self.assertTrue(sign["number"].strip(), where)
             self.assertTrue(sign["description"].strip(), where)
             self.assertTrue(sign["image"].strip(), where)
-            self.assertTrue((IMAGES / self.catalogue["imageDir"] / sign["image"]).is_file(), where)
+            self.assertTrue((IMAGES / self.catalog["imageDir"] / sign["image"]).is_file(), where)
 
     def test_numbers_are_unique(self):
         numbers = [sign["number"] for sign in self.signs]
         self.assertEqual(len(numbers), len(set(numbers)))
 
     def test_signs_keep_the_regulations_own_order(self):
-        # The catalogue lists warning signs first, then the prohibitory, informative and so on, so
+        # The catalog lists warning signs first, then the prohibitory, informative and so on, so
         # the numbers rise in blocks rather than strictly.
         self.assertEqual("110", self.signs[0]["number"])
         self.assertEqual("731", self.signs[-1]["number"])
 
-    def test_every_sign_knows_the_part_of_the_catalogue_it_is_from(self):
+    def test_every_sign_knows_the_part_of_the_catalog_it_is_from(self):
         kinds = {
             "VÝSTRAŽNÉ ZNAČKY",
             "REGULAČNÉ ZNAČKY",
@@ -76,7 +76,7 @@ class SignCatalogueOutputTest(unittest.TestCase):
         )
 
     def test_the_regulation_is_named_as_the_source(self):
-        self.assertIn("30/2020", self.catalogue["source"])
+        self.assertIn("30/2020", self.catalog["source"])
 
     def test_no_sign_carries_text_from_the_documents_around_it(self):
         # The regulation's last page ends with the citations of its last sign and the publisher's
@@ -103,11 +103,11 @@ class SignCatalogueOutputTest(unittest.TestCase):
 
         self.assertEqual("Čierna šípka", last["name"])
 
-    def test_the_index_lists_the_catalogue_and_its_count(self):
+    def test_the_index_lists_the_catalog_and_its_count(self):
         index = load(SIGNS / "index.json")
-        entry = next(c for c in index if c["id"] == self.catalogue["id"])
+        entry = next(c for c in index if c["id"] == self.catalog["id"])
 
-        self.assertEqual(self.catalogue["version"], entry["version"])
+        self.assertEqual(self.catalog["version"], entry["version"])
         self.assertEqual(len(self.signs), entry["signCount"])
 
 

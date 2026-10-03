@@ -36,7 +36,7 @@ fun situations(bank: QuestionBank, category: LicenseCategory): List<Situation> {
 /**
  * Whether the driver has answered every question about this situation, and answered each of them
  * correctly. That is the state worth marking: a situation worked out in full is one there is
- * nothing left to practise in.
+ * nothing left to practice in.
  */
 fun Situation.isSolvedBy(answers: PracticeAnswers): Boolean =
     questions.isNotEmpty() && questions.all { answers.chosenFor(it.id) == it.correct }

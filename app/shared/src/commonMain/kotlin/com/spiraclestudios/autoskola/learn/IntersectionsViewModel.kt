@@ -45,7 +45,7 @@ data class SituationItem(
     val number: Int,
     val imageUri: String,
     val questions: List<SituationQuestion>,
-    /** Every question answered, and answered right, so there is nothing left to practise here. */
+    /** Every question answered, and answered right, so there is nothing left to practice here. */
     val solved: Boolean = false,
 )
 

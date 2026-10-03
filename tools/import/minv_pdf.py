@@ -35,7 +35,7 @@ def _page_images(page):
 
 
 def _cell_images(cell, page_index, images):
-    """The tracked images whose centre falls inside the table [cell]."""
+    """The tracked images whose center falls inside the table [cell]."""
     inside = []
     for bbox, xref in images:
         cx = (bbox[0] + bbox[2]) / 2

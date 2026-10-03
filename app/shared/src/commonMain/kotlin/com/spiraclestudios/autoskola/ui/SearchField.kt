@@ -33,7 +33,7 @@ private val SearchFieldHeight = 48.dp
 private val SearchFieldRadius = 16.dp
 
 /**
- * The bar that searches a list: a card-coloured field with a magnifier, the [placeholder] while
+ * The bar that searches a list: a card-colored field with a magnifier, the [placeholder] while
  * nothing is typed, and the action that clears it once something is. The query is the caller's, so
  * the screen that searches its content owns the state and the field stays a field.
  */

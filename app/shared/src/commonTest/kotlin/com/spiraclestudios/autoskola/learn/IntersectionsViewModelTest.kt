@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 
 class IntersectionsViewModelTest : ViewModelTest() {
 
-    /** The exam's situations, with the licence group B selected. */
+    /** The exam's situations, with the license group B selected. */
     private fun viewModel(
         repositories: TestRepositories = TestRepositories(testSituationsBank()),
     ): IntersectionsViewModel {
@@ -71,7 +71,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun onlyTheSituationsTheLicenceGroupIsAskedAreListed() = runTest {
+    fun onlyTheSituationsTheLicenseGroupIsAskedAreListed() = runTest {
         // The third drawing is asked of group A alone.
         val state = observe(viewModel().uiState)
 

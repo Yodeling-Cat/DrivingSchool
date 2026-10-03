@@ -64,7 +64,7 @@ class QuestionBankRepositoryTest {
 
     @Test
     fun bankIsReadAgainAfterAFailedRead() = runTest {
-        // A read can fail once - or be cancelled - without the bank being gone. Remembering the
+        // A read can fail once - or be canceled - without the bank being gone. Remembering the
         // failure would keep the exam "missing" for the rest of the process, which drops the user
         // into onboarding and never lets them out.
         val repository = QuestionBankRepository(FailingOnceBankDataSource(testBank("sk-sk")))

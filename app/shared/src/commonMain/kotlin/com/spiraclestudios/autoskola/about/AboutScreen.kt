@@ -53,8 +53,8 @@ fun AboutRoute(onBack: () -> Unit, viewModel: AboutViewModel = koinViewModel()) 
  * from, and every open source project it is built out of.
  *
  * The list of libraries is AboutLibraries' own container in its dense "refined" shape, with each
- * library's source, website and licence offered as chips. The app hands it the libraries and the
- * words and colours around them, and draws none of it itself.
+ * library's source, website and license offered as chips. The app hands it the libraries and the
+ * words and colors around them, and draws none of it itself.
  */
 @Composable
 fun AboutScreen(state: AboutUiState, onEvent: (AboutUiEvent) -> Unit, onBack: () -> Unit) {
@@ -101,7 +101,7 @@ private fun AboutHeader(state: AboutUiState, onBack: () -> Unit) {
 }
 
 /**
- * The projects the app is built from, one row each, with their licence and where to read them.
+ * The projects the app is built from, one row each, with their license and where to read them.
  *
  * The words above them go into the list's own header, so they scroll away with the rows instead of
  * taking a phone's height away from a list that is long by nature.

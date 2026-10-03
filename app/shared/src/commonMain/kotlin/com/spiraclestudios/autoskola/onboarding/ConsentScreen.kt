@@ -129,7 +129,7 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                             checked = state.documentsAccepted,
                             onCheckedChange = { onEvent(ConsentUiEvent.SetDocumentsAccepted(it)) },
                             modifier = Modifier.semantics {
-                                // The mark is a colour, so it reaches nobody who cannot see it. The
+                                // The mark is a color, so it reaches nobody who cannot see it. The
                                 // box carries the same message as state, and announces it, because
                                 // the press that set it left the focus down on the button.
                                 if (state.agreementError) {
@@ -157,7 +157,7 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    // Side by side and centred, in a FlowRow so they can wrap: the Slovak and Czech
+                    // Side by side and centerd, in a FlowRow so they can wrap: the Slovak and Czech
                     // names for these two documents are long enough to run past a phone together.
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),

@@ -15,19 +15,19 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 
 /**
- * The waves the licence ramp carries, which both the home screen's licence card and the results
+ * The waves the license ramp carries, which both the home screen's license card and the results
  * poster draw: ten of them, one every 16dp from y = 40, 30dp from crest to trough.
  */
-private const val LICENCE_WAVE_COUNT = 10
-private val LicenceWaveStartY = 40.dp
-private val LicenceWaveStepY = 16.dp
-private val LicenceWaveAmplitude = 30.dp
-private val LicenceWaveStroke = 1.2.dp
-private val LicenceWaveOffset = 45.dp
-private const val LICENCE_WAVE_ALPHA = 0.35f
+private const val LICENSE_WAVE_COUNT = 10
+private val LicenseWaveStartY = 40.dp
+private val LicenseWaveStepY = 16.dp
+private val LicenseWaveAmplitude = 30.dp
+private val LicenseWaveStroke = 1.2.dp
+private val LicenseWaveOffset = 45.dp
+private const val LICENSE_WAVE_ALPHA = 0.35f
 
 /** One quarter of the wave: a crest, from the baseline and back down to it. */
-val LicenceWaveQuarter = 90.dp
+val LicenseWaveQuarter = 90.dp
 
 /**
  * How many quarters of the wave it takes to cross a card [width] wide. The design draws four, which
@@ -35,20 +35,20 @@ val LicenceWaveQuarter = 90.dp
  * wider one leaves four quarters cut off part-way across. So the pattern carries on until the last
  * crest is past the card's right edge.
  */
-fun licenceWaveQuarters(width: Dp): Int = ceil(width / LicenceWaveQuarter).toInt()
+fun licenseWaveQuarters(width: Dp): Int = ceil(width / LicenseWaveQuarter).toInt()
 
 /**
- * The ten white wave lines over whatever this draws on - a licence card, or the results poster -
+ * The ten white wave lines over whatever this draws on - a license card, or the results poster -
  * each a crest then a mirrored trough, carried across its whole width.
  */
-fun DrawScope.drawLicenceWaves() {
-    val quarter = LicenceWaveQuarter.toPx()
-    val offset = LicenceWaveOffset.toPx()
-    val amplitude = LicenceWaveAmplitude.toPx()
-    val step = LicenceWaveStepY.toPx()
-    val quarters = licenceWaveQuarters(size.width.toDp())
-    repeat(LICENCE_WAVE_COUNT) { index ->
-        val y = LicenceWaveStartY.toPx() + index * step
+fun DrawScope.drawLicenseWaves() {
+    val quarter = LicenseWaveQuarter.toPx()
+    val offset = LicenseWaveOffset.toPx()
+    val amplitude = LicenseWaveAmplitude.toPx()
+    val step = LicenseWaveStepY.toPx()
+    val quarters = licenseWaveQuarters(size.width.toDp())
+    repeat(LICENSE_WAVE_COUNT) { index ->
+        val y = LicenseWaveStartY.toPx() + index * step
         val wave = Path().apply {
             moveTo(0f, y)
             repeat(quarters) { span ->
@@ -58,27 +58,27 @@ fun DrawScope.drawLicenceWaves() {
                 quadraticTo(offset + quarter * span, peak, quarter * (span + 1), y)
             }
         }
-        drawPath(wave, color = Color.White.copy(alpha = LICENCE_WAVE_ALPHA), style = Stroke(LicenceWaveStroke.toPx()))
+        drawPath(wave, color = Color.White.copy(alpha = LICENSE_WAVE_ALPHA), style = Stroke(LicenseWaveStroke.toPx()))
     }
 }
 
-/** The design's glow: a 260x200 ellipse, so 130x100 from its centre out to its edge. */
-private val LicenceGlowRadiusX = 130.dp
-private val LicenceGlowRadiusY = 100.dp
-private const val LICENCE_GLOW_ALPHA = 0.55f
+/** The design's glow: a 260x200 ellipse, so 130x100 from its center out to its edge. */
+private val LicenseGlowRadiusX = 130.dp
+private val LicenseGlowRadiusY = 100.dp
+private const val LICENSE_GLOW_ALPHA = 0.55f
 
 /**
- * The white glow that bleeds into a licence ramp - the home screen's card, the results poster - from
- * one of its edges, centred on [centre]. Scaling the canvas is what turns the gradient's circle into
- * the design's ellipse, and [centre] sits off the edge it bleeds in from.
+ * The white glow that bleeds into a license ramp - the home screen's card, the results poster - from
+ * one of its edges, centerd on [center]. Scaling the canvas is what turns the gradient's circle into
+ * the design's ellipse, and [center] sits off the edge it bleeds in from.
  */
-fun DrawScope.drawLicenceGlow(centre: DpOffset) {
-    translate(centre.x.toPx(), centre.y.toPx()) {
+fun DrawScope.drawLicenseGlow(center: DpOffset) {
+    translate(center.x.toPx(), center.y.toPx()) {
         // Scaling the canvas turns the circular gradient into the design's ellipse.
-        scale(LicenceGlowRadiusX.toPx(), LicenceGlowRadiusY.toPx(), pivot = Offset.Zero) {
+        scale(LicenseGlowRadiusX.toPx(), LicenseGlowRadiusY.toPx(), pivot = Offset.Zero) {
             drawRect(
                 brush = Brush.radialGradient(
-                    colorStops = arrayOf(0f to Color.White.copy(alpha = LICENCE_GLOW_ALPHA), 1f to Color.Transparent),
+                    colorStops = arrayOf(0f to Color.White.copy(alpha = LICENSE_GLOW_ALPHA), 1f to Color.Transparent),
                     center = Offset.Zero,
                     radius = 1f,
                 ),

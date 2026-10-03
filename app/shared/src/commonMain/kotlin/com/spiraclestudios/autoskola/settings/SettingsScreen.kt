@@ -45,7 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.onboarding.LicenceIcon
+import com.spiraclestudios.autoskola.onboarding.LicenseIcon
 import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardRadius
@@ -117,8 +117,8 @@ fun SettingsScreen(
                     title = strings.settingsChangeExam,
                     subtitle = state.exam?.shortTitle.orEmpty(),
                     onClick = onChangeExam,
-                    // The same icon and colour the licence step offers the category in.
-                    leading = { state.exam?.let { LicenceIcon(it.category) } },
+                    // The same icon and color the license step offers the category in.
+                    leading = { state.exam?.let { LicenseIcon(it.category) } },
                 )
 
                 SectionLabel(strings.settingsAnswers, Modifier.padding(start = 6.dp))
@@ -260,7 +260,7 @@ private fun SettingsNavRow(
     }
 }
 
-/** The square mark a setting leads with, on the colour the setting is about. */
+/** The square mark a setting leads with, on the color the setting is about. */
 @Composable
 private fun SettingsRowIcon(icon: ImageVector, tint: Color, background: Color) {
     IconTile(size = 40.dp, background = Brush.linearGradient(listOf(background, background))) {
@@ -270,7 +270,7 @@ private fun SettingsRowIcon(icon: ImageVector, tint: Color, background: Color) {
 
 /**
  * One setting with its switch; the whole row toggles it. [enabled] is false for a setting that
- * another one rules out, which greys the row out and leaves the switch off.
+ * another one rules out, which grays the row out and leaves the switch off.
  */
 @Composable
 private fun SettingsSwitchRow(
@@ -333,7 +333,7 @@ private fun SettingsScreenPreview() {
     }
 }
 
-/** Checking answers as they're picked, which greys out the setting it rules out. */
+/** Checking answers as they're picked, which grays out the setting it rules out. */
 @Preview(widthDp = 400, heightDp = 700)
 @Composable
 private fun SettingsScreenCheckingPreview() {

@@ -35,7 +35,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # compileSdk is 37, which runner images do not carry yet, so the platform and the matching
-      # build tools are installed rather than assumed. `yes` answers the licence prompt that a
+      # build tools are installed rather than assumed. `yes` answers the license prompt that a
       # fresh SDK would otherwise wait on.
       - uses: android-actions/setup-android@v3
       - name: Install the SDK platform and build tools

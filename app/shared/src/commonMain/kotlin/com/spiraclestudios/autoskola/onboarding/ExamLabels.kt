@@ -20,7 +20,7 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory.T
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 
 // Exam names are shown in the language of the question bank, so people can find the exam
-// in their own language even before the app UI is localised.
+// in their own language even before the app UI is localized.
 
 private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
     "sk" to mapOf(
@@ -58,7 +58,7 @@ private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
 private val bankTitles = mapOf(
     "sk" to "Vodičský preukaz · Slovensky",
     "hu" to "Vezetői engedély · Magyarul",
-    "en" to "Driver's licence · English",
+    "en" to "Driver's license · English",
 )
 
 /** E.g. "Auto (B)" for Slovak, "Car with trailer (B+E)" for English. */

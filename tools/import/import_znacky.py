@@ -1,12 +1,12 @@
-"""Builds the app's road-sign catalogue from the traffic-sign regulation.
+"""Builds the app's road-sign catalog from the traffic-sign regulation.
 
-The catalogue the app shows is príloha č. 1 of vyhláška MV SR č. 30/2020 Z. z. o dopravnom značení,
+The catalog the app shows is príloha č. 1 of vyhláška MV SR č. 30/2020 Z. z. o dopravnom značení,
 the regulation that lists every Slovak road sign with its number, its name and what it means. The
 text of a regulation is not a protected work (zákon 185/2015 Z. z., § 5), which is why the app can
 ship it; see docs/data-sources.md.
 
 Pictures are not taken from the regulation: the sign images the app already bundles for its question
-bank (minv.sk's `obr3/dz` set) are matched to the catalogue by their file name, which is the sign's
+bank (minv.sk's `obr3/dz` set) are matched to the catalog by their file name, which is the sign's
 number. An image whose number the regulation does not list is left out and reported.
 
 Run `python tools/import/import_znacky.py --help`.
@@ -29,13 +29,13 @@ BANKS = RESOURCES / "banks"
 IMAGES = RESOURCES / "images"
 
 # Zbierka zákonov Slovenskej republiky, the consolidated text of 30/2020 Z. z. with its annexes.
-# Its príloha č. 1 is the sign catalogue. See docs/data-sources.md.
+# Its príloha č. 1 is the sign catalog. See docs/data-sources.md.
 PDF_URL = "https://www.slov-lex.sk/static/pdf/2020/30/ZZ_2020_30_20200401.pdf"
 
 COUNTRY = "SK"
 LANGUAGE = "sk"
 IMAGE_DIR = "minv-sk"
-# "152-1" is one of the pictures of sign 152: the catalogue numbers the sign once and shows its
+# "152-1" is one of the pictures of sign 152: the catalog numbers the sign once and shows its
 # variants beside it. "401-409" is a picture of a whole group of signs, and is not one of them.
 VARIANT = re.compile(r"^(\d{2,3})-\d$")
 RANGE = re.compile(r"^\d{3}-\d{3}$")
@@ -68,7 +68,7 @@ def bundled_images():
 
 
 def match(signs, images):
-    """Pairs every catalogue entry with one picture of it.
+    """Pairs every catalog entry with one picture of it.
 
     The bundled pictures are minv.sk's, named after the sign's number; where minv.sk ships several
     pictures of one sign (`152-1.jpg`, `321-1.jpg`), the one named exactly after the sign is the one
@@ -95,7 +95,7 @@ def match(signs, images):
         else:
             extra.append(image)
     listed = [{**asdict(by_number[number]), "image": image} for number, (image, _) in chosen.items()]
-    # The catalogue's own order, which groups the kinds of sign together.
+    # The catalog's own order, which groups the kinds of sign together.
     return sorted(listed, key=lambda s: order[s["number"]]), unmatched, extra
 
 
@@ -112,7 +112,7 @@ def document(signs_with_images, version):
 
 
 def write_index(signs, version):
-    """Writes `signs/index.json`, keeping other countries' catalogues in it."""
+    """Writes `signs/index.json`, keeping other countries' catalogs in it."""
     path = SIGNS_OUT / "index.json"
     others = [c for c in json.loads(path.read_text(encoding="utf-8")) if c["country"] != COUNTRY] \
         if path.exists() else []
@@ -130,16 +130,16 @@ def write_index(signs, version):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="re-download the regulation even if cached")
-    parser.add_argument("--version", type=int, default=1, help="catalogue version to write")
+    parser.add_argument("--version", type=int, default=1, help="catalog version to write")
     args = parser.parse_args()
 
     log("Fetching the regulation")
     pdf = download(PDF_URL, CACHE / "vyhlaska-30-2020.pdf", args.refresh)
 
-    log("Parsing the sign catalogue")
+    log("Parsing the sign catalog")
     all_signs = znacky_pdf.parse(pdf)
     signs = [s for s in all_signs if s.description]
-    log(f"  {len(all_signs)} catalogue entries, {len(signs)} with a meaning, "
+    log(f"  {len(all_signs)} catalog entries, {len(signs)} with a meaning, "
         f"{sum(1 for s in signs if not s.name)} of them nameless (their picture is their name)")
 
     images = bundled_images()
@@ -147,7 +147,7 @@ def main():
     log(f"  {len(images)} bundled sign images, {len(matched)} matched to an entry, "
         f"{len(extra)} extra pictures of a sign already listed")
     for image in unmatched:
-        log(f"    no catalogue entry for {image}")
+        log(f"    no catalog entry for {image}")
 
     SIGNS_OUT.mkdir(parents=True, exist_ok=True)
     target = SIGNS_OUT / f"{LANGUAGE}-v{args.version}.json"

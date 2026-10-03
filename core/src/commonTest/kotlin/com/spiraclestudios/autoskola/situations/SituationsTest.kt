@@ -106,7 +106,7 @@ class SituationsTest {
     }
 
     @Test
-    fun aSituationWithNothingToPractiseIsNotSolved() {
+    fun aSituationWithNothingToPracticeIsNotSolved() {
         // By construction a situation has questions; one that somehow had none is not "done".
         val situation = Situation(image = "obr3/ds/01.png", questions = emptyList())
 

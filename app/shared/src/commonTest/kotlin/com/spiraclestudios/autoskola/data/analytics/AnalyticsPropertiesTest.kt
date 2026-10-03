@@ -88,7 +88,7 @@ class AnalyticsPropertiesTest {
 
     @Test
     fun everyEventTheAppSendsIsCoveredByTheAnalyticsAnswer() {
-        // isEventAllowed drops anything it does not recognise, so an event added without being
+        // isEventAllowed drops anything it does not recognize, so an event added without being
         // listed here would silently stop being sent. This is that check.
         AnalyticsEvent.entries.forEach { event ->
             assertTrue(

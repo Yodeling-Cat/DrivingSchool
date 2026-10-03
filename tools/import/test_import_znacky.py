@@ -1,4 +1,4 @@
-"""Unit tests for the sign-catalogue importer. Offline: they build the parser's input by hand."""
+"""Unit tests for the sign-catalog importer. Offline: they build the parser's input by hand."""
 import unittest
 
 import import_znacky
@@ -14,7 +14,7 @@ def line(text, x=191.5, y=None, page=0, bold=False):
 
 
 def body(number, name, description, y=10.0):
-    """One catalogue row: the number, the picture's name, then the meaning beside them."""
+    """One catalog row: the number, the picture's name, then the meaning beside them."""
     return [
         line("19.", x=112.2, y=y),
         line(number, y=y),
@@ -222,7 +222,7 @@ class RowsTest(unittest.TestCase):
         self.assertEqual("Čierna šípka", rows[0].name)
         self.assertEqual("Čierna šípka umožňuje vodičovi otočiť sa", rows[0].description)
 
-    def test_a_row_that_is_not_a_sign_keeps_no_text_from_its_neighbours(self):
+    def test_a_row_that_is_not_a_sign_keeps_no_text_from_its_neighbors(self):
         # A symbol table has no sign numbers; whatever sits around it must not become a sign either.
         lines = [
             line("A. SYMBOLY VOZIDIEL A ÚČASTNÍKOV CESTNEJ PREMÁVKY", x=141.9, y=2.0),
@@ -269,7 +269,7 @@ class MatchTest(unittest.TestCase):
         self.assertEqual([], listed)
         self.assertEqual(["obr3/dz/1-10a.png"], unmatched)
 
-    def test_the_catalogue_order_is_kept(self):
+    def test_the_catalog_order_is_kept(self):
         signs = [self.sign("110"), self.sign("201"), self.sign("140")]
 
         listed, _, _ = import_znacky.match(signs, ["obr3/dz/201.jpg", "obr3/dz/140.jpg", "obr3/dz/110.jpg"])

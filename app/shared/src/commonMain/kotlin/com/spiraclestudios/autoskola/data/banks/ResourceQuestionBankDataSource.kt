@@ -33,8 +33,8 @@ class ResourceQuestionBankDataSource : QuestionBankDataSource {
  */
 internal suspend fun <T> readOrNull(read: suspend () -> T): T? = try {
     read()
-} catch (cancelled: CancellationException) {
-    throw cancelled
+} catch (canceled: CancellationException) {
+    throw canceled
 } catch (_: Exception) {
     null
 }

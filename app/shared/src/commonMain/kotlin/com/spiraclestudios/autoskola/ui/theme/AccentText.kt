@@ -18,7 +18,7 @@ import com.spiraclestudios.autoskola.ui.PreviewLabel
 
 /**
  * Splits a label into text runs, marking the first number so a title can set it in the accent
- * colour: `"Test 3"` becomes `("Test ", false), ("3", true)`.
+ * color: `"Test 3"` becomes `("Test ", false), ("3", true)`.
  *
  * Languages order the number differently ("3. teszt"), so the split is found rather than assumed.
  */

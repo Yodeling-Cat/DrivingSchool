@@ -46,7 +46,7 @@ class SignGroupsTest {
     }
 
     @Test
-    fun aHeadingThatComesBackKeepsTheCatalogueOrder() {
+    fun aHeadingThatComesBackKeepsTheCatalogOrder() {
         val signs = listOf(
             sign("601", "Pozdĺžna súvislá čiara", "VODOROVNÉ ZNAČKY", "I. Pozdĺžne čiary"),
             sign("604", "Pozdĺžna prerušovaná čiara", "VODOROVNÉ ZNAČKY", "II. Priečne čiary"),

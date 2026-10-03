@@ -31,7 +31,7 @@ private val ThreeTilePane = TileMinWidth * 3 + WideGridGap * 2
  * width, so a phone held sideways gets it too - and it is neither tall enough nor, in a narrow
  * window, wide enough for the desktop's measurements: the pane beside the overview band has to leave
  * room for three tiles of [TileMinWidth], or every status label wraps and clips, and the resume
- * banner's labelled Continue pill leaves the summary less room than the longer translations need, so
+ * banner's labeled Continue pill leaves the summary less room than the longer translations need, so
  * it wraps out of the card. Which columns the grid holds and which resume card it draws both follow
  * from this one rule, so a cramped window cannot get half of the desktop's shape.
  */
@@ -43,7 +43,7 @@ fun twoPaneColumns(height: HeightClass, paneWidth: Dp): Int =
     if (keepsThePhoneShape(height, paneWidth)) PHONE_COLUMNS else DESKTOP_COLUMNS
 
 /**
- * Whether the two-pane layout's resume card is the tall banner with the labelled Continue pill, or
+ * Whether the two-pane layout's resume card is the tall banner with the labeled Continue pill, or
  * the phone layout's compact card, with the round play button and its own progress bar. See
  * [keepsThePhoneShape].
  */

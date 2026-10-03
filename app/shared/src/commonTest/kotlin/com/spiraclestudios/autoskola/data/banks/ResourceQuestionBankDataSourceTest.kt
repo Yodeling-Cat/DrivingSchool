@@ -21,11 +21,11 @@ class ResourceQuestionBankDataSourceTest {
 
     @Test
     fun readOrNullRethrowsCancellation() = runTest {
-        // A cancelled read (its caller was restarted or went away) is not a bank that isn't
+        // A canceled read (its caller was restarted or went away) is not a bank that isn't
         // bundled. Treating it as one shows the user the exam wizard with no way past it, because
         // the exam they already chose looks like it no longer exists.
         assertFailsWith<CancellationException> {
-            readOrNull<Int> { throw CancellationException("cancelled") }
+            readOrNull<Int> { throw CancellationException("canceled") }
         }
     }
 }

@@ -46,7 +46,7 @@ internal fun middleEllipsized(
 /**
  * [text] in [style], shortened in the middle when the room it is given can't hold all of it. Draw it
  * with `Modifier.weight(1f, fill = false)` where it shares a row, so it takes no more room than the
- * text it ends up with and the row stays centred on what is drawn.
+ * text it ends up with and the row stays centerd on what is drawn.
  */
 @Composable
 fun FittingText(

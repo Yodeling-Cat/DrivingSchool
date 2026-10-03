@@ -1,45 +1,43 @@
 package com.spiraclestudios.autoskola.data.signs
 
 import com.spiraclestudios.autoskola.signs.Sign
-import com.spiraclestudios.autoskola.signs.SignCatalogue
-import com.spiraclestudios.autoskola.signs.SignCatalogueInfo
+import com.spiraclestudios.autoskola.signs.SignCatalog
+import com.spiraclestudios.autoskola.signs.SignCatalogInfo
 
-/** Serves [catalogues] from memory and records what was read. */
-class FakeSignCatalogueDataSource(
-    private val index: List<SignCatalogueInfo>,
-    private val catalogues: List<SignCatalogue>,
-) : SignCatalogueDataSource {
-    val catalogueReads = mutableListOf<String>()
+/** Serves [catalogs] from memory and records what was read. */
+class FakeSignCatalogDataSource(private val index: List<SignCatalogInfo>, private val catalogs: List<SignCatalog>) :
+    SignCatalogDataSource {
+    val catalogReads = mutableListOf<String>()
     var indexReads = 0
 
-    override suspend fun readIndex(): List<SignCatalogueInfo> = index.also { indexReads++ }
+    override suspend fun readIndex(): List<SignCatalogInfo> = index.also { indexReads++ }
 
-    override suspend fun readCatalogue(id: String, version: Int): SignCatalogue? {
-        catalogueReads += "$id-v$version"
-        return catalogues.firstOrNull { it.id == id && it.version == version }
+    override suspend fun readCatalog(id: String, version: Int): SignCatalog? {
+        catalogReads += "$id-v$version"
+        return catalogs.firstOrNull { it.id == id && it.version == version }
     }
 
     override fun imageUri(imageDir: String, path: String): String = "test://$imageDir/$path"
 
     companion object {
-        /** A data source with just [catalogue], listed as the latest version. */
-        fun of(catalogue: SignCatalogue) = FakeSignCatalogueDataSource(
-            index = listOf(testSignCatalogueInfo(catalogue)),
-            catalogues = listOf(catalogue),
+        /** A data source with just [catalog], listed as the latest version. */
+        fun of(catalog: SignCatalog) = FakeSignCatalogDataSource(
+            index = listOf(testSignCatalogInfo(catalog)),
+            catalogs = listOf(catalog),
         )
     }
 }
 
-fun testSignCatalogueInfo(catalogue: SignCatalogue) = SignCatalogueInfo(
-    id = catalogue.id,
-    version = catalogue.version,
-    country = catalogue.country,
-    language = catalogue.language,
-    signCount = catalogue.signs.size,
+fun testSignCatalogInfo(catalog: SignCatalog) = SignCatalogInfo(
+    id = catalog.id,
+    version = catalog.version,
+    country = catalog.country,
+    language = catalog.language,
+    signCount = catalog.signs.size,
 )
 
 /** Three signs: two of them warning signs under one heading, the third a road marking. */
-fun testSignCatalogue(id: String = "sk", version: Int = 1) = SignCatalogue(
+fun testSignCatalog(id: String = "sk", version: Int = 1) = SignCatalog(
     id = id,
     version = version,
     country = "SK",

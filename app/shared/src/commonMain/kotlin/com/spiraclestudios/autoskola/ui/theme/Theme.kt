@@ -39,7 +39,7 @@ object Naj {
 }
 
 /**
- * The app's theme: one place that owns the colours and the type scale.
+ * The app's theme: one place that owns the colors and the type scale.
  *
  * Every screen sits on [NajColors.paper] with its glows and grain (see `PaperBackground`), and
  * draws white cards on soft shadows instead of borders.
@@ -116,7 +116,7 @@ fun TextStyle.bold(): TextStyle = copy(fontWeight = FontWeight.Bold, fontSize = 
 // ── Previews ──
 
 /**
- * The two tables a screen reads: a line of sample text in each type token, and a swatch per colour
+ * The two tables a screen reads: a line of sample text in each type token, and a swatch per color
  * token. A new token is checked here before it goes into a screen.
  */
 @Preview(widthDp = 420, heightDp = 900)
@@ -141,7 +141,7 @@ private fun NajAutoskolaThemePreview() {
                 Text(name, style = Naj.type.capsLabel, color = colors.muted)
                 Text("Road signs and rules", style = style, color = colors.ink)
             }
-            PreviewLabel("COLOURS")
+            PreviewLabel("COLORS")
             listOf(
                 "paper" to colors.paper,
                 "card" to colors.card,

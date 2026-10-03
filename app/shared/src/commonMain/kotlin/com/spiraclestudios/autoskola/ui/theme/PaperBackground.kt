@@ -31,7 +31,7 @@ import org.jetbrains.compose.resources.imageResource
 /** Grain over the page, as the design system draws it. */
 const val GRAIN_PAGE = 0.28f
 
-/** Grain over a coloured card — the licence card, the resume card, the result card. */
+/** Grain over a colored card — the license card, the resume card, the result card. */
 const val GRAIN_CARD = 0.35f
 
 /**
@@ -58,7 +58,7 @@ fun paperGlows(colors: NajColors, mintY: Float = 0.9f, mintRadius: Float = 0.4f)
  * top of both. Content is drawn above the grain, as it is in the design.
  *
  * The glows are drawn inside [clipRect] because a `DrawScope` does not clip to the node it belongs
- * to: a glow centred on this page's corner would otherwise paint the same distance to the left of
+ * to: a glow centerd on this page's corner would otherwise paint the same distance to the left of
  * it, over whatever is next to the page - the navigation rail, which came out washed pale instead
  * of navy.
  */

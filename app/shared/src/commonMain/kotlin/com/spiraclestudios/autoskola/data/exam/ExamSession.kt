@@ -163,7 +163,7 @@ class ExamSession(
      *
      * The drill is not a practice test: it sets no test number, so it can't change a test's result,
      * and the home screen won't offer to continue one that was walked away from. Its answers are
-     * answers, though, so what the driver misses here is a mistake to practise like any other.
+     * answers, though, so what the driver misses here is a mistake to practice like any other.
      */
     suspend fun startSituations(questions: List<Question>): TestAttempt? {
         val drill = questions.filter { it.id in pool }

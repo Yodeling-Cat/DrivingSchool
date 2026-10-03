@@ -64,7 +64,7 @@ import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.DashedCircleIcon
 import com.spiraclestudios.autoskola.ui.EyebrowLabel
 import com.spiraclestudios.autoskola.ui.IconTile
-import com.spiraclestudios.autoskola.ui.LicenceRadius
+import com.spiraclestudios.autoskola.ui.LicenseRadius
 import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalHeightClass
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -84,8 +84,8 @@ import com.spiraclestudios.autoskola.ui.TestStatus
 import com.spiraclestudios.autoskola.ui.TestTile
 import com.spiraclestudios.autoskola.ui.TileRadius
 import com.spiraclestudios.autoskola.ui.WidthClass
-import com.spiraclestudios.autoskola.ui.drawLicenceGlow
-import com.spiraclestudios.autoskola.ui.drawLicenceWaves
+import com.spiraclestudios.autoskola.ui.drawLicenseGlow
+import com.spiraclestudios.autoskola.ui.drawLicenseWaves
 import com.spiraclestudios.autoskola.ui.fullWidthItem
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewExamLong
@@ -106,10 +106,10 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // ── Measurements the design draws but the component kit doesn't name ──
 
-private val LicenceCardHeight = 222.dp
+private val LicenseCardHeight = 222.dp
 
-/** Where the white glow sits over the card's left edge; see [drawLicenceGlow]. */
-private val LicenceGlowCentre = DpOffset(90.dp, 40.dp)
+/** Where the white glow sits over the card's left edge; see [drawLicenseGlow]. */
+private val LicenseGlowCenter = DpOffset(90.dp, 40.dp)
 
 private val ResumeCardRadius = 24.dp
 private val ResumeWideRadius = 28.dp
@@ -132,7 +132,7 @@ private val HeaderTopInset = 52.dp
 private val PaneLeading = 16.dp
 private val PaneTrailing = 32.dp
 
-/** The gap between the licence card's three figures, which sit together at its left edge. */
+/** The gap between the license card's three figures, which sit together at its left edge. */
 private val StatGap = 24.dp
 
 /** Connects [HomeScreen] to its [HomeViewModel] and to navigation. */
@@ -213,7 +213,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
             )
         }
         fullWidthItem {
-            LicenceCard(totalTests = tests.size, progress = progress)
+            LicenseCard(totalTests = tests.size, progress = progress)
         }
         progress.resumable?.let { unfinished ->
             fullWidthItem {
@@ -273,7 +273,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
         ) {
             ScreenHeader(trailing = { ExamPill(state.exam, onChangeExam) })
             Spacer(Modifier.height(20.dp))
-            LicenceCard(totalTests = tests.size, progress = progress)
+            LicenseCard(totalTests = tests.size, progress = progress)
             Spacer(Modifier.height(28.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ActionRow(
@@ -341,12 +341,12 @@ private fun ExamPill(exam: ExamLabel, onClick: () -> Unit) {
     )
 }
 
-/** The licence gradient card: its waves, the finished-tests hero, and the four stats under it. */
+/** The license gradient card: its waves, the finished-tests hero, and the four stats under it. */
 @Composable
-private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modifier = Modifier) {
+private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     val shader = rememberGrainShader()
-    val shape = RoundedCornerShape(LicenceRadius)
+    val shape = RoundedCornerShape(LicenseRadius)
     val results = progress.results
     val finished = results.size
     val passed = results.values.count { it.passed }
@@ -360,7 +360,7 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(LicenceCardHeight)
+            .height(LicenseCardHeight)
             .shadow(
                 elevation = 24.dp,
                 shape = shape,
@@ -368,14 +368,14 @@ private fun LicenceCard(totalTests: Int, progress: HomeProgress, modifier: Modif
                 spotColor = colors.ink.copy(alpha = 0.55f),
             )
             .clip(shape)
-            .background(Brush.linearGradient(colors.licenceGradient)),
+            .background(Brush.linearGradient(colors.licenseGradient)),
     ) {
         // The waves, the glow over the left edge and the grain all sit behind the card's content,
         // the way the design stacks them.
         Box(Modifier.fillMaxSize().grain(GRAIN_CARD, shader)) {
             Canvas(Modifier.fillMaxSize()) {
-                drawLicenceWaves()
-                drawLicenceGlow(LicenceGlowCentre)
+                drawLicenseWaves()
+                drawLicenseGlow(LicenseGlowCenter)
             }
             TopHighlight()
         }
@@ -619,7 +619,7 @@ private fun ActionRow(
     }
 }
 
-/** The mistakes the user can practise: inert and greyed out when there are none. */
+/** The mistakes the user can practice: inert and grayed out when there are none. */
 @Composable
 private fun MistakesCard(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = Naj.colors
@@ -734,7 +734,7 @@ private fun TestTileItem(
         result.passed -> TestStatus.Passed
         else -> TestStatus.Failed
     }
-    // A finished test summarises itself; the other two say why they carry no score.
+    // A finished test summarizes itself; the other two say why they carry no score.
     val label = result?.let { strings.resultSummary(it.score, it.maxScore, it.passed) }
         ?: if (status == TestStatus.InProgress) strings.inProgress else strings.notStarted
 
@@ -796,7 +796,7 @@ private fun ProgressBar(
     }
 }
 
-/** The hairline of white along the top of a coloured card, which the design draws as an inset. */
+/** The hairline of white along the top of a colored card, which the design draws as an inset. */
 @Composable
 private fun TopHighlight(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxWidth().height(1.dp)) { drawRect(Color.White.copy(alpha = 0.7f)) }
@@ -869,7 +869,7 @@ private fun HomeScreenLongExamNamePreview() {
     }
 }
 
-/** The first launch: nothing done, nothing under way, and no mistakes to practise. */
+/** The first launch: nothing done, nothing under way, and no mistakes to practice. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun HomeScreenFreshPreview() {

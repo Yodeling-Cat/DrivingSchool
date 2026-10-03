@@ -12,7 +12,7 @@
 #
 # Those are the app's only reflective lookups. Without this the fields are shrunk away and both
 # callers quietly answer null and false — the About screen loses its version line, and the debug
-# build stops being recognised as one.
+# build stops being recognized as one.
 -keep class com.spiraclestudios.autoskola.BuildConfig { *; }
 
 # Keep the source file and line number of every frame, so a crash report from a release build

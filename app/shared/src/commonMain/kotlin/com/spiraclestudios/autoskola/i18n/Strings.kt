@@ -44,7 +44,7 @@ class Strings(
     val disclaimerSource: String,
     val disclaimerAccept: String,
     // Consent. The two switches are separate answers, and the documents are linked rather than
-    // summarised: a user cannot agree to what they cannot read.
+    // summarized: a user cannot agree to what they cannot read.
     val consentTitle: String,
     val consentSubtitle: String,
     val consentCrashReportingTitle: String,
@@ -91,7 +91,7 @@ class Strings(
     val signsSearchPlaceholder: String,
     val clearSearch: String,
     val signsCount: (count: Int) -> String,
-    /** How many signs a search is showing, out of the whole catalogue. */
+    /** How many signs a search is showing, out of the whole catalog. */
     val signsMatches: (matched: Int, total: Int) -> String,
     val signsNothingFound: String,
     /** The bar action that folds every group away, leaving its heading. */
@@ -143,7 +143,7 @@ class Strings(
     val failed: String,
     val averageScore: String,
 
-    /** Short label for the statistics row on the licence card. */
+    /** Short label for the statistics row on the license card. */
     val averageShort: String,
 
     val randomTest: String,
@@ -240,7 +240,7 @@ class Strings(
     /** The same pass mark, set beside the score on the result card. */
     val passMarkShort: (percent: Int) -> String,
 
-    /** The words beside that score, as the licence card sets "tests finished": "points". */
+    /** The words beside that score, as the license card sets "tests finished": "points". */
     val pointsLabel: String,
 
     /** How long the test ran, set at the card's other corner: "23 min". */
@@ -486,7 +486,7 @@ private val EnglishStrings = Strings(
     aboutVersion = { "Version $it" },
     aboutLibraries = "Open source libraries",
     aboutLibrariesIntro = "Naj Autoškola is built with these open source projects. Tap one to see " +
-        "its licence, and everyone who wrote it.",
+        "its license, and everyone who wrote it.",
     aboutLibrariesSearch = "Search libraries",
     aboutLibrariesNothingFound = "No library matches your search",
     feedbackTitle = "Send feedback",

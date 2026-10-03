@@ -4,7 +4,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * The app's colour tokens, one per row of the design system's colour table.
+ * The app's color tokens, one per row of the design system's color table.
  *
  * Screens read these instead of repeating hex values, so a shade is changed in one place. The
  * pairs (`passedOn`, `wrongOn`, ...) are the foreground that belongs on that background.
@@ -63,15 +63,15 @@ class NajColors(
     /** Primary buttons and switches run from [primary] into [primaryDeep]. */
     val primaryGradient: List<Color> get() = listOf(primary, primaryDeep)
 
-    /** The licence card, the progress card and the result card share this diagonal ramp. */
-    val licenceGradient: List<Color> get() = listOf(licenceStart, licenceSecond, licenceThird, licenceEnd)
+    /** The license card, the progress card and the result card share this diagonal ramp. */
+    val licenseGradient: List<Color> get() = listOf(licenseStart, licenseSecond, licenseThird, licenseEnd)
 
-    val licenceStart: Color get() = Color(0xFF12B5A6)
-    val licenceSecond: Color get() = Color(0xFF7BD88F)
-    val licenceThird: Color get() = Color(0xFFFFD37A)
-    val licenceEnd: Color get() = Color(0xFFFF9E7A)
+    val licenseStart: Color get() = Color(0xFF12B5A6)
+    val licenseSecond: Color get() = Color(0xFF7BD88F)
+    val licenseThird: Color get() = Color(0xFFFFD37A)
+    val licenseEnd: Color get() = Color(0xFFFF9E7A)
 
-    /** Ink as it is used for hairlines and washes: the same colour, at an opacity. */
+    /** Ink as it is used for hairlines and washes: the same color, at an opacity. */
     fun inkAt(alpha: Float): Color = ink.copy(alpha = alpha)
 
     val whiteVeil: Color get() = Color.White.copy(alpha = 0.7f)

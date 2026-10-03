@@ -15,11 +15,11 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  * The dialog every question the app asks about work that is already there is put in: [title] and
  * [message] put the question, the highlighted button answers it and the quiet one backs out of it.
  * Tapping outside the dialog, or the system's back gesture, is the same back-out, which is why it
- * is a callback of its own rather than one of the two labelled answers.
+ * is a callback of its own rather than one of the two labeled answers.
  *
  * What the two answers are called is the caller's to say, because they differ by what is at stake:
  * carrying on or starting a test over, or giving up the answers to a situation. [destructive] is
- * the same decision in colour, for the answer that gives something up.
+ * the same decision in color, for the answer that gives something up.
  */
 @Composable
 fun ConfirmDialog(
@@ -36,7 +36,7 @@ fun ConfirmDialog(
     val colors = Naj.colors
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        shape = RoundedCornerShape(LicenceRadius),
+        shape = RoundedCornerShape(LicenseRadius),
         containerColor = colors.sheet,
         titleContentColor = colors.ink,
         textContentColor = colors.muted,

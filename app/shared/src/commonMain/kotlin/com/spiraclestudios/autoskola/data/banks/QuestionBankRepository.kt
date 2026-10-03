@@ -24,7 +24,7 @@ class QuestionBankRepository(private val dataSource: QuestionBankDataSource) {
 
     /**
      * A specific version, e.g. to show an old attempt; older versions stay bundled. Only banks that
-     * were read successfully are remembered: a read that failed or was cancelled is tried again
+     * were read successfully are remembered: a read that failed or was canceled is tried again
      * next time, so a hiccup while loading can't leave the exam "missing" for the whole process.
      */
     suspend fun bank(id: String, version: Int): QuestionBank? = mutex.withLock {

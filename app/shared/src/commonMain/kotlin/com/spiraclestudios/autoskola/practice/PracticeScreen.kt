@@ -738,7 +738,7 @@ private fun FinishPromptEffect(
     }
 }
 
-/** The colour of the test's clock: over time it warns the way a wrong answer does. */
+/** The color of the test's clock: over time it warns the way a wrong answer does. */
 @Composable
 private fun elapsedColor(overTime: Boolean): Color = if (overTime) Naj.colors.wrongOn else Naj.colors.muted
 
@@ -1217,7 +1217,7 @@ private fun SkippedNotice() {
 }
 
 /**
- * Question numbers grouped by section. Answered questions are coloured by correctness only
+ * Question numbers grouped by section. Answered questions are colored by correctness only
  * when [revealCorrectness] is set, so the list doesn't give answers away otherwise.
  */
 @OptIn(ExperimentalLayoutApi::class)

@@ -1,7 +1,7 @@
 package com.spiraclestudios.autoskola.signs
 
 /**
- * The signs whose name, number or meaning contains [query], in the catalogue's own order.
+ * The signs whose name, number or meaning contains [query], in the catalog's own order.
  *
  * Diacritics and case are folded on both sides, so "zakaz" finds "Zákaz vjazdu" — a driver types
  * what is easiest on the keyboard. An empty query keeps every sign.

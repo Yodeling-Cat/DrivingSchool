@@ -241,7 +241,7 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
         }
         if (state.messageMissing) {
             Spacer(Modifier.height(8.dp))
-            // In the same colour as the mark, for anyone the mark alone does not reach.
+            // In the same color as the mark, for anyone the mark alone does not reach.
             Text(
                 missingMessage,
                 style = Naj.type.rowSubtitle,

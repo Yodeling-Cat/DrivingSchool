@@ -8,7 +8,7 @@ enum class PremiumFeature {
     /** No ads are requested, so every ad slot in the app collapses. */
     NoAds,
 
-    /** Every licence group's questions, not only the chosen exam's. */
+    /** Every license group's questions, not only the chosen exam's. */
     AllLicenseGroups,
 
     /** Every country's bank, not only the chosen exam's. */

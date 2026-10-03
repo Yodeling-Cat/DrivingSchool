@@ -18,7 +18,7 @@ The theory exam is run by the traffic police (Prezídium Policajného zboru, odb
 - Each question has 3 answers, and exactly one is correct.
 - The questions depend on the license group.
 - Topic **4** is *Dopravné situácie na križovatkách* — the situations at intersections, every one of
-  them a question about a drawing of a junction with coloured vehicles. That topic and nothing else
+  them a question about a drawing of a junction with colored vehicles. That topic and nothing else
   is the app's intersections material (`SITUATIONS_SECTION` in `:core`'s `situations/Situations.kt`):
   88 questions over 40 drawings in the Slovak bank, 89 over 41 in the Hungarian one. It is a topic
   rather than the folder of drawings, because two of its questions carry a drawing the bank keeps
@@ -77,10 +77,10 @@ The importer matches each `data5.js` question to a PDF row by topic, question te
 
 ### Terms of use
 
-**Summary: no licence is published. Using the data is probably fine, but it is not certain.** This is not legal advice.
+**Summary: no license is published. Using the data is probably fine, but it is not certain.** This is not legal advice.
 
 What we found (checked 2026-09-25):
-- minv.sk has no terms-of-use, copyright or licence page. The only legal documents on the site are the cookie and accessibility statements.
+- minv.sk has no terms-of-use, copyright or license page. The only legal documents on the site are the cookie and accessibility statements.
 - The pages that publish the tests say nothing about how the content may be reused.
 - Slovak copyright law (zákon 185/2015 Z. z., §5) excludes some works from protection. This includes the text of legal regulations, official decisions and technical standards (§5(b)), and ideas and information as such (§5(a)).
   - Road-sign designs are defined in a regulation, so the sign images are probably not protected.
@@ -92,9 +92,9 @@ Recommended before a public release:
 2. Keep the disclaimer screen (`DisclaimerScreen.kt`). It says the app is independent and names minv.sk as the source.
 3. Record the answer here.
 
-## Slovakia: the road-sign catalogue (príloha č. 1 of vyhláška 30/2020 Z. z.)
+## Slovakia: the road-sign catalog (príloha č. 1 of vyhláška 30/2020 Z. z.)
 
-The learning tab's road-sign list is not built from the question bank: it is the catalogue in
+The learning tab's road-sign list is not built from the question bank: it is the catalog in
 príloha č. 1 of **vyhláška MV SR č. 30/2020 Z. z. o dopravnom značení** (the traffic-sign
 regulation, in force since 1 April 2020), read by `tools/import/import_znacky.py`.
 
@@ -107,10 +107,10 @@ regulation, in force since 1 April 2020), read by `tools/import/import_znacky.py
   (5), VODOROVNÉ ZNAČKY (10) and DOPRAVNÉ ZARIADENIA (5) — and the 120 signs fall into 27 headings,
   such as "I. 4. Pohyb na ceste", "II. 3. Zákazy vjazdu" or "III. Doplnkové zariadenia k svetelným
   signálom". The kind and the group are read from the text the tables set in bold: the road markings
-  draw their headings past the meaning column's own left edge, so a heading is recognised by its
+  draw their headings past the meaning column's own left edge, so a heading is recognized by its
   being bold, not by which column it lands in. A kind whose signs carried no heading would leave the
   group empty and be named by the kind alone; no kind does today.
-- Pictures are **not** taken from the regulation. The app matches the catalogue to the images it
+- Pictures are **not** taken from the regulation. The app matches the catalog to the images it
   already bundles for the question bank (minv.sk's `obr3/dz` set, see above), whose file names are
   the signs' numbers: `140.jpg` is sign 140.
 - Language: Slovak only. The regulation is published in Slovak and there is no official English or
@@ -122,14 +122,14 @@ regulation, in force since 1 April 2020), read by `tools/import/import_znacky.py
     symbols for additional panels rather than signs a driver meets on the road. They are laid out
     two to a row in the regulation and are skipped by the importer.
   - Signs 323 and 324, whose numbers are from the previous regulation (9/2009 Z. z.) and which the
-    2020 catalogue numbers differently.
+    2020 catalog numbers differently.
   - The composite pictures (`401-409.jpg`, `411-419.jpg`, …) that show a whole group of signs at
     once: a group is not a sign, so no row claims them.
-  - Signs the catalogue lists but minv.sk ships no picture of.
+  - Signs the catalog lists but minv.sk ships no picture of.
 
 ### Terms of use
 
-The catalogue text is the **text of a legal regulation**, which zákon 185/2015 Z. z. § 5(b) leaves
+The catalog text is the **text of a legal regulation**, which zákon 185/2015 Z. z. § 5(b) leaves
 out of copyright protection (the same argument as for road-sign designs, above). Reusing it is
 therefore safe; what the app adds is only the match between the regulation's numbers and pictures
 it already ships. The pictures themselves come from minv.sk and fall under the disclaimer below.

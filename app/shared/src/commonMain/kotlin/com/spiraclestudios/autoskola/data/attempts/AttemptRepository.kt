@@ -28,7 +28,7 @@ class AttemptRepository(
     private val dataSource: AttemptDataSource,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
-    /** Serialises writes, so each read-modify-write sees the previous one. */
+    /** Serializes writes, so each read-modify-write sees the previous one. */
     private val writes = Mutex()
 
     /**
@@ -123,7 +123,7 @@ class AttemptRepository(
     }
 
     /**
-     * Runs [block] after earlier writes, and finishes it even if the caller is cancelled
+     * Runs [block] after earlier writes, and finishes it even if the caller is canceled
      * (for example when the user leaves a screen and its ViewModel is cleared).
      */
     private suspend fun <T> write(block: suspend () -> T): T =

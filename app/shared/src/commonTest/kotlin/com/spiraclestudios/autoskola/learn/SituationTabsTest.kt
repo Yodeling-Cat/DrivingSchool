@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 /**
  * The questions of a situation are drawn as one bar of tabs, not as separate pills. That bar is what
  * says which tab is one tab and where the next begins, so only the tabs at either end of the row
- * carry its own corners: the ones between them are square and sit flush against their neighbours.
+ * carry its own corners: the ones between them are square and sit flush against their neighbors.
  */
 class SituationTabsTest {
 

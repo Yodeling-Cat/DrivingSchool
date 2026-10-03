@@ -241,7 +241,7 @@ class ExamSessionTest {
     }
 
     @Test
-    fun progressSummarisesOpenAttemptsAndAnsweredQuestions() = runTest {
+    fun progressSummarizesOpenAttemptsAndAnsweredQuestions() = runTest {
         val session = session()
         val test = session.tests.first()
         preferences.setCheckAnswersImmediately(true)

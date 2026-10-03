@@ -251,7 +251,7 @@ private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -
                 colorFilter = if (option.available) {
                     null
                 } else {
-                    // The design washes a country without a bank out to grey.
+                    // The design washes a country without a bank out to gray.
                     ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.35f) })
                 },
                 // A flag is drawn as it is: square to its own edges, with no rounded corner and no
@@ -356,7 +356,7 @@ private fun GroupedRow(title: String, onClick: () -> Unit) {
     }
 }
 
-/** The licence categories, with the icons and names the app already uses for them. */
+/** The license categories, with the icons and names the app already uses for them. */
 @Composable
 private fun CategoryRow(label: String, category: LicenseCategory, onClick: () -> Unit) {
     val colors = Naj.colors
@@ -369,7 +369,7 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        LicenceIcon(category)
+        LicenseIcon(category)
         Text(label, style = Naj.type.rowTitle, color = colors.ink, modifier = Modifier.weight(1f))
     }
 }

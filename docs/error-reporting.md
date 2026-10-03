@@ -133,7 +133,7 @@ are all unexercised. The dSYM phase has deliberately not been hand-written into
 `app/iosApp/iosApp.xcodeproj/project.pbxproj`: a malformed project file breaks the iOS build
 outright, and it cannot be built or opened to check from Windows. It belongs in Xcode.
 
-The Android behaviour — the plugin bailing out when `isMinifyEnabled` is false — is read from the
+The Android behavior — the plugin bailing out when `isMinifyEnabled` is false — is read from the
 plugin's source, not observed, because there is no minified release build to observe it on.
 
 Worth checking on the first real release: that `posthog-kmp` 0.5.2 pulls a `posthog-android` build

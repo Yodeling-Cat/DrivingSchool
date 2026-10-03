@@ -33,7 +33,7 @@ class ResultsViewModelTest : ViewModelTest() {
         observe(ResultsViewModel(attempt.id, repositories.exams).uiState)
 
     @Test
-    fun summarisesAFinishedAttempt() = runTest {
+    fun summarizesAFinishedAttempt() = runTest {
         val attempt = startTest()
         val session = repositories.exams.currentSession()
         val questions = session.questionsOf(attempt)

@@ -1,9 +1,9 @@
 package com.spiraclestudios.autoskola.learn
 
-import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogueDataSource
-import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
-import com.spiraclestudios.autoskola.data.signs.testSignCatalogue
-import com.spiraclestudios.autoskola.signs.SignCatalogue
+import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogDataSource
+import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
+import com.spiraclestudios.autoskola.data.signs.testSignCatalog
+import com.spiraclestudios.autoskola.signs.SignCatalog
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -13,12 +13,12 @@ import kotlin.test.assertTrue
 
 class SignsViewModelTest : ViewModelTest() {
 
-    private fun viewModel(catalogue: SignCatalogue = testSignCatalogue()) =
-        SignsViewModel(SignCatalogueRepository(FakeSignCatalogueDataSource.of(catalogue)))
+    private fun viewModel(catalog: SignCatalog = testSignCatalog()) =
+        SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource.of(catalog)))
 
     @Test
-    fun noBundledCatalogueLeavesTheScreenLoading() = runTest {
-        val viewModel = SignsViewModel(SignCatalogueRepository(FakeSignCatalogueDataSource(emptyList(), emptyList())))
+    fun noBundledCatalogLeavesTheScreenLoading() = runTest {
+        val viewModel = SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource(emptyList(), emptyList())))
 
         val state = observe(viewModel.uiState)
 

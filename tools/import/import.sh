@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Imports the question banks and the sign catalogue into app/shared composeResources.
+# Imports the question banks and the sign catalog into app/shared composeResources.
 # See docs/importing-questions.md.
 set -e
 cd "$(dirname "$0")"

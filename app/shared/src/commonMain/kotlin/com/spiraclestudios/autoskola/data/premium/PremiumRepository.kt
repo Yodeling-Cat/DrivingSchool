@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * The one flag that stands in for the store. There is no billing yet (see `plans/premium.md`), so
  * there is nothing to ask, and this is what the app answers with instead: flip it to `true` and the
  * whole app behaves as if Premium had been bought, which is how the premium paths - no ads, every
- * licence group, the full learn material - are walked by hand before there is a purchase to make.
+ * license group, the full learn material - are walked by hand before there is a purchase to make.
  *
  * It is a local, temporary change rather than a setting. `PremiumRepositoryTest.theShippedDudIsFree`
  * fails while it is on, so it cannot be committed by accident.

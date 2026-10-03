@@ -121,7 +121,7 @@ def load_data5(path):
 
 
 def pdf_groups(tokens):
-    """Normalises the "pre skupinu" cell (e.g. ['B', 'E', 'C,CE']) to known group codes."""
+    """Normalizes the "pre skupinu" cell (e.g. ['B', 'E', 'C,CE']) to known group codes."""
     merged = []
     for token in tokens:
         if token == "E" and merged and merged[-1] in ("B", "C", "D"):

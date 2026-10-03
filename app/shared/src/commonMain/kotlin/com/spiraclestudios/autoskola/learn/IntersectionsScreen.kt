@@ -271,7 +271,7 @@ private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> 
                 color = colors.muted,
             )
         }
-        // Every question about it answered, and answered right: nothing left to practise here.
+        // Every question about it answered, and answered right: nothing left to practice here.
         if (situation.solved) {
             Icon(
                 Icons.Filled.CheckCircle,
@@ -329,7 +329,7 @@ private fun IntersectionsScreenLoadingPreview() {
     }
 }
 
-/** A tablet, where the reading column is capped and centred. */
+/** A tablet, where the reading column is capped and centerd. */
 @Preview(widthDp = 900, heightDp = 700)
 @Composable
 private fun IntersectionsScreenWidePreview() {

@@ -20,9 +20,9 @@ import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
-import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogueDataSource
-import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
-import com.spiraclestudios.autoskola.data.signs.SignCatalogueRepository
+import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogDataSource
+import com.spiraclestudios.autoskola.data.signs.SignCatalogDataSource
+import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.isDebugBuild
@@ -50,14 +50,14 @@ val appModule = module {
     single<Settings> { Settings() }
     single<AttemptDataSource> { SettingsAttemptDataSource(get()) }
     single<QuestionBankDataSource> { ResourceQuestionBankDataSource() }
-    single<SignCatalogueDataSource> { ResourceSignCatalogueDataSource() }
+    single<SignCatalogDataSource> { ResourceSignCatalogDataSource() }
     single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
     single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
 
     // Repositories
     single { AttemptRepository(get()) }
     single { QuestionBankRepository(get()) }
-    single { SignCatalogueRepository(get()) }
+    single { SignCatalogRepository(get()) }
     single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
     single { AnalyticsRepository(get(), get()) }

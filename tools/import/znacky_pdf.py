@@ -1,6 +1,6 @@
-"""Parses the sign catalogue out of the traffic-sign regulation (vyhláška MV SR č. 30/2020 Z. z.).
+"""Parses the sign catalog out of the traffic-sign regulation (vyhláška MV SR č. 30/2020 Z. z.).
 
-The regulation's príloha č. 1 lists every sign of the Slovak road-sign catalogue as a table: a row
+The regulation's príloha č. 1 lists every sign of the Slovak road-sign catalog as a table: a row
 number ("Bod"), the sign's number and picture, its name, and what it means. `pymupdf` hands the
 table back line by line, each line with the x of its column, which is what tells a sign's number
 and name apart from the meaning beside them:
@@ -20,7 +20,7 @@ import pymupdf
 
 # A "Bod" number: the row's position in the table.
 BOD = re.compile(r"^\d+\.$")
-# A sign's catalogue number, e.g. "140" or "321-1".
+# A sign's catalog number, e.g. "140" or "321-1".
 SIGN_NUMBER = re.compile(r"^\d{2,3}(-\d+)?$")
 # A group heading: "I. Všeobecné výstražné značky", "I. 4. Pohyb na ceste", "A. SYMBOLY ...".
 HEADING = re.compile(r"^([IVX]+\.\s*\d*\.?|[A-Z]\.)\s+\S")
@@ -45,7 +45,7 @@ NAME_X = 130.0
 # Lines above this y are the page header ("Strana 28", "Zbierka zákonov Slovenskej republiky").
 HEADER_Y = 100.0
 
-# File names of the pictograms the catalogue calls "symboly" (symbols of vehicles, tourist targets,
+# File names of the pictograms the catalog calls "symboly" (symbols of vehicles, tourist targets,
 # parking, motorway signs and traffic-office boards). They are numbering schemes of their own, laid
 # out two to a row, and they are not signs of their own that a driver meets on the road.
 SYMBOL_HEADING = re.compile(r"^([IVX]+\.|[AB]\.)\s.*SYMBOL|^[IVX]+\. (Symboly|Parkovacie|Diaľničné)")
@@ -66,7 +66,7 @@ class PdfLine:
 @dataclass
 class SignRow:
     """
-    One catalogue entry: a sign's number, its name, and what it means.
+    One catalog entry: a sign's number, its name, and what it means.
 
     The annex groups its signs twice over. [kind] is the part of the annex the sign is listed in -
     "VÝSTRAŽNÉ ZNAČKY", "REGULAČNÉ ZNAČKY", "INFORMAČNÉ ZNAČKY", "DODATKOVÉ TABUĽKY",
@@ -109,7 +109,7 @@ def _clean(text):
 
 
 def rows(lines):
-    """The catalogue entries among [lines], in document order."""
+    """The catalog entries among [lines], in document order."""
     out = []
     kind = ""
     group = ""

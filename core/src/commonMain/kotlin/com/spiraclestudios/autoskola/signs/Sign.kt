@@ -5,9 +5,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /**
- * One sign of the road-sign catalogue: what it is called, what it means, and the picture of it.
+ * One sign of the road-sign catalog: what it is called, what it means, and the picture of it.
  *
- * The catalogue is generated from the traffic-sign regulation by `tools/import`; see
+ * The catalog is generated from the traffic-sign regulation by `tools/import`; see
  * docs/data-sources.md. [name] is empty for the few signs whose picture *is* their name (the
  * route-number plates), which is how the regulation's own table has them.
  */
@@ -24,33 +24,33 @@ data class Sign(
     val kind: String,
     /** The heading inside that part, e.g. "I. 4. Pohyb na ceste", or empty where it has none. */
     val group: String,
-    /** Path relative to the catalogue's image directory. */
+    /** Path relative to the catalog's image directory. */
     val image: String,
 )
 
-/** One language's road-sign catalogue, as written by `tools/import/import_znacky.py`. */
+/** One language's road-sign catalog, as written by `tools/import/import_znacky.py`. */
 @Serializable
-data class SignCatalogue(
+data class SignCatalog(
     val id: String,
     val version: Int,
-    /** ISO 3166-1 alpha-2 code of the country whose catalogue this is. */
+    /** ISO 3166-1 alpha-2 code of the country whose catalog this is. */
     val country: String,
     /** ISO 639-1 code of the language the names and meanings are written in. */
     val language: String,
     /** Directory under `files/images/` holding the pictures the signs reference. */
     val imageDir: String,
-    /** The regulation the catalogue was read from. */
+    /** The regulation the catalog was read from. */
     val source: String,
     val signs: List<Sign>,
 ) {
     companion object {
-        fun decode(json: String): SignCatalogue = SignJson.decodeFromString(serializer(), json)
+        fun decode(json: String): SignCatalog = SignJson.decodeFromString(serializer(), json)
     }
 }
 
-/** Entry of `signs/index.json`: what a catalogue contains without loading the whole catalogue. */
+/** Entry of `signs/index.json`: what a catalog contains without loading the whole catalog. */
 @Serializable
-data class SignCatalogueInfo(
+data class SignCatalogInfo(
     val id: String,
     val version: Int,
     val country: String,
@@ -58,7 +58,7 @@ data class SignCatalogueInfo(
     val signCount: Int,
 ) {
     companion object {
-        fun decodeList(json: String): List<SignCatalogueInfo> =
+        fun decodeList(json: String): List<SignCatalogInfo> =
             SignJson.decodeFromString(ListSerializer(serializer()), json)
     }
 }

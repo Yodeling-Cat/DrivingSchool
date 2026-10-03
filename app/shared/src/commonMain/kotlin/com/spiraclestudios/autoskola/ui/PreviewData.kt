@@ -32,7 +32,7 @@ import com.spiraclestudios.autoskola.stats.SectionSummary
 // resources, which a preview has no way to reach, so an image would only ever draw its placeholder.
 // The layout that holds the picture is the same either way.
 
-/** The exam every preview is taken in: the Slovak car licence, shown in the English UI. */
+/** The exam every preview is taken in: the Slovak car license, shown in the English UI. */
 internal val previewExam = ExamLabel(LicenseCategory.B, "sk")
 
 /** The exam label of the English question bank, for the previews that show a bank's own name. */
@@ -150,7 +150,7 @@ internal val previewSituations = listOf(
                 correct = 1,
             ),
         ),
-        // Answered right, so the list marks it as one there is nothing left to practise in.
+        // Answered right, so the list marks it as one there is nothing left to practice in.
         solved = true,
     ),
 )
@@ -345,7 +345,7 @@ internal fun previewSectionSummaries(correct: Int = 36, wrong: Int = 3, unanswer
 /**
  * The libraries the About screen's previews list, as the AboutLibraries plugin writes them. A
  * preview has no way to read `files/aboutlibraries.json`, so these four entries stand in for it:
- * real coordinates, real licence, and descriptions kept short.
+ * real coordinates, real license, and descriptions kept short.
  */
 private val PREVIEW_LIBRARIES_JSON = """
     {

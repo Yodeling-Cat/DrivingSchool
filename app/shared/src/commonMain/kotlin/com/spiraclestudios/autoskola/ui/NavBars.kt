@@ -139,7 +139,7 @@ private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modi
 /**
  * One flat navy, not the design's navyLight-to-navy gradient: over the phone's 72dp pill that
  * gradient passes unnoticed, but stretched down a full-height rail it reads as a light leak over
- * the bar rather than as the bar's own colour.
+ * the bar rather than as the bar's own color.
  */
 @Composable
 private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {

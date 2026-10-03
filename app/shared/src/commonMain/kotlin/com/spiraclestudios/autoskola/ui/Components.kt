@@ -52,7 +52,7 @@ import com.spiraclestudios.autoskola.ui.theme.rememberGrainShader
 // ── Shapes and measurements from the design system's "Shape and space" block ──
 
 val CardRadius = 22.dp
-val LicenceRadius = 24.dp
+val LicenseRadius = 24.dp
 val TileRadius = 18.dp
 val ChipRadius = 12.dp
 val PillHeight = 52.dp
@@ -476,7 +476,7 @@ fun QuestionChip(
     }
 }
 
-/** The app's switch: a 52x32 pill on the primary gradient, or the warm grey when off. */
+/** The app's switch: a 52x32 pill on the primary gradient, or the warm gray when off. */
 @Composable
 fun NajSwitch(
     checked: Boolean,
@@ -554,7 +554,7 @@ private fun NajCardPreview() {
                 CardRow("Tinted", "The yellow resume card")
             }
             NajCard(Modifier.fillMaxWidth(), tint = listOf(colors.mistakesTop, colors.mistakesBottom)) {
-                CardRow("Tinted again", "Any two colours make the gradient")
+                CardRow("Tinted again", "Any two colors make the gradient")
             }
         }
     }

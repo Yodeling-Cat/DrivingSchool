@@ -110,7 +110,7 @@ fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> U
     }
 }
 
-/** The seal that sits above the title: the licence gradient, its grain, and the policy mark. */
+/** The seal that sits above the title: the license gradient, its grain, and the policy mark. */
 @Composable
 private fun PlatformBadge() {
     val colors = Naj.colors
@@ -125,7 +125,7 @@ private fun PlatformBadge() {
                 spotColor = colors.ink.copy(alpha = 0.5f),
             )
             .clip(RoundedCornerShape(32.dp))
-            .background(Brush.linearGradient(colors.licenceGradient))
+            .background(Brush.linearGradient(colors.licenseGradient))
             .grain(GRAIN_CARD, shader),
         contentAlignment = Alignment.Center,
     ) {

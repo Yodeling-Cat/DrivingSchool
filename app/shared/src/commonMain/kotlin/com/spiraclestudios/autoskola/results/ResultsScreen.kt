@@ -53,7 +53,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EyebrowLabel
-import com.spiraclestudios.autoskola.ui.LicenceRadius
+import com.spiraclestudios.autoskola.ui.LicenseRadius
 import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalWidthClass
 import com.spiraclestudios.autoskola.ui.NajCard
@@ -61,8 +61,8 @@ import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.WidthClass
-import com.spiraclestudios.autoskola.ui.drawLicenceGlow
-import com.spiraclestudios.autoskola.ui.drawLicenceWaves
+import com.spiraclestudios.autoskola.ui.drawLicenseGlow
+import com.spiraclestudios.autoskola.ui.drawLicenseWaves
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewSections
 import com.spiraclestudios.autoskola.ui.previewSummary
@@ -108,8 +108,8 @@ private val TrackTickWidth = 2.dp
 private val CountRadius = 20.dp
 private val CountGap = 10.dp
 
-/** Where the white glow sits, off the poster's top-left corner; see [drawLicenceGlow]. */
-private val PosterGlowCentre = DpOffset(-40.dp, -60.dp)
+/** Where the white glow sits, off the poster's top-left corner; see [drawLicenseGlow]. */
+private val PosterGlowCenter = DpOffset(-40.dp, -60.dp)
 
 /** How far the stamp is tilted, the way a rubber stamp lands. */
 private const val STAMP_TILT = -8f
@@ -230,7 +230,7 @@ private fun doneLabel(state: ResultsUiState.Ready): String =
     if (state.hasVerdict) strings.backToTests else strings.backToList
 
 /**
- * The result: the licence ramp with its waves, glow and grain, the pass stamp, the score over the
+ * The result: the license ramp with its waves, glow and grain, the pass stamp, the score over the
  * pass-mark bar — and, under all of it, the percentage, the mark it had to beat and the time the
  * test took.
  *
@@ -247,7 +247,7 @@ private fun ResultCard(
 ) {
     val colors = Naj.colors
     val shader = rememberGrainShader()
-    val shape = RoundedCornerShape(LicenceRadius)
+    val shape = RoundedCornerShape(LicenseRadius)
     val passPercent = TestResult.PASS_PERCENT
     val stampColor = if (result.passed) colors.passedOn else colors.wrongOn
     Box(
@@ -266,10 +266,10 @@ private fun ResultCard(
         Box(
             Modifier
                 .matchParentSize()
-                .cssGradient(colors.licenceGradient, 115f)
+                .cssGradient(colors.licenseGradient, 115f)
                 .drawBehind {
-                    drawLicenceWaves()
-                    drawLicenceGlow(PosterGlowCentre)
+                    drawLicenseWaves()
+                    drawLicenseGlow(PosterGlowCenter)
                 }
                 .grain(GRAIN_CARD, shader),
         )
@@ -311,7 +311,7 @@ private fun ResultCard(
                         color = colors.ink.copy(alpha = 0.6f),
                         modifier = Modifier.alignByBaseline(),
                     )
-                    // What the score is a score of, set the way the licence card sets "tests
+                    // What the score is a score of, set the way the license card sets "tests
                     // finished": its own last line on the numbers' baseline.
                     Text(
                         strings.pointsLabel,
@@ -544,14 +544,14 @@ private fun Modifier.cssGradient(colors: List<Color>, degrees: Float): Modifier 
     drawRect(cssBrush(colors, degrees, size))
 }
 
-/** The gradient line runs through the box's centre, as CSS lays one out. */
+/** The gradient line runs through the box's center, as CSS lays one out. */
 private fun cssBrush(colors: List<Color>, degrees: Float, size: Size): Brush {
     val radians = degrees * PI / 180.0
     val direction = Offset(sin(radians).toFloat(), -cos(radians).toFloat())
     val length = abs(size.width * direction.x) + abs(size.height * direction.y)
-    val centre = Offset(size.width / 2f, size.height / 2f)
+    val center = Offset(size.width / 2f, size.height / 2f)
     val half = direction * (length / 2f)
-    return Brush.linearGradient(colors, centre - half, centre + half)
+    return Brush.linearGradient(colors, center - half, center + half)
 }
 
 // ── Previews ──

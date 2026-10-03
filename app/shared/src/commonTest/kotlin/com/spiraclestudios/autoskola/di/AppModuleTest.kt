@@ -11,9 +11,9 @@ import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
-import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogueDataSource
-import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
-import com.spiraclestudios.autoskola.data.signs.testSignCatalogue
+import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogDataSource
+import com.spiraclestudios.autoskola.data.signs.SignCatalogDataSource
+import com.spiraclestudios.autoskola.data.signs.testSignCatalog
 import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
@@ -41,7 +41,7 @@ class AppModuleTest : ViewModelTest() {
                 module {
                     single<Settings> { MapSettings() }
                     single<QuestionBankDataSource> { FakeQuestionBankDataSource.of(testBank()) }
-                    single<SignCatalogueDataSource> { FakeSignCatalogueDataSource.of(testSignCatalogue()) }
+                    single<SignCatalogDataSource> { FakeSignCatalogDataSource.of(testSignCatalog()) }
                     // The real one never sends without a platform context, but a test should not
                     // depend on that: the sink makes "nothing was sent" assertable.
                     single<AnalyticsDataSource> { RecordingAnalyticsDataSource() }

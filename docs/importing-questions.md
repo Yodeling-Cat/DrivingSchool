@@ -32,26 +32,26 @@ The output goes to `app/shared/src/commonMain/composeResources/files/`, and it i
 | `banks/index.json` | The latest version of every bank, with its question count per license group. The exam-selection screen reads this. |
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
 | `images/minv-sk/...` | The images the questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
-| `signs/index.json` | The latest version of every sign catalogue, with its sign count. |
-| `signs/<id>-v<version>.json` | One version of one sign catalogue, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalogue` in `:core`. |
+| `signs/index.json` | The latest version of every sign catalog, with its sign count. |
+| `signs/<id>-v<version>.json` | One version of one sign catalog, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalog` in `:core`. |
 
-The app loads these files with `QuestionBankRepository` and `SignCatalogueRepository`, in
+The app loads these files with `QuestionBankRepository` and `SignCatalogRepository`, in
 `app/shared/.../data/`.
 
 ## How it works
 
 1. **Download** `data5.js` and the Slovak and Hungarian PDFs (URLs at the top of `import_minv.py`).
 2. **Parse `data5.js`.** For each language, collect every question with its topic, points, the three answers, the correct answer and the image.
-3. **Parse the PDFs.** `minv_pdf.py` uses PyMuPDF's table detection. The group cell is normalised: `B`,`E` becomes `BE`, and page numbers that leak into the cell are dropped. An empty cell means all groups.
-4. **Match the two.** Match on topic plus normalised question and correct-answer text. If there is no exact match, use a fuzzy match (≥ 0.85 similarity). Duplicate rows are assigned in order.
+3. **Parse the PDFs.** `minv_pdf.py` uses PyMuPDF's table detection. The group cell is normalized: `B`,`E` becomes `BE`, and page numbers that leak into the cell are dropped. An empty cell means all groups.
+4. **Match the two.** Match on topic plus normalized question and correct-answer text. If there is no exact match, use a fuzzy match (≥ 0.85 similarity). Duplicate rows are assigned in order.
 5. **Write** the banks and the index, and download the images they reference.
 
 The importer prints how many questions it matched and dropped. Compare those numbers with the table in `data-sources.md`, and update the table when they change.
 
-`import_znacky.py` then reads the sign catalogue out of the traffic-sign regulation, matches it to
+`import_znacky.py` then reads the sign catalog out of the traffic-sign regulation, matches it to
 the sign images the banks bundle (by the sign's number), and writes `signs/`. It reports how many
-catalogue entries it read, how many images found an entry, and every image that found none. The two
-importers are independent: the sign catalogue only needs the images, so it runs after the banks.
+catalog entries it read, how many images found an entry, and every image that found none. The two
+importers are independent: the sign catalog only needs the images, so it runs after the banks.
 Both are run by `import.sh`, and both can be run on their own.
 
 ## Updating to new data

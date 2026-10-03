@@ -78,7 +78,7 @@ fun SignsRoute(onBack: () -> Unit, viewModel: SignsViewModel = koinViewModel()) 
 }
 
 /**
- * The road-sign catalogue: every sign with its picture, its name and what it means, searched by
+ * The road-sign catalog: every sign with its picture, its name and what it means, searched by
  * name, number or meaning. A picture opens bigger when it's tapped, as a question's does.
  */
 @Composable
@@ -156,7 +156,7 @@ private fun SignsHeader(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, on
 }
 
 /**
- * The catalogue, one sign a row, in the regulation's own order, under the headings it lists them
+ * The catalog, one sign a row, in the regulation's own order, under the headings it lists them
  * in. The heading stays on screen while its signs scroll past, so it is always clear which group
  * the signs belong to - including while a search has left signs of several groups in the list. A
  * folded group keeps its heading and drops its signs, and its heading opens it again.
@@ -193,9 +193,9 @@ private fun SignList(
 }
 
 /**
- * The heading a group of signs is listed under: the part of the catalogue it belongs to, and the
+ * The heading a group of signs is listed under: the part of the catalog it belongs to, and the
  * heading inside it, with the chevron that says whether its signs are showing. Tapping it folds the
- * group away or opens it, so a reader can put the catalogue's headings in front of them and open
+ * group away or opens it, so a reader can put the catalog's headings in front of them and open
  * only what they are looking at.
  *
  * It is drawn on the paper rather than over it, so the signs scrolling past stay under the heading
@@ -283,7 +283,7 @@ private fun SignListEmpty(modifier: Modifier = Modifier) {
     }
 }
 
-/** Nothing to list until the catalogue has been read. */
+/** Nothing to list until the catalog has been read. */
 @Composable
 private fun SignsLoading(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -293,10 +293,10 @@ private fun SignsLoading(modifier: Modifier = Modifier) {
 
 // ── Previews ──
 
-/** How many signs the previews claim the catalogue holds. */
+/** How many signs the previews claim the catalog holds. */
 private val previewSignTotal = 120
 
-/** The catalogue as it opens: every sign, under the headings the regulation lists them in. */
+/** The catalog as it opens: every sign, under the headings the regulation lists them in. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun SignsScreenPreview() {
@@ -445,14 +445,14 @@ private fun SignsScreenNoMatchPreview() {
     }
 }
 
-/** The catalogue still being read. */
+/** The catalog still being read. */
 @Preview(widthDp = 400, heightDp = 600)
 @Composable
 private fun SignsScreenLoadingPreview() {
     AppPreview { SignsScreen(state = SignsUiState.Loading, onEvent = {}, onBack = {}) }
 }
 
-/** A tablet, where the reading column is capped and centred. */
+/** A tablet, where the reading column is capped and centerd. */
 @Preview(widthDp = 900, heightDp = 700)
 @Composable
 private fun SignsScreenWidePreview() {

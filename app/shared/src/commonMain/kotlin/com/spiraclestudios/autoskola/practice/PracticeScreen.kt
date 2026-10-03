@@ -225,7 +225,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     val revealCorrectness = revealsCorrectness(checkImmediately, finished)
     val selectedAnswers = state.answers
 
-    // How much of the test is answered, and how much is left open: what the bar counts once it opens.
+    // How much of the test is answered, and how much is left open: what the bar's own line counts
+    // once the question list opens, and what the top bar's line of progress fills by.
     val (answered, skipped) = answeredAndSkipped(selectedAnswers, questions.size)
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
     val currentIndex = pagerState.currentPage
@@ -364,7 +365,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     allAnswered = state.allAnswered,
                     checkImmediately = checkImmediately,
                     finished = finished,
-                    questionNumber = currentIndex + 1,
+                    answered = answered,
                     questionCount = questions.size,
                     onBack = ::handleBack,
                     modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
@@ -767,7 +768,7 @@ private fun ElapsedLabel(
 
 /**
  * The question page's header: the way back, the test's name with its number in the coral italic,
- * the clock, and how far through the test is.
+ * the clock, and how much of the test is answered.
  */
 @Composable
 private fun PracticeTopBar(
@@ -777,7 +778,7 @@ private fun PracticeTopBar(
     allAnswered: Boolean,
     checkImmediately: Boolean,
     finished: Boolean,
-    questionNumber: Int,
+    answered: Int,
     questionCount: Int,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -818,15 +819,15 @@ private fun PracticeTopBar(
             }
         }
         Spacer(Modifier.height(18.dp))
-        QuestionProgress(questionNumber, questionCount)
+        QuestionProgress(answered, questionCount)
     }
 }
 
 /** How far through the test the user is, in the teal gradient the design uses for progress. */
 @Composable
-private fun QuestionProgress(questionNumber: Int, questionCount: Int) {
+private fun QuestionProgress(answered: Int, questionCount: Int) {
     val colors = Naj.colors
-    val fraction = if (questionCount == 0) 0f else questionNumber.toFloat() / questionCount
+    val fraction = answeredFraction(answered, questionCount)
     Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.inkAt(0.1f))) {
         Box(
             Modifier
@@ -1496,6 +1497,20 @@ private fun QuestionGridLongTitlePreview() {
                 finished = false,
                 onSelectQuestion = {},
             )
+        }
+    }
+}
+
+/** The top bar's line of progress: nothing answered, part of the test, and all of it. */
+@Preview(widthDp = 400, heightDp = 180)
+@Composable
+private fun QuestionProgressPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("PROGRESS: NOTHING ANSWERED, HALF, ALL")
+            QuestionProgress(answered = 0, questionCount = 4)
+            QuestionProgress(answered = 2, questionCount = 4)
+            QuestionProgress(answered = 4, questionCount = 4)
         }
     }
 }

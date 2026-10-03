@@ -39,6 +39,15 @@ internal fun answeredAndSkipped(answers: Map<Int, Int>, questionCount: Int): Pai
 }
 
 /**
+ * How far the top bar's line of progress has filled: how much of the test carries an answer, out of
+ * how many questions it holds. Progress is what the user has done, not where they are reading, so a
+ * test they are part way down reads as part answered - and one they answered out of order reads as
+ * every question in it.
+ */
+internal fun answeredFraction(answered: Int, questionCount: Int): Float =
+    if (questionCount == 0) 0f else (answered.toFloat() / questionCount).coerceIn(0f, 1f)
+
+/**
  * How long the answered question stays on screen before the test moves on. Long enough for the
  * pick to be seen registering, short enough not to feel like a wait.
  */

@@ -60,6 +60,24 @@ class AnswerRulesTest {
     }
 
     @Test
+    fun theProgressLineCountsWhatIsAnsweredOutOfTheWholeTest() {
+        assertEquals(0f, answeredFraction(answered = 0, questionCount = 4))
+        assertEquals(0.25f, answeredFraction(answered = 1, questionCount = 4))
+        assertEquals(0.5f, answeredFraction(answered = 2, questionCount = 4))
+        assertEquals(1f, answeredFraction(answered = 4, questionCount = 4))
+    }
+
+    @Test
+    fun aTestWithNoQuestionsHasNoProgressToShow() {
+        assertEquals(0f, answeredFraction(answered = 0, questionCount = 0))
+    }
+
+    @Test
+    fun theProgressLineNeverRunsPastTheWholeTest() {
+        assertEquals(1f, answeredFraction(answered = 6, questionCount = 4))
+    }
+
+    @Test
     fun answersMoveTheTestOnOnlyWhenThatIsAskedForAndNothingIsRevealed() {
         assertTrue(advances(advanceAfterAnswer = true, checkImmediately = false))
         assertFalse(advances(advanceAfterAnswer = false, checkImmediately = false))

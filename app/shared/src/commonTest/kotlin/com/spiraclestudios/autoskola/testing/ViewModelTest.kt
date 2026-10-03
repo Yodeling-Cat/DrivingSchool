@@ -15,6 +15,7 @@ import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,6 +60,9 @@ class TestRepositories(bank: QuestionBank = testBank()) {
 
     /** How far the app has got in asking the user to rate it, over the same in-memory storage. */
     val review = ReviewRepository(settings)
+
+    /** What the user owns. Nothing is bought in a test, so this answers Free like the app ships. */
+    val premium = PremiumRepository()
 
     /** What the tests asserted was sent, and the consent gate in front of it. */
     val analyticsSink = RecordingAnalyticsDataSource()

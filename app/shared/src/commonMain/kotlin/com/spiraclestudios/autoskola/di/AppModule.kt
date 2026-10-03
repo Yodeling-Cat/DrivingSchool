@@ -18,6 +18,7 @@ import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.banks.ResourceQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogueDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogueDataSource
@@ -62,6 +63,8 @@ val appModule = module {
     single { AnalyticsRepository(get(), get()) }
     single { ReviewRepository(get()) }
     single { ExamRepository(get(), get(), get(), get()) }
+    // The store is not wired up yet, so this answers from one flag in code; see `plans/premium.md`.
+    single { PremiumRepository() }
 
     // Navigation
     single { navigationState(get()) }

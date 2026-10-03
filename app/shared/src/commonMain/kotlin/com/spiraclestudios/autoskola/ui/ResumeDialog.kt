@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 
 /**
@@ -53,6 +54,30 @@ fun RedoTestDialog(
     )
 }
 
+/**
+ * The every-tenth-test gate: the test the user asked for does not start until this is answered.
+ *
+ * One action, not two. It is meant to carry a second button that buys Premium and removes the ads,
+ * and it will once there is anything to buy (`plans/premium.md`, step 12). Until then a button
+ * leading nowhere would be worse than no button, because it reads as a way out that does not work.
+ *
+ * Both the quiet button and the cross mean the same thing, because there is only one thing they can
+ * mean: the user stays on the home screen with the test unstarted. Nothing is written, so tapping
+ * the test again asks again rather than quietly starting it.
+ */
+@Composable
+fun AdGateDialog(testNumber: Int, onWatchAd: () -> Unit, onDismiss: () -> Unit) {
+    ConfirmDialog(
+        title = strings.adGateTitle,
+        message = strings.adGateMessage(testNumber),
+        confirmLabel = strings.adGateWatch,
+        onConfirm = onWatchAd,
+        dismissLabel = strings.adGateDismiss,
+        onDismiss = onDismiss,
+        onDismissRequest = onDismiss,
+    )
+}
+
 // ── Previews ──
 
 /** The question as a user reads it: what is under way, and the two answers to it. */
@@ -90,6 +115,34 @@ private fun ResumeDialogDrillPreview() {
                     onStartOver = {},
                     onDismiss = {},
                 )
+            }
+        }
+    }
+}
+
+/** The gate, as the user meets it: which test is waiting, and the one way through. */
+@Preview(widthDp = 400, heightDp = 320)
+@Composable
+private fun AdGateDialogPreview() {
+    AppPreview {
+        PreviewBoard {
+            Column {
+                PreviewLabel("the tenth test")
+                AdGateDialog(testNumber = 10, onWatchAd = {}, onDismiss = {})
+            }
+        }
+    }
+}
+
+/** The same question in the longest of the four translations, which is Slovak here. */
+@Preview(widthDp = 400, heightDp = 320)
+@Composable
+private fun AdGateDialogSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        PreviewBoard {
+            Column {
+                PreviewLabel("the tenth test, in Slovak")
+                AdGateDialog(testNumber = 10, onWatchAd = {}, onDismiss = {})
             }
         }
     }

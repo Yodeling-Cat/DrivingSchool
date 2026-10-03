@@ -68,6 +68,12 @@ data class HomeProgress(
     val questionPoolSize: Int,
     /** Finished practice tests, counting every take; what the rating card's milestones count up. */
     val finishedTests: Int,
+    /**
+     * Practice tests started, counting every take and every abandoned one: what the ads gate counts
+     * its frequency in. Started rather than finished, because the gate is the door into a test and a
+     * driver who walks away from one went through it just the same.
+     */
+    val practiceTestsStarted: Int,
 )
 
 /**
@@ -99,6 +105,12 @@ sealed interface HomeUiState {
          * user did not agree to.
          */
         val showAds: Boolean = false,
+        /**
+         * The test the user asked for that the every-tenth-test gate is in front of, or `null` when
+         * nothing is waiting. The test is not under way: the screen asks about it, and dismissing the
+         * dialog leaves it unstarted rather than starting it for free.
+         */
+        val pendingTestNumber: Int? = null,
     ) : HomeUiState
 }
 
@@ -131,6 +143,12 @@ sealed interface HomeUiEvent {
 
     /** The card's cross: not now, which the app asks again about later in the ladder. */
     data object DismissRateCard : HomeUiEvent
+
+    /** The gate's one action: the user agreed to the ad, so the test it is holding may start. */
+    data object WatchAd : HomeUiEvent
+
+    /** The gate's way out: the user stays on the home screen with the held test unstarted. */
+    data object DismissAdGate : HomeUiEvent
 }
 
 /**
@@ -138,6 +156,13 @@ sealed interface HomeUiEvent {
  * [HomeViewModel.uiState] can follow the ads answer as well: there is no `combine` that takes six.
  */
 private data class Prompts(val openAttemptId: String?, val resume: ResumePrompt?, val passed: PassedPrompt?)
+
+/**
+ * A start the gate is standing in front of: what to begin once the user is through, the test it is
+ * holding, and the count it was measured at so that both halves of the gate agree on which cycle
+ * this is.
+ */
+private class GatedStart(val practiceTestsStarted: Int, val testNumber: Int, val start: suspend () -> Unit)
 
 class HomeViewModel(
     exams: ExamRepository,
@@ -157,6 +182,9 @@ class HomeViewModel(
     private val resumePrompt = MutableStateFlow<ResumePrompt?>(null)
     private val passedPrompt = MutableStateFlow<PassedPrompt?>(null)
 
+    /** What the gate is holding, if anything. Cleared only by the two answers to the dialog. */
+    private val gated = MutableStateFlow<GatedStart?>(null)
+
     private val prompts = combine(openAttemptId, resumePrompt, passedPrompt, ::Prompts)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -168,7 +196,8 @@ class HomeViewModel(
                 prompts,
                 review.request,
                 ads.adsAllowed,
-            ) { progress, prompts, request, showAds ->
+                gated,
+            ) { progress, prompts, request, showAds, gated ->
                 // The card is due at the milestones the asking is measured in, and only where the
                 // platform has a store page to send the driver to.
                 val allPassed = everyTestPassed(session.tests, progress.results)
@@ -184,6 +213,7 @@ class HomeViewModel(
                     resumePrompt = prompts.resume,
                     passedPrompt = prompts.passed,
                     showAds = showAds,
+                    pendingTestNumber = gated?.testNumber,
                 )
             }
         }
@@ -212,7 +242,7 @@ class HomeViewModel(
                         maxScore = pick.result.maxScore,
                     )
 
-                    TestPick.Fresh -> {
+                    TestPick.Fresh -> gate(shown?.progress, test.number) {
                         openAttemptId.value = session.startOrResume(test).id
                         started(AttemptKind.PracticeTest, resumed = false)
                     }
@@ -241,7 +271,7 @@ class HomeViewModel(
             HomeUiEvent.StartOver -> resumePrompt.value?.let { prompt ->
                 val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 resumePrompt.value = null
-                viewModelScope.launch {
+                gate(shown?.progress, test.number) {
                     openAttemptId.value = session.restart(test).id
                     started(AttemptKind.PracticeTest, resumed = false)
                 }
@@ -255,7 +285,7 @@ class HomeViewModel(
             HomeUiEvent.RedoTest -> passedPrompt.value?.let { prompt ->
                 val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 passedPrompt.value = null
-                viewModelScope.launch {
+                gate(shown?.progress, test.number) {
                     openAttemptId.value = session.restart(test).id
                     started(AttemptKind.PracticeTest, resumed = false)
                 }
@@ -288,6 +318,18 @@ class HomeViewModel(
                 )
             }
 
+            // The gate's two answers. Watching runs the start that was held; dismissing drops it, so
+            // the user is left where they were. Nothing is written by the dismissal, which is what
+            // makes tapping the test again ask again.
+            HomeUiEvent.WatchAd -> viewModelScope.launch {
+                val waiting = gated.value ?: return@launch
+                ads.showTestOfferAd(waiting.practiceTestsStarted)
+                gated.value = null
+                waiting.start()
+            }
+
+            HomeUiEvent.DismissAdGate -> gated.value = null
+
             HomeUiEvent.RateApp -> {
                 val listing = store?.takeIf { shown?.rateCard != null } ?: return
                 viewModelScope.launch {
@@ -295,6 +337,23 @@ class HomeViewModel(
                     openUrl(listing.url)
                 }
             }
+        }
+    }
+
+    /**
+     * Runs [start] now, or holds it if the every-tenth-test gate is in front of it and asks the screen
+     * instead.
+     *
+     * Called from the three events that begin a new attempt, rather than from one choke point, which
+     * is what keeps the drills out of it: a repeat of the questions the user got wrong and a run
+     * through the situations are short drills started on impulse, and neither is what the gate is for.
+     * Continuing an attempt that is already under way is not gated either - the gate let it in.
+     */
+    private fun gate(progress: HomeProgress?, testNumber: Int, start: suspend () -> Unit) {
+        if (progress != null && ads.shouldOfferTest(progress.practiceTestsStarted)) {
+            gated.value = GatedStart(progress.practiceTestsStarted, testNumber, start)
+        } else {
+            viewModelScope.launch { start() }
         }
     }
 
@@ -308,6 +367,7 @@ class HomeViewModel(
         questionsAnswered = questionsAnswered,
         questionPoolSize = poolSize,
         finishedTests = finishedTests,
+        practiceTestsStarted = practiceTestsStarted,
     )
 
     /**

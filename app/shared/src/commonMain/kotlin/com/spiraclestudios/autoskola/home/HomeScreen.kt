@@ -59,6 +59,7 @@ import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
 import com.spiraclestudios.autoskola.practice.IconClose
 import com.spiraclestudios.autoskola.ui.AdBanner
+import com.spiraclestudios.autoskola.ui.AdGateDialog
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.BarIconButton
 import com.spiraclestudios.autoskola.ui.CardRadius
@@ -181,6 +182,7 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
 
     state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
     state.passedPrompt?.let { PassedPromptDialog(it, onEvent) }
+    state.pendingTestNumber?.let { AdGatePromptDialog(it, onEvent) }
 }
 
 /** The phone and medium layout: the cards in one scrolling column, then the tests as a grid. */
@@ -782,6 +784,19 @@ private fun PassedPromptDialog(prompt: PassedPrompt, onEvent: (HomeUiEvent) -> U
         message = strings.passedPromptMessage(prompt.score, prompt.maxScore),
         onRedo = { onEvent(HomeUiEvent.RedoTest) },
         onDismiss = { onEvent(HomeUiEvent.DismissPassedPrompt) },
+    )
+}
+
+/**
+ * The every-tenth-test gate, holding the test [testNumber] names. It is drawn by the screen rather
+ * than navigated to, because it is a question about the screen the user is already on.
+ */
+@Composable
+private fun AdGatePromptDialog(testNumber: Int, onEvent: (HomeUiEvent) -> Unit) {
+    AdGateDialog(
+        testNumber = testNumber,
+        onWatchAd = { onEvent(HomeUiEvent.WatchAd) },
+        onDismiss = { onEvent(HomeUiEvent.DismissAdGate) },
     )
 }
 

@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.home
 import com.spiraclestudios.autoskola.StoreListing
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.AttemptKind
@@ -41,6 +42,156 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     private val StateFlow<HomeUiState>.ready get() = assertIs<HomeUiState.Ready>(value)
+
+    /**
+     * Starts and finishes [count] practice tests, which is what the gate counts its frequency in.
+     * With [wrong], each one answers its first question wrongly, so there is something to retest.
+     */
+    private suspend fun practiceTestsStarted(count: Int, wrong: Boolean = false) {
+        val session = repositories.exams.currentSession()
+        repeat(count) { index ->
+            val attempt = session.restart(session.tests[index % session.tests.size])
+            if (wrong) {
+                val question = session.questionsOf(attempt).first()
+                session.answer(attempt.id, question, chosen = if (question.correct == 0) 1 else 0)
+            }
+            session.finish(attempt.id)
+        }
+    }
+
+    // ── The every-tenth-test gate ────────────────────────────────────────────
+
+    @Test
+    fun theTenthTestAsksBeforeItStarts() = runTest {
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        assertEquals(test.number, state.ready.pendingTestNumber)
+        // Nothing is under way: the gate is the door, and this is the user standing in front of it.
+        assertNull(state.ready.openAttemptId)
+        assertEquals(emptyList(), repositories.adDataSource.shown)
+    }
+
+    @Test
+    fun aRandomTestIsGatedJustTheSame() = runTest {
+        // The random button picks the test, so what the gate holds is the test it picked rather than
+        // the fact that a button was pressed.
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(HomeUiEvent.StartRandomTest(notPassed = true))
+
+        assertNotNull(state.ready.pendingTestNumber)
+        assertTrue(state.ready.pendingTestNumber in state.ready.tests.map { it.number })
+        assertNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun dismissingTheGateLeavesTheTestUnstarted() = runTest {
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        viewModel.onEvent(HomeUiEvent.DismissAdGate)
+
+        assertNull(state.ready.pendingTestNumber)
+        assertNull(state.ready.openAttemptId)
+        assertEquals(emptyList(), repositories.adDataSource.shown)
+    }
+
+    @Test
+    fun askingAgainAsksAgain() = runTest {
+        // Dismissing writes nothing, so the offer is still due and the next tap is asked about again
+        // rather than quietly starting the test.
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+        viewModel.onEvent(HomeUiEvent.DismissAdGate)
+
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        assertEquals(test.number, state.ready.pendingTestNumber)
+    }
+
+    @Test
+    fun watchingTheAdStartsTheTestThatWasHeld() = runTest {
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        viewModel.onEvent(HomeUiEvent.WatchAd)
+
+        assertEquals(listOf(AdSlot.TestOfferInterstitial), repositories.adDataSource.shown)
+        assertNull(state.ready.pendingTestNumber)
+        assertNotNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun nothingIsHeldWhenNoAdCanBeAskedFor() = runTest {
+        // Ads off, so there is no gate: the test simply starts, and the user is never stood in front
+        // of a dialog about an ad the app is not allowed to request.
+        practiceTestsStarted(9)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        assertNull(state.ready.pendingTestNumber)
+        assertNotNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun aTestBeforeTheTenthIsNotGated() = runTest {
+        practiceTestsStarted(8)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+
+        assertNull(state.ready.pendingTestNumber)
+        assertNotNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun theDrillsAreNotGated() = runTest {
+        // A repeat of the questions the driver got wrong is a short drill started on impulse, and it
+        // is not what the gate is for - even with the offer due.
+        practiceTestsStarted(9, wrong = true)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(HomeUiEvent.PracticeMistakes)
+
+        assertNull(state.ready.pendingTestNumber)
+        assertNotNull(state.ready.openAttemptId)
+    }
+
+    @Test
+    fun theHeldTestIsForgottenOnceItIsUnderWay() = runTest {
+        practiceTestsStarted(9)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        val test = state.ready.tests.first()
+        viewModel.onEvent(HomeUiEvent.StartTest(test.number))
+        viewModel.onEvent(HomeUiEvent.WatchAd)
+
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+
+        assertNull(state.ready.pendingTestNumber)
+        assertNull(state.ready.openAttemptId)
+    }
 
     @Test
     fun showsTheSelectedExam() = runTest {

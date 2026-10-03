@@ -285,6 +285,7 @@ internal fun previewProgress(
     questionsAnswered: Int = 0,
     questionPoolSize: Int = 1150,
     finishedTests: Int = results.size,
+    practiceTestsStarted: Int = finishedTests,
 ) = HomeProgress(
     results = results,
     inProgress = inProgress,
@@ -293,6 +294,7 @@ internal fun previewProgress(
     questionsAnswered = questionsAnswered,
     questionPoolSize = questionPoolSize,
     finishedTests = finishedTests,
+    practiceTestsStarted = practiceTestsStarted,
 )
 
 /** The card asking the user to rate the app, in the store it names. */

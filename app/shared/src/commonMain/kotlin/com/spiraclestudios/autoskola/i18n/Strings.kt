@@ -161,6 +161,12 @@ class Strings(
     val resumeSummary: (answered: Int, total: Int) -> String,
     val continueTest: String,
     val resumePromptTitle: String,
+    // The every-tenth-test gate. It names the test the user asked for, because the dialog is the only
+    // place they are told why nothing happened when they tapped it.
+    val adGateTitle: String,
+    val adGateMessage: (testNumber: Int) -> String,
+    val adGateWatch: String,
+    val adGateDismiss: String,
     val startOver: String,
 
     /** What the prompt says when the picked test has already been passed. */
@@ -413,6 +419,10 @@ private val EnglishStrings = Strings(
     resumeSummary = { answered, total -> "$answered of $total answered" },
     continueTest = "Continue",
     resumePromptTitle = "This test is already started",
+    adGateTitle = "A short ad first",
+    adGateMessage = { "Test $it starts after a short ad, which is what keeps the app free." },
+    adGateWatch = "Watch the ad",
+    adGateDismiss = "Not now",
     startOver = "Start over",
     passedPromptTitle = "This test is already passed",
     passedPromptMessage = { score, max ->
@@ -604,6 +614,10 @@ private val SlovakStrings = Strings(
     resumeSummary = { answered, total -> "zodpovedané $answered z $total" },
     continueTest = "Pokračovať",
     resumePromptTitle = "Tento test je už začatý",
+    adGateTitle = "Najprv krátka reklama",
+    adGateMessage = { "Test $it sa spustí po krátkej reklame, vďaka ktorej je aplikácia zadarmo." },
+    adGateWatch = "Pozrieť reklamu",
+    adGateDismiss = "Teraz nie",
     startOver = "Začať odznova",
     passedPromptTitle = "Tento test je už úspešný",
     passedPromptMessage = { score, max ->
@@ -796,6 +810,10 @@ private val HungarianStrings = Strings(
     resumeSummary = { answered, total -> "$answered / $total megválaszolva" },
     continueTest = "Folytatás",
     resumePromptTitle = "Ez a teszt már elkezdődött",
+    adGateTitle = "Előbb egy rövid reklám",
+    adGateMessage = { "A $it. teszt egy rövid reklám után indul, ez teszi ingyenessé az alkalmazást." },
+    adGateWatch = "Reklám megtekintése",
+    adGateDismiss = "Most nem",
     startOver = "Újrakezdés",
     passedPromptTitle = "Ez a teszt már sikeres",
     passedPromptMessage = { score, max ->
@@ -988,6 +1006,10 @@ private val CzechStrings = Strings(
     resumeSummary = { answered, total -> "zodpovězeno $answered z $total" },
     continueTest = "Pokračovat",
     resumePromptTitle = "Tento test je už zahájený",
+    adGateTitle = "Nejdřív krátká reklama",
+    adGateMessage = { "Test $it začne po krátké reklamě, díky které je aplikace zdarma." },
+    adGateWatch = "Přehrát reklamu",
+    adGateDismiss = "Teď ne",
     startOver = "Začít znovu",
     passedPromptTitle = "Tento test je už úspěšný",
     passedPromptMessage = { score, max ->

@@ -1,0 +1,35 @@
+package com.spiraclestudios.autoskola.data.ads
+
+/**
+ * The ad SDK, one implementation per platform, behind the same rules as everything else that stores
+ * or fetches anything: suspended calls, so a request survives the screen that started it.
+ *
+ * Whether any of these is called is [AdRepository]'s decision, not this one's, and the implementations
+ * here are deliberately thin - what the SDK needs, and nothing about the app's policy.
+ *
+ * There is no banner method. A banner is not asked for and then shown, it is a view: `AdBanner`
+ * renders the unit [adUnitId] resolves and the SDK loads it in place, so there is nothing for a
+ * repository to decide between the two.
+ */
+interface AdDataSource {
+
+    /**
+     * Whether this target can serve ads at all. False on the web, which has no SDK, and false in
+     * [NoOpAdDataSource], which is what the phone targets run until their implementations are
+     * written - so the app behaves as it will when ads are unavailable rather than as though they
+     * were switched on by accident.
+     */
+    val available: Boolean
+
+    /** Asks for [slot]'s fullscreen ad ahead of it being needed, so showing it does not wait. */
+    suspend fun preload(slot: AdSlot)
+
+    /**
+     * Shows the ad [preload] asked for. [AdResult.NoFill] when nothing is loaded or the load failed,
+     * which the caller answers by letting the user through.
+     */
+    suspend fun show(slot: AdSlot): AdResult
+
+    /** Throws away anything loaded, for when ads stop being wanted - a purchase arriving. */
+    suspend fun discard()
+}

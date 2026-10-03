@@ -24,6 +24,13 @@ data class Preferences(
     val crashReportingEnabled: Boolean,
     /** Whether the user lets us collect usage analytics. Independent of [crashReportingEnabled]. */
     val analyticsEnabled: Boolean,
+    /**
+     * Whether the user lets us ask for ads. Off until they say so, and its own answer like the other
+     * two: an ad request reaches for the device's storage and an advertising identifier before it
+     * shows anything, so it has to be asked for rather than assumed. Refusing turns ads off, and
+     * turns nothing else off.
+     */
+    val adsEnabled: Boolean,
     /** `null` until the user has picked an exam in onboarding. */
     val selection: TestSelection?,
     /** UI language; follows the device language until the user picks one. */
@@ -61,6 +68,12 @@ class PreferencesRepository(private val settings: Settings) {
         state.update { it.copy(analyticsEnabled = enabled) }
     }
 
+    /** The answer to "show you ads?", which the user can change at any time in Settings. */
+    fun setAdsEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_ADS, enabled)
+        state.update { it.copy(adsEnabled = enabled) }
+    }
+
     fun selectLanguage(language: AppLanguage) {
         settings.putString(KEY_LANGUAGE, language.code)
         state.update { it.copy(language = language) }
@@ -93,6 +106,7 @@ class PreferencesRepository(private val settings: Settings) {
         legalAcceptedVersion = settings.getInt(KEY_LEGAL_VERSION, 0),
         crashReportingEnabled = settings.getBoolean(KEY_CRASH_REPORTING, false),
         analyticsEnabled = settings.getBoolean(KEY_ANALYTICS, false),
+        adsEnabled = settings.getBoolean(KEY_ADS, false),
         selection = readSelection(),
         language = AppLanguage.fromCode(settings.getStringOrNull(KEY_LANGUAGE)) ?: AppLanguage.system(),
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
@@ -109,6 +123,7 @@ class PreferencesRepository(private val settings: Settings) {
         const val KEY_LEGAL_VERSION = "legal_accepted_version"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_ANALYTICS = "analytics_enabled"
+        const val KEY_ADS = "ads_enabled"
         const val KEY_BANK = "question_bank"
         const val KEY_CATEGORY = "license_category"
         const val KEY_LANGUAGE = "app_language"

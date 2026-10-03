@@ -3,6 +3,9 @@ package com.spiraclestudios.autoskola.di
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.data.ads.AdDataSource
+import com.spiraclestudios.autoskola.data.ads.AdRepository
+import com.spiraclestudios.autoskola.data.ads.NoOpAdDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.PostHogAnalyticsDataSource
@@ -53,6 +56,8 @@ val appModule = module {
     single<SignCatalogDataSource> { ResourceSignCatalogDataSource() }
     single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
     single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
+    // No ad SDK is wired up yet, so nothing is requested on any target; see `plans/ads.md`.
+    single<AdDataSource> { NoOpAdDataSource() }
 
     // Repositories
     single { AttemptRepository(get()) }
@@ -65,6 +70,7 @@ val appModule = module {
     single { ExamRepository(get(), get(), get(), get()) }
     // The store is not wired up yet, so this answers from one flag in code; see `plans/premium.md`.
     single { PremiumRepository() }
+    single { AdRepository(get(), get(), get(), get()) }
 
     // Navigation
     single { navigationState(get()) }

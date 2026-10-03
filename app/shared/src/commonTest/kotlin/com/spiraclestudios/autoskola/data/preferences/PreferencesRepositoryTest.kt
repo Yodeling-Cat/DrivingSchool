@@ -90,6 +90,39 @@ class PreferencesRepositoryTest {
     }
 
     @Test
+    fun adsAreOffUntilTheUserSaysOtherwise() {
+        val settings = MapSettings()
+        val repository = PreferencesRepository(settings)
+
+        // An ad request touches the device's storage and an advertising identifier before it shows
+        // anything, so this answer starts as no and has to be given - it is not a default the user
+        // was never asked about. It is its own answer, like the other two consents.
+        assertFalse(repository.preferences.value.adsEnabled)
+
+        repository.setAdsEnabled(true)
+        assertTrue(repository.preferences.value.adsEnabled)
+        assertTrue(PreferencesRepository(settings).preferences.value.adsEnabled)
+
+        // And it can be taken back at any time, which is what the Settings switch does.
+        repository.setAdsEnabled(false)
+        assertFalse(repository.preferences.value.adsEnabled)
+        assertFalse(PreferencesRepository(settings).preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun theAdAnswerIsSeparateFromTheOtherTwo() {
+        val repository = PreferencesRepository(MapSettings())
+        repository.setCrashReportingEnabled(false)
+        repository.setAnalyticsEnabled(false)
+        repository.setAdsEnabled(true)
+
+        val preferences = repository.preferences.value
+        assertTrue(preferences.adsEnabled)
+        assertFalse(preferences.analyticsEnabled)
+        assertFalse(preferences.crashReportingEnabled)
+    }
+
+    @Test
     fun passThresholdIsNinetyPercent() {
         assertTrue(TestResult(score = 90, maxScore = 100).passed)
         assertFalse(TestResult(score = 89, maxScore = 100).passed)

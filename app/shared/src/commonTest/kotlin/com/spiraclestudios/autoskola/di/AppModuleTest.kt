@@ -4,6 +4,7 @@ import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
@@ -64,5 +65,6 @@ class AppModuleTest : ViewModelTest() {
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }
         koin.get<AnalyticsRepository>()
         koin.get<PremiumRepository>()
+        koin.get<AdRepository>()
     }
 }

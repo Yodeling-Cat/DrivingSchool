@@ -38,6 +38,18 @@ class PremiumRepository(initial: PremiumStatus = dudStatus()) {
 
     /** Whether [feature] is unlocked right now. Reads the live answer, never a cached one. */
     fun isUnlocked(feature: PremiumFeature): Boolean = PremiumRules.isUnlocked(feature, state.value)
+
+    /**
+     * Puts the entitlement to [status]: a purchase, a restore, or a refund taking it back again.
+     *
+     * Billing calls this with what the store last confirmed (see `plans/premium.md`), and nothing
+     * calls it while the dud stands in for the store. It is here rather than left for that step
+     * because everything reading the entitlement has to cope with it changing mid-session - the ads
+     * do, and this is how their tests say so.
+     */
+    fun update(status: PremiumStatus) {
+        state.value = status
+    }
 }
 
 /**

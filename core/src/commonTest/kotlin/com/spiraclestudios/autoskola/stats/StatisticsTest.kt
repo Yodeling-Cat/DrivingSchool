@@ -164,6 +164,29 @@ class StatisticsTest {
     }
 
     @Test
+    fun everyStartedTestCountsTowardsTheOnesStarted() {
+        // What the ads gate counts. It has to be tests *started*, because the gate is the door into
+        // a test: an attempt left open or thrown away went through it just the same, and counting
+        // only finished tests would let a driver who abandons their work through the door for free.
+        val stats = Statistics.of(
+            listOf(
+                attempt("first", finishedAt = 10),
+                attempt("again", finishedAt = 20),
+                attempt("open", startedAt = 35),
+                attempt("thrown-away", testNumber = 2, discardedAt = 40),
+                // A drill and a mistakes retest are practice rather than tests, and neither is
+                // gated, so neither may push a user towards the next one.
+                attempt("drill", testNumber = null, kind = AttemptKind.Situations, finishedAt = 30),
+                attempt("mistakes", testNumber = null, finishedAt = 31),
+            ),
+            checkImmediately = false,
+        )
+
+        assertEquals(4, stats.practiceTestsStarted)
+        assertEquals(2, stats.finishedTests)
+    }
+
+    @Test
     fun attemptsSurviveEncoding() {
         val original = attempt("x", finishedAt = 10, answers = arrayOf(answer(1, true, 5)))
         assertEquals(original, TestAttempt.decode(original.encode()))

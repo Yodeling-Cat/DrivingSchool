@@ -32,6 +32,15 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
     val finishedTests: Int get() = attempts.count { it.kind == AttemptKind.PracticeTest && it.isFinished }
 
     /**
+     * How many practice tests have been started, counting every take and every abandoned one. What
+     * the ads gate counts its frequency in: the gate is the door into a test, so an attempt left
+     * open or thrown away went through that door just the same, and counting only finished tests
+     * would let a driver who abandons their work past it for free. Drills are not tests and are not
+     * counted, because they are not gated.
+     */
+    val practiceTestsStarted: Int get() = attempts.count { it.kind == AttemptKind.PracticeTest }
+
+    /**
      * Most recently touched attempt that is neither finished nor discarded, and can be continued:
      * only a numbered practice test. A repeat of the questions the user got wrong is left where it
      * was, so the home screen doesn't offer to continue a drill they walked away from.

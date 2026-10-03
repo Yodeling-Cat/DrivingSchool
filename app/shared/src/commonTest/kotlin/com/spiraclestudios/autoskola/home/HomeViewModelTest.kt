@@ -30,7 +30,14 @@ class HomeViewModelTest : ViewModelTest() {
     private val store = StoreListing(name = "Play Store", url = "https://example.test/app")
 
     private val viewModel by lazy {
-        HomeViewModel(repositories.exams, repositories.analytics, repositories.review, store, Random(42))
+        HomeViewModel(
+            repositories.exams,
+            repositories.analytics,
+            repositories.review,
+            repositories.ads,
+            store,
+            Random(42),
+        )
     }
 
     private val StateFlow<HomeUiState>.ready get() = assertIs<HomeUiState.Ready>(value)
@@ -443,6 +450,18 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+        val state = observe(viewModel.uiState)
+
+        // The app ships with ads off, so the space under the mistakes card stays empty.
+        assertFalse(state.ready.showAds)
+
+        repositories.preferences.setAdsEnabled(true)
+
+        assertTrue(state.ready.showAds)
+    }
+
+    @Test
     fun nothingIsAskedWhereThereIsNoStoreToRateTheAppIn() = runTest {
         // The web build has no store, and neither has an iOS build whose page cannot be addressed
         // yet: the card is left off rather than sending the driver nowhere.
@@ -450,6 +469,7 @@ class HomeViewModelTest : ViewModelTest() {
             repositories.exams,
             repositories.analytics,
             repositories.review,
+            repositories.ads,
             store = null,
             random = Random(42),
         )

@@ -9,6 +9,7 @@ import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -25,15 +26,28 @@ class SituationViewModelTest : ViewModelTest() {
             repositories.exams,
             repositories.banks,
             repositories.answers,
+            repositories.ads,
         )
     }
 
     @Test
-    fun noExamSelectedLeavesTheScreenLoading() = runTest {
+    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val state = observe(viewModel(1, repositories).uiState)
+
+        assertFalse(assertIs<SituationUiState.Ready>(state.value).showAds)
+
+        repositories.preferences.setAdsEnabled(true)
+
+        assertTrue(assertIs<SituationUiState.Ready>(state.value).showAds)
+    }
+
+    @Test
+    fun anAnsweredQuestionIsMarkedRightOrWrongStraightAway() = runTest {
         val fresh = TestRepositories(testSituationsBank())
 
         val state = observe(
-            SituationViewModel(1, fresh.exams, fresh.banks, fresh.answers).uiState,
+            SituationViewModel(1, fresh.exams, fresh.banks, fresh.answers, fresh.ads).uiState,
         )
 
         assertEquals(SituationUiState.Loading, state.value)

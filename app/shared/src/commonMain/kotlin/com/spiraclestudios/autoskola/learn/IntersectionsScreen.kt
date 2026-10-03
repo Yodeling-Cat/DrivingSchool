@@ -41,10 +41,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.IconMoreVert
+import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ConfirmDialog
@@ -140,6 +142,15 @@ fun IntersectionsScreen(
                                     },
                                     modifier = Modifier.weight(1f),
                                 )
+                                // Pinned under the list rather than at the end of it: the list
+                                // takes the weight above, so this is on screen however far down the
+                                // situations the driver has scrolled.
+                                if (state.showAds) {
+                                    AdBanner(
+                                        slot = AdSlot.IntersectionsBanner,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                                    )
+                                }
                             }
                     }
                 }
@@ -313,6 +324,20 @@ private fun IntersectionsScreenPreview() {
     AppPreview {
         IntersectionsScreen(
             state = IntersectionsUiState.Ready(previewSituations),
+            onEvent = {},
+            onBack = {},
+            onOpenSituation = {},
+        )
+    }
+}
+
+/** The banner pinned under the list, which is where the free tier's ad sits on this screen. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun IntersectionsScreenBannerPreview() {
+    AppPreview {
+        IntersectionsScreen(
+            state = IntersectionsUiState.Ready(previewSituations, showAds = true),
             onEvent = {},
             onBack = {},
             onOpenSituation = {},

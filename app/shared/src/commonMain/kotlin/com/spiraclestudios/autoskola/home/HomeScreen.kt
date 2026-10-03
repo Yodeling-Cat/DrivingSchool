@@ -54,9 +54,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
 import com.spiraclestudios.autoskola.practice.IconClose
+import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.BarIconButton
 import com.spiraclestudios.autoskola.ui.CardRadius
@@ -230,6 +232,11 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         fullWidthItem {
             MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
         }
+        // Under the mistakes card, in space the screen was already leaving empty: the place the plan
+        // argues for, because nothing above or beside it is where a thumb is already going.
+        if (state.showAds) {
+            fullWidthItem { AdBanner(AdSlot.HomeBanner) }
+        }
         state.rateCard?.let { card ->
             fullWidthItem {
                 RateCard(
@@ -283,6 +290,9 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                     stacked = true,
                 )
                 MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
+                // This layout gets the banner too, under the same card. The two are the same screen
+                // drawn for different windows, so a placement in one is a placement in both.
+                if (state.showAds) AdBanner(AdSlot.HomeBanner)
                 state.rateCard?.let { card ->
                     RateCard(
                         card = card,
@@ -834,6 +844,7 @@ private fun homeState(
     resumePrompt: ResumePrompt? = null,
     passedPrompt: PassedPrompt? = null,
     exam: ExamLabel = previewExam,
+    showAds: Boolean = false,
 ): HomeUiState.Ready {
     val tests = previewTests()
     return HomeUiState.Ready(
@@ -844,6 +855,7 @@ private fun homeState(
         rateCard = rateCard,
         resumePrompt = resumePrompt,
         passedPrompt = passedPrompt,
+        showAds = showAds,
     )
 }
 
@@ -853,6 +865,19 @@ private fun homeState(
 private fun HomeScreenPreview() {
     AppPreview {
         HomeScreen(homeState(), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/**
+ * The same layout with the banner drawn, which is what a free user's home screen looks like once
+ * they have agreed to ads. Nothing else about the screen changes: the card sits in space that was
+ * already blank.
+ */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenBannerPreview() {
+    AppPreview {
+        HomeScreen(homeState(showAds = true), onEvent = {}, onChangeExam = {})
     }
 }
 

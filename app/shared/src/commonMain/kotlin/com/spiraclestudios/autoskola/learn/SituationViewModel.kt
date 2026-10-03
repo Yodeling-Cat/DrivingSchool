@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.learn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.answers.PracticeAnswers
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
@@ -38,6 +39,8 @@ sealed interface SituationUiState {
         val initialPage: Int,
         /** What the driver has answered about this situation's questions: question id → option. */
         val answers: Map<Int, Int> = emptyMap(),
+        /** Whether the banner under the drawing is drawn. False unless the state says so. */
+        val showAds: Boolean = false,
     ) : SituationUiState
 }
 
@@ -73,6 +76,7 @@ class SituationViewModel(
     exams: ExamRepository,
     private val banks: QuestionBankRepository,
     private val answers: PracticeAnswerRepository,
+    private val ads: AdRepository,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -84,7 +88,7 @@ class SituationViewModel(
     private val given: Flow<PracticeAnswers> = session.filterNotNull()
         .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
 
-    val uiState: StateFlow<SituationUiState> = combine(session, given) { session, given ->
+    val uiState: StateFlow<SituationUiState> = combine(session, given, ads.adsAllowed) { session, given, showAds ->
         if (session == null) {
             SituationUiState.Loading
         } else {
@@ -96,6 +100,7 @@ class SituationViewModel(
                     situations = situations,
                     initialPage = number - 1,
                     answers = given.byQuestion,
+                    showAds = showAds,
                 )
             } ?: SituationUiState.Closed
         }

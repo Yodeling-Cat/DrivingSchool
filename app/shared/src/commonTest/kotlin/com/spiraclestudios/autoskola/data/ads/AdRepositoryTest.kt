@@ -6,6 +6,7 @@ import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import com.spiraclestudios.autoskola.premium.PurchaseSource
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -208,6 +209,24 @@ class AdRepositoryTest {
             AdResult.Unavailable,
             fixture(premium = PremiumStatus.Premium(PurchaseSource.Play)).ads.showClosingAd(3),
         )
+    }
+
+    // --- what a placement reads ---------------------------------------------
+
+    @Test
+    fun theAllowedAnswerIsAvailableAsAFlowForThePlacementsToFollow() = runTest {
+        val fixture = fixture(adsEnabled = false)
+
+        // What a banner placement reads: the answer as it changes, rather than a snapshot taken when
+        // the screen was built. Both of the things it depends on change while the user is looking at
+        // the screen - they can withdraw consent in Settings, and they can buy Premium.
+        assertEquals(false, fixture.ads.adsAllowed.first())
+
+        fixture.preferences.setAdsEnabled(true)
+        assertEquals(true, fixture.ads.adsAllowed.first())
+
+        fixture.entitlement.update(PremiumStatus.Premium(PurchaseSource.Play))
+        assertEquals(false, fixture.ads.adsAllowed.first())
     }
 
     // --- the preload --------------------------------------------------------

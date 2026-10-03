@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.StoreListing
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.PracticeTest
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.testStartedProperties
@@ -92,6 +93,12 @@ sealed interface HomeUiState {
         val resumePrompt: ResumePrompt? = null,
         /** Set when the picked test has already been passed, so the screen asks before redoing it. */
         val passedPrompt: PassedPrompt? = null,
+        /**
+         * Whether the banner under the mistakes card is drawn. False unless the state says
+         * otherwise, because the failure of forgetting it should be no ad rather than an ad the
+         * user did not agree to.
+         */
+        val showAds: Boolean = false,
     ) : HomeUiState
 }
 
@@ -126,10 +133,17 @@ sealed interface HomeUiEvent {
     data object DismissRateCard : HomeUiEvent
 }
 
+/**
+ * The three things the home screen can be part-way through asking. Combined into one source so that
+ * [HomeViewModel.uiState] can follow the ads answer as well: there is no `combine` that takes six.
+ */
+private data class Prompts(val openAttemptId: String?, val resume: ResumePrompt?, val passed: PassedPrompt?)
+
 class HomeViewModel(
     exams: ExamRepository,
     private val analytics: AnalyticsRepository,
     private val review: ReviewRepository,
+    private val ads: AdRepository,
     /** The store this build can be rated in, or `null` where it has none (the web, today's iOS). */
     private val store: StoreListing? = storeListing,
     private val random: Random = Random.Default,
@@ -143,17 +157,18 @@ class HomeViewModel(
     private val resumePrompt = MutableStateFlow<ResumePrompt?>(null)
     private val passedPrompt = MutableStateFlow<PassedPrompt?>(null)
 
+    private val prompts = combine(openAttemptId, resumePrompt, passedPrompt, ::Prompts)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<HomeUiState> = session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(HomeUiState.Loading)
             combine(
                 session.progress,
-                openAttemptId,
-                resumePrompt,
-                passedPrompt,
+                prompts,
                 review.request,
-            ) { progress, open, prompt, passed, request ->
+                ads.adsAllowed,
+            ) { progress, prompts, request, showAds ->
                 // The card is due at the milestones the asking is measured in, and only where the
                 // platform has a store page to send the driver to.
                 val allPassed = everyTestPassed(session.tests, progress.results)
@@ -165,9 +180,10 @@ class HomeViewModel(
                     rateCard = store
                         ?.takeIf { request.isDue(progress.finishedTests, allPassed) }
                         ?.let { RateCard(storeName = it.name) },
-                    openAttemptId = open,
-                    resumePrompt = prompt,
-                    passedPrompt = passed,
+                    openAttemptId = prompts.openAttemptId,
+                    resumePrompt = prompts.resume,
+                    passedPrompt = prompts.passed,
+                    showAds = showAds,
                 )
             }
         }

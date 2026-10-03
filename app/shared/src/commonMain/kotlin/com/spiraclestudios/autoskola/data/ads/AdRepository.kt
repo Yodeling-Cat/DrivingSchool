@@ -4,7 +4,12 @@ import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.premium.PremiumFeature
+import com.spiraclestudios.autoskola.premium.PremiumRules
+import com.spiraclestudios.autoskola.premium.PremiumStatus
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -39,10 +44,36 @@ class AdRepository(
 
     private val writes = Mutex()
 
-    /** Whether the app may request an ad right now. */
-    fun mayRequestAds(): Boolean = dataSource.available &&
-        preferences.preferences.value.adsEnabled &&
-        !premium.isUnlocked(PremiumFeature.NoAds)
+    /**
+     * Whether the app may request an ad, as it changes.
+     *
+     * What a banner placement follows: both of the answers it depends on change while a screen is
+     * open - consent can be withdrawn in Settings, and Premium can be bought - and a placement drawn
+     * from a snapshot would keep showing an ad the user had just switched off.
+     */
+    val adsAllowed: Flow<Boolean> =
+        combine(preferences.preferences, premium.entitlement) { preferences, entitlement ->
+            allowed(preferences.adsEnabled, entitlement)
+        }.distinctUntilChanged()
+
+    /**
+     * The same answer, read once: what the request paths below ask before asking the SDK anything.
+     *
+     * Deliberately separate from [adsAllowed] rather than `adsAllowed.value`, because this is the
+     * question a caller that is about to act needs answered now, and the flow is the one a screen
+     * drawing itself needs to follow.
+     */
+    fun mayRequestAds(): Boolean = allowed(
+        preferences.preferences.value.adsEnabled,
+        premium.entitlement.value,
+    )
+
+    /**
+     * The one place the three conditions are put together: the target can serve ads, the user has
+     * agreed to them, and nobody has paid for them to stop.
+     */
+    private fun allowed(adsConsentGiven: Boolean, entitlement: PremiumStatus): Boolean =
+        dataSource.available && adsConsentGiven && !PremiumRules.isUnlocked(PremiumFeature.NoAds, entitlement)
 
     /**
      * Whether the offer is due before the next test: every tenth one, unless it has already been

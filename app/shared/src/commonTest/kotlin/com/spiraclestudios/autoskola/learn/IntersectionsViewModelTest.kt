@@ -31,15 +31,28 @@ class IntersectionsViewModelTest : ViewModelTest() {
             repositories.banks,
             repositories.answers,
             repositories.analytics,
+            repositories.ads,
         )
     }
 
     @Test
-    fun noExamSelectedLeavesTheScreenLoading() = runTest {
+    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+        val repositories = TestRepositories(testSituationsBank())
+        val state = observe(viewModel(repositories).uiState)
+
+        assertFalse(assertIs<IntersectionsUiState.Ready>(state.value).showAds)
+
+        repositories.preferences.setAdsEnabled(true)
+
+        assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).showAds)
+    }
+
+    @Test
+    fun theSituationListOpensOnTheMaterial() = runTest {
         val fresh = TestRepositories(testSituationsBank())
 
         val state = observe(
-            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.answers, fresh.analytics).uiState,
+            IntersectionsViewModel(fresh.exams, fresh.banks, fresh.answers, fresh.analytics, fresh.ads).uiState,
         )
 
         assertEquals(IntersectionsUiState.Loading, state.value)
@@ -93,6 +106,7 @@ class IntersectionsViewModelTest : ViewModelTest() {
                 repositories.banks,
                 repositories.answers,
                 repositories.analytics,
+                repositories.ads,
             ).uiState,
         )
 

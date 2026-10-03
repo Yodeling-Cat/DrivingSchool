@@ -64,12 +64,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.ChipState
 import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.SwipePager
 import com.spiraclestudios.autoskola.practice.arrowKeyTarget
+import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ChipRadius
@@ -230,6 +232,7 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
                     situation = situations[page],
                     answers = state.answers,
                     onEvent = onEvent,
+                    showAds = state.showAds,
                 )
             }
             if (arrowsBeside) besideArrows()
@@ -270,7 +273,12 @@ private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> U
  * the drawing is measured against the page it is on, so an enlarged copy never outgrows the screen.
  */
 @Composable
-private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEvent: (SituationUiEvent) -> Unit) {
+private fun SituationPage(
+    situation: SituationItem,
+    answers: Map<Int, Int>,
+    onEvent: (SituationUiEvent) -> Unit,
+    showAds: Boolean,
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val question = situation.questions.getOrNull(tab) ?: situation.questions.firstOrNull() ?: return
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -300,6 +308,9 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                     chosen = answers[question.questionId],
                     onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
                 )
+                // At the end of the page, under the answers: the one part of this screen with
+                // nothing to tap near it, which is the whole reason the placement is allowed here.
+                if (showAds) AdBanner(AdSlot.SituationBanner)
             }
         }
     }
@@ -479,6 +490,19 @@ private fun SituationScreenPreview() {
     AppPreview {
         SituationScreen(
             state = SituationUiState.Ready(previewSituations, initialPage = 0),
+            onEvent = {},
+            onClose = {},
+        )
+    }
+}
+
+/** The banner under the answers, which is where the free tier's ad sits on this screen. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SituationScreenBannerPreview() {
+    AppPreview {
+        SituationScreen(
+            state = SituationUiState.Ready(previewSituations, initialPage = 0, showAds = true),
             onEvent = {},
             onClose = {},
         )

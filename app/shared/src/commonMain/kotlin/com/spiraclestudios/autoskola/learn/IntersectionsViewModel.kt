@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import com.spiraclestudios.autoskola.bank.Question
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.situationOpenedProperties
@@ -64,6 +65,8 @@ sealed interface IntersectionsUiState {
         val drillPrompt: DrillPrompt? = null,
         /** Set while the screen asks whether to clear every answer to the situations. */
         val resetPrompt: Boolean = false,
+        /** Whether the banner pinned under the list is drawn. False unless the state says so. */
+        val showAds: Boolean = false,
     ) : IntersectionsUiState {
         /** How many questions the situations hold altogether, folded into one run of practice. */
         val questionCount: Int get() = situations.sumOf { it.questions.size }
@@ -75,6 +78,12 @@ sealed interface IntersectionsUiState {
  * again instead of choosing for them.
  */
 data class DrillPrompt(val attemptId: String, val answered: Int, val total: Int)
+
+/**
+ * The three things this screen can be part-way through asking, in one source: [uiState] has to
+ * follow the ads answer too, and there is no `combine` that takes six.
+ */
+private data class Prompts(val openAttemptId: String?, val drill: DrillPrompt?, val reset: Boolean)
 
 sealed interface IntersectionsUiEvent {
     /** Drills every situation, asking what to do first when one is already under way. */
@@ -111,6 +120,7 @@ class IntersectionsViewModel(
     private val banks: QuestionBankRepository,
     private val answers: PracticeAnswerRepository,
     private val analytics: AnalyticsRepository,
+    private val ads: AdRepository,
 ) : ViewModel() {
 
     private val session: StateFlow<ExamSession?> = exams.current
@@ -126,16 +136,19 @@ class IntersectionsViewModel(
     private val given: Flow<PracticeAnswers> = session.filterNotNull()
         .flatMapLatest { answers.answers(it.bank.id, it.bank.version) }
 
+    private val prompts = combine(openAttemptId, drillPrompt, resetPrompt, ::Prompts)
+
     val uiState: StateFlow<IntersectionsUiState> =
-        combine(session, given, openAttemptId, drillPrompt, resetPrompt) { session, given, open, prompt, reset ->
+        combine(session, given, prompts, ads.adsAllowed) { session, given, prompts, showAds ->
             if (session == null) {
                 IntersectionsUiState.Loading
             } else {
                 IntersectionsUiState.Ready(
                     situations = situationItems(session, banks, given),
-                    openAttemptId = open,
-                    drillPrompt = prompt,
-                    resetPrompt = reset,
+                    openAttemptId = prompts.openAttemptId,
+                    drillPrompt = prompts.drill,
+                    resetPrompt = prompts.reset,
+                    showAds = showAds,
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntersectionsUiState.Loading)

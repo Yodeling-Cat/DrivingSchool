@@ -2,6 +2,8 @@ package com.spiraclestudios.autoskola.testing
 
 import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.bank.QuestionBank
+import com.spiraclestudios.autoskola.data.ads.AdRepository
+import com.spiraclestudios.autoskola.data.ads.FakeAdDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
@@ -63,6 +65,14 @@ class TestRepositories(bank: QuestionBank = testBank()) {
 
     /** What the user owns. Nothing is bought in a test, so this answers Free like the app ships. */
     val premium = PremiumRepository()
+
+    /**
+     * The ads, over a [FakeAdDataSource] rather than the no-op one. The no-op source answers "this
+     * target cannot serve ads", which is a different thing from "the app decided not to ask", and
+     * only the second is what these tests are about.
+     */
+    val adDataSource = FakeAdDataSource()
+    val ads = AdRepository(adDataSource, preferences, premium, settings)
 
     /** What the tests asserted was sent, and the consent gate in front of it. */
     val analyticsSink = RecordingAnalyticsDataSource()

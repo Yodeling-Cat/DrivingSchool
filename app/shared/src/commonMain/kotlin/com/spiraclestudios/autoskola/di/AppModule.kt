@@ -84,10 +84,10 @@ val appModule = module {
     viewModelOf(::DisclaimerViewModel)
     viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
-    viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get()) }
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
-    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get()) }
+    viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { AboutViewModel() }
     // Both of these read the platform's own answers as their defaults, which Koin must not

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MailOutline
@@ -185,6 +186,18 @@ fun SettingsScreen(
                         iconBackground = colors.mintGlow,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetAnalytics(it)) },
                     )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    SettingsSwitchRow(
+                        title = strings.consentAdsTitle,
+                        description = strings.consentAdsDescription,
+                        checked = state.adsEnabled,
+                        // The megaphone, because this row is about what the app shows the user rather
+                        // than about what leaves the device.
+                        icon = Icons.Outlined.Campaign,
+                        iconTint = colors.primaryDeep,
+                        iconBackground = colors.mintGlow,
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetAds(it)) },
+                    )
                 }
 
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
@@ -321,6 +334,7 @@ private fun SettingsScreenPreview() {
                 advanceAfterAnswer = true,
                 crashReportingEnabled = true,
                 analyticsEnabled = false,
+                adsEnabled = true,
                 exam = previewExam,
                 appVersion = "1.4.2",
             ),
@@ -345,6 +359,7 @@ private fun SettingsScreenCheckingPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
+                adsEnabled = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
             ),
@@ -369,6 +384,7 @@ private fun SettingsScreenNoVersionPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = false,
                 analyticsEnabled = false,
+                adsEnabled = false,
                 exam = previewExam,
                 appVersion = null,
             ),
@@ -396,6 +412,7 @@ private fun SettingsScreenNoExamYetPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
+                adsEnabled = true,
                 exam = null,
                 appVersion = "1.4.2",
             ),

@@ -22,6 +22,9 @@ internal const val CONSENT_SWITCH_CRASH_REPORTING = "crash_reporting"
 /** The `consent_changed` switch for the analytics answer. */
 internal const val CONSENT_SWITCH_ANALYTICS = "analytics"
 
+/** The `consent_changed` switch for the ads answer. */
+internal const val CONSENT_SWITCH_ADS = "ads"
+
 /**
  * The wire name of [AttemptKind], kept apart from the constant's own name so renaming a Kotlin
  * enum is a refactor while changing this splits the event's history in the dashboard.
@@ -69,13 +72,24 @@ internal fun bankMissingProperties(bankId: String): Map<String, Any> = mapOf("ba
 /** The properties `situation_opened` carries: which situation was opened. */
 internal fun situationOpenedProperties(number: Int): Map<String, Any> = mapOf("number" to number)
 
-/** The properties `consent_answered` carries: the answers committed, and the button pressed. */
-internal fun consentAnsweredProperties(crashReporting: Boolean, analytics: Boolean, choice: String): Map<String, Any> =
-    mapOf(
-        "crash_reporting" to crashReporting,
-        "analytics" to analytics,
-        "choice" to choice,
-    )
+/**
+ * The properties `consent_answered` carries: the answers committed, and the button pressed.
+ *
+ * Ads are recorded here as a boolean like the other two - the answer itself, never what was seen or
+ * asked for - because the whole point of the event is what the user agreed to at the moment they
+ * agreed to it.
+ */
+internal fun consentAnsweredProperties(
+    crashReporting: Boolean,
+    analytics: Boolean,
+    ads: Boolean,
+    choice: String,
+): Map<String, Any> = mapOf(
+    "crash_reporting" to crashReporting,
+    "analytics" to analytics,
+    "ads" to ads,
+    "choice" to choice,
+)
 
 /** The properties `consent_changed` carries: which switch, and what it was set to. */
 internal fun consentChangedProperties(switch: String, enabled: Boolean): Map<String, Any> =

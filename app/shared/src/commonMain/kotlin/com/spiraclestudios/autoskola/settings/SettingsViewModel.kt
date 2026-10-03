@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.appVersion
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ADS
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ANALYTICS
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_CRASH_REPORTING
 import com.spiraclestudios.autoskola.data.analytics.consentChangedProperties
@@ -24,9 +25,10 @@ data class SettingsUiState(
     val language: AppLanguage,
     val checkAnswersImmediately: Boolean,
     val advanceAfterAnswer: Boolean,
-    /** The two answers the consent screen asked for, which the user can change here. */
+    /** The three answers the consent screen asked for, which the user can change here. */
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
+    val adsEnabled: Boolean,
     /**
      * `null` when there is no exam to name. The exam cannot be unset once chosen, but
      * `ExamRepository.current` re-resolves on a cold subscription, so this is what the row is drawn
@@ -49,6 +51,7 @@ sealed interface SettingsUiEvent {
     data class SetAdvanceAfterAnswer(val enabled: Boolean) : SettingsUiEvent
     data class SetCrashReporting(val enabled: Boolean) : SettingsUiEvent
     data class SetAnalytics(val enabled: Boolean) : SettingsUiEvent
+    data class SetAds(val enabled: Boolean) : SettingsUiEvent
 }
 
 class SettingsViewModel(
@@ -102,6 +105,18 @@ class SettingsViewModel(
                 preferences.setAnalyticsEnabled(event.enabled)
                 analytics.syncConsent()
             }
+
+            is SettingsUiEvent.SetAds -> {
+                if (preferences.preferences.value.adsEnabled != event.enabled) {
+                    analytics.capture(
+                        AnalyticsEvent.ConsentChanged,
+                        consentChangedProperties(CONSENT_SWITCH_ADS, event.enabled),
+                    )
+                }
+                // No syncConsent after this one: the ads answer is not something PostHog is told
+                // about. The ad SDK reads the preference itself, so the write is the whole of it.
+                preferences.setAdsEnabled(event.enabled)
+            }
         }
     }
 
@@ -111,6 +126,7 @@ class SettingsViewModel(
         advanceAfterAnswer = preferences.advanceAfterAnswer,
         crashReportingEnabled = preferences.crashReportingEnabled,
         analyticsEnabled = preferences.analyticsEnabled,
+        adsEnabled = preferences.adsEnabled,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,
     )

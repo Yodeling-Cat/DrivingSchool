@@ -43,7 +43,7 @@ class Strings(
     val disclaimerIndependent: String,
     val disclaimerSource: String,
     val disclaimerAccept: String,
-    // Consent. The two switches are separate answers, and the documents are linked rather than
+    // Consent. The three switches are separate answers, and the documents are linked rather than
     // summarized: a user cannot agree to what they cannot read.
     val consentTitle: String,
     val consentSubtitle: String,
@@ -51,6 +51,8 @@ class Strings(
     val consentCrashReportingDescription: String,
     val consentAnalyticsTitle: String,
     val consentAnalyticsDescription: String,
+    val consentAdsTitle: String,
+    val consentAdsDescription: String,
     val consentAgree: String,
     /** Announced rather than drawn: what a screen reader hears when the agreement is missing. */
     val consentAgreeRequired: String,
@@ -329,12 +331,15 @@ private val EnglishStrings = Strings(
         "anything differs, the official exam and current law apply.",
     disclaimerAccept = "I understand",
     consentTitle = "Your data, your choice",
-    consentSubtitle = "This app can send two things, to help us fix it and improve it.",
+    consentSubtitle = "This app can show ads, and can send two things to help us fix it and " +
+        "improve it.",
     consentCrashReportingTitle = "Crash reports",
     consentCrashReportingDescription = "If the app crashes, it sends us what went wrong, along with " +
         "your device model and the app version.",
     consentAnalyticsTitle = "Usage statistics",
     consentAnalyticsDescription = "Tracks usage metrics and events while you use the app.",
+    consentAdsTitle = "Ads",
+    consentAdsDescription = "Shows ads, which is what keeps the app free.",
     consentAgree = "I agree to the Privacy Policy and the Terms of Use",
     consentAgreeRequired = "Tick this box to continue.",
     legalPrivacyPolicy = "Privacy Policy",
@@ -517,12 +522,15 @@ private val SlovakStrings = Strings(
         "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
     disclaimerAccept = "Rozumiem",
     consentTitle = "Vaše dáta, vaša voľba",
-    consentSubtitle = "Aplikácia môže odosielať dve veci, aby sme ju mohli opraviť a vylepšiť.",
+    consentSubtitle = "Aplikácia môže zobrazovať reklamy a odosielať dve veci, aby sme ju mohli " +
+        "opraviť a vylepšiť.",
     consentCrashReportingTitle = "Hlásenia o zlyhaniach",
     consentCrashReportingDescription = "Ak aplikácia spadne, pošle nám, čo sa pokazilo, model " +
         "zariadenia a verziu aplikácie.",
     consentAnalyticsTitle = "Štatistiky používania",
     consentAnalyticsDescription = "Sleduje štatistiky používania a udalosti počas používania aplikácie.",
+    consentAdsTitle = "Reklamy",
+    consentAdsDescription = "Zobrazuje reklamy, vďaka ktorým je aplikácia zadarmo.",
     consentAgree = "Súhlasím so Zásadami ochrany osobných údajov a Podmienkami používania",
     consentAgreeRequired = "Ak chcete pokračovať, zaškrtnite toto políčko.",
     legalPrivacyPolicy = "Zásady ochrany osobných údajov",
@@ -705,13 +713,16 @@ private val HungarianStrings = Strings(
         "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
     disclaimerAccept = "Értem",
     consentTitle = "Az Ön adatai, az Ön döntése",
-    consentSubtitle = "Az alkalmazás két dolgot küldhet, hogy javíthassuk és fejleszthessük.",
+    consentSubtitle = "Az alkalmazás reklámokat jeleníthet meg, és két dolgot küldhet, hogy " +
+        "javíthassuk és fejleszthessük.",
     consentCrashReportingTitle = "Hibajelentések",
     consentCrashReportingDescription = "Ha az alkalmazás lefagy, elküldi, mi hibázott, a készülék " +
         "típusát és az alkalmazás verzióját.",
     consentAnalyticsTitle = "Használati statisztikák",
     consentAnalyticsDescription = "Használati mérőszámokat és eseményeket követ nyomon, miközben " +
         "használja az alkalmazást.",
+    consentAdsTitle = "Reklámok",
+    consentAdsDescription = "Reklámokat jelenít meg, ez teszi ingyenessé az alkalmazást.",
     consentAgree = "Elfogadom az Adatvédelmi szabályzatot és a Felhasználási feltételeket",
     consentAgreeRequired = "A folytatáshoz jelölje be ezt a négyzetet.",
     legalPrivacyPolicy = "Adatvédelmi szabályzat",
@@ -895,12 +906,15 @@ private val CzechStrings = Strings(
         "něco liší, platí oficiální zkouška a aktuální předpisy.",
     disclaimerAccept = "Rozumím",
     consentTitle = "Vaše data, vaše volba",
-    consentSubtitle = "Aplikace může odesílat dvě věci, abychom ji mohli opravit a vylepšit.",
+    consentSubtitle = "Aplikace může zobrazovat reklamy a odesílat dvě věci, abychom ji mohli " +
+        "opravit a vylepšit.",
     consentCrashReportingTitle = "Hlášení o pádech",
     consentCrashReportingDescription = "Pokud aplikace spadne, pošle nám, co se pokazilo, model " +
         "zařízení a verzi aplikace.",
     consentAnalyticsTitle = "Statistiky používání",
     consentAnalyticsDescription = "Sleduje statistiky používání a události při používání aplikace.",
+    consentAdsTitle = "Reklamy",
+    consentAdsDescription = "Zobrazuje reklamy, díky kterým je aplikace zdarma.",
     consentAgree = "Souhlasím se Zásadami ochrany osobních údajů a Podmínkami použití",
     consentAgreeRequired = "Chcete-li pokračovat, zaškrtněte toto políčko.",
     legalPrivacyPolicy = "Zásady ochrany osobních údajů",

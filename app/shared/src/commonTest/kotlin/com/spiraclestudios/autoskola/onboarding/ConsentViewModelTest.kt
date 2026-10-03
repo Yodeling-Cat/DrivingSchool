@@ -57,13 +57,16 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theTwoSwitchesAreAnsweredSeparately() = runTest {
+    fun theThreeSwitchesAreAnsweredSeparately() = runTest {
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
 
         assertTrue(state.value.crashReportingEnabled)
+        // All three start off, and that is a requirement rather than a default waiting to be
+        // improved: a pre-ticked switch takes its answer from the user not touching it.
         assertFalse(state.value.analyticsEnabled)
+        assertFalse(state.value.adsEnabled)
     }
 
     @Test
@@ -72,11 +75,32 @@ class ConsentViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
         viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
+        viewModel.onEvent(ConsentUiEvent.SetAds(true))
 
         // Held, not written: the screen is still asking and the user can still walk away.
         assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
         assertFalse(repositories.preferences.preferences.value.analyticsEnabled)
+        assertFalse(repositories.preferences.preferences.value.adsEnabled)
         // The only push is the repository's own, from when it was built.
+        assertEquals(listOf(false to false), repositories.analyticsSink.consents)
+    }
+
+    @Test
+    fun theAdsAnswerIsCommittedSeparatelyFromTheOtherTwo() = runTest {
+        observe(viewModel.uiState)
+
+        // Ads allowed, tracking refused. Three separate answers, and this is the shape a user who
+        // wants the app to stay free but not to be measured gives.
+        viewModel.onEvent(ConsentUiEvent.SetAds(true))
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        val preferences = repositories.preferences.preferences.value
+        assertTrue(preferences.adsEnabled)
+        assertFalse(preferences.crashReportingEnabled)
+        assertFalse(preferences.analyticsEnabled)
+        // And the analytics sink hears nothing about it: ads are not a PostHog answer, so the SDK
+        // is told only what it is allowed to collect.
         assertEquals(listOf(false to false), repositories.analyticsSink.consents)
     }
 
@@ -110,7 +134,7 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun acceptingEverythingAnswersBothQuestionsWithoutTouchingTheSwitches() = runTest {
+    fun acceptingEverythingAnswersAllThreeQuestionsWithoutTouchingTheSwitches() = runTest {
         observe(viewModel.uiState)
 
         viewModel.onEvent(ConsentUiEvent.AcceptAll)
@@ -118,6 +142,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val preferences = repositories.preferences.preferences.value
         assertTrue(preferences.crashReportingEnabled)
         assertTrue(preferences.analyticsEnabled)
+        assertTrue(preferences.adsEnabled)
         assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
         // The press is the only thing that could have answered: no switch was touched.
         assertEquals(true to true, repositories.analyticsSink.consents.last())
@@ -152,7 +177,7 @@ class ConsentViewModelTest : ViewModelTest() {
             repositories.analyticsSink.events,
         )
         assertEquals(
-            mapOf("crash_reporting" to true, "analytics" to true, "choice" to "accept_all"),
+            mapOf("crash_reporting" to true, "analytics" to true, "ads" to true, "choice" to "accept_all"),
             repositories.analyticsSink.properties.first(),
         )
     }
@@ -167,7 +192,7 @@ class ConsentViewModelTest : ViewModelTest() {
         viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
         assertEquals(
-            mapOf("crash_reporting" to true, "analytics" to true, "choice" to "accept_chosen"),
+            mapOf("crash_reporting" to true, "analytics" to true, "ads" to false, "choice" to "accept_chosen"),
             repositories.analyticsSink.properties.first(),
         )
     }

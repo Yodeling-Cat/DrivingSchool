@@ -55,19 +55,19 @@ fun ConsentRoute(viewModel: ConsentViewModel = koinViewModel()) {
 }
 
 /**
- * The second screen after install, and the one that actually asks: what the app sends, two
- * switches to answer with, and the documents to read before agreeing to them.
+ * The second screen after install, and the one that actually asks: what the app shows and sends,
+ * three switches to answer with, and the documents to read before agreeing to them.
  *
  * The continue button stays disabled until the agreement is ticked. The switches do not gate it —
  * refusing both is a valid answer, because neither is required to use the app.
  *
- * Two buttons, not one. "Accept all" answers both questions in a single act and is always live;
+ * Two buttons, not one. "Accept all" answers all three questions in a single act and is always live;
  * "Accept chosen" keeps whatever the switches say and waits for the documents to be ticked. That
  * leaves the wary user a way through with both answers off, which has to be as easy as agreeing —
  * and either way the answer comes from a press, which is what the pre-ticked switch it replaces
  * could never do.
  *
- * Both switches start off, and that is a requirement rather than a default waiting to be improved:
+ * All three switches start off, and that is a requirement rather than a default:
  * a pre-ticked box is not valid consent under the GDPR or the ePrivacy Directive, so the answer has
  * to come from the user acting rather than from the user not objecting. `plans/privacy-and-terms.md`
  * records the same thing from the other side.
@@ -115,6 +115,15 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                                 description = strings.consentAnalyticsDescription,
                                 checked = state.analyticsEnabled,
                                 onCheckedChange = { onEvent(ConsentUiEvent.SetAnalytics(it)) },
+                            )
+                            // Last, and about showing rather than sending: refusing it costs the user
+                            // nothing but the ads, which is why it sits after the two that decide
+                            // what leaves the device.
+                            ConsentSwitchRow(
+                                title = strings.consentAdsTitle,
+                                description = strings.consentAdsDescription,
+                                checked = state.adsEnabled,
+                                onCheckedChange = { onEvent(ConsentUiEvent.SetAds(it)) },
                             )
                         }
                     }
@@ -246,6 +255,7 @@ private val previewConsentState = ConsentUiState(
     agreementError = false,
     crashReportingEnabled = false,
     analyticsEnabled = false,
+    adsEnabled = false,
 )
 
 /** The screen as it opens: nothing answered, and the button that cannot be pressed yet. */
@@ -257,7 +267,7 @@ private fun ConsentScreenPreview() {
     }
 }
 
-/** Both answers turned on and the documents agreed to, so the action is available. */
+/** All three answers turned on and the documents agreed to, so the action is available. */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
 private fun ConsentScreenAnsweredPreview() {
@@ -267,6 +277,7 @@ private fun ConsentScreenAnsweredPreview() {
                 documentsAccepted = true,
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
+                adsEnabled = true,
             ),
             onEvent = {},
             onOpenDocument = {},
@@ -281,6 +292,22 @@ private fun ConsentScreenRefusedBothPreview() {
     AppPreview {
         ConsentScreen(
             previewConsentState.copy(documentsAccepted = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/**
+ * Ads allowed while both sharing answers are refused: the shape of "keep it free, don't measure me",
+ * and the combination the third switch exists to make possible.
+ */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenAdsOnlyPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(documentsAccepted = true, adsEnabled = true),
             onEvent = {},
             onOpenDocument = {},
         )

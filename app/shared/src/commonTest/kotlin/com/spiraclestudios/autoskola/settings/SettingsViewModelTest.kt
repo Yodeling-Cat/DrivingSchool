@@ -23,14 +23,63 @@ class SettingsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theTwoSharingAnswersCanBeChangedHere() = runTest {
+    fun theThreeAnswersCanBeChangedHere() = runTest {
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SettingsUiEvent.SetCrashReporting(true))
 
         assertEquals(true, state.value.crashReportingEnabled)
         assertEquals(false, state.value.analyticsEnabled)
+        assertEquals(false, state.value.adsEnabled)
         assertEquals(true, repositories.preferences.preferences.value.crashReportingEnabled)
+    }
+
+    @Test
+    fun theAdsAnswerBelongsToSettingsToo() = runTest {
+        val state = observe(viewModel.uiState)
+
+        // Off, because it starts off and this is a fresh install. The row is what lets a user who
+        // said no in onboarding change their mind without reinstalling.
+        assertFalse(state.value.adsEnabled)
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+
+        assertTrue(state.value.adsEnabled)
+        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+
+        assertFalse(state.value.adsEnabled)
+        assertFalse(repositories.preferences.preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun changingTheAdsSwitchRecordsTheChange() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+        repositories.analyticsSink.events.clear()
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+
+        assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("switch" to "ads", "enabled" to true),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun theAdsAnswerIsNotOnePostHogIsTold() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        observe(viewModel.uiState)
+        val before = repositories.analyticsSink.consents.size
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+
+        // `syncConsent` is what tells PostHog which of its own switches are on, so it is called for
+        // the two answers that gate what PostHog may collect and not for this one: the ad SDK reads
+        // the preference itself.
+        assertEquals(before, repositories.analyticsSink.consents.size)
     }
 
     @Test

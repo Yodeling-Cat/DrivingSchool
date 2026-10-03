@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 data class ConsentUiState(
     val language: AppLanguage,
@@ -25,7 +26,16 @@ data class ConsentUiState(
     val agreementError: Boolean,
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
+    val adsEnabled: Boolean,
 )
+
+/**
+ * The answers as the switches show them, before either button commits them.
+ *
+ * One value rather than three flows, because the screen is one question with three answers and
+ * [ConsentViewModel.uiState] would otherwise have to combine six sources to draw it.
+ */
+private data class StagedAnswers(val crashReporting: Boolean, val analytics: Boolean, val ads: Boolean)
 
 sealed interface ConsentUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ConsentUiEvent
@@ -39,7 +49,13 @@ sealed interface ConsentUiEvent {
     /** Optional, and its own answer. */
     data class SetAnalytics(val enabled: Boolean) : ConsentUiEvent
 
-    /** Agree to the documents and to both sharing questions in one act. */
+    /**
+     * Optional, and its own answer. Ads are the one thing here the app *shows* rather than sends,
+     * and refusing costs the user nothing but the ads: everything in the app works without them.
+     */
+    data class SetAds(val enabled: Boolean) : ConsentUiEvent
+
+    /** Agree to the documents and to all three answers in one act. */
     data object AcceptAll : ConsentUiEvent
 
     /** Agree to the documents, at whatever the switches have been set to. */
@@ -47,9 +63,9 @@ sealed interface ConsentUiEvent {
 }
 
 /**
- * The screen where the user agrees to the documents and answers the two sharing questions.
+ * The screen where the user agrees to the documents and answers three separate questions.
  *
- * The two switches are separate on purpose. Bundling them into "I accept the terms" would not be
+ * The three answers are separate on purpose. Bundling them into "I accept the terms" would not be
  * consent that is specific to what it covers, which is what the law asks for and what the app
  * previously got wrong (`plans/privacy-and-terms.md`).
  *
@@ -80,22 +96,27 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
      * The answers as the switches show them, starting from whatever was answered last time — a
      * re-consent after a policy change opens on the old answers rather than on nothing.
      */
-    private val stagedCrashReporting = MutableStateFlow(preferences.preferences.value.crashReportingEnabled)
-    private val stagedAnalytics = MutableStateFlow(preferences.preferences.value.analyticsEnabled)
+    private val staged = MutableStateFlow(
+        StagedAnswers(
+            crashReporting = preferences.preferences.value.crashReportingEnabled,
+            analytics = preferences.preferences.value.analyticsEnabled,
+            ads = preferences.preferences.value.adsEnabled,
+        ),
+    )
 
     val uiState: StateFlow<ConsentUiState> = combine(
         preferences.preferences,
         documentsAccepted,
         agreementError,
-        stagedCrashReporting,
-        stagedAnalytics,
-    ) { preferences, documentsAccepted, agreementError, crashReporting, analytics ->
+        staged,
+    ) { preferences, documentsAccepted, agreementError, staged ->
         ConsentUiState(
             language = preferences.language,
             documentsAccepted = documentsAccepted,
             agreementError = agreementError,
-            crashReportingEnabled = crashReporting,
-            analyticsEnabled = analytics,
+            crashReportingEnabled = staged.crashReporting,
+            analyticsEnabled = staged.analytics,
+            adsEnabled = staged.ads,
         )
     }.stateIn(
         viewModelScope,
@@ -106,6 +127,7 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
             agreementError = false,
             crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
             analyticsEnabled = preferences.preferences.value.analyticsEnabled,
+            adsEnabled = preferences.preferences.value.adsEnabled,
         ),
     )
 
@@ -124,13 +146,14 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
             }
 
             // Held, not written. These are what the buttons commit.
-            is ConsentUiEvent.SetCrashReporting -> stagedCrashReporting.value = event.enabled
+            is ConsentUiEvent.SetCrashReporting -> staged.update { it.copy(crashReporting = event.enabled) }
 
-            is ConsentUiEvent.SetAnalytics -> stagedAnalytics.value = event.enabled
+            is ConsentUiEvent.SetAnalytics -> staged.update { it.copy(analytics = event.enabled) }
+
+            is ConsentUiEvent.SetAds -> staged.update { it.copy(ads = event.enabled) }
 
             ConsentUiEvent.AcceptAll -> {
-                stagedCrashReporting.value = true
-                stagedAnalytics.value = true
+                staged.value = StagedAnswers(crashReporting = true, analytics = true, ads = true)
                 documentsAccepted.value = true
                 agreementError.value = false
                 commitAnswers(CONSENT_CHOICE_ACCEPT_ALL)
@@ -157,13 +180,15 @@ class ConsentViewModel(private val preferences: PreferencesRepository, private v
      * that was pressed, which is how the two ways through are told apart in the data.
      */
     private fun commitAnswers(choice: String) {
-        preferences.setCrashReportingEnabled(stagedCrashReporting.value)
-        preferences.setAnalyticsEnabled(stagedAnalytics.value)
+        val answers = staged.value
+        preferences.setCrashReportingEnabled(answers.crashReporting)
+        preferences.setAnalyticsEnabled(answers.analytics)
+        preferences.setAdsEnabled(answers.ads)
         analytics.syncConsent()
         preferences.acceptLegal(CURRENT_LEGAL_VERSION)
         analytics.capture(
             AnalyticsEvent.ConsentAnswered,
-            consentAnsweredProperties(stagedCrashReporting.value, stagedAnalytics.value, choice),
+            consentAnsweredProperties(answers.crashReporting, answers.analytics, answers.ads, choice),
         )
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
     }

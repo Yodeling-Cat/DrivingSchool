@@ -18,11 +18,15 @@ const val CURRENT_LEGAL_VERSION = 2
 /**
  * Which published document a link opens.
  *
- * The host is still an open decision (`plans/privacy-and-terms.md`, decision 7) and neither page
- * exists yet, so both point at a placeholder that MUST be replaced before the first store
- * submission — Play, App Store Connect and AdMob all read these URLs.
+ * Both are served from the app's own hostname, which is deliberately not the marketing site's:
+ * Play, App Store Connect and AdMob all read these URLs, and a store listing that points at a page
+ * which moves with the marketing site is a listing that breaks. The two pages are one document
+ * each, in the same shape as the rest of that site (`plans/privacy-and-terms.md`, decision 7).
+ *
+ * They are published in English: the app's four languages are the app's own text, which is a
+ * separate job from the site's ("Translation" in the same plan).
  */
 enum class LegalDocument(val url: String) {
-    PrivacyPolicy("https://example.com/privacy"),
-    TermsOfUse("https://example.com/terms"),
+    PrivacyPolicy("https://autoskola.tree-among-shrubs.com/en/privacy-policy"),
+    TermsOfUse("https://autoskola.tree-among-shrubs.com/en/terms-of-service"),
 }

@@ -72,6 +72,13 @@ UI text is translated into English, Slovak, Hungarian and Czech. Never hardcode 
 
 Question banks and images are generated into `app/shared/src/commonMain/composeResources/files/` by `tools/import/` (run `./tools/import/import.sh`). Never hand-edit them. Sources, coverage and terms of use are in `docs/data-sources.md`; the importer is documented in `docs/importing-questions.md`. The bank model and practice-test generation live in `:core` (`com.spiraclestudios.autoskola.bank`).
 
+## Legal documents
+
+The privacy policy and the terms of use are not in this repository: they are pages on the company's own site (the `tree-among-shrubs/web` repository, served at `autoskola.tree-among-shrubs.com`), and the app links to them from `LegalDocument` (`data/preferences/LegalConsent.kt`). Two things to know when touching anything about them, including the app's own strings that describe them:
+
+- They are published in **English and Slovak**, and the **Slovak text is the authoritative one**; both documents say so. Where the two disagree, Slovak governs, and the app's four `i18n/Strings.kt` tables have to agree with what the documents say.
+- **Every locale changes together.** Adding, rewording or removing anything in one of them means the same change in the other, in the same commit: half a translation is either `translation missing` on the page or a silent fallback to English, in a document the user is asked to agree to. The site repo's `CLAUDE.md` carries the full rule, and `bin/rails test` there renders both locales of both documents and fails on `translation missing`.
+
 ## Open source libraries
 
 The About screen lists the app's dependencies with [AboutLibraries](https://github.com/mikepenz/AboutLibraries), whose Gradle plugin writes them to `app/shared/src/commonMain/composeResources/files/aboutlibraries.json`. The file is generated and **committed** — the plugin is not wired into the build, so no build fetches anything — and `./gradlew :app:shared:exportLibraryDefinitions` refreshes it. Run that after adding, removing or bumping a dependency, and commit the result with it: a stale file is exactly what the user reads. `AboutViewModel` reads it from the app's Compose resources and `AboutScreen` draws AboutLibraries' own container (`LibrariesVariant.Refined`, `LibraryActionMode.Chips`), supplying only the words around it.

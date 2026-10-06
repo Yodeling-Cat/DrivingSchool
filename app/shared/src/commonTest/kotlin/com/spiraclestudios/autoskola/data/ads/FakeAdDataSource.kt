@@ -38,11 +38,11 @@ class FakeAdDataSource(
         loaded = null
     }
 
-    /** Every value [setUnderAgeOfConsent] was handed, in order. */
-    val underAgeOfConsent = mutableListOf<Boolean>()
+    /** Every value [setAudience] was handed, in order. */
+    val audiences = mutableListOf<AdAudience>()
 
-    override fun setUnderAgeOfConsent(underAge: Boolean) {
-        underAgeOfConsent += underAge
+    override fun setAudience(audience: AdAudience) {
+        audiences += audience
     }
 
     /** Every value [setPersonalizedAds] was handed, in order. */

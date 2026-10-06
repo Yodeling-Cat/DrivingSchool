@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.data.ads
 
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.premium.PremiumStatus
@@ -50,13 +51,13 @@ class AdRepositoryTest {
         // all settled by an adult, and the age rule itself is in `ConsentAgeTest`. The age is written
         // before the answer, so a test can build the state an older install arrives in — the switch
         // stored as yes, and no question ever asked.
-        overConsentAge: Boolean? = true,
+        ageBand: AgeBand? = AgeBand.Adult,
         parentalConsent: Boolean = false,
     ) = Fixture(
         dataSource = FakeAdDataSource(available = available, result = result),
         preferences = PreferencesRepository(settings).apply {
             setParentalConsent(parentalConsent)
-            setOverConsentAge(overConsentAge)
+            setAgeBand(ageBand)
             setPersonalizedAdsEnabled(personalizedAds)
         },
         entitlement = PremiumRepository(premium),
@@ -285,7 +286,7 @@ class AdRepositoryTest {
 
     @Test
     fun anUnder16WithoutAnAgreementIsStillShownAdsButNeverPersonalizedOnes() = runTest {
-        val fixture = fixture(overConsentAge = false)
+        val fixture = fixture(ageBand = AgeBand.Under16)
 
         // What the switch says is not the question: nobody who cannot agree alone gets a personalized
         // ad, whatever was stored. They are shown generic ones like everybody who has not agreed.
@@ -298,17 +299,36 @@ class AdRepositoryTest {
 
     @Test
     fun anUnansweredQuestionIsNeverPersonalizedEither() = runTest {
-        val fixture = fixture(overConsentAge = null)
+        val fixture = fixture(ageBand = null)
 
         assertFalse(fixture.ads.personalizedAds())
         assertTrue(fixture.ads.mayRequestAds())
     }
 
     @Test
-    fun anUnder16WhoseParentOrGuardianAgreedMayHaveTheirAnswerCount() = runTest {
-        val fixture = fixture(overConsentAge = false, parentalConsent = true)
+    fun aParentOrGuardiansAgreementNeverUnlocksPersonalizedAds() = runTest {
+        val fixture = fixture(ageBand = AgeBand.Under16, parentalConsent = true)
 
-        assertTrue(fixture.ads.personalizedAds())
+        // The agreement opens the crash-report and statistics switches and nothing more: under 18 no
+        // answer personalizes anything, whoever gave it.
+        assertTrue(fixture.preferences.preferences.value.personalizedAdsEnabled)
+        assertFalse(fixture.ads.personalizedAds())
+        assertEquals(listOf(false), fixture.dataSource.personalizedAds)
+    }
+
+    @Test
+    fun a16To17YearOldIsNeverPersonalizedEitherButIsShownAds() = runTest {
+        val fixture = fixture(ageBand = AgeBand.From16To17)
+
+        assertTrue(fixture.preferences.preferences.value.personalizedAdsEnabled)
+        assertFalse(fixture.ads.personalizedAds())
+        assertTrue(fixture.ads.mayRequestAds())
+        assertEquals(AdResult.Shown, fixture.ads.showTestOfferAd(9))
+    }
+
+    @Test
+    fun anAdultWhoSaidYesIsPersonalized() = runTest {
+        assertTrue(fixture(ageBand = AgeBand.Adult, personalizedAds = true).ads.personalizedAds())
     }
 
     @Test
@@ -317,16 +337,30 @@ class AdRepositoryTest {
     }
 
     @Test
-    fun theSdkIsToldWhoIsUnderTheAgeOfConsent() = runTest {
+    fun theSdkIsToldWhoTheAdsAreFor() = runTest {
         // Pushed when the repository is built, because a banner asks the SDK directly rather than
-        // coming through here.
-        assertEquals(listOf(true), fixture(overConsentAge = false).dataSource.underAgeOfConsent)
-        assertEquals(listOf(false), fixture(overConsentAge = true).dataSource.underAgeOfConsent)
+        // coming through here. Each band has its own treatment: the child flag and rating, a teen
+        // rating without the flag, and neither for an adult.
+        assertEquals(listOf(AdAudience.Child), fixture(ageBand = AgeBand.Under16).dataSource.audiences)
+        assertEquals(listOf(AdAudience.Teen), fixture(ageBand = AgeBand.From16To17).dataSource.audiences)
+        assertEquals(listOf(AdAudience.Adult), fixture(ageBand = AgeBand.Adult).dataSource.audiences)
     }
 
     @Test
-    fun anUnansweredQuestionIsTreatedAsUnderTheAgeOfConsent() = runTest {
-        // Conservative on purpose: the flag comes off on an answer the user gave, never by default.
-        assertEquals(listOf(true), fixture(overConsentAge = null).dataSource.underAgeOfConsent)
+    fun anUnansweredQuestionIsTreatedAsAChild() = runTest {
+        // Conservative on purpose: the child treatment comes off on an answer the user gave, never by
+        // default.
+        assertEquals(listOf(AdAudience.Child), fixture(ageBand = null).dataSource.audiences)
+    }
+
+    @Test
+    fun theAudienceFollowsTheAnswerWhenItChanges() = runTest {
+        val fixture = fixture(ageBand = AgeBand.Under16)
+
+        fixture.preferences.setAgeBand(AgeBand.Adult)
+        fixture.ads.pushConsent()
+
+        // The way up lifts the child treatment as well as setting it on the way down.
+        assertEquals(listOf(AdAudience.Child, AdAudience.Adult), fixture.dataSource.audiences)
     }
 }

@@ -1,6 +1,8 @@
 package com.spiraclestudios.autoskola.onboarding
 
+import com.spiraclestudios.autoskola.data.ads.AdAudience
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
@@ -16,7 +18,7 @@ class ConsentViewModelTest : ViewModelTest() {
         // An adult: this screen's tests are about the three switches, which only an adult — or an
         // under-16 whose parent or guardian agreed — may answer at all. The under-16 path has its own
         // fixture, built where it is used.
-        preferences.setOverConsentAge(true)
+        preferences.setAgeBand(AgeBand.Adult)
     }
     private val viewModel by lazy {
         ConsentViewModel(repositories.preferences, repositories.analytics, repositories.ads)
@@ -247,7 +249,7 @@ class ConsentViewModelTest : ViewModelTest() {
     // builds its own repositories, because the answer is what it is about.
 
     /** A user nothing has asked yet: what a fresh install and an updated app both open on. */
-    private fun unasked() = TestRepositories(overConsentAge = null)
+    private fun unasked() = TestRepositories(ageBand = null)
 
     @Test
     fun theCardIsClosedUntilTheAgeQuestionIsAnswered() = runTest {
@@ -261,7 +263,7 @@ class ConsentViewModelTest : ViewModelTest() {
         assertFalse(state.value.switchesEnabled)
         assertFalse(state.value.asksForParentalConsent)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Adult))
 
         assertTrue(state.value.ageAnswered)
     }
@@ -288,7 +290,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
 
         assertFalse(state.value.switchesEnabled)
         assertTrue(state.value.asksForParentalConsent)
@@ -303,7 +305,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val state = observe(model.uiState)
         assertTrue(state.value.personalizedAdsEnabled)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Adult))
 
         assertTrue(state.value.personalizedAdsEnabled)
         assertTrue(state.value.switchesEnabled)
@@ -322,7 +324,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
 
         assertFalse(state.value.crashReportingEnabled)
         assertFalse(state.value.analyticsEnabled)
@@ -339,7 +341,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
         model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
         model.onEvent(ConsentUiEvent.AcceptAll)
 
@@ -355,7 +357,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
         model.onEvent(ConsentUiEvent.AcceptAll)
 
         assertEquals(emptyList(), fresh.analyticsSink.events)
@@ -364,25 +366,113 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun withTheAgreementTheThreeAnswersAreTheirsToGive() = runTest {
+    fun withTheAgreementTheTwoAnswersAreTheirsToGiveAndTheAdsOneIsNot() = runTest {
         val fresh = unasked()
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
         model.onEvent(ConsentUiEvent.SetParentalConsent(true))
         assertTrue(state.value.switchesEnabled)
+        // The agreement opens crash reports and statistics. It does not open personalized ads.
+        assertFalse(state.value.personalizedAdsAvailable)
 
+        model.onEvent(ConsentUiEvent.SetCrashReporting(true))
         model.onEvent(ConsentUiEvent.SetPersonalizedAds(true))
         model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
         model.onEvent(ConsentUiEvent.AcceptChosen)
 
         val preferences = fresh.preferences.preferences.value
-        assertEquals(false, preferences.overConsentAge)
+        assertEquals(AgeBand.Under16, preferences.ageBand)
         assertTrue(preferences.parentalConsent)
-        assertTrue(preferences.personalizedAdsEnabled)
+        assertTrue(preferences.crashReportingEnabled)
         assertFalse(preferences.analyticsEnabled)
+        // Even though the switch was pressed: what is committed is what the age allows.
+        assertFalse(preferences.personalizedAdsEnabled)
         assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
+    }
+
+    // --- 16 to 17: their own crash reports and statistics, never personalized ads ---
+
+    @Test
+    fun a16To17YearOldAnswersTheFirstTwoAloneAndTheAdsOneIsLocked() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.From16To17))
+
+        assertTrue(state.value.switchesEnabled)
+        assertFalse(state.value.personalizedAdsAvailable)
+        // No guardian is asked for: from 16 the answers are their own.
+        assertFalse(state.value.asksForParentalConsent)
+    }
+
+    @Test
+    fun acceptingEverythingAt16To17LeavesTheAdsAnswerOff() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.From16To17))
+        model.onEvent(ConsentUiEvent.AcceptAll)
+
+        val preferences = fresh.preferences.preferences.value
+        assertTrue(preferences.crashReportingEnabled)
+        assertTrue(preferences.analyticsEnabled)
+        assertFalse(preferences.personalizedAdsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertEquals(AgeBand.From16To17, preferences.ageBand)
+        // And the ad SDK is told they are a teenager and gets a generic request.
+        assertEquals(AdAudience.Teen, fresh.adDataSource.audiences.last())
+        assertEquals(false, fresh.adDataSource.personalizedAds.last())
+    }
+
+    @Test
+    fun answering16To17WithdrawsOnlyTheAdsAnswer() = runTest {
+        val fresh = TestRepositories().apply {
+            preferences.setCrashReportingEnabled(true)
+            preferences.setAnalyticsEnabled(true)
+            preferences.setPersonalizedAdsEnabled(true)
+        }
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.From16To17))
+
+        // The two they can still answer are left as they were; the one that is no longer theirs goes,
+        // staged and stored, so a restart does not bring it back.
+        assertTrue(state.value.crashReportingEnabled)
+        assertTrue(state.value.analyticsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertFalse(fresh.preferences.preferences.value.personalizedAdsEnabled)
+        assertTrue(fresh.preferences.preferences.value.crashReportingEnabled)
+    }
+
+    @Test
+    fun answering18OrOlderTouchesNothing() = runTest {
+        val fresh = TestRepositories(ageBand = null).apply { preferences.setPersonalizedAdsEnabled(true) }
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Adult))
+
+        assertTrue(state.value.personalizedAdsAvailable)
+        assertTrue(state.value.personalizedAdsEnabled)
+    }
+
+    @Test
+    fun anAdultWhoAcceptsEverythingIsToldPersonalizedToTheSdk() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Adult))
+        model.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertTrue(fresh.preferences.preferences.value.personalizedAdsEnabled)
+        assertEquals(AdAudience.Adult, fresh.adDataSource.audiences.last())
+        assertEquals(true, fresh.adDataSource.personalizedAds.last())
     }
 
     @Test
@@ -391,7 +481,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetAgeBand(AgeBand.Under16))
         model.onEvent(ConsentUiEvent.SetParentalConsent(true))
         model.onEvent(ConsentUiEvent.SetAnalytics(true))
         assertTrue(state.value.analyticsEnabled)
@@ -408,12 +498,12 @@ class ConsentViewModelTest : ViewModelTest() {
 
     @Test
     fun aReconsentOpensOnTheAnswerAlreadyGiven() = runTest {
-        val fresh = TestRepositories().apply { preferences.setOverConsentAge(false) }
+        val fresh = TestRepositories().apply { preferences.setAgeBand(AgeBand.Under16) }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
 
         val state = observe(model.uiState)
 
-        assertEquals(false, state.value.overConsentAge)
+        assertEquals(AgeBand.Under16, state.value.ageBand)
         assertTrue(state.value.asksForParentalConsent)
     }
 }

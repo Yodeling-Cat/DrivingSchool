@@ -2,7 +2,7 @@ package com.spiraclestudios.autoskola.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,22 +10,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.ui.theme.Naj
 
 /**
- * The question the three consent switches depend on: which side of 16 the user is on.
+ * The question the consent switches depend on: which age band the user is in.
  *
  * It exists because the answers are not everybody's to give. In Slovakia the age at which a person can
- * agree to crash reports, usage statistics and ads alone is 16, and the app's questions serve
- * candidates from 15 — so below 16 the screen has to ask, and only a parent or guardian can agree on
- * the user's behalf (`plans/age-gate.md`).
+ * agree to crash reports and usage statistics alone is 16, and the app's questions serve candidates
+ * from 15 — so below 16 the screen has to ask, and only a parent or guardian can agree on the user's
+ * behalf. Personalized ads have their own line at 18, which is why there are three bands rather than
+ * two (`plans/age-gate.md`).
  *
- * Two pills rather than a switch, because "not answered yet" is a state the screen has to be able to
- * draw: a switch that is off would say "under 16" for every adult who has not reached the row, and
- * that is not something the app should decide for them. The consent screen asks it and Settings lets
- * the user correct it, which is why it lives here rather than in either screen.
+ * Pills rather than a switch, because "not answered yet" is a state the screen has to be able to draw:
+ * a switch that is off would say "under 16" for every adult who has not reached the row, and that is
+ * not something the app should decide for them. The consent screen asks it and Settings lets the user
+ * correct it, which is why it lives here rather than in either screen.
  *
  * Nothing here decides anything: [ConsentAge][com.spiraclestudios.autoskola.data.preferences.ConsentAge]
  * says who may answer, and this draws the answer.
@@ -34,7 +36,7 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  *   `null` the consent card is closed and its buttons are dead, so the question is the whole screen.
  */
 @Composable
-fun AgeAnswerRow(answer: Boolean?, onAnswer: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun AgeAnswerRow(answer: AgeBand?, onAnswer: (AgeBand) -> Unit, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -43,16 +45,28 @@ fun AgeAnswerRow(answer: Boolean?, onAnswer: (Boolean) -> Unit, modifier: Modifi
             color = colors.ink,
             fontWeight = FontWeight.Medium,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // The chosen one is the filled pill, so the answer reads at a glance; the other stays
+        // A flow rather than a row: three pills side by side do not always fit a phone in the longest
+        // of the four languages, and one that wraps is better than one that is cut off.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // The chosen one is the filled pill, so the answer reads at a glance; the others stay
             // pressable, because changing an answer has to be as easy as giving one.
-            AgePill(text = strings.consentAgeOver16, chosen = answer == true) { onAnswer(true) }
-            AgePill(text = strings.consentAgeUnder16, chosen = answer == false) { onAnswer(false) }
+            AgePill(text = strings.consentAgeUnder16, chosen = answer == AgeBand.Under16) {
+                onAnswer(AgeBand.Under16)
+            }
+            AgePill(text = strings.consentAgeTeen, chosen = answer == AgeBand.From16To17) {
+                onAnswer(AgeBand.From16To17)
+            }
+            AgePill(text = strings.consentAgeAdult, chosen = answer == AgeBand.Adult) {
+                onAnswer(AgeBand.Adult)
+            }
         }
     }
 }
 
-/** One of the two answers. Filled when chosen, outlined when not, and never disabled. */
+/** One of the answers. Filled when chosen, outlined when not, and never disabled. */
 @Composable
 private fun AgePill(text: String, chosen: Boolean, onClick: () -> Unit) {
     if (chosen) {
@@ -82,15 +96,26 @@ private fun AgeAnswerRowUnansweredPreview() {
 private fun AgeAnswerRowAnsweredPreview() {
     AppPreview {
         PreviewBoard {
-            PreviewLabel("16 or older")
-            AgeAnswerRow(answer = true, onAnswer = {})
             PreviewLabel("Under 16")
-            AgeAnswerRow(answer = false, onAnswer = {})
+            AgeAnswerRow(answer = AgeBand.Under16, onAnswer = {})
+            PreviewLabel("16 to 17")
+            AgeAnswerRow(answer = AgeBand.From16To17, onAnswer = {})
+            PreviewLabel("18 or older")
+            AgeAnswerRow(answer = AgeBand.Adult, onAnswer = {})
         }
     }
 }
 
-/** Hungarian and Czech are the longer of the four; the pills sit side by side either way. */
+/** Slovak has the longest label of the four; on a narrow phone the pills wrap rather than overflow. */
+@Preview(widthDp = 320)
+@Composable
+private fun AgeAnswerRowNarrowSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        AgeAnswerRow(answer = null, onAnswer = {})
+    }
+}
+
+/** Hungarian and Czech are the longer of the four; the pills sit side by side or wrap either way. */
 @Preview(widthDp = 360)
 @Composable
 private fun AgeAnswerRowCzechPreview() {

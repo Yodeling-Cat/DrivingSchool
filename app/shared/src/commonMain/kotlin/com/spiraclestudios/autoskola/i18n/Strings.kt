@@ -52,15 +52,18 @@ class Strings(
      * this comes before either button can commit anything (`plans/age-gate.md`).
      */
     val consentAgeQuestion: String,
-    val consentAgeOver16: String,
     val consentAgeUnder16: String,
+    val consentAgeTeen: String,
+    val consentAgeAdult: String,
     /** Why the switches cannot be answered yet, drawn with the guardian's agreement. */
     val consentAgeUnder16Reason: String,
+    /** Why the personalized-ads switch is locked for anyone under 18, whatever else they may answer. */
+    val consentPersonalizedAdsUnder18Reason: String,
     val consentParentalConsent: String,
-    /** The question behind the one press that unlocks three switches. */
-    val settingsAgeConfirmTitle: String,
+    /** The question behind the one press that unlocks switches: [age] is the band's lower bound, 16 or 18. */
+    val settingsAgeConfirmTitle: (age: Int) -> String,
     val settingsAgeConfirmMessage: String,
-    val settingsAgeConfirmAction: String,
+    val settingsAgeConfirmAction: (age: Int) -> String,
     val settingsAgeConfirmDismiss: String,
     val consentParentalConsentDescription: String,
     val consentCrashReportingTitle: String,
@@ -376,19 +379,21 @@ private val EnglishStrings = Strings(
     consentTitle = "Your data, your choice",
     consentSubtitle = "This app shows ads. You decide whether they are personalized, and whether it sends " +
         "two things to help us fix and improve it.",
-    consentAgeQuestion = "Are you 16 or older?",
-    consentAgeOver16 = "16 or older",
+    consentAgeQuestion = "How old are you?",
     consentAgeUnder16 = "Under 16",
+    consentAgeTeen = "16–17",
+    consentAgeAdult = "18 or older",
     consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
         "can agree on your behalf.",
+    consentPersonalizedAdsUnder18Reason = "Personalized ads are for people 18 or older. You will see generic ads.",
     consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
-    settingsAgeConfirmTitle = "Have you turned 16?",
-    settingsAgeConfirmMessage = "Answering yes unlocks the three switches below, so please answer " +
+    settingsAgeConfirmTitle = { "Have you turned $it?" },
+    settingsAgeConfirmMessage = "Answering yes unlocks more of the switches below, so please answer " +
         "only if it is true.",
-    settingsAgeConfirmAction = "Yes, I am 16 or older",
+    settingsAgeConfirmAction = { "Yes, I am $it or older" },
     settingsAgeConfirmDismiss = "Not yet",
     consentParentalConsentDescription = "They have read the Privacy Policy and the Terms of Use, and " +
-        "agreed to the three answers below for me.",
+        "agreed to the first two answers below for me.",
     consentCrashReportingTitle = "Crash reports",
     consentCrashReportingDescription = "If the app crashes, it sends us what went wrong, along with " +
         "your device model and the app version.",
@@ -602,19 +607,22 @@ private val SlovakStrings = Strings(
     consentTitle = "Vaše dáta, vaša voľba",
     consentSubtitle = "Aplikácia zobrazuje reklamy. Vy rozhodujete, či budú personalizované a či odosiela " +
         "dve veci, aby sme ju mohli opraviť a vylepšiť.",
-    consentAgeQuestion = "Máte 16 rokov alebo viac?",
-    consentAgeOver16 = "16 rokov alebo viac",
+    consentAgeQuestion = "Koľko máte rokov?",
     consentAgeUnder16 = "Menej ako 16",
+    consentAgeTeen = "16 – 17",
+    consentAgeAdult = "18 rokov alebo viac",
     consentAgeUnder16Reason = "Kým nemáte 16 rokov, nemôžete s tým súhlasiť sami: vo vašom mene tak " +
         "môže urobiť len rodič alebo zákonný zástupca.",
+    consentPersonalizedAdsUnder18Reason = "Personalizované reklamy sú pre osoby od 18 rokov. Zobrazia sa vám " +
+        "všeobecné reklamy.",
     consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
-    settingsAgeConfirmTitle = "Máte už 16 rokov?",
-    settingsAgeConfirmMessage = "Odpoveďou áno sa odomknú tri prepínače nižšie, preto odpovedzte áno " +
+    settingsAgeConfirmTitle = { "Máte už $it rokov?" },
+    settingsAgeConfirmMessage = "Odpoveďou áno sa odomknú ďalšie prepínače nižšie, preto odpovedzte áno " +
         "len vtedy, ak je to pravda.",
-    settingsAgeConfirmAction = "Áno, mám 16 rokov alebo viac",
+    settingsAgeConfirmAction = { "Áno, mám $it rokov alebo viac" },
     settingsAgeConfirmDismiss = "Ešte nie",
     consentParentalConsentDescription = "Prečítal si Zásady ochrany osobných údajov a Podmienky " +
-        "používania a v mojom mene súhlasil s tromi odpoveďami nižšie.",
+        "používania a v mojom mene súhlasil s prvými dvoma odpoveďami nižšie.",
     consentCrashReportingTitle = "Hlásenia o zrúteniach",
     consentCrashReportingDescription = "Ak aplikácia spadne, pošle nám, čo sa pokazilo, model " +
         "zariadenia a verziu aplikácie.",
@@ -829,19 +837,22 @@ private val HungarianStrings = Strings(
     consentTitle = "Az Ön adatai, az Ön döntése",
     consentSubtitle = "Az alkalmazás reklámokat jelenít meg. Ön dönti el, hogy személyre szabottak " +
         "legyenek-e, és hogy küldjön-e két dolgot, hogy javíthassuk és fejleszthessük.",
-    consentAgeQuestion = "16 éves vagy idősebb?",
-    consentAgeOver16 = "16 éves vagy idősebb",
+    consentAgeQuestion = "Hány éves?",
     consentAgeUnder16 = "16 év alatti",
+    consentAgeTeen = "16–17",
+    consentAgeAdult = "18 éves vagy idősebb",
     consentAgeUnder16Reason = "16 év alatt ezekhez nem tud egyedül hozzájárulni: Ön helyett ezt csak " +
         "szülő vagy gondviselő teheti meg.",
+    consentPersonalizedAdsUnder18Reason = "A személyre szabott reklámok 18 éves kortól érhetők el. Általános " +
+        "reklámokat fog látni.",
     consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
-    settingsAgeConfirmTitle = "Már betöltötte a 16. életévét?",
-    settingsAgeConfirmMessage = "Ha igennel válaszol, kinyílnak az alábbi három kapcsoló, ezért csak " +
+    settingsAgeConfirmTitle = { "Már betöltötte a $it. életévét?" },
+    settingsAgeConfirmMessage = "Ha igennel válaszol, további kapcsolók nyílnak ki lent, ezért csak " +
         "akkor válaszoljon igennel, ha ez igaz.",
-    settingsAgeConfirmAction = "Igen, 16 éves vagy idősebb vagyok",
+    settingsAgeConfirmAction = { "Igen, $it éves vagy idősebb vagyok" },
     settingsAgeConfirmDismiss = "Még nem",
     consentParentalConsentDescription = "Elolvasta az Adatvédelmi szabályzatot és a Felhasználási " +
-        "feltételeket, és Ön helyett hozzájárult a lenti három válaszhoz.",
+        "feltételeket, és Ön helyett hozzájárult a lenti első két válaszhoz.",
     consentCrashReportingTitle = "Hibajelentések",
     consentCrashReportingDescription = "Ha az alkalmazás lefagy, elküldi, mi hibázott, a készülék " +
         "típusát és az alkalmazás verzióját.",
@@ -1058,19 +1069,21 @@ private val CzechStrings = Strings(
     consentTitle = "Vaše data, vaše volba",
     consentSubtitle = "Aplikace zobrazuje reklamy. Vy rozhodujete, zda budou personalizované a zda " +
         "odesílá dvě věci, abychom ji mohli opravit a vylepšit.",
-    consentAgeQuestion = "Je vám 16 let nebo více?",
-    consentAgeOver16 = "16 let nebo více",
+    consentAgeQuestion = "Kolik vám je let?",
     consentAgeUnder16 = "Méně než 16",
+    consentAgeTeen = "16–17",
+    consentAgeAdult = "18 let nebo více",
     consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
         "udělat jen rodič nebo zákonný zástupce.",
+    consentPersonalizedAdsUnder18Reason = "Personalizované reklamy jsou od 18 let. Zobrazí se vám obecné reklamy.",
     consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",
-    settingsAgeConfirmTitle = "Už je vám 16 let?",
-    settingsAgeConfirmMessage = "Odpovědí ano se odemknou tři přepínače níže, proto odpovězte ano jen " +
+    settingsAgeConfirmTitle = { "Už je vám $it let?" },
+    settingsAgeConfirmMessage = "Odpovědí ano se odemknou další přepínače níže, proto odpovězte ano jen " +
         "tehdy, pokud je to pravda.",
-    settingsAgeConfirmAction = "Ano, je mi 16 let nebo více",
+    settingsAgeConfirmAction = { "Ano, je mi $it let nebo více" },
     settingsAgeConfirmDismiss = "Ještě ne",
     consentParentalConsentDescription = "Přečetl si Zásady ochrany osobních údajů a Podmínky použití " +
-        "a souhlasil za mě se třemi odpověďmi níže.",
+        "a souhlasil za mě s prvními dvěma odpověďmi níže.",
     consentCrashReportingTitle = "Hlášení o pádech",
     consentCrashReportingDescription = "Pokud aplikace spadne, pošle nám, co se pokazilo, model " +
         "zařízení a verzi aplikace.",

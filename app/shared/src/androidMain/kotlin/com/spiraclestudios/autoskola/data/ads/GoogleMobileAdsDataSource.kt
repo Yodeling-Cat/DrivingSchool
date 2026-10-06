@@ -97,9 +97,11 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
      * SDK sends afterwards, banners included, which is the only way to reach a banner - `AdBanner`
      * asks the SDK itself, without coming through [AdRepository].
      *
-     * Under the age of consent the ad content rating is capped at general audiences too. That is the
-     * other half of the same rule: an app whose users may be too young to agree on their own keeps
-     * what they are shown to the mildest rating Google rates for.
+     * The content rating follows the band. Under the age of consent it is capped at general audiences
+     * as well as the flag being set: an app whose users may be too young to agree on their own keeps
+     * what they are shown to the mildest rating Google rates for. A teenager gets the teen rating and
+     * *not* the flag, whose general-audiences cap would be wrong for a 17-year-old learner, and an
+     * adult gets neither.
      *
      * The tag is deprecated in this SDK version in favour of `setAgeRestrictedTreatment`, whose values
      * this build does not expose (only `UNSPECIFIED` is readable from the artifact). This stays until
@@ -107,26 +109,28 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
      * below is the one Google documents for exactly this case, and a warning is cheaper than being
      * wrong about who is under the age of consent.
      */
-    override fun setUnderAgeOfConsent(underAge: Boolean) {
-        val wanted = if (underAge) {
+    override fun setAudience(audience: AdAudience) {
+        val wantedTag = if (audience == AdAudience.Child) {
             RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_TRUE
         } else {
             RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE
         }
-        if (MobileAds.getRequestConfiguration().tagForUnderAgeOfConsent == wanted) return
+        val wantedRating = when (audience) {
+            AdAudience.Child -> RequestConfiguration.MAX_AD_CONTENT_RATING_G
+            AdAudience.Teen -> RequestConfiguration.MAX_AD_CONTENT_RATING_T
+            AdAudience.Adult -> RequestConfiguration.MAX_AD_CONTENT_RATING_UNSPECIFIED
+        }
+        val current = MobileAds.getRequestConfiguration()
+        if (current.tagForUnderAgeOfConsent == wantedTag && current.maxAdContentRating == wantedRating) return
 
-        val builder = RequestConfiguration.Builder().setTagForUnderAgeOfConsent(wanted)
-        // Set on both paths rather than only the under-age one. A new configuration replaces the whole
-        // of the old, and the rating is half of what "under the age of consent" means: leaving it out
-        // on the way up would keep a child's rating on an adult's ad requests.
-        builder.setMaxAdContentRating(
-            if (underAge) {
-                RequestConfiguration.MAX_AD_CONTENT_RATING_G
-            } else {
-                RequestConfiguration.MAX_AD_CONTENT_RATING_UNSPECIFIED
-            },
+        // Both are set on every path. A new configuration replaces the whole of the old, so leaving
+        // the rating out on the way up would keep a child's rating on an adult's ad requests.
+        MobileAds.setRequestConfiguration(
+            RequestConfiguration.Builder()
+                .setTagForUnderAgeOfConsent(wantedTag)
+                .setMaxAdContentRating(wantedRating)
+                .build(),
         )
-        MobileAds.setRequestConfiguration(builder.build())
     }
 
     /**

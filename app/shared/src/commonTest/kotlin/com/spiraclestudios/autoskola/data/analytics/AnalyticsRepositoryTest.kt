@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.data.analytics
 
 import com.russhwolf.settings.MapSettings
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,12 +22,12 @@ class AnalyticsRepositoryTest {
     private class Fixture(
         crashReporting: Boolean = false,
         analytics: Boolean = false,
-        overConsentAge: Boolean? = true,
+        ageBand: AgeBand? = AgeBand.Adult,
         parentalConsent: Boolean = false,
     ) {
         val sink = RecordingAnalyticsDataSource()
         val preferences = PreferencesRepository(MapSettings()).apply {
-            setOverConsentAge(overConsentAge)
+            setAgeBand(ageBand)
             setParentalConsent(parentalConsent)
             setCrashReportingEnabled(crashReporting)
             setAnalyticsEnabled(analytics)
@@ -180,7 +181,7 @@ class AnalyticsRepositoryTest {
 
     @Test
     fun anUnder16WithoutAnAgreementSendsNothing() {
-        val fixture = Fixture(crashReporting = true, analytics = true, overConsentAge = false)
+        val fixture = Fixture(crashReporting = true, analytics = true, ageBand = AgeBand.Under16)
 
         fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
         fixture.repository.screen("Home")
@@ -192,7 +193,7 @@ class AnalyticsRepositoryTest {
 
     @Test
     fun anUpdatedAppSendsNothingUntilTheQuestionIsAnswered() {
-        val fixture = Fixture(analytics = true, overConsentAge = null)
+        val fixture = Fixture(analytics = true, ageBand = null)
 
         fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
 
@@ -202,7 +203,7 @@ class AnalyticsRepositoryTest {
 
     @Test
     fun anUnder16WhoseParentOrGuardianAgreedSendsWhatWasAnswered() {
-        val fixture = Fixture(analytics = true, overConsentAge = false, parentalConsent = true)
+        val fixture = Fixture(analytics = true, ageBand = AgeBand.Under16, parentalConsent = true)
 
         fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
 

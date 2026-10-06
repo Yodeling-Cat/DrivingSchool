@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.data.ads
 
 import com.russhwolf.settings.Settings
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
@@ -77,13 +78,23 @@ class AdRepository(
     }
 
     /**
-     * Whether the ads requested for this user may be chosen for them: they said yes, and their age
-     * answer lets that yes count at all. The age answer is asked here as well as at the switch,
-     * because a value stored before the app asked about age must not personalize anything on its own
-     * ([ConsentAge.effective]).
+     * Whether the ads requested for this user may be chosen for them: they said yes, and they are an
+     * adult. The age answer is asked here as well as at the switch, because a value stored before the
+     * app asked about age - or one a parent or guardian's agreement once unlocked - must not
+     * personalize anything on its own ([ConsentAge.effectivePersonalizedAds]).
      */
     fun personalizedAds(): Boolean = preferences.preferences.value.let {
-        ConsentAge.effective(it.personalizedAdsEnabled, it.overConsentAge, it.parentalConsent)
+        ConsentAge.effectivePersonalizedAds(it.personalizedAdsEnabled, it.ageBand)
+    }
+
+    /**
+     * Who the ads are for. An unanswered question is treated as the youngest band, so the child
+     * treatment only comes off on an answer the user gave.
+     */
+    fun audience(): AdAudience = when (preferences.preferences.value.ageBand) {
+        AgeBand.Adult -> AdAudience.Adult
+        AgeBand.From16To17 -> AdAudience.Teen
+        AgeBand.Under16, null -> AdAudience.Child
     }
 
     init {
@@ -93,15 +104,15 @@ class AdRepository(
     }
 
     /**
-     * Tells the ad SDK the two things it needs to know about the user before a request: whether they
-     * are under the age of consent, which Google requires in place before a request is made for such
-     * a user, and whether the ads may be personalized. This class is the only thing that knows both
-     * answers, so they are pushed from here: once when the repository is built, before every request,
-     * and from the screens that change either answer, which is what keeps a banner right.
+     * Tells the ad SDK the two things it needs to know about the user before a request: who the ads
+     * are for ([audience]), which Google requires in place before a request is made for a user under
+     * the age of consent, and whether the ads may be personalized. This class is the only thing that
+     * knows both answers, so they are pushed from here: once when the repository is built, before
+     * every request, and from the screens that change either answer, which is what keeps a banner
+     * right.
      */
     fun pushConsent() {
-        val answers = preferences.preferences.value
-        dataSource.setUnderAgeOfConsent(ConsentAge.underAgeOfConsent(answers.overConsentAge))
+        dataSource.setAudience(audience())
         dataSource.setPersonalizedAds(personalizedAds())
     }
 

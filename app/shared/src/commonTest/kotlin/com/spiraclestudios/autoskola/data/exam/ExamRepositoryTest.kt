@@ -10,6 +10,7 @@ import com.spiraclestudios.autoskola.data.attempts.SettingsAttemptDataSource
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.banks.testBank
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import kotlinx.coroutines.flow.first
@@ -25,7 +26,7 @@ class ExamRepositoryTest {
 
     private val preferences = PreferencesRepository(MapSettings()).apply {
         // An adult: the age question decides whether the analytics switch may be answered at all.
-        setOverConsentAge(true)
+        setAgeBand(AgeBand.Adult)
     }
     private val sink = RecordingAnalyticsDataSource()
     private val analytics = AnalyticsRepository(sink, preferences)

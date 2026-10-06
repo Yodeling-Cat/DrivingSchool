@@ -77,7 +77,7 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
      */
     private fun maySend(requested: Boolean): Boolean {
         val current = preferences.preferences.value
-        return ConsentAge.effective(requested, current.overConsentAge, current.parentalConsent)
+        return ConsentAge.effective(requested, current.ageBand, current.parentalConsent)
     }
 
     /**

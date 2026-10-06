@@ -49,6 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.copyToClipboard
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
@@ -72,6 +73,10 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
 import com.spiraclestudios.autoskola.ui.theme.paperGlows
 import org.koin.compose.viewmodel.koinViewModel
+
+/** The two ages the confirmation asks about: where agreeing alone starts, and where personalized ads do. */
+private const val CONSENT_AGE = 16
+private const val ADULT_AGE = 18
 
 /** Connects [SettingsScreen] to its [SettingsViewModel] and to navigation. */
 @Composable
@@ -182,26 +187,31 @@ fun SettingsScreen(
                         leading = { SettingsRowIcon(Icons.Outlined.Description, colors.primaryDeep, colors.mintGlow) },
                         shape = RectangleShape,
                     )
-                    // The age question, drawn only for a user under 16. It is the one answer here they
-                    // can still change — somebody answers at 15 and is 16 the year after — and to
-                    // everyone else it is a question they cannot answer differently, which is clutter.
+                    // The age question, drawn only for a user under 18. It is the one answer here they
+                    // can still change — somebody answers at 15 and is 16 the year after, and 18 the year
+                    // after that — and to an adult it is a question they cannot answer differently, which
+                    // is clutter.
                     //
                     // The parent or guardian's agreement is not offered here at all: for an under-16 it
                     // is locked in once it has been given, and for everyone else it does not exist.
                     // Withdrawing it would lock the switches from a screen with no way to unlock them.
-                    if (state.underConsentAge) {
+                    if (state.canCorrectAge) {
                         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                         AgeAnswerRow(
-                            answer = state.overConsentAge,
-                            onAnswer = { onEvent(SettingsUiEvent.SetOverConsentAge(it)) },
+                            answer = state.ageBand,
+                            onAnswer = { onEvent(SettingsUiEvent.SetAgeBand(it)) },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         )
-                        Text(
-                            strings.consentAgeUnder16Reason,
-                            style = Naj.type.rowSubtitle,
-                            color = colors.muted,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                        )
+                        // Only an under-16 is told why the first two switches are locked: from 16 they are
+                        // theirs, and the ads row says its own reason.
+                        if (state.underConsentAge) {
+                            Text(
+                                strings.consentAgeUnder16Reason,
+                                style = Naj.type.rowSubtitle,
+                                color = colors.muted,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                            )
+                        }
                     }
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
@@ -228,9 +238,15 @@ fun SettingsScreen(
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
                         title = strings.consentPersonalizedAdsTitle,
-                        description = strings.consentPersonalizedAdsDescription,
-                        checked = state.personalizedAdsEnabled,
-                        enabled = state.canAnswerSwitches,
+                        // Locked under 18, with the reason where the description would be: no parent or
+                        // guardian's agreement opens this one.
+                        description = if (state.canPersonalizeAds) {
+                            strings.consentPersonalizedAdsDescription
+                        } else {
+                            strings.consentPersonalizedAdsUnder18Reason
+                        },
+                        checked = state.personalizedAdsEnabled && state.canPersonalizeAds,
+                        enabled = state.canPersonalizeAds,
                         // The megaphone, because this row is about which ads the app shows the user
                         // rather than about what leaves the device.
                         icon = Icons.Outlined.Campaign,
@@ -276,12 +292,14 @@ fun SettingsScreen(
                 // The one question this screen asks before it changes something. It writes nothing on
                 // its own: the answer is applied by the ViewModel when it is confirmed, and backing out
                 // leaves the stored answer exactly as it was.
-                if (state.confirmingAge) {
+                state.confirmingAge?.let { band ->
+                    // The band's lower bound is what the user is being asked about: 16 or 18.
+                    val age = if (band == AgeBand.Adult) ADULT_AGE else CONSENT_AGE
                     ConfirmDialog(
-                        title = strings.settingsAgeConfirmTitle,
+                        title = strings.settingsAgeConfirmTitle(age),
                         message = strings.settingsAgeConfirmMessage,
-                        confirmLabel = strings.settingsAgeConfirmAction,
-                        onConfirm = { onEvent(SettingsUiEvent.ConfirmOverConsentAge) },
+                        confirmLabel = strings.settingsAgeConfirmAction(age),
+                        onConfirm = { onEvent(SettingsUiEvent.ConfirmAgeBand) },
                         dismissLabel = strings.settingsAgeConfirmDismiss,
                         onDismiss = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
                         onDismissRequest = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
@@ -459,7 +477,7 @@ private fun SettingsScreenPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = false,
                 personalizedAdsEnabled = true,
-                overConsentAge = true,
+                ageBand = AgeBand.Adult,
                 parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
@@ -489,7 +507,7 @@ private fun SettingsScreenCheckingPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
                 personalizedAdsEnabled = false,
-                overConsentAge = true,
+                ageBand = AgeBand.Adult,
                 parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
@@ -519,7 +537,7 @@ private fun SettingsScreenNoVersionPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = false,
                 personalizedAdsEnabled = false,
-                overConsentAge = true,
+                ageBand = AgeBand.Adult,
                 parentalConsent = false,
                 exam = previewExam,
                 appVersion = null,
@@ -552,7 +570,7 @@ private fun SettingsScreenNoExamYetPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
                 personalizedAdsEnabled = true,
-                overConsentAge = true,
+                ageBand = AgeBand.Adult,
                 parentalConsent = false,
                 exam = null,
                 appVersion = "1.4.2",
@@ -582,7 +600,7 @@ private fun SettingsScreenIdentifierPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
                 personalizedAdsEnabled = false,
-                overConsentAge = true,
+                ageBand = AgeBand.Adult,
                 parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
@@ -643,7 +661,7 @@ private val previewPrivacyState = SettingsUiState(
     crashReportingEnabled = false,
     analyticsEnabled = false,
     personalizedAdsEnabled = false,
-    overConsentAge = true,
+    ageBand = AgeBand.Adult,
     parentalConsent = false,
     exam = previewExam,
     appVersion = "1.4.2",
@@ -659,7 +677,7 @@ private val previewPrivacyState = SettingsUiState(
 @Composable
 private fun SettingsScreenAgeUnansweredPreview() {
     AppPreview {
-        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = null))
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = null))
     }
 }
 
@@ -672,7 +690,7 @@ private fun SettingsScreenAgeUnansweredPreview() {
 @Composable
 private fun SettingsScreenUnder16Preview() {
     AppPreview {
-        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false))
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.Under16))
     }
 }
 
@@ -681,15 +699,36 @@ private fun SettingsScreenUnder16Preview() {
 @Composable
 private fun SettingsScreenUnder16AgreedPreview() {
     AppPreview {
-        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, parentalConsent = true))
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.Under16, parentalConsent = true))
     }
 }
 
-/** The question before turning 16 counts, because that press unlocks the three switches. */
+/**
+ * 16 to 17: the age row is still drawn, because they can still turn 18, and the personalized-ads row is
+ * locked with its reason while the two above it are theirs to answer.
+ */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenTeenPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.From16To17, crashReportingEnabled = true))
+    }
+}
+
+/** The question before turning 18 counts, because that press unlocks the personalized-ads switch. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenAdultConfirmationPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.From16To17, confirmingAge = AgeBand.Adult))
+    }
+}
+
+/** The question before turning 16 counts, because that press unlocks the crash-report and statistics switches. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SettingsScreenAgeConfirmationPreview() {
     AppPreview {
-        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, confirmingAge = true))
+        SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.Under16, confirmingAge = AgeBand.From16To17))
     }
 }

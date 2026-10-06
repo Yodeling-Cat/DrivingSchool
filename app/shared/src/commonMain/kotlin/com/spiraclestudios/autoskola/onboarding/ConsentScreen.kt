@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
@@ -143,8 +144,8 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                             // that, and a form they cannot fill in says that worse than a card that is
                             // still closed (see `plans/age-gate.md`).
                             AgeAnswerRow(
-                                answer = state.overConsentAge,
-                                onAnswer = { onEvent(ConsentUiEvent.SetOverConsentAge(it)) },
+                                answer = state.ageBand,
+                                onAnswer = { onEvent(ConsentUiEvent.SetAgeBand(it)) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                             )
                             AnimatedVisibility(
@@ -196,9 +197,16 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                                     // device for us.
                                     ConsentSwitchRow(
                                         title = strings.consentPersonalizedAdsTitle,
-                                        description = strings.consentPersonalizedAdsDescription,
-                                        checked = state.personalizedAdsEnabled,
-                                        enabled = state.switchesEnabled,
+                                        // Locked under 18 whatever else is unlocked, and the row says why
+                                        // in place of what it would do: a parent or guardian's agreement
+                                        // opens the two above it and never this one.
+                                        description = if (state.personalizedAdsAvailable) {
+                                            strings.consentPersonalizedAdsDescription
+                                        } else {
+                                            strings.consentPersonalizedAdsUnder18Reason
+                                        },
+                                        checked = state.personalizedAdsEnabled && state.personalizedAdsAvailable,
+                                        enabled = state.personalizedAdsAvailable,
                                         onCheckedChange = { onEvent(ConsentUiEvent.SetPersonalizedAds(it)) },
                                     )
                                 }
@@ -356,7 +364,7 @@ private val previewConsentState = ConsentUiState(
     documentsAccepted = false,
     agreementError = false,
     // An adult, which is what most users are: the question answered, and the switches live.
-    overConsentAge = true,
+    ageBand = AgeBand.Adult,
     parentalConsent = false,
     parentalError = false,
     crashReportingEnabled = false,
@@ -460,7 +468,7 @@ private fun ConsentScreenDesktopPreview() {
 @Composable
 private fun ConsentScreenCollapsedPreview() {
     AppPreview {
-        ConsentScreen(previewConsentState.copy(overConsentAge = null), onEvent = {}, onOpenDocument = {})
+        ConsentScreen(previewConsentState.copy(ageBand = null), onEvent = {}, onOpenDocument = {})
     }
 }
 
@@ -481,7 +489,7 @@ private fun ConsentScreenOpenedPreview() {
 @Composable
 private fun ConsentScreenLandscapeCollapsedPreview() {
     AppPreview {
-        ConsentScreen(previewConsentState.copy(overConsentAge = null), onEvent = {}, onOpenDocument = {})
+        ConsentScreen(previewConsentState.copy(ageBand = null), onEvent = {}, onOpenDocument = {})
     }
 }
 
@@ -502,7 +510,7 @@ private fun ConsentScreenLandscapeOpenedPreview() {
 @Composable
 private fun ConsentScreenUnder16Preview() {
     AppPreview {
-        ConsentScreen(previewConsentState.copy(overConsentAge = false), onEvent = {}, onOpenDocument = {})
+        ConsentScreen(previewConsentState.copy(ageBand = AgeBand.Under16), onEvent = {}, onOpenDocument = {})
     }
 }
 
@@ -512,7 +520,7 @@ private fun ConsentScreenUnder16Preview() {
 private fun ConsentScreenUnder16UnagreedPreview() {
     AppPreview {
         ConsentScreen(
-            previewConsentState.copy(overConsentAge = false, parentalError = true),
+            previewConsentState.copy(ageBand = AgeBand.Under16, parentalError = true),
             onEvent = {},
             onOpenDocument = {},
         )
@@ -525,7 +533,36 @@ private fun ConsentScreenUnder16UnagreedPreview() {
 private fun ConsentScreenUnder16AgreedPreview() {
     AppPreview {
         ConsentScreen(
-            previewConsentState.copy(overConsentAge = false, parentalConsent = true, personalizedAdsEnabled = true),
+            previewConsentState.copy(ageBand = AgeBand.Under16, parentalConsent = true, personalizedAdsEnabled = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/**
+ * 16 to 17: the crash-report and statistics switches are theirs, and the personalized-ads one is drawn
+ * locked with the reason, which is the line this band exists for.
+ */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenTeenPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(ageBand = AgeBand.From16To17, crashReportingEnabled = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** The same lock in the longest of the four translations, where the reason has to fit the row. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenTeenSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        ConsentScreen(
+            previewConsentState.copy(language = AppLanguage.Slovak, ageBand = AgeBand.From16To17),
             onEvent = {},
             onOpenDocument = {},
         )
@@ -538,7 +575,7 @@ private fun ConsentScreenUnder16AgreedPreview() {
 private fun ConsentScreenUnder16SlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
         ConsentScreen(
-            previewConsentState.copy(language = AppLanguage.Slovak, overConsentAge = false),
+            previewConsentState.copy(language = AppLanguage.Slovak, ageBand = AgeBand.Under16),
             onEvent = {},
             onOpenDocument = {},
         )

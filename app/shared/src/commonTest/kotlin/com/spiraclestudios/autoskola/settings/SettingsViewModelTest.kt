@@ -1,7 +1,9 @@
 package com.spiraclestudios.autoskola.settings
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.ads.AdAudience
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
@@ -20,7 +22,7 @@ class SettingsViewModelTest : ViewModelTest() {
         preferences.select(TestSelection("sk-sk", LicenseCategory.C))
         // An adult, because the three switches can only be answered by one — or by an under-16 whose
         // parent or guardian agreed. The locked state has its own tests below.
-        preferences.setOverConsentAge(true)
+        preferences.setAgeBand(AgeBand.Adult)
     }
     private val viewModel by lazy {
         SettingsViewModel(repositories.preferences, repositories.exams, repositories.analytics, repositories.ads)
@@ -249,10 +251,10 @@ class SettingsViewModelTest : ViewModelTest() {
     fun theAgeAnswerCanBeCorrectedHere() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
 
-        assertEquals(false, state.value.overConsentAge)
-        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertEquals(AgeBand.Under16, state.value.ageBand)
+        assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
         assertFalse(state.value.canAnswerSwitches)
         assertTrue(state.value.underConsentAge)
     }
@@ -261,7 +263,7 @@ class SettingsViewModelTest : ViewModelTest() {
     fun under16LocksTheThreeSwitchesAndRefusesChanges() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
         viewModel.onEvent(SettingsUiEvent.SetAnalytics(true))
 
         assertFalse(state.value.canAnswerSwitches)
@@ -273,9 +275,9 @@ class SettingsViewModelTest : ViewModelTest() {
     fun anUnder16WhoTurns16GetsTheSwitchesBack() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
-        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
 
         assertTrue(state.value.canAnswerSwitches)
         assertFalse(state.value.underConsentAge)
@@ -283,16 +285,106 @@ class SettingsViewModelTest : ViewModelTest() {
 
     /** The agreement is given on the consent screen, which is the only screen that offers it. */
     @Test
-    fun anAgreementGivenOnTheConsentScreenUnlocksThemHere() = runTest {
+    fun anAgreementGivenOnTheConsentScreenUnlocksTheFirstTwoHere() = runTest {
         repositories.preferences.setParentalConsent(true)
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+        viewModel.onEvent(SettingsUiEvent.SetCrashReporting(true))
         viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
         assertTrue(state.value.canAnswerSwitches)
-        assertTrue(state.value.personalizedAdsEnabled)
-        assertTrue(repositories.preferences.preferences.value.personalizedAdsEnabled)
+        assertTrue(state.value.crashReportingEnabled)
+        // The agreement never opens the third: personalized ads are an adult's alone.
+        assertFalse(state.value.canPersonalizeAds)
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
+    }
+
+    // ── 16 to 17 ──
+
+    @Test
+    fun a16To17YearOldHasTheFirstTwoSwitchesAndNotTheAdsOne() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.From16To17)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetCrashReporting(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
+
+        assertTrue(state.value.canAnswerSwitches)
+        assertFalse(state.value.canPersonalizeAds)
+        assertTrue(state.value.crashReportingEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
+        // And they can still correct the age, because the next birthday opens the third switch.
+        assertTrue(state.value.canCorrectAge)
+        assertFalse(state.value.underConsentAge)
+    }
+
+    @Test
+    fun anAdultSeesNoAgeRow() = runTest {
+        val state = observe(viewModel.uiState)
+
+        assertFalse(state.value.canCorrectAge)
+        assertTrue(state.value.canPersonalizeAds)
+    }
+
+    @Test
+    fun turning18AsksFirstAndThenOpensTheAdsSwitch() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.From16To17)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
+
+        // Asked about before it counts, because it unlocks a switch and the app cannot check.
+        assertEquals(AgeBand.Adult, state.value.confirmingAge)
+        assertEquals(AgeBand.From16To17, repositories.preferences.preferences.value.ageBand)
+        assertFalse(state.value.canPersonalizeAds)
+
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
+
+        assertNull(state.value.confirmingAge)
+        assertEquals(AgeBand.Adult, repositories.preferences.preferences.value.ageBand)
+        assertTrue(state.value.canPersonalizeAds)
+        assertEquals(AdAudience.Adult, repositories.adDataSource.audiences.last())
+    }
+
+    @Test
+    fun goingFrom16To17BackToUnder16NeedsNoQuestionAndWithdrawsEverything() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.From16To17)
+        repositories.preferences.setCrashReportingEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+
+        assertNull(state.value.confirmingAge)
+        assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
+        assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
+        assertEquals(AdAudience.Child, repositories.adDataSource.audiences.last())
+    }
+
+    @Test
+    fun turning16ToTeenAsksFirstAndKeepsTheAdsAnswerOff() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.Under16)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.From16To17))
+        assertEquals(AgeBand.From16To17, state.value.confirmingAge)
+
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
+
+        assertEquals(AgeBand.From16To17, repositories.preferences.preferences.value.ageBand)
+        assertEquals(AdAudience.Teen, repositories.adDataSource.audiences.last())
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
+    }
+
+    @Test
+    fun answeringTheBandYouAreAlreadyInAsksNothing() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.From16To17)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.From16To17))
+
+        assertNull(state.value.confirmingAge)
     }
 
     @Test
@@ -300,7 +392,7 @@ class SettingsViewModelTest : ViewModelTest() {
         repositories.preferences.setCrashReportingEnabled(true)
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
 
         // This direction writes, unlike the one below: an under-16 cannot have agreed to any of these,
         // so the answers are taken back rather than left on behind a locked row.
@@ -314,9 +406,9 @@ class SettingsViewModelTest : ViewModelTest() {
         repositories.preferences.setCrashReportingEnabled(true)
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
-        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
 
         // The switches are live again, and empty: the app withdraws answers, it never fills one in.
         assertTrue(state.value.canAnswerSwitches)
@@ -326,7 +418,7 @@ class SettingsViewModelTest : ViewModelTest() {
 
     @Test
     fun anUnansweredQuestionLeavesThemLocked() = runTest {
-        val fresh = TestRepositories(overConsentAge = null).apply {
+        val fresh = TestRepositories(ageBand = null).apply {
             preferences.select(TestSelection("sk-sk", LicenseCategory.C))
         }
         val model = SettingsViewModel(fresh.preferences, fresh.exams, fresh.analytics, fresh.ads)
@@ -342,41 +434,41 @@ class SettingsViewModelTest : ViewModelTest() {
     @Test
     fun turning16AsksBeforeItCounts() = runTest {
         // An under-16 whose switches are locked, which is the state this question is about.
-        repositories.preferences.setOverConsentAge(false)
+        repositories.preferences.setAgeBand(AgeBand.Under16)
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
 
-        assertTrue(state.value.confirmingAge)
+        assertEquals(AgeBand.Adult, state.value.confirmingAge)
         // Nothing is written while the question is on screen: the answer still in force is the old one.
-        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
         assertFalse(state.value.canAnswerSwitches)
     }
 
     @Test
     fun confirmingTheAgeAnswerAppliesIt() = runTest {
         val state = observe(viewModel.uiState)
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
 
-        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
 
-        assertFalse(state.value.confirmingAge)
-        assertEquals(true, repositories.preferences.preferences.value.overConsentAge)
+        assertNull(state.value.confirmingAge)
+        assertEquals(AgeBand.Adult, repositories.preferences.preferences.value.ageBand)
         assertTrue(state.value.canAnswerSwitches)
     }
 
     @Test
     fun backingOutOfTheAgeQuestionChangesNothing() = runTest {
         val state = observe(viewModel.uiState)
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
 
         viewModel.onEvent(SettingsUiEvent.DismissAgeConfirmation)
 
-        assertFalse(state.value.confirmingAge)
-        assertEquals(false, state.value.overConsentAge)
-        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertNull(state.value.confirmingAge)
+        assertEquals(AgeBand.Under16, state.value.ageBand)
+        assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
     }
 
     @Test
@@ -384,11 +476,11 @@ class SettingsViewModelTest : ViewModelTest() {
         repositories.preferences.setCrashReportingEnabled(true)
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
 
         // It takes answers away rather than giving any, so it is applied at once and asks nothing.
-        assertFalse(state.value.confirmingAge)
-        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertNull(state.value.confirmingAge)
+        assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
         assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
     }
 
@@ -432,7 +524,7 @@ class SettingsViewModelTest : ViewModelTest() {
     fun anUnder16WithoutAnAgreementCannotTurnPersonalizationOn() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Under16))
         viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
         assertFalse(state.value.personalizedAdsEnabled)

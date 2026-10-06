@@ -8,6 +8,7 @@ import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -37,7 +38,7 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     )
     private val preferences = PreferencesRepository(MapSettings()).apply {
         // An adult: the age question decides whether the analytics switch may be answered at all.
-        setOverConsentAge(true)
+        setAgeBand(AgeBand.Adult)
     }
     private val banks = QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn), emptyList()))
     private val analyticsSink = RecordingAnalyticsDataSource()

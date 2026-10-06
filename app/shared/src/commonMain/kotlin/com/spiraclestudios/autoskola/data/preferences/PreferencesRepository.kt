@@ -57,14 +57,16 @@ data class Preferences(
      */
     val deviceIdentifier: String?,
     /**
-     * Whether the user is 16 or older, `null` until the consent screen asks. In Slovakia that is the
-     * age at which a user can agree to crash reports, usage statistics and personalized ads alone;
-     * below it only a parent or guardian can, on their behalf (see [ConsentAge]).
+     * Which age band the user is in, `null` until the consent screen asks. 16 is the age at which a
+     * user can agree to crash reports and usage statistics alone, and below it only a parent or
+     * guardian can, on their behalf; 18 is the age from which personalized ads are theirs to answer
+     * (see [ConsentAge]).
      */
-    val overConsentAge: Boolean?,
+    val ageBand: AgeBand?,
     /**
      * Whether a parent or guardian has agreed on behalf of a user under 16. Only meaningful with
-     * [overConsentAge] false, and it is what lets the three switches be answered at all then.
+     * [ageBand] [AgeBand.Under16], and it is what lets the crash-report and statistics switches be
+     * answered at all then. It never unlocks personalized ads.
      */
     val parentalConsent: Boolean,
 )
@@ -131,7 +133,7 @@ class PreferencesRepository(private val settings: Settings) {
     }
 
     /**
-     * The answer to "are you 16 or older?", which the consent screen asks and Settings lets the user
+     * The answer to "how old are you?", which the consent screen asks and Settings lets the user
      * correct later — somebody answers at 15 and is 16 the year after.
      *
      * It records this answer and nothing else. In particular it does not touch the three consent
@@ -140,13 +142,13 @@ class PreferencesRepository(private val settings: Settings) {
      * one in — or cleared one — because the user answered a different question would be answering a
      * question it is supposed to ask.
      */
-    fun setOverConsentAge(overConsentAge: Boolean?) {
-        if (overConsentAge == null) {
-            settings.remove(KEY_OVER_CONSENT_AGE)
+    fun setAgeBand(band: AgeBand?) {
+        if (band == null) {
+            settings.remove(KEY_AGE_BAND)
         } else {
-            settings.putBoolean(KEY_OVER_CONSENT_AGE, overConsentAge)
+            settings.putString(KEY_AGE_BAND, band.name)
         }
-        state.update { it.copy(overConsentAge = overConsentAge) }
+        state.update { it.copy(ageBand = band) }
     }
 
     /**
@@ -197,7 +199,7 @@ class PreferencesRepository(private val settings: Settings) {
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
         advanceAfterAnswer = settings.getBoolean(KEY_ADVANCE_AFTER_ANSWER, false),
         deviceIdentifier = settings.getStringOrNull(KEY_DEVICE_IDENTIFIER),
-        overConsentAge = settings.getBooleanOrNull(KEY_OVER_CONSENT_AGE),
+        ageBand = AgeBand.fromName(settings.getStringOrNull(KEY_AGE_BAND)),
         parentalConsent = settings.getBoolean(KEY_PARENTAL_CONSENT, false),
     )
 
@@ -224,7 +226,7 @@ class PreferencesRepository(private val settings: Settings) {
         const val KEY_CHECK_IMMEDIATELY = "check_answers_immediately"
         const val KEY_ADVANCE_AFTER_ANSWER = "advance_after_answer"
         const val KEY_DEVICE_IDENTIFIER = "device_identifier"
-        const val KEY_OVER_CONSENT_AGE = "over_consent_age"
+        const val KEY_AGE_BAND = "age_band"
         const val KEY_PARENTAL_CONSENT = "parental_consent"
     }
 }

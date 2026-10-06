@@ -151,21 +151,21 @@ class PreferencesRepositoryTest {
         assertEquals("ident-1", PreferencesRepository(settings).preferences.value.deviceIdentifier)
     }
 
-    // ── The age answer ──
+    // â”€â”€ The age answer â”€â”€
 
     @Test
     fun theAgeAnswerAndTheAgreementSurviveRestart() {
         val settings = MapSettings()
-        assertNull(PreferencesRepository(settings).preferences.value.overConsentAge)
+        assertNull(PreferencesRepository(settings).preferences.value.ageBand)
         assertFalse(PreferencesRepository(settings).preferences.value.parentalConsent)
 
         PreferencesRepository(settings).apply {
             setParentalConsent(true)
-            setOverConsentAge(false)
+            setAgeBand(AgeBand.Under16)
         }
 
         val restarted = PreferencesRepository(settings).preferences.value
-        assertEquals(false, restarted.overConsentAge)
+        assertEquals(AgeBand.Under16, restarted.ageBand)
         assertTrue(restarted.parentalConsent)
     }
 
@@ -176,36 +176,36 @@ class PreferencesRepositoryTest {
         preferences.setAnalyticsEnabled(true)
         preferences.setPersonalizedAdsEnabled(true)
 
-        preferences.setOverConsentAge(false)
+        preferences.setAgeBand(AgeBand.Under16)
 
         // The answers are the user's and the age answer is not one of them: it decides whether they may
         // be given and whether they count (`ConsentAge`), never what they say.
         assertTrue(preferences.preferences.value.crashReportingEnabled)
         assertTrue(preferences.preferences.value.analyticsEnabled)
         assertTrue(preferences.preferences.value.personalizedAdsEnabled)
-        assertFalse(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = false))
+        assertFalse(ConsentAge.mayAnswerSwitches(band = AgeBand.Under16, parentalConsent = false))
     }
 
     @Test
     fun anAgreementWrittenAfterwardsDoesNotTurnThemOn() {
         val preferences = PreferencesRepository(MapSettings())
-        preferences.setOverConsentAge(false)
+        preferences.setAgeBand(AgeBand.Under16)
 
         preferences.setParentalConsent(true)
 
         // The agreement is what lets the user answer; it is not an answer itself.
         assertFalse(preferences.preferences.value.personalizedAdsEnabled)
-        assertTrue(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = true))
+        assertTrue(ConsentAge.mayAnswerSwitches(band = AgeBand.Under16, parentalConsent = true))
     }
 
     @Test
     fun theAnswerCanBeRemovedAgain() {
         val preferences = PreferencesRepository(MapSettings())
-        preferences.setOverConsentAge(true)
+        preferences.setAgeBand(AgeBand.Adult)
 
-        preferences.setOverConsentAge(null)
+        preferences.setAgeBand(null)
 
-        assertNull(preferences.preferences.value.overConsentAge)
-        assertFalse(ConsentAge.mayAnswerSwitches(overConsentAge = null, parentalConsent = false))
+        assertNull(preferences.preferences.value.ageBand)
+        assertFalse(ConsentAge.mayAnswerSwitches(band = null, parentalConsent = false))
     }
 }

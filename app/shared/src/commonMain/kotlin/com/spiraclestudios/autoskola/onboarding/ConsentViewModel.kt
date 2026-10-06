@@ -9,6 +9,7 @@ import com.spiraclestudios.autoskola.data.analytics.CONSENT_CHOICE_ACCEPT_ALL
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_CHOICE_ACCEPT_CHOSEN
 import com.spiraclestudios.autoskola.data.analytics.consentAnsweredProperties
 import com.spiraclestudios.autoskola.data.analytics.languageChanged
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
@@ -26,8 +27,8 @@ data class ConsentUiState(
     val documentsAccepted: Boolean,
     /** "Accept chosen" was pressed without it, so the box is drawn as the thing that is missing. */
     val agreementError: Boolean,
-    /** Which side of 16 the user is on, `null` until they answer. */
-    val overConsentAge: Boolean?,
+    /** Which age band the user is in, `null` until they answer. */
+    val ageBand: AgeBand?,
     /** A parent or guardian has agreed on behalf of a user under 16. */
     val parentalConsent: Boolean,
     /** A button was pressed under 16 without that agreement. */
@@ -37,21 +38,28 @@ data class ConsentUiState(
     val personalizedAdsEnabled: Boolean,
 ) {
     /**
-     * Whether the three switches may be answered at all: an adult may, and so may a user under 16 whose
-     * parent or guardian has agreed ([ConsentAge]). Unanswered counts as not yet — nothing is turned on
-     * before the user has said which side of 16 they are on — and false is what draws them locked.
+     * Whether the crash-report and statistics switches may be answered at all: anyone from 16 may, and
+     * so may a user under 16 whose parent or guardian has agreed ([ConsentAge]). Unanswered counts as
+     * not yet — nothing is turned on before the user has said which band they are in — and false is
+     * what draws them locked.
      */
-    val switchesEnabled: Boolean get() = ConsentAge.mayAnswerSwitches(overConsentAge, parentalConsent)
+    val switchesEnabled: Boolean get() = ConsentAge.mayAnswerSwitches(ageBand, parentalConsent)
+
+    /**
+     * Whether the personalized-ads switch may be answered: only an adult's to give, and no agreement
+     * unlocks it for anyone else. Drawn locked, with the reason, where it is false.
+     */
+    val personalizedAdsAvailable: Boolean get() = ConsentAge.mayPersonalizeAds(ageBand)
 
     /** Whether the screen asks for a parent or guardian at all: only under 16 has anything to agree to. */
-    val asksForParentalConsent: Boolean get() = overConsentAge == false
+    val asksForParentalConsent: Boolean get() = ageBand == AgeBand.Under16
 
     /**
      * Whether the age question has been answered, which is what the card is drawn from: closed while it
      * has not, and the choices revealed once it has. The two buttons are dead until then, since nothing
      * here is answerable before it.
      */
-    val ageAnswered: Boolean get() = overConsentAge != null
+    val ageAnswered: Boolean get() = ageBand != null
 }
 
 /**
@@ -67,7 +75,7 @@ private data class StagedAnswers(val crashReporting: Boolean, val analytics: Boo
  * leaves where it is missing. One value for the same reason as [StagedAnswers] — it is one part of the
  * screen, and three flows would each have to be combined on their own.
  */
-private data class StagedAge(val overConsentAge: Boolean?, val parentalConsent: Boolean, val parentalError: Boolean)
+private data class StagedAge(val ageBand: AgeBand?, val parentalConsent: Boolean, val parentalError: Boolean)
 
 sealed interface ConsentUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ConsentUiEvent
@@ -75,10 +83,16 @@ sealed interface ConsentUiEvent {
     /** The one required answer: without it there is nothing to agree to. */
     data class SetDocumentsAccepted(val accepted: Boolean) : ConsentUiEvent
 
-    /** Which side of 16 the user is on. Under 16 the three answers are not theirs to give. */
-    data class SetOverConsentAge(val overConsentAge: Boolean) : ConsentUiEvent
+    /**
+     * Which age band the user is in. Under 16 the crash-report and statistics answers are not theirs
+     * to give, and under 18 the personalized-ads answer is not.
+     */
+    data class SetAgeBand(val band: AgeBand) : ConsentUiEvent
 
-    /** A parent or guardian agreed on the user's behalf, which is what lets an under-16 answer. */
+    /**
+     * A parent or guardian agreed on the user's behalf, which is what lets an under-16 answer the
+     * crash-report and statistics switches. It does not unlock personalized ads.
+     */
     data class SetParentalConsent(val given: Boolean) : ConsentUiEvent
 
     /** Optional, and its own answer: crash reports are not analytics. */
@@ -94,7 +108,7 @@ sealed interface ConsentUiEvent {
      */
     data class SetPersonalizedAds(val enabled: Boolean) : ConsentUiEvent
 
-    /** Agree to the documents and to all three answers in one act. */
+    /** Agree to the documents and to every answer the user's age lets them give, in one act. */
     data object AcceptAll : ConsentUiEvent
 
     /** Agree to the documents, at whatever the switches have been set to. */
@@ -109,11 +123,12 @@ sealed interface ConsentUiEvent {
  * previously got wrong (`plans/privacy-and-terms.md`).
  *
  * **They are also not everybody's to give.** The app's questions serve candidates from 15, and in
- * Slovakia only a person of 16 can agree to this kind of processing alone, so this screen asks which
- * side of 16 the user is on before anything can be answered. Under 16 the switches stay locked until a
+ * Slovakia only a person of 16 can agree to crash reports and statistics alone, so this screen asks which
+ * age band the user is in before anything can be answered. Under 16 those switches stay locked until a
  * parent or guardian's agreement is recorded, and neither button commits anything until then: an
  * answer to a question the user may not answer is not one the app may keep (`plans/age-gate.md`,
- * [ConsentAge]).
+ * [ConsentAge]). **Personalized ads are an adult's alone**: under 18 that switch stays locked whatever
+ * a parent or guardian agrees to.
  *
  * Neither button undoes that. "Accept all" is not a pre-ticked box: the user asks for both answers
  * by pressing it, which is an affirmative act, and that is the part the law is about. "Accept
@@ -144,7 +159,7 @@ class ConsentViewModel(
     /** The age question, staged like the switches: a button is what writes it. */
     private val age = MutableStateFlow(
         StagedAge(
-            overConsentAge = preferences.preferences.value.overConsentAge,
+            ageBand = preferences.preferences.value.ageBand,
             parentalConsent = preferences.preferences.value.parentalConsent,
             parentalError = false,
         ),
@@ -173,7 +188,7 @@ class ConsentViewModel(
             language = preferences.language,
             documentsAccepted = documentsAccepted,
             agreementError = agreementError,
-            overConsentAge = age.overConsentAge,
+            ageBand = age.ageBand,
             parentalConsent = age.parentalConsent,
             parentalError = age.parentalError,
             crashReportingEnabled = staged.crashReporting,
@@ -187,7 +202,7 @@ class ConsentViewModel(
             language = preferences.preferences.value.language,
             documentsAccepted = false,
             agreementError = false,
-            overConsentAge = preferences.preferences.value.overConsentAge,
+            ageBand = preferences.preferences.value.ageBand,
             parentalConsent = preferences.preferences.value.parentalConsent,
             parentalError = false,
             crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
@@ -210,17 +225,22 @@ class ConsentViewModel(
                 if (event.accepted) agreementError.value = false
             }
 
-            is ConsentUiEvent.SetOverConsentAge -> {
-                age.update { it.copy(overConsentAge = event.overConsentAge) }
-                // Answering "under 16" withdraws the three answers: they are not this user's to give,
+            is ConsentUiEvent.SetAgeBand -> {
+                age.update { it.copy(ageBand = event.band) }
+                // Answering "under 16" withdraws all three answers: they are not this user's to give,
                 // so they are turned off rather than left sitting behind locked switches as answers the
-                // app holds for somebody who cannot have given them. Answering "16 or older" still
-                // touches nothing — filling one in is the direction that would be the app answering a
-                // question it is here to ask.
-                if (!event.overConsentAge) withdrawTheAnswers()
+                // app holds for somebody who cannot have given them. Answering 16 to 17 withdraws the
+                // personalized-ads answer alone, for the same reason. Answering "18 or older" touches
+                // nothing — filling one in is the direction that would be the app answering a question
+                // it is here to ask.
+                when (event.band) {
+                    AgeBand.Under16 -> withdrawTheAnswers()
+                    AgeBand.From16To17 -> withdrawPersonalizedAds()
+                    AgeBand.Adult -> Unit
+                }
                 // What this answer also decides, in both directions, is whether the switches may be
-                // answered at all ([ConsentUiState.switchesEnabled]) and whether what they hold counts
-                // (the gates read the same rule).
+                // answered at all ([ConsentUiState.switchesEnabled], [ConsentUiState.personalizedAdsAvailable])
+                // and whether what they hold counts (the gates read the same rules).
             }
 
             is ConsentUiEvent.SetParentalConsent -> {
@@ -241,7 +261,13 @@ class ConsentViewModel(
 
             ConsentUiEvent.AcceptAll -> {
                 if (!ageAllowsAnswering()) return
-                staged.value = StagedAnswers(crashReporting = true, analytics = true, personalizedAds = true)
+                // Every answer the user's age lets them give, and no more: under 18 the ads switch is
+                // locked, so pressing this must not be the thing that turns it on.
+                staged.value = StagedAnswers(
+                    crashReporting = true,
+                    analytics = true,
+                    personalizedAds = ConsentAge.mayPersonalizeAds(age.value.ageBand),
+                )
                 documentsAccepted.value = true
                 agreementError.value = false
                 commitAnswers(CONSENT_CHOICE_ACCEPT_ALL)
@@ -270,8 +296,8 @@ class ConsentViewModel(
      */
     private fun ageAllowsAnswering(): Boolean {
         val asked = age.value
-        val answered = asked.overConsentAge != null
-        val guardianAgreed = answered && (asked.overConsentAge == true || asked.parentalConsent)
+        val answered = asked.ageBand != null
+        val guardianAgreed = answered && (asked.ageBand != AgeBand.Under16 || asked.parentalConsent)
         age.value = asked.copy(parentalError = !guardianAgreed)
         return answered && guardianAgreed
     }
@@ -280,10 +306,10 @@ class ConsentViewModel(
      * The only place this screen writes anything, and both buttons end here: the answers become the
      * user's, the SDK is told, and the onboarding is recorded.
      *
-     * The order matters. [PreferencesRepository.setOverConsentAge] is what pins the three answers to
-     * the age answer — under 16 without a parent or guardian's agreement they are all off — so it is
-     * written *last*, after the answers whose fate it decides, and the agreement is written before it
-     * for the same reason.
+     * The order matters. [PreferencesRepository.setAgeBand] is what pins the answers to the age answer
+     * — under 16 without a parent or guardian's agreement they are all off, and under 18 the ads one
+     * is — so it is written *last*, after the answers whose fate it decides, and the agreement is
+     * written before it for the same reason.
      *
      * The write comes before the capture on purpose — [AnalyticsRepository] reads the answer on
      * every event, so this is what lets the onboarding event be sent at all, and an under-16 without a
@@ -296,8 +322,12 @@ class ConsentViewModel(
         preferences.setParentalConsent(asked.parentalConsent)
         preferences.setCrashReportingEnabled(answers.crashReporting)
         preferences.setAnalyticsEnabled(answers.analytics)
-        preferences.setPersonalizedAdsEnabled(answers.personalizedAds)
-        preferences.setOverConsentAge(asked.overConsentAge)
+        // Checked again here, because a switch can be left on and the age answer changed after it:
+        // nothing the age does not allow is ever written as a yes.
+        preferences.setPersonalizedAdsEnabled(
+            ConsentAge.effectivePersonalizedAds(answers.personalizedAds, asked.ageBand),
+        )
+        preferences.setAgeBand(asked.ageBand)
         analytics.syncConsent()
         // The ad SDK is told here as well as on the repository's own construction: this screen is
         // where the answers first exist, and a banner can be drawn before the next request path runs.
@@ -308,6 +338,16 @@ class ConsentViewModel(
             consentAnsweredProperties(answers.crashReporting, answers.analytics, answers.personalizedAds, choice),
         )
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
+    }
+
+    /**
+     * Turns the personalized-ads answer off, in the staged copy and in the store, and leaves the other
+     * two as they are: what answering 16 to 17 withdraws, because that answer is not theirs to give.
+     */
+    private fun withdrawPersonalizedAds() {
+        staged.update { it.copy(personalizedAds = false) }
+        preferences.setPersonalizedAdsEnabled(false)
+        ads.pushConsent()
     }
 
     /**

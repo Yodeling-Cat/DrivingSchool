@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.data.analytics
 
 import com.russhwolf.settings.MapSettings
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.stats.AttemptKind
@@ -125,7 +126,7 @@ class AnalyticsPropertiesTest {
         val sink = RecordingAnalyticsDataSource()
         val preferences = PreferencesRepository(MapSettings()).apply {
             // An adult: the age question decides whether the analytics switch may be answered at all.
-            setOverConsentAge(true)
+            setAgeBand(AgeBand.Adult)
             setAnalyticsEnabled(true)
         }
         return sink to AnalyticsRepository(sink, preferences)

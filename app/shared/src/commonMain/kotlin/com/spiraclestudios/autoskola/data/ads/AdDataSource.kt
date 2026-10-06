@@ -34,14 +34,15 @@ interface AdDataSource {
     suspend fun discard()
 
     /**
-     * Tells the SDK whether this user is under the age of consent where they live, which Google
-     * requires to be in place before anything is requested for such a user. Only the app knows the
-     * answer, so [AdRepository] pushes it here rather than the SDK deciding.
+     * Tells the SDK who the ads are for ([AdAudience]): under the age of consent, a teenager, or an
+     * adult. Google requires the under-age flag to be in place before anything is requested for such a
+     * user, and the content rating follows the band too. Only the app knows the answer, so
+     * [AdRepository] pushes it here rather than the SDK deciding.
      *
      * It has a body rather than being abstract because the targets with no ad SDK have nothing to set,
      * and neither does [NoOpAdDataSource]: "cannot serve ads" already means no request is made.
      */
-    fun setUnderAgeOfConsent(underAge: Boolean) = Unit
+    fun setAudience(audience: AdAudience) = Unit
 
     /**
      * Tells the SDK whether the ads it requests from now on may be chosen for this user, which is the
@@ -49,7 +50,7 @@ interface AdDataSource {
      * state every request starts in and the one anyone who has not agreed is in: the request asks for
      * a generic ad, and the SDK is not to use the advertising ID to pick one.
      *
-     * Like [setUnderAgeOfConsent] it is pushed by [AdRepository] rather than decided here, and for the
+     * Like [setAudience] it is pushed by [AdRepository] rather than decided here, and for the
      * same reason it has to be in place before the *next* request, banners included - a banner asks
      * the SDK itself, so this is the only way an answer reaches one.
      */

@@ -16,6 +16,7 @@ import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
@@ -54,15 +55,15 @@ abstract class ViewModelTest {
 /**
  * Real repositories over in-memory storage and [bank].
  *
- * [overConsentAge] is 16 or older by default, because the age question is asked by the consent screen
+ * [ageBand] is 16 or older by default, because the age question is asked by the consent screen
  * and a test that is not about it is about a user who has answered it. The three answers are only an
  * adult's to give — or an under-16's whose parent or guardian agreed — so a test that expects anything
  * to be sent or requested needs this answered. Pass `null` for the state nothing has asked yet.
  */
-class TestRepositories(bank: QuestionBank = testBank(), overConsentAge: Boolean? = true) {
+class TestRepositories(bank: QuestionBank = testBank(), ageBand: AgeBand? = AgeBand.Adult) {
     private var clock = 0L
     val settings = MapSettings()
-    val preferences = PreferencesRepository(settings).apply { setOverConsentAge(overConsentAge) }
+    val preferences = PreferencesRepository(settings).apply { setAgeBand(ageBand) }
     val attempts = AttemptRepository(SettingsAttemptDataSource(settings), now = { ++clock })
     val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))

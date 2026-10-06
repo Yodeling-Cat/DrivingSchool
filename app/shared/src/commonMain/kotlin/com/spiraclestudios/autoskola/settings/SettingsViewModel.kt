@@ -13,6 +13,7 @@ import com.spiraclestudios.autoskola.data.analytics.consentChangedProperties
 import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
+import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
@@ -33,11 +34,11 @@ data class SettingsUiState(
     val analyticsEnabled: Boolean,
     val personalizedAdsEnabled: Boolean,
     /**
-     * Which side of 16 the user is on, `null` while nothing has asked — which is the state an app
+     * Which age band the user is in, `null` while nothing has asked — which is the state an app
      * updated from a version before the question is in. Correctable here on purpose: somebody answers
      * at 15 and is 16 the year after.
      */
-    val overConsentAge: Boolean?,
+    val ageBand: AgeBand?,
     /** Whether a parent or guardian agreed on behalf of a user under 16. */
     val parentalConsent: Boolean,
     /**
@@ -58,11 +59,11 @@ data class SettingsUiState(
     /** The identifier has been put on the clipboard, which is the only way to know that it was. */
     val deviceIdentifierCopied: Boolean,
     /**
-     * Whether the screen is asking the user to confirm that they have turned 16. It asks before that
-     * answer is applied, because one press unlocks three switches and the app cannot check the answer
-     * itself.
+     * The band the screen is asking the user to confirm, or `null` when it is not asking. It asks
+     * before a *higher* band is applied, because one press unlocks switches and the app cannot check
+     * the answer itself.
      */
-    val confirmingAge: Boolean = false,
+    val confirmingAge: AgeBand? = null,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -71,21 +72,32 @@ data class SettingsUiState(
     val canAdvanceAfterAnswer: Boolean get() = !checkAnswersImmediately
 
     /**
-     * Whether the three consent switches may be answered at all: an adult may, and so may a user under
-     * 16 whose parent or guardian has agreed ([ConsentAge]). They are drawn locked where not, and the
-     * repository holds the same line against a stored answer whatever the screen does.
+     * Whether the crash-report and statistics switches may be answered at all: anyone from 16 may, and
+     * so may a user under 16 whose parent or guardian has agreed ([ConsentAge]). They are drawn locked
+     * where not, and the repository holds the same line against a stored answer whatever the screen
+     * does.
      */
-    val canAnswerSwitches: Boolean get() = ConsentAge.mayAnswerSwitches(overConsentAge, parentalConsent)
+    val canAnswerSwitches: Boolean get() = ConsentAge.mayAnswerSwitches(ageBand, parentalConsent)
 
     /**
-     * Whether the age question is drawn on this screen at all. Only a user under 16 sees it: it is the
-     * one answer here they can still change — somebody answers at 15 and is 16 the year after — and to
-     * everyone else it is a question they cannot answer differently, which is clutter and nothing more.
+     * Whether the personalized-ads switch may be answered: only an adult's to give, whatever a parent
+     * or guardian agreed to. Drawn locked, with the reason, where it is false.
+     */
+    val canPersonalizeAds: Boolean get() = ConsentAge.mayPersonalizeAds(ageBand)
+
+    /**
+     * Whether the age question is drawn on this screen at all. Only a user under 18 sees it: it is the
+     * one answer here they can still change — somebody answers at 15 and is 16 the year after, and 18
+     * the year after that — and to an adult it is a question they cannot answer differently, which is
+     * clutter and nothing more.
      *
      * The parent or guardian's agreement is not offered here in either case: for an under-16 it is
      * locked in once given, and for everyone else it does not exist.
      */
-    val underConsentAge: Boolean get() = overConsentAge == false
+    val canCorrectAge: Boolean get() = ageBand == AgeBand.Under16 || ageBand == AgeBand.From16To17
+
+    /** Whether the user is under 16, which is when the reason the switches are locked is drawn. */
+    val underConsentAge: Boolean get() = ageBand == AgeBand.Under16
 }
 
 sealed interface SettingsUiEvent {
@@ -96,11 +108,14 @@ sealed interface SettingsUiEvent {
     data class SetAnalytics(val enabled: Boolean) : SettingsUiEvent
     data class SetPersonalizedAds(val enabled: Boolean) : SettingsUiEvent
 
-    /** Which side of 16 the user is on, changed here when they turn 16 or answer wrongly. */
-    data class SetOverConsentAge(val overConsentAge: Boolean) : SettingsUiEvent
+    /**
+     * Which age band the user is in, changed here when they have a birthday or answered wrongly. A
+     * higher band is asked about before it counts; a lower one takes answers away and counts at once.
+     */
+    data class SetAgeBand(val band: AgeBand) : SettingsUiEvent
 
-    /** The user says they have turned 16; the screen asks them to be sure before it counts. */
-    data object ConfirmOverConsentAge : SettingsUiEvent
+    /** The user confirms the higher band the screen asked about, and it is applied. */
+    data object ConfirmAgeBand : SettingsUiEvent
 
     /** Backing out of that question: the answer is not given and nothing changes. */
     data object DismissAgeConfirmation : SettingsUiEvent
@@ -125,8 +140,8 @@ class SettingsViewModel(
     /** Whether the identifier has been copied. Nothing but the user's press changes it. */
     private val identifierCopied = MutableStateFlow(false)
 
-    /** Whether the screen is asking the user to confirm that they have turned 16. */
-    private val ageConfirmation = MutableStateFlow(false)
+    /** The band the screen is asking the user to confirm, if it is asking. */
+    private val ageConfirmation = MutableStateFlow<AgeBand?>(null)
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -145,7 +160,7 @@ class SettingsViewModel(
                     CurrentExam.Loading,
                     identifierCopied = false,
                     deviceIdentifier = analytics.deviceIdentifier.value,
-                    confirmingAge = false,
+                    confirmingAge = null,
                 ),
             )
 
@@ -196,7 +211,8 @@ class SettingsViewModel(
             }
 
             is SettingsUiEvent.SetPersonalizedAds -> {
-                if (!canAnswerSwitches()) return
+                // Refused for anyone under 18 even with the other two unlocked: no agreement opens it.
+                if (!canPersonalizeAds()) return
                 if (preferences.preferences.value.personalizedAdsEnabled != event.enabled) {
                     analytics.capture(
                         AnalyticsEvent.ConsentChanged,
@@ -210,22 +226,27 @@ class SettingsViewModel(
                 ads.pushConsent()
             }
 
-            is SettingsUiEvent.SetOverConsentAge -> {
-                // Turning 16 unlocks three switches in one press and the app has no way to check the
-                // answer, so it asks first. Turning under 16 takes answers away and needs no question.
-                if (event.overConsentAge) {
-                    ageConfirmation.value = true
-                } else {
-                    answerTheAgeQuestion(overConsentAge = false)
+            is SettingsUiEvent.SetAgeBand -> {
+                val current = preferences.preferences.value.ageBand
+                when {
+                    event.band == current -> Unit
+
+                    // A higher band unlocks switches in one press and the app has no way to check the
+                    // answer, so it asks first. Nothing is written while the question is on screen.
+                    current == null || current.rises(event.band) -> ageConfirmation.value = event.band
+
+                    // A lower band takes answers away and needs no question.
+                    else -> answerTheAgeQuestion(event.band)
                 }
             }
 
-            SettingsUiEvent.ConfirmOverConsentAge -> {
-                ageConfirmation.value = false
-                answerTheAgeQuestion(overConsentAge = true)
+            SettingsUiEvent.ConfirmAgeBand -> {
+                val confirmed = ageConfirmation.value ?: return
+                ageConfirmation.value = null
+                answerTheAgeQuestion(confirmed)
             }
 
-            SettingsUiEvent.DismissAgeConfirmation -> ageConfirmation.value = false
+            SettingsUiEvent.DismissAgeConfirmation -> ageConfirmation.value = null
 
             SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
         }
@@ -235,25 +256,31 @@ class SettingsViewModel(
      * Records the age answer and everything that follows from it.
      *
      * No analytics event: the age band is not something the app sends, and the documents list what is
-     * sent. Under 16 withdraws the three answers exactly as it does on the consent screen — they are
-     * not that user's to give, and leaving them on behind a locked row would keep answers the app may
-     * not act on. Turning 16 again changes none of them.
+     * sent. Under 16 withdraws all three answers exactly as it does on the consent screen, and 16 to
+     * 17 withdraws the personalized-ads one — they are not that user's to give, and leaving them on
+     * behind a locked row would keep answers the app may not act on. Moving up changes none of them.
      */
-    private fun answerTheAgeQuestion(overConsentAge: Boolean) {
-        preferences.setOverConsentAge(overConsentAge)
-        if (!overConsentAge) {
-            preferences.setCrashReportingEnabled(false)
-            preferences.setAnalyticsEnabled(false)
-            preferences.setPersonalizedAdsEnabled(false)
+    private fun answerTheAgeQuestion(band: AgeBand) {
+        preferences.setAgeBand(band)
+        when (band) {
+            AgeBand.Under16 -> {
+                preferences.setCrashReportingEnabled(false)
+                preferences.setAnalyticsEnabled(false)
+                preferences.setPersonalizedAdsEnabled(false)
+            }
+
+            AgeBand.From16To17 -> preferences.setPersonalizedAdsEnabled(false)
+
+            AgeBand.Adult -> Unit
         }
         syncGates()
     }
 
     /**
      * Both things that act on an answer are told, because changing the age answer can change what the
-     * three answers are worth: the SDK stops or starts, and the ad SDK learns whether this user is
-     * under the age of consent and whether their ads may be personalized — which has to be right before
-     * the next banner, not just before the next fullscreen request.
+     * answers are worth: the SDK stops or starts, and the ad SDK learns who the ads are for and whether
+     * they may be personalized — which has to be right before the next banner, not just before the
+     * next fullscreen request.
      */
     private fun syncGates() {
         analytics.syncConsent()
@@ -265,15 +292,18 @@ class SettingsViewModel(
      * is locked on screen, and this is the lock.
      */
     private fun canAnswerSwitches(): Boolean = preferences.preferences.value.let {
-        ConsentAge.mayAnswerSwitches(it.overConsentAge, it.parentalConsent)
+        ConsentAge.mayAnswerSwitches(it.ageBand, it.parentalConsent)
     }
+
+    /** The personalized-ads switch's lock, which is the age band alone. */
+    private fun canPersonalizeAds(): Boolean = ConsentAge.mayPersonalizeAds(preferences.preferences.value.ageBand)
 
     private fun state(
         preferences: Preferences,
         exam: CurrentExam,
         identifierCopied: Boolean,
         deviceIdentifier: String?,
-        confirmingAge: Boolean,
+        confirmingAge: AgeBand?,
     ) = SettingsUiState(
         language = preferences.language,
         checkAnswersImmediately = preferences.checkAnswersImmediately,
@@ -281,7 +311,7 @@ class SettingsViewModel(
         crashReportingEnabled = preferences.crashReportingEnabled,
         analyticsEnabled = preferences.analyticsEnabled,
         personalizedAdsEnabled = preferences.personalizedAdsEnabled,
-        overConsentAge = preferences.overConsentAge,
+        ageBand = preferences.ageBand,
         parentalConsent = preferences.parentalConsent,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,

@@ -254,7 +254,7 @@ class SettingsViewModelTest : ViewModelTest() {
         assertEquals(false, state.value.overConsentAge)
         assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
         assertFalse(state.value.canAnswerSwitches)
-        assertTrue(state.value.asksForParentalConsent)
+        assertTrue(state.value.underConsentAge)
     }
 
     @Test
@@ -277,15 +277,16 @@ class SettingsViewModelTest : ViewModelTest() {
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
 
         assertTrue(state.value.canAnswerSwitches)
-        assertFalse(state.value.asksForParentalConsent)
+        assertFalse(state.value.underConsentAge)
     }
 
+    /** The agreement is given on the consent screen, which is the only screen that offers it. */
     @Test
-    fun theGuardiansAgreementUnlocksThem() = runTest {
+    fun anAgreementGivenOnTheConsentScreenUnlocksThemHere() = runTest {
+        repositories.preferences.setParentalConsent(true)
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetParentalConsent(true))
         viewModel.onEvent(SettingsUiEvent.SetAds(true))
 
         assertTrue(state.value.canAnswerSwitches)
@@ -294,17 +295,31 @@ class SettingsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun changingTheAgeAnswerDoesNotTouchTheThreeSwitches() = runTest {
+    fun answeringUnder16HereWithdrawsTheThreeAnswers() = runTest {
         repositories.preferences.setCrashReportingEnabled(true)
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
 
-        // Here the answer is written rather than staged, so this is the case that would have persisted
-        // a change nobody asked for. The row locks; the answer stays where the user left it.
+        // This direction writes, unlike the one below: an under-16 cannot have agreed to any of these,
+        // so the answers are taken back rather than left on behind a locked row.
         assertFalse(state.value.canAnswerSwitches)
-        assertTrue(state.value.crashReportingEnabled)
-        assertTrue(repositories.preferences.preferences.value.crashReportingEnabled)
+        assertFalse(state.value.crashReportingEnabled)
+        assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
+    }
+
+    @Test
+    fun turning16AgainDoesNotPutTheAnswersBack() = runTest {
+        repositories.preferences.setCrashReportingEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+
+        // The switches are live again, and empty: the app withdraws answers, it never fills one in.
+        assertTrue(state.value.canAnswerSwitches)
+        assertFalse(state.value.crashReportingEnabled)
+        assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
     }
 
     @Test
@@ -317,6 +332,6 @@ class SettingsViewModelTest : ViewModelTest() {
         val state = observe(model.uiState)
 
         assertFalse(state.value.canAnswerSwitches)
-        assertFalse(state.value.asksForParentalConsent)
+        assertFalse(state.value.underConsentAge)
     }
 }

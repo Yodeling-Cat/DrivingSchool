@@ -259,18 +259,13 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun answeringTheAgeQuestionLeavesTheThreeAnswersAlone() = runTest {
-        // The switches are the user's, given by their own presses. This screen asks a different
-        // question and must not answer one of those for them — in either direction.
+    fun answeringThatYouAreOver16LeavesTheAnswersAlone() = runTest {
+        // The app never fills one of these in: only the user's own presses turn an answer on, and
+        // answering this question is not one of them.
         val fresh = TestRepositories().apply { preferences.setAdsEnabled(true) }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
         assertTrue(state.value.adsEnabled)
-
-        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
-
-        assertTrue(state.value.adsEnabled)
-        assertFalse(state.value.switchesEnabled)
 
         model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
 
@@ -279,21 +274,27 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun answeringThatYouAreUnder16DoesNotTurnAStoredAnswerOff() = runTest {
-        // The state an updated app arrives in, with answers already given: the two switches that were
-        // on stay on. What keeps them from sending anything is the gate, not this screen.
+    fun answeringThatYouAreUnder16WithdrawsTheStoredAnswers() = runTest {
+        // The state an updated app arrives in, with answers already given: an under-16 cannot have
+        // given them, so the question takes them back rather than leaving them on behind locked
+        // switches — and it writes, so a restart does not bring them back either.
         val fresh = TestRepositories().apply {
             preferences.setCrashReportingEnabled(true)
             preferences.setAnalyticsEnabled(true)
+            preferences.setAdsEnabled(true)
         }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
         model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
 
-        assertTrue(state.value.crashReportingEnabled)
-        assertTrue(state.value.analyticsEnabled)
+        assertFalse(state.value.crashReportingEnabled)
+        assertFalse(state.value.analyticsEnabled)
+        assertFalse(state.value.adsEnabled)
         assertFalse(state.value.switchesEnabled)
+        assertFalse(fresh.preferences.preferences.value.crashReportingEnabled)
+        assertFalse(fresh.preferences.preferences.value.analyticsEnabled)
+        assertFalse(fresh.preferences.preferences.value.adsEnabled)
     }
 
     @Test

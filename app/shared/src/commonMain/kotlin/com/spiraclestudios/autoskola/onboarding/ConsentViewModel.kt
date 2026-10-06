@@ -211,11 +211,15 @@ class ConsentViewModel(
 
             is ConsentUiEvent.SetOverConsentAge -> {
                 age.update { it.copy(overConsentAge = event.overConsentAge) }
-                // The three answers are deliberately not touched — not turned off for an under-16, not
-                // put back for an adult. What this answer decides is whether the switches may be
-                // answered at all ([ConsentUiState.switchesEnabled]) and whether the answers count
-                // (the gates read the same rule); it is not an answer to any of the three, and filling
-                // one in on the user's behalf is the app answering a question it is here to ask.
+                // Answering "under 16" withdraws the three answers: they are not this user's to give,
+                // so they are turned off rather than left sitting behind locked switches as answers the
+                // app holds for somebody who cannot have given them. Answering "16 or older" still
+                // touches nothing — filling one in is the direction that would be the app answering a
+                // question it is here to ask.
+                if (!event.overConsentAge) withdrawTheAnswers()
+                // What this answer also decides, in both directions, is whether the switches may be
+                // answered at all ([ConsentUiState.switchesEnabled]) and whether what they hold counts
+                // (the gates read the same rule).
             }
 
             is ConsentUiEvent.SetParentalConsent -> {
@@ -300,5 +304,23 @@ class ConsentViewModel(
             consentAnsweredProperties(answers.crashReporting, answers.analytics, answers.ads, choice),
         )
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
+    }
+
+    /**
+     * Turns all three answers off, in the staged copy and in the store.
+     *
+     * The only place the consent screen writes a switch nobody pressed, and it only ever goes
+     * downwards: saying you are under 16 withdraws answers, where putting one on would be giving
+     * consent on the user's behalf.
+     */
+    private fun withdrawTheAnswers() {
+        staged.value = StagedAnswers(crashReporting = false, analytics = false, ads = false)
+        preferences.setCrashReportingEnabled(false)
+        preferences.setAnalyticsEnabled(false)
+        preferences.setAdsEnabled(false)
+        // Told now rather than at the next commit: the SDKs follow the stored answers, and these have
+        // just changed without a button being pressed.
+        analytics.syncConsent()
+        ads.pushAgeGate()
     }
 }

@@ -57,7 +57,6 @@ import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AgeAnswerRow
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardRadius
-import com.spiraclestudios.autoskola.ui.ConsentCheckRow
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -182,28 +181,25 @@ fun SettingsScreen(
                         leading = { SettingsRowIcon(Icons.Outlined.Description, colors.primaryDeep, colors.mintGlow) },
                         shape = RectangleShape,
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
-                    // The question the three switches below depend on, and the one thing in this card a
-                    // user changes because they changed: somebody answers at 15 and is 16 the year
-                    // after. Under 16 the switches stay locked until the agreement next to it is given.
-                    AgeAnswerRow(
-                        answer = state.overConsentAge,
-                        onAnswer = { onEvent(SettingsUiEvent.SetOverConsentAge(it)) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    )
-                    if (state.asksForParentalConsent) {
+                    // The age question, drawn only for a user under 16. It is the one answer here they
+                    // can still change — somebody answers at 15 and is 16 the year after — and to
+                    // everyone else it is a question they cannot answer differently, which is clutter.
+                    //
+                    // The parent or guardian's agreement is not offered here at all: for an under-16 it
+                    // is locked in once it has been given, and for everyone else it does not exist.
+                    // Withdrawing it would lock the switches from a screen with no way to unlock them.
+                    if (state.underConsentAge) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                        AgeAnswerRow(
+                            answer = state.overConsentAge,
+                            onAnswer = { onEvent(SettingsUiEvent.SetOverConsentAge(it)) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        )
                         Text(
                             strings.consentAgeUnder16Reason,
                             style = Naj.type.rowSubtitle,
                             color = colors.muted,
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-                        )
-                        ConsentCheckRow(
-                            title = strings.consentParentalConsent,
-                            description = strings.consentParentalConsentDescription,
-                            checked = state.parentalConsent,
-                            onCheckedChange = { onEvent(SettingsUiEvent.SetParentalConsent(it)) },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         )
                     }
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
@@ -608,7 +604,7 @@ private fun SettingsIdentifierRowPreview() {
 
 /**
  * The Privacy card under the age question: the same state, changed in the one way that matters, drawn
- * through a board of its own so the four states are not four copies of the whole screen call.
+ * through a board of its own so the states are not copies of the whole screen call.
  */
 @Composable
 private fun SettingsAgeBoard(state: SettingsUiState) {
@@ -623,7 +619,7 @@ private fun SettingsAgeBoard(state: SettingsUiState) {
     )
 }
 
-/** An adult changeable to anything, and the state the four states below are built from. */
+/** The state the three below are built from: an adult, who is the one that sees no age question. */
 private val previewPrivacyState = SettingsUiState(
     language = AppLanguage.English,
     checkAnswersImmediately = false,
@@ -639,7 +635,10 @@ private val previewPrivacyState = SettingsUiState(
     deviceIdentifierCopied = false,
 )
 
-/** The age question unanswered, which is what an app updated from an older version shows. */
+/**
+ * The age question unanswered, which the consent screen makes sure cannot happen: kept as the state
+ * this screen has to draw something sane for rather than one a user reaches.
+ */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SettingsScreenAgeUnansweredPreview() {
@@ -648,7 +647,11 @@ private fun SettingsScreenAgeUnansweredPreview() {
     }
 }
 
-/** Under 16: the reason, the parent or guardian's agreement, and the three switches locked. */
+/**
+ * Under 16: the reason and the three switches locked. The question is drawn, because they are the one
+ * user who can still answer it differently — and the guardian's agreement is not, because for them it
+ * is locked in.
+ */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SettingsScreenUnder16Preview() {
@@ -657,7 +660,7 @@ private fun SettingsScreenUnder16Preview() {
     }
 }
 
-/** Under 16 with the agreement given, which is what unlocks the three switches. */
+/** Under 16 with the agreement given on the consent screen, which is what unlocks the switches here. */
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun SettingsScreenUnder16AgreedPreview() {

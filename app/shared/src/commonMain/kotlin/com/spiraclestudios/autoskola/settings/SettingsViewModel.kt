@@ -71,8 +71,15 @@ data class SettingsUiState(
      */
     val canAnswerSwitches: Boolean get() = ConsentAge.mayAnswerSwitches(overConsentAge, parentalConsent)
 
-    /** Whether this screen asks for a parent or guardian at all: only under 16 has anything to agree to. */
-    val asksForParentalConsent: Boolean get() = overConsentAge == false
+    /**
+     * Whether the age question is drawn on this screen at all. Only a user under 16 sees it: it is the
+     * one answer here they can still change — somebody answers at 15 and is 16 the year after — and to
+     * everyone else it is a question they cannot answer differently, which is clutter and nothing more.
+     *
+     * The parent or guardian's agreement is not offered here in either case: for an under-16 it is
+     * locked in once given, and for everyone else it does not exist.
+     */
+    val underConsentAge: Boolean get() = overConsentAge == false
 }
 
 sealed interface SettingsUiEvent {
@@ -85,9 +92,6 @@ sealed interface SettingsUiEvent {
 
     /** Which side of 16 the user is on, changed here when they turn 16 or answer wrongly. */
     data class SetOverConsentAge(val overConsentAge: Boolean) : SettingsUiEvent
-
-    /** A parent or guardian's agreement for a user under 16, given or withdrawn. */
-    data class SetParentalConsent(val given: Boolean) : SettingsUiEvent
 
     /**
      * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
@@ -183,14 +187,16 @@ class SettingsViewModel(
 
             is SettingsUiEvent.SetOverConsentAge -> {
                 // No analytics event for this one: the age band is not something the app sends, and
-                // the documents list what is sent. The repository pins the three answers to whatever
-                // the user answered, so an under-16 without an agreement leaves them all off.
+                // the documents list what is sent.
                 preferences.setOverConsentAge(event.overConsentAge)
-                syncGates()
-            }
-
-            is SettingsUiEvent.SetParentalConsent -> {
-                preferences.setParentalConsent(event.given)
+                // Under 16 withdraws the three answers here exactly as it does on the consent screen:
+                // they are not that user's to give, and leaving them on behind a locked row would keep
+                // answers the app may not act on. Turning 16 again changes none of them.
+                if (!event.overConsentAge) {
+                    preferences.setCrashReportingEnabled(false)
+                    preferences.setAnalyticsEnabled(false)
+                    preferences.setAdsEnabled(false)
+                }
                 syncGates()
             }
 

@@ -224,8 +224,11 @@ class ConsentViewModel(
 
             is ConsentUiEvent.SetParentalConsent -> {
                 age.update { it.copy(parentalConsent = event.given, parentalError = false) }
-                // The agreement unlocks the switches and withdrawing it locks them again; either way
-                // the values the user set are left exactly as they are.
+                // Giving the agreement unlocks the switches and leaves their values alone. Taking it
+                // back takes the three answers with it, exactly as answering "under 16" does: it was
+                // the agreement that let them be given, so without it they are turned off rather than
+                // left on behind locked switches.
+                if (!event.given) withdrawTheAnswers()
             }
 
             // Held, not written. These are what the buttons commit.

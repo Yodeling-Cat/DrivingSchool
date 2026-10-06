@@ -350,7 +350,7 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun withdrawingTheAgreementLeavesTheThreeAnswersAlone() = runTest {
+    fun withdrawingTheAgreementTurnsTheThreeAnswersOff() = runTest {
         val fresh = unasked()
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
@@ -362,10 +362,12 @@ class ConsentViewModelTest : ViewModelTest() {
 
         model.onEvent(ConsentUiEvent.SetParentalConsent(false))
 
-        // The switch stays where the user put it. What the withdrawal takes back is the permission to
-        // answer it at all.
-        assertTrue(state.value.analyticsEnabled)
+        // The agreement is what let them be answered at all, so taking it back takes them with it —
+        // the same withdrawal as answering "under 16", and written, so a restart does not bring them
+        // back either.
+        assertFalse(state.value.analyticsEnabled)
         assertFalse(state.value.switchesEnabled)
+        assertFalse(fresh.preferences.preferences.value.analyticsEnabled)
     }
 
     @Test

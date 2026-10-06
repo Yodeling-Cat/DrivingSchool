@@ -141,4 +141,61 @@ class PreferencesRepositoryTest {
         // us about what was already filed under it.
         assertEquals("ident-1", PreferencesRepository(settings).preferences.value.deviceIdentifier)
     }
+
+    // ── The age answer ──
+
+    @Test
+    fun theAgeAnswerAndTheAgreementSurviveRestart() {
+        val settings = MapSettings()
+        assertNull(PreferencesRepository(settings).preferences.value.overConsentAge)
+        assertFalse(PreferencesRepository(settings).preferences.value.parentalConsent)
+
+        PreferencesRepository(settings).apply {
+            setParentalConsent(true)
+            setOverConsentAge(false)
+        }
+
+        val restarted = PreferencesRepository(settings).preferences.value
+        assertEquals(false, restarted.overConsentAge)
+        assertTrue(restarted.parentalConsent)
+    }
+
+    @Test
+    fun anUnder16WithoutAnAgreementKeepsTheThreeAnswersOff() {
+        val preferences = PreferencesRepository(MapSettings())
+        preferences.setCrashReportingEnabled(true)
+        preferences.setAnalyticsEnabled(true)
+        preferences.setAdsEnabled(true)
+
+        preferences.setOverConsentAge(false)
+
+        // Written down rather than merely filtered on the way out: what the switches show in Settings
+        // has to be what is true.
+        assertFalse(preferences.preferences.value.crashReportingEnabled)
+        assertFalse(preferences.preferences.value.analyticsEnabled)
+        assertFalse(preferences.preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun anAgreementWrittenAfterwardsDoesNotTurnThemOn() {
+        val preferences = PreferencesRepository(MapSettings())
+        preferences.setOverConsentAge(false)
+
+        preferences.setParentalConsent(true)
+
+        // The agreement is what lets the user answer; it is not an answer itself.
+        assertFalse(preferences.preferences.value.adsEnabled)
+        assertTrue(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = true))
+    }
+
+    @Test
+    fun theAnswerCanBeRemovedAgain() {
+        val preferences = PreferencesRepository(MapSettings())
+        preferences.setOverConsentAge(true)
+
+        preferences.setOverConsentAge(null)
+
+        assertNull(preferences.preferences.value.overConsentAge)
+        assertFalse(ConsentAge.mayAnswerSwitches(overConsentAge = null, parentalConsent = false))
+    }
 }

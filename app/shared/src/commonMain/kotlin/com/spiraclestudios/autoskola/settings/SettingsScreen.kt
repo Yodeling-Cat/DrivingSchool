@@ -52,8 +52,10 @@ import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.LicenseIcon
 import com.spiraclestudios.autoskola.openUrl
+import com.spiraclestudios.autoskola.ui.AgeAnswerRow
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardRadius
+import com.spiraclestudios.autoskola.ui.ConsentCheckRow
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -179,10 +181,35 @@ fun SettingsScreen(
                         shape = RectangleShape,
                     )
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    // The question the three switches below depend on, and the one thing in this card a
+                    // user changes because they changed: somebody answers at 15 and is 16 the year
+                    // after. Under 16 the switches stay locked until the agreement next to it is given.
+                    AgeAnswerRow(
+                        answer = state.overConsentAge,
+                        onAnswer = { onEvent(SettingsUiEvent.SetOverConsentAge(it)) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                    if (state.asksForParentalConsent) {
+                        Text(
+                            strings.consentAgeUnder16Reason,
+                            style = Naj.type.rowSubtitle,
+                            color = colors.muted,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                        )
+                        ConsentCheckRow(
+                            title = strings.consentParentalConsent,
+                            description = strings.consentParentalConsentDescription,
+                            checked = state.parentalConsent,
+                            onCheckedChange = { onEvent(SettingsUiEvent.SetParentalConsent(it)) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                    }
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
                         title = strings.consentCrashReportingTitle,
                         description = strings.consentCrashReportingDescription,
                         checked = state.crashReportingEnabled,
+                        enabled = state.canAnswerSwitches,
                         icon = Icons.Outlined.BugReport,
                         iconTint = colors.primaryDeep,
                         iconBackground = colors.mintGlow,
@@ -193,6 +220,7 @@ fun SettingsScreen(
                         title = strings.consentAnalyticsTitle,
                         description = strings.consentAnalyticsDescription,
                         checked = state.analyticsEnabled,
+                        enabled = state.canAnswerSwitches,
                         icon = Icons.Outlined.Analytics,
                         iconTint = colors.primaryDeep,
                         iconBackground = colors.mintGlow,
@@ -203,6 +231,7 @@ fun SettingsScreen(
                         title = strings.consentAdsTitle,
                         description = strings.consentAdsDescription,
                         checked = state.adsEnabled,
+                        enabled = state.canAnswerSwitches,
                         // The megaphone, because this row is about what the app shows the user rather
                         // than about what leaves the device.
                         icon = Icons.Outlined.Campaign,
@@ -413,6 +442,8 @@ private fun SettingsScreenPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = false,
                 adsEnabled = true,
+                overConsentAge = true,
+                parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
@@ -441,6 +472,8 @@ private fun SettingsScreenCheckingPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
                 adsEnabled = false,
+                overConsentAge = true,
+                parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
@@ -469,6 +502,8 @@ private fun SettingsScreenNoVersionPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = false,
                 adsEnabled = false,
+                overConsentAge = true,
+                parentalConsent = false,
                 exam = previewExam,
                 appVersion = null,
                 deviceIdentifier = null,
@@ -500,6 +535,8 @@ private fun SettingsScreenNoExamYetPreview() {
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
                 adsEnabled = true,
+                overConsentAge = true,
+                parentalConsent = false,
                 exam = null,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
@@ -528,6 +565,8 @@ private fun SettingsScreenIdentifierPreview() {
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
                 adsEnabled = false,
+                overConsentAge = true,
+                parentalConsent = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = PREVIEW_IDENTIFIER,
@@ -559,5 +598,65 @@ private fun SettingsIdentifierRowPreview() {
             PreviewLabel("Copied")
             SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = true, onCopy = {})
         }
+    }
+}
+
+/**
+ * The Privacy card under the age question: the same state, changed in the one way that matters, drawn
+ * through a board of its own so the four states are not four copies of the whole screen call.
+ */
+@Composable
+private fun SettingsAgeBoard(state: SettingsUiState) {
+    SettingsScreen(
+        state = state,
+        onEvent = {},
+        onChangeExam = {},
+        onOpenAbout = {},
+        onOpenFeedback = {},
+        onOpenDocument = {},
+        onCopyIdentifier = {},
+    )
+}
+
+/** An adult changeable to anything, and the state the four states below are built from. */
+private val previewPrivacyState = SettingsUiState(
+    language = AppLanguage.English,
+    checkAnswersImmediately = false,
+    advanceAfterAnswer = false,
+    crashReportingEnabled = false,
+    analyticsEnabled = false,
+    adsEnabled = false,
+    overConsentAge = true,
+    parentalConsent = false,
+    exam = previewExam,
+    appVersion = "1.4.2",
+    deviceIdentifier = null,
+    deviceIdentifierCopied = false,
+)
+
+/** The age question unanswered, which is what an app updated from an older version shows. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenAgeUnansweredPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = null))
+    }
+}
+
+/** Under 16: the reason, the parent or guardian's agreement, and the three switches locked. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenUnder16Preview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false))
+    }
+}
+
+/** Under 16 with the agreement given, which is what unlocks the three switches. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenUnder16AgreedPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, parentalConsent = true))
     }
 }

@@ -5,6 +5,8 @@ import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.spiraclestudios.autoskola.currentActivity
@@ -88,5 +90,33 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
                 }
             },
         )
+    }
+
+    /**
+     * Google takes this as a request configuration rather than per request: it applies to whatever the
+     * SDK sends afterwards, banners included, which is the only way to reach a banner - `AdBanner`
+     * asks the SDK itself, without coming through [AdRepository].
+     *
+     * Under the age of consent the ad content rating is capped at general audiences too. That is the
+     * other half of the same rule: an app whose users may be too young to agree on their own keeps
+     * what they are shown to the mildest rating Google rates for.
+     *
+     * The tag is deprecated in this SDK version in favour of `setAgeRestrictedTreatment`, whose values
+     * this build does not expose (only `UNSPECIFIED` is readable from the artifact). This stays until
+     * the replacement can be read from the SDK itself rather than guessed at: the meaning of the flag
+     * below is the one Google documents for exactly this case, and a warning is cheaper than being
+     * wrong about who is under the age of consent.
+     */
+    override fun setUnderAgeOfConsent(underAge: Boolean) {
+        val wanted = if (underAge) {
+            RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_TRUE
+        } else {
+            RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE
+        }
+        if (MobileAds.getRequestConfiguration().tagForUnderAgeOfConsent == wanted) return
+
+        val builder = RequestConfiguration.Builder().setTagForUnderAgeOfConsent(wanted)
+        if (underAge) builder.setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_G)
+        MobileAds.setRequestConfiguration(builder.build())
     }
 }

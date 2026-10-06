@@ -35,7 +35,10 @@ class ExamSelectionViewModelTest : ViewModelTest() {
         language = "en",
         questionCounts = mapOf(LicenseCategory.B to 9),
     )
-    private val preferences = PreferencesRepository(MapSettings())
+    private val preferences = PreferencesRepository(MapSettings()).apply {
+        // An adult: the age question decides whether the analytics switch may be answered at all.
+        setOverConsentAge(true)
+    }
     private val banks = QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn), emptyList()))
     private val analyticsSink = RecordingAnalyticsDataSource()
     private val analytics = AnalyticsRepository(analyticsSink, preferences)

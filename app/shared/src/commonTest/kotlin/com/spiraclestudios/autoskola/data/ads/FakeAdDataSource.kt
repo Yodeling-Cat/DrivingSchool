@@ -37,4 +37,11 @@ class FakeAdDataSource(
     override suspend fun discard() {
         loaded = null
     }
+
+    /** Every value [setUnderAgeOfConsent] was handed, in order. */
+    val underAgeOfConsent = mutableListOf<Boolean>()
+
+    override fun setUnderAgeOfConsent(underAge: Boolean) {
+        underAgeOfConsent += underAge
+    }
 }

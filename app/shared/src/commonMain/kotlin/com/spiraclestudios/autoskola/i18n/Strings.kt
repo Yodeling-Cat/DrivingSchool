@@ -47,6 +47,19 @@ class Strings(
     // summarized: a user cannot agree to what they cannot read.
     val consentTitle: String,
     val consentSubtitle: String,
+    /**
+     * The question the three switches depend on: under 16 the answers are not the user's to give, so
+     * this comes before either button can commit anything (`plans/age-gate.md`).
+     */
+    val consentAgeQuestion: String,
+    val consentAgeOver16: String,
+    val consentAgeUnder16: String,
+    /** Drawn on the question when a button was pressed without answering it. */
+    val consentAgeRequired: String,
+    /** Why the switches cannot be answered yet, drawn with the guardian's agreement. */
+    val consentAgeUnder16Reason: String,
+    val consentParentalConsent: String,
+    val consentParentalConsentDescription: String,
     val consentCrashReportingTitle: String,
     val consentCrashReportingDescription: String,
     val consentAnalyticsTitle: String,
@@ -360,6 +373,15 @@ private val EnglishStrings = Strings(
     consentTitle = "Your data, your choice",
     consentSubtitle = "This app can show ads, and can send two things to help us fix it and " +
         "improve it.",
+    consentAgeQuestion = "Are you 16 or older?",
+    consentAgeOver16 = "16 or older",
+    consentAgeUnder16 = "Under 16",
+    consentAgeRequired = "Answer this question to continue.",
+    consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
+        "can agree on your behalf.",
+    consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
+    consentParentalConsentDescription = "They have read the Privacy Policy and the Terms of Use, and " +
+        "agreed to the three answers below for me.",
     consentCrashReportingTitle = "Crash reports",
     consentCrashReportingDescription = "If the app crashes, it sends us what went wrong, along with " +
         "your device model and the app version.",
@@ -572,6 +594,15 @@ private val SlovakStrings = Strings(
     consentTitle = "Vaše dáta, vaša voľba",
     consentSubtitle = "Aplikácia môže zobrazovať reklamy a odosielať dve veci, aby sme ju mohli " +
         "opraviť a vylepšiť.",
+    consentAgeQuestion = "Máte 16 rokov alebo viac?",
+    consentAgeOver16 = "16 rokov alebo viac",
+    consentAgeUnder16 = "Menej ako 16",
+    consentAgeRequired = "Ak chcete pokračovať, odpovedzte na túto otázku.",
+    consentAgeUnder16Reason = "Kým nemáte 16 rokov, nemôžete s tým súhlasiť sami: vo vašom mene tak " +
+        "môže urobiť len rodič alebo zákonný zástupca.",
+    consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
+    consentParentalConsentDescription = "Prečítal si Zásady ochrany osobných údajov a Podmienky " +
+        "používania a v mojom mene súhlasil s tromi odpoveďami nižšie.",
     consentCrashReportingTitle = "Hlásenia o zrúteniach",
     consentCrashReportingDescription = "Ak aplikácia spadne, pošle nám, čo sa pokazilo, model " +
         "zariadenia a verziu aplikácie.",
@@ -785,6 +816,15 @@ private val HungarianStrings = Strings(
     consentTitle = "Az Ön adatai, az Ön döntése",
     consentSubtitle = "Az alkalmazás reklámokat jeleníthet meg, és két dolgot küldhet, hogy " +
         "javíthassuk és fejleszthessük.",
+    consentAgeQuestion = "16 éves vagy idősebb?",
+    consentAgeOver16 = "16 éves vagy idősebb",
+    consentAgeUnder16 = "16 év alatti",
+    consentAgeRequired = "A folytatáshoz válaszoljon erre a kérdésre.",
+    consentAgeUnder16Reason = "16 év alatt ezekhez nem tud egyedül hozzájárulni: Ön helyett ezt csak " +
+        "szülő vagy gondviselő teheti meg.",
+    consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
+    consentParentalConsentDescription = "Elolvasta az Adatvédelmi szabályzatot és a Felhasználási " +
+        "feltételeket, és Ön helyett hozzájárult a lenti három válaszhoz.",
     consentCrashReportingTitle = "Hibajelentések",
     consentCrashReportingDescription = "Ha az alkalmazás lefagy, elküldi, mi hibázott, a készülék " +
         "típusát és az alkalmazás verzióját.",
@@ -1000,6 +1040,15 @@ private val CzechStrings = Strings(
     consentTitle = "Vaše data, vaše volba",
     consentSubtitle = "Aplikace může zobrazovat reklamy a odesílat dvě věci, abychom ji mohli " +
         "opravit a vylepšit.",
+    consentAgeQuestion = "Je vám 16 let nebo více?",
+    consentAgeOver16 = "16 let nebo více",
+    consentAgeUnder16 = "Méně než 16",
+    consentAgeRequired = "Chcete-li pokračovat, odpovězte na tuto otázku.",
+    consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
+        "udělat jen rodič nebo zákonný zástupce.",
+    consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",
+    consentParentalConsentDescription = "Přečetl si Zásady ochrany osobních údajů a Podmínky použití " +
+        "a souhlasil za mě se třemi odpověďmi níže.",
     consentCrashReportingTitle = "Hlášení o pádech",
     consentCrashReportingDescription = "Pokud aplikace spadne, pošle nám, co se pokazilo, model " +
         "zařízení a verzi aplikace.",

@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.appVersion
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ADS
@@ -12,6 +13,7 @@ import com.spiraclestudios.autoskola.data.analytics.consentChangedProperties
 import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
+import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -30,6 +32,14 @@ data class SettingsUiState(
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
     val adsEnabled: Boolean,
+    /**
+     * Which side of 16 the user is on, `null` while nothing has asked — which is the state an app
+     * updated from a version before the question is in. Correctable here on purpose: somebody answers
+     * at 15 and is 16 the year after.
+     */
+    val overConsentAge: Boolean?,
+    /** Whether a parent or guardian agreed on behalf of a user under 16. */
+    val parentalConsent: Boolean,
     /**
      * `null` when there is no exam to name. The exam cannot be unset once chosen, but
      * `ExamRepository.current` re-resolves on a cold subscription, so this is what the row is drawn
@@ -53,6 +63,16 @@ data class SettingsUiState(
      * switched on while that is off.
      */
     val canAdvanceAfterAnswer: Boolean get() = !checkAnswersImmediately
+
+    /**
+     * Whether the three consent switches may be answered at all: an adult may, and so may a user under
+     * 16 whose parent or guardian has agreed ([ConsentAge]). They are drawn locked where not, and the
+     * repository holds the same line against a stored answer whatever the screen does.
+     */
+    val canAnswerSwitches: Boolean get() = ConsentAge.mayAnswerSwitches(overConsentAge, parentalConsent)
+
+    /** Whether this screen asks for a parent or guardian at all: only under 16 has anything to agree to. */
+    val asksForParentalConsent: Boolean get() = overConsentAge == false
 }
 
 sealed interface SettingsUiEvent {
@@ -62,6 +82,12 @@ sealed interface SettingsUiEvent {
     data class SetCrashReporting(val enabled: Boolean) : SettingsUiEvent
     data class SetAnalytics(val enabled: Boolean) : SettingsUiEvent
     data class SetAds(val enabled: Boolean) : SettingsUiEvent
+
+    /** Which side of 16 the user is on, changed here when they turn 16 or answer wrongly. */
+    data class SetOverConsentAge(val overConsentAge: Boolean) : SettingsUiEvent
+
+    /** A parent or guardian's agreement for a user under 16, given or withdrawn. */
+    data class SetParentalConsent(val given: Boolean) : SettingsUiEvent
 
     /**
      * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
@@ -74,6 +100,7 @@ class SettingsViewModel(
     private val preferences: PreferencesRepository,
     exams: ExamRepository,
     private val analytics: AnalyticsRepository,
+    private val ads: AdRepository,
 ) : ViewModel() {
 
     /** Read once: on Android the platform call is reflective, and the answer cannot change. */
@@ -114,6 +141,9 @@ class SettingsViewModel(
             is SettingsUiEvent.SetAdvanceAfterAnswer -> preferences.setAdvanceAfterAnswer(event.enabled)
 
             is SettingsUiEvent.SetCrashReporting -> {
+                // The row is drawn locked where the age answer does not allow it; refused here too, so
+                // the rule holds whichever screen is driving this and whatever else changes.
+                if (!canAnswerSwitches()) return
                 if (preferences.preferences.value.crashReportingEnabled != event.enabled) {
                     // Recorded before the write, so the answer the gate reads is the one that was
                     // in force when the user changed it - the event is the record of the change.
@@ -127,6 +157,7 @@ class SettingsViewModel(
             }
 
             is SettingsUiEvent.SetAnalytics -> {
+                if (!canAnswerSwitches()) return
                 if (preferences.preferences.value.analyticsEnabled != event.enabled) {
                     analytics.capture(
                         AnalyticsEvent.ConsentChanged,
@@ -138,6 +169,7 @@ class SettingsViewModel(
             }
 
             is SettingsUiEvent.SetAds -> {
+                if (!canAnswerSwitches()) return
                 if (preferences.preferences.value.adsEnabled != event.enabled) {
                     analytics.capture(
                         AnalyticsEvent.ConsentChanged,
@@ -149,8 +181,40 @@ class SettingsViewModel(
                 preferences.setAdsEnabled(event.enabled)
             }
 
+            is SettingsUiEvent.SetOverConsentAge -> {
+                // No analytics event for this one: the age band is not something the app sends, and
+                // the documents list what is sent. The repository pins the three answers to whatever
+                // the user answered, so an under-16 without an agreement leaves them all off.
+                preferences.setOverConsentAge(event.overConsentAge)
+                syncGates()
+            }
+
+            is SettingsUiEvent.SetParentalConsent -> {
+                preferences.setParentalConsent(event.given)
+                syncGates()
+            }
+
             SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
         }
+    }
+
+    /**
+     * Both things that act on an answer are told, because changing the age answer can change what the
+     * three answers are worth: the SDK stops or starts, and the ad SDK learns whether this user is
+     * under the age of consent — which has to be right before the next banner, not just before the
+     * next fullscreen request.
+     */
+    private fun syncGates() {
+        analytics.syncConsent()
+        ads.pushAgeGate()
+    }
+
+    /**
+     * The same rule the state draws from, read where an event has to refuse rather than mark: the row
+     * is locked on screen, and this is the lock.
+     */
+    private fun canAnswerSwitches(): Boolean = preferences.preferences.value.let {
+        ConsentAge.mayAnswerSwitches(it.overConsentAge, it.parentalConsent)
     }
 
     private fun state(
@@ -165,6 +229,8 @@ class SettingsViewModel(
         crashReportingEnabled = preferences.crashReportingEnabled,
         analyticsEnabled = preferences.analyticsEnabled,
         adsEnabled = preferences.adsEnabled,
+        overConsentAge = preferences.overConsentAge,
+        parentalConsent = preferences.parentalConsent,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,
         deviceIdentifier = deviceIdentifier,

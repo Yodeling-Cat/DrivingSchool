@@ -10,10 +10,24 @@ import kotlin.test.assertTrue
 
 class AnalyticsRepositoryTest {
 
-    /** A repository over a fake sink, with the two answers already given or not. */
-    private class Fixture(crashReporting: Boolean = false, analytics: Boolean = false) {
+    /**
+     * A repository over a fake sink, with the answers already given or not.
+     *
+     * 16 or older unless a test says otherwise, because the two switches are an adult's to answer — or
+     * an under-16's whose parent or guardian agreed (`ConsentAgeTest`). The age is written before the
+     * two answers so a test can build what an app updated from an older version arrives in: answers
+     * stored, and no question about age ever asked.
+     */
+    private class Fixture(
+        crashReporting: Boolean = false,
+        analytics: Boolean = false,
+        overConsentAge: Boolean? = true,
+        parentalConsent: Boolean = false,
+    ) {
         val sink = RecordingAnalyticsDataSource()
         val preferences = PreferencesRepository(MapSettings()).apply {
+            setOverConsentAge(overConsentAge)
+            setParentalConsent(parentalConsent)
             setCrashReportingEnabled(crashReporting)
             setAnalyticsEnabled(analytics)
         }
@@ -157,5 +171,43 @@ class AnalyticsRepositoryTest {
 
         assertEquals("ident-2", fixture.repository.deviceIdentifier.value)
         assertEquals("ident-2", fixture.preferences.preferences.value.deviceIdentifier)
+    }
+
+    // ── The age answer ──
+    //
+    // The switches are only one half of the gate. The other is that an answer stored before the app
+    // asked about age sends nothing until it has, which is the state a version 2 install updates into.
+
+    @Test
+    fun anUnder16WithoutAnAgreementSendsNothing() {
+        val fixture = Fixture(crashReporting = true, analytics = true, overConsentAge = false)
+
+        fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
+        fixture.repository.screen("Home")
+
+        assertEquals(emptyList(), fixture.sink.events)
+        assertEquals(emptyList(), fixture.sink.screens)
+        assertEquals(listOf(false to false), fixture.sink.consents)
+    }
+
+    @Test
+    fun anUpdatedAppSendsNothingUntilTheQuestionIsAnswered() {
+        val fixture = Fixture(analytics = true, overConsentAge = null)
+
+        fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
+
+        assertEquals(emptyList(), fixture.sink.events)
+        assertTrue(fixture.preferences.preferences.value.analyticsEnabled)
+    }
+
+    @Test
+    fun anUnder16WhoseParentOrGuardianAgreedSendsWhatWasAnswered() {
+        val fixture = Fixture(analytics = true, overConsentAge = false, parentalConsent = true)
+
+        fixture.repository.capture(AnalyticsEvent.OnboardingCompleted)
+
+        assertEquals(listOf(AnalyticsEvent.OnboardingCompleted), fixture.sink.events)
+        // The consent the SDK is handed: crash reports off, analytics on, which is what was answered.
+        assertEquals(listOf(false to true), fixture.sink.consents)
     }
 }

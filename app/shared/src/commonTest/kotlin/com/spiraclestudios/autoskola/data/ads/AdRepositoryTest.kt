@@ -44,9 +44,19 @@ class AdRepositoryTest {
         adsEnabled: Boolean = true,
         premium: PremiumStatus = PremiumStatus.Free,
         settings: Settings = MapSettings(),
+        // 16 or older unless a test says otherwise: consent, the entitlement and the frequency are all
+        // settled by an adult, and the age rule itself is in `ConsentAgeTest`. The age is written
+        // before the ads answer, so a test can build the state a version 2 install arrives in — the
+        // switch stored as yes, and no question ever asked.
+        overConsentAge: Boolean? = true,
+        parentalConsent: Boolean = false,
     ) = Fixture(
         dataSource = FakeAdDataSource(available = available, result = result),
-        preferences = PreferencesRepository(settings).apply { setAdsEnabled(adsEnabled) },
+        preferences = PreferencesRepository(settings).apply {
+            setParentalConsent(parentalConsent)
+            setOverConsentAge(overConsentAge)
+            setAdsEnabled(adsEnabled)
+        },
         entitlement = PremiumRepository(premium),
         settings = settings,
     )
@@ -243,5 +253,46 @@ class AdRepositoryTest {
         val off = fixture(adsEnabled = false)
         off.ads.preloadTestOffer()
         assertEquals(emptyList(), off.dataSource.preloaded)
+    }
+
+    // --- the age answer -----------------------------------------------------
+
+    @Test
+    fun anUnder16WithoutAnAgreementIsAskedForNothing() = runTest {
+        val fixture = fixture(overConsentAge = false)
+
+        // What the switch says is not the question: nobody who cannot agree alone gets a request.
+        assertTrue(fixture.preferences.preferences.value.adsEnabled)
+        assertFalse(fixture.ads.mayRequestAds())
+        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
+        assertEquals(emptyList(), fixture.dataSource.preloaded)
+    }
+
+    @Test
+    fun anUnansweredQuestionIsAskedForNothingEither() = runTest {
+        val fixture = fixture(overConsentAge = null)
+
+        assertFalse(fixture.ads.mayRequestAds())
+    }
+
+    @Test
+    fun anUnder16WhoseParentOrGuardianAgreedIsAsked() = runTest {
+        val fixture = fixture(overConsentAge = false, parentalConsent = true)
+
+        assertTrue(fixture.ads.mayRequestAds())
+    }
+
+    @Test
+    fun theSdkIsToldWhoIsUnderTheAgeOfConsent() = runTest {
+        // Pushed when the repository is built, because a banner asks the SDK directly rather than
+        // coming through here.
+        assertEquals(listOf(true), fixture(overConsentAge = false).dataSource.underAgeOfConsent)
+        assertEquals(listOf(false), fixture(overConsentAge = true).dataSource.underAgeOfConsent)
+    }
+
+    @Test
+    fun anUnansweredQuestionIsTreatedAsUnderTheAgeOfConsent() = runTest {
+        // Conservative on purpose: the flag comes off on an answer the user gave, never by default.
+        assertEquals(listOf(true), fixture(overConsentAge = null).dataSource.underAgeOfConsent)
     }
 }

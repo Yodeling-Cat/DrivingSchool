@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.data.analytics
 
+import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,8 +50,8 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
      */
     fun syncConsent() {
         val consent = Consent(
-            crashReporting = preferences.preferences.value.crashReportingEnabled,
-            analytics = preferences.preferences.value.analyticsEnabled,
+            crashReporting = maySend(preferences.preferences.value.crashReportingEnabled),
+            analytics = maySend(preferences.preferences.value.analyticsEnabled),
         )
         if (consent == pushed) return
         pushed = consent
@@ -59,13 +60,24 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
     }
 
     fun capture(event: AnalyticsEvent, properties: Map<String, Any> = emptyMap()) {
-        if (!preferences.preferences.value.analyticsEnabled) return
+        if (!maySend(preferences.preferences.value.analyticsEnabled)) return
         analytics.capture(event, properties)
     }
 
     fun screen(name: String) {
-        if (!preferences.preferences.value.analyticsEnabled) return
+        if (!maySend(preferences.preferences.value.analyticsEnabled)) return
         analytics.screen(name)
+    }
+
+    /**
+     * A stored answer as it takes effect: what the user asked for, and nothing more than their age
+     * answer allows (see [ConsentAge]). Under 16 without a parent or guardian agreeing, the switches
+     * are not theirs to answer, and this is what holds that against a value already stored — from the
+     * version before the app asked, or from anything that wrote one without asking the user.
+     */
+    private fun maySend(requested: Boolean): Boolean {
+        val current = preferences.preferences.value
+        return ConsentAge.effective(requested, current.overConsentAge, current.parentalConsent)
     }
 
     /**

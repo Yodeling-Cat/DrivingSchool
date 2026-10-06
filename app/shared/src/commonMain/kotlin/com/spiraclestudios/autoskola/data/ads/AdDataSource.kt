@@ -32,4 +32,14 @@ interface AdDataSource {
 
     /** Throws away anything loaded, for when ads stop being wanted - a purchase arriving. */
     suspend fun discard()
+
+    /**
+     * Tells the SDK whether this user is under the age of consent where they live, which Google
+     * requires to be in place before anything is requested for such a user. Only the app knows the
+     * answer, so [AdRepository] pushes it here rather than the SDK deciding.
+     *
+     * It has a body rather than being abstract because the targets with no ad SDK have nothing to set,
+     * and neither does [NoOpAdDataSource]: "cannot serve ads" already means no request is made.
+     */
+    fun setUnderAgeOfConsent(underAge: Boolean) = Unit
 }

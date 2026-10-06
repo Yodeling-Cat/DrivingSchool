@@ -47,6 +47,17 @@ data class Preferences(
      * something has been sent, which is the only state in which nothing is filed under anything.
      */
     val deviceIdentifier: String?,
+    /**
+     * Whether the user is 16 or older, `null` until the consent screen asks. In Slovakia that is the
+     * age at which a user can agree to crash reports, usage statistics and ads alone; below it only a
+     * parent or guardian can, on their behalf (see [ConsentAge]).
+     */
+    val overConsentAge: Boolean?,
+    /**
+     * Whether a parent or guardian has agreed on behalf of a user under 16. Only meaningful with
+     * [overConsentAge] false, and it is what lets the three switches be answered at all then.
+     */
+    val parentalConsent: Boolean,
 )
 
 /**
@@ -99,6 +110,48 @@ class PreferencesRepository(private val settings: Settings) {
         state.update { it.copy(deviceIdentifier = identifier) }
     }
 
+    /**
+     * The answer to "are you 16 or older?", which the consent screen asks and Settings lets the user
+     * correct later — somebody answers at 15 and is 16 the year after.
+     *
+     * The three answers are pinned to this one: below 16 with no parent or guardian agreeing they are
+     * all off, so a switch left on by an earlier version of the app does not survive the question
+     * being answered that way. A caller that writes both writes this one last, which is what puts the
+     * three answers under the new age answer (see [ConsentAge]).
+     */
+    fun setOverConsentAge(overConsentAge: Boolean?) {
+        if (overConsentAge == null) {
+            settings.remove(KEY_OVER_CONSENT_AGE)
+        } else {
+            settings.putBoolean(KEY_OVER_CONSENT_AGE, overConsentAge)
+        }
+        state.update { it.copy(overConsentAge = overConsentAge) }
+        pinAnswersToTheAge()
+    }
+
+    /**
+     * Whether a parent or guardian agreed on behalf of a user under 16. Unticking it takes the three
+     * answers with it, because that agreement is the whole of what they rested on.
+     */
+    fun setParentalConsent(given: Boolean) {
+        settings.putBoolean(KEY_PARENTAL_CONSENT, given)
+        state.update { it.copy(parentalConsent = given) }
+        pinAnswersToTheAge()
+    }
+
+    /**
+     * An under-16 whose parent or guardian has agreed to nothing agrees to nothing, so the three
+     * stored answers are brought down to what the age answer allows. Written rather than merely
+     * filtered on the way out, because what the switches in Settings show has to be what is true.
+     */
+    private fun pinAnswersToTheAge() {
+        val current = state.value
+        if (ConsentAge.mayAnswerSwitches(current.overConsentAge, current.parentalConsent)) return
+        setCrashReportingEnabled(false)
+        setAnalyticsEnabled(false)
+        setAdsEnabled(false)
+    }
+
     fun selectLanguage(language: AppLanguage) {
         settings.putString(KEY_LANGUAGE, language.code)
         state.update { it.copy(language = language) }
@@ -137,6 +190,8 @@ class PreferencesRepository(private val settings: Settings) {
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
         advanceAfterAnswer = settings.getBoolean(KEY_ADVANCE_AFTER_ANSWER, false),
         deviceIdentifier = settings.getStringOrNull(KEY_DEVICE_IDENTIFIER),
+        overConsentAge = settings.getBooleanOrNull(KEY_OVER_CONSENT_AGE),
+        parentalConsent = settings.getBoolean(KEY_PARENTAL_CONSENT, false),
     )
 
     private fun readSelection(): TestSelection? {
@@ -156,5 +211,7 @@ class PreferencesRepository(private val settings: Settings) {
         const val KEY_CHECK_IMMEDIATELY = "check_answers_immediately"
         const val KEY_ADVANCE_AFTER_ANSWER = "advance_after_answer"
         const val KEY_DEVICE_IDENTIFIER = "device_identifier"
+        const val KEY_OVER_CONSENT_AGE = "over_consent_age"
+        const val KEY_PARENTAL_CONSENT = "parental_consent"
     }
 }

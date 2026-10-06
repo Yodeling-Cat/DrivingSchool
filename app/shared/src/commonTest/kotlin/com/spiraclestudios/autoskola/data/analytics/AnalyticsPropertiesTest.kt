@@ -118,7 +118,11 @@ class AnalyticsPropertiesTest {
     /** A repository over a recording sink, with analytics answered. */
     private fun answeredRepository(): Pair<RecordingAnalyticsDataSource, AnalyticsRepository> {
         val sink = RecordingAnalyticsDataSource()
-        val preferences = PreferencesRepository(MapSettings()).apply { setAnalyticsEnabled(true) }
+        val preferences = PreferencesRepository(MapSettings()).apply {
+            // An adult: the age question decides whether the analytics switch may be answered at all.
+            setOverConsentAge(true)
+            setAnalyticsEnabled(true)
+        }
         return sink to AnalyticsRepository(sink, preferences)
     }
 

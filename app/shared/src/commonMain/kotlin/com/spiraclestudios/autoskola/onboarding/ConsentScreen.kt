@@ -15,17 +15,11 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,7 +30,9 @@ import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.settings.LanguageMenu
+import com.spiraclestudios.autoskola.ui.AgeAnswerRow
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.ConsentCheckRow
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.NajSwitch
@@ -71,6 +67,11 @@ fun ConsentRoute(viewModel: ConsentViewModel = koinViewModel()) {
  * a pre-ticked box is not valid consent under the GDPR or the ePrivacy Directive, so the answer has
  * to come from the user acting rather than from the user not objecting. `plans/privacy-and-terms.md`
  * records the same thing from the other side.
+ *
+ * **The age question comes first.** Under 16 the three answers are not the user's to give, so the
+ * switches stay locked until the user has said which side of 16 they are on — and, if under 16, until
+ * a parent or guardian's agreement is recorded. An unanswered question is not an answer, and neither
+ * button commits anything before it is answered (`plans/age-gate.md`).
  */
 @Composable
 fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOpenDocument: (LegalDocument) -> Unit) {
@@ -104,16 +105,46 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
 
                     NajCard {
                         Column(Modifier.padding(vertical = 8.dp)) {
+                            // The question comes first, because it decides whether the three answers
+                            // below are the user's to give at all (see `plans/age-gate.md`).
+                            AgeAnswerRow(
+                                answer = state.overConsentAge,
+                                missing = state.ageError,
+                                onAnswer = { onEvent(ConsentUiEvent.SetOverConsentAge(it)) },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            )
+                            if (state.asksForParentalConsent) {
+                                // Under 16 the switches are locked, and this is what says why and what
+                                // unlocks them. Both are drawn only for the answer that needs them, so
+                                // the screen an adult sees is the screen it always was.
+                                Text(
+                                    strings.consentAgeUnder16Reason,
+                                    style = Naj.type.rowSubtitle,
+                                    color = Naj.colors.muted,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                                )
+                                ConsentCheckRow(
+                                    title = strings.consentParentalConsent,
+                                    description = strings.consentParentalConsentDescription,
+                                    checked = state.parentalConsent,
+                                    error = state.parentalError,
+                                    errorMessage = strings.consentAgreeRequired,
+                                    onCheckedChange = { onEvent(ConsentUiEvent.SetParentalConsent(it)) },
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                )
+                            }
                             ConsentSwitchRow(
                                 title = strings.consentCrashReportingTitle,
                                 description = strings.consentCrashReportingDescription,
                                 checked = state.crashReportingEnabled,
+                                enabled = state.switchesEnabled,
                                 onCheckedChange = { onEvent(ConsentUiEvent.SetCrashReporting(it)) },
                             )
                             ConsentSwitchRow(
                                 title = strings.consentAnalyticsTitle,
                                 description = strings.consentAnalyticsDescription,
                                 checked = state.analyticsEnabled,
+                                enabled = state.switchesEnabled,
                                 onCheckedChange = { onEvent(ConsentUiEvent.SetAnalytics(it)) },
                             )
                             // Last, and about showing rather than sending: refusing it costs the user
@@ -123,6 +154,7 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                                 title = strings.consentAdsTitle,
                                 description = strings.consentAdsDescription,
                                 checked = state.adsEnabled,
+                                enabled = state.switchesEnabled,
                                 onCheckedChange = { onEvent(ConsentUiEvent.SetAds(it)) },
                             )
                         }
@@ -131,37 +163,12 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     Spacer(Modifier.height(24.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Read out here, not inside: the semantics block below is not a composable
-                        // scope, so `strings` is out of reach within it.
-                        val agreementRequired = strings.consentAgreeRequired
-                        Checkbox(
+                        ConsentCheckRow(
+                            title = strings.consentAgree,
                             checked = state.documentsAccepted,
+                            error = state.agreementError,
+                            errorMessage = strings.consentAgreeRequired,
                             onCheckedChange = { onEvent(ConsentUiEvent.SetDocumentsAccepted(it)) },
-                            modifier = Modifier.semantics {
-                                // The mark is a color, so it reaches nobody who cannot see it. The
-                                // box carries the same message as state, and announces it, because
-                                // the press that set it left the focus down on the button.
-                                if (state.agreementError) {
-                                    // `this.` on purpose: `error` alone would be ambiguous with
-                                    // kotlin.error, which throws instead.
-                                    this.error(agreementRequired)
-                                    liveRegion = LiveRegionMode.Polite
-                                }
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = colors.primaryDeep,
-                                // The one cue that the narrower button needs this: it is enabled
-                                // while unticked, so the press has to say what is missing.
-                                uncheckedColor = if (state.agreementError) colors.wrongOn else colors.muted,
-                                checkmarkColor = colors.mintGlow,
-                            ),
-                        )
-                        Text(
-                            strings.consentAgree,
-                            style = Naj.type.body,
-                            // Red as well as the box, for anyone the red border alone does not reach.
-                            color = if (state.agreementError) colors.wrongOn else colors.ink,
-                            modifier = Modifier.padding(start = 4.dp),
                         )
                     }
 
@@ -216,6 +223,7 @@ private fun ConsentSwitchRow(
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -228,6 +236,10 @@ private fun ConsentSwitchRow(
         NajSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            // Locked, not hidden, for an under-16 without a parent or guardian's agreement: a switch
+            // that vanished would look like a bug, and one that stayed live would take an answer the
+            // user may not give.
+            enabled = enabled,
             contentDescription = title,
         )
     }
@@ -253,6 +265,11 @@ private val previewConsentState = ConsentUiState(
     language = AppLanguage.English,
     documentsAccepted = false,
     agreementError = false,
+    // An adult, which is what most users are: the question answered, and the switches live.
+    overConsentAge = true,
+    ageError = false,
+    parentalConsent = false,
+    parentalError = false,
     crashReportingEnabled = false,
     analyticsEnabled = false,
     adsEnabled = false,
@@ -346,5 +363,78 @@ private fun ConsentScreenSlovakPreview() {
 private fun ConsentScreenDesktopPreview() {
     AppPreview {
         ConsentScreen(previewConsentState, onEvent = {}, onOpenDocument = {})
+    }
+}
+
+/** The screen as it opens now: the age question unanswered, and the three switches locked under it. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenAgeUnansweredPreview() {
+    AppPreview {
+        ConsentScreen(previewConsentState.copy(overConsentAge = null), onEvent = {}, onOpenDocument = {})
+    }
+}
+
+/** A button pressed before the question was answered: the question is marked, nothing was committed. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenAgeMissingPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(overConsentAge = null, ageError = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/**
+ * The under-16 path: the reason, the parent or guardian's agreement, and the switches still locked
+ * until it is given.
+ */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenUnder16Preview() {
+    AppPreview {
+        ConsentScreen(previewConsentState.copy(overConsentAge = false), onEvent = {}, onOpenDocument = {})
+    }
+}
+
+/** Under 16 with a button pressed and no agreement yet: the box is marked as the missing thing. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenUnder16UnagreedPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(overConsentAge = false, parentalError = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** The agreement given: an under-16 answers the three switches like anyone else. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenUnder16AgreedPreview() {
+    AppPreview {
+        ConsentScreen(
+            previewConsentState.copy(overConsentAge = false, parentalConsent = true, adsEnabled = true),
+            onEvent = {},
+            onOpenDocument = {},
+        )
+    }
+}
+
+/** The under-16 path in the longest of the four translations, where the pills and the box have to fit. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun ConsentScreenUnder16SlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        ConsentScreen(
+            previewConsentState.copy(language = AppLanguage.Slovak, overConsentAge = false),
+            onEvent = {},
+            onOpenDocument = {},
+        )
     }
 }

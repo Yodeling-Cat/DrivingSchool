@@ -12,8 +12,15 @@ package com.spiraclestudios.autoskola.data.preferences
  * rather than a quiet addition because consent has to cover what is actually happening: a user who
  * accepted 1 agreed to two data flows and is now shown ads. Refusing the new switch leaves the app
  * exactly as version 1 left it.
+ *
+ * **3 is the release that asks about age.** Under 16 the three switches are not the user's to answer:
+ * in Slovakia only a parent or guardian can agree on their behalf, so the consent screen asks which
+ * side of 16 the user is on, and neither button commits anything until they have answered and — under
+ * 16 — a parent or guardian has agreed. It is a bump rather than a quiet addition because a user who
+ * accepted 2 was never asked, and an answer nobody gave is not one the app may go on using
+ * (`plans/age-gate.md`).
  */
-const val CURRENT_LEGAL_VERSION = 2
+const val CURRENT_LEGAL_VERSION = 3
 
 /**
  * Which published document a link opens.

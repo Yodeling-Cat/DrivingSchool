@@ -1,6 +1,8 @@
 package com.spiraclestudios.autoskola.data.ads
 
 import com.russhwolf.settings.Settings
+import com.spiraclestudios.autoskola.data.preferences.ConsentAge
+import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.premium.PremiumFeature
@@ -53,7 +55,7 @@ class AdRepository(
      */
     val adsAllowed: Flow<Boolean> =
         combine(preferences.preferences, premium.entitlement) { preferences, entitlement ->
-            allowed(preferences.adsEnabled, entitlement)
+            allowed(preferences, entitlement)
         }.distinctUntilChanged()
 
     /**
@@ -63,17 +65,39 @@ class AdRepository(
      * question a caller that is about to act needs answered now, and the flow is the one a screen
      * drawing itself needs to follow.
      */
-    fun mayRequestAds(): Boolean = allowed(
-        preferences.preferences.value.adsEnabled,
-        premium.entitlement.value,
-    )
+    fun mayRequestAds(): Boolean = allowed(preferences.preferences.value, premium.entitlement.value)
 
     /**
-     * The one place the three conditions are put together: the target can serve ads, the user has
-     * agreed to them, and nobody has paid for them to stop.
+     * The one place the four conditions are put together: the target can serve ads, the user has
+     * agreed to them, their age answer lets them have agreed at all, and nobody has paid for them to
+     * stop. The age answer is asked here as well as at the switches, because a value stored before the
+     * app asked about age must not be able to send anything on its own ([ConsentAge.effective]).
      */
-    private fun allowed(adsConsentGiven: Boolean, entitlement: PremiumStatus): Boolean =
-        dataSource.available && adsConsentGiven && !PremiumRules.isUnlocked(PremiumFeature.NoAds, entitlement)
+    private fun allowed(preferences: Preferences, entitlement: PremiumStatus): Boolean {
+        val agreed = ConsentAge.effective(
+            preferences.adsEnabled,
+            preferences.overConsentAge,
+            preferences.parentalConsent,
+        )
+        val paid = PremiumRules.isUnlocked(PremiumFeature.NoAds, entitlement)
+        return dataSource.available && agreed && !paid
+    }
+
+    init {
+        // The SDK has to be told before it is asked for anything, and a banner asks it directly
+        // without coming through this class, so this cannot wait for the first request.
+        pushAgeGate()
+    }
+
+    /**
+     * Tells the ad SDK whether this user is under the age of consent, which Google requires in place
+     * before a request is made for such a user. This class is the only thing that knows the answer, so
+     * it is pushed from here: once when the repository is built, before every request, and from the
+     * screens that change the answer, which is what keeps a banner right.
+     */
+    fun pushAgeGate() {
+        dataSource.setUnderAgeOfConsent(ConsentAge.underAgeOfConsent(preferences.preferences.value.overConsentAge))
+    }
 
     /**
      * Whether the offer is due before the next test: every tenth one, unless it has already been
@@ -87,6 +111,7 @@ class AdRepository(
      * load. *When* to call this is a screen's decision; whether it does anything is not.
      */
     suspend fun preloadTestOffer() {
+        pushAgeGate()
         if (mayRequestAds()) dataSource.preload(AdSlot.TestOfferInterstitial)
     }
 
@@ -99,6 +124,7 @@ class AdRepository(
      * tapping again asks again.
      */
     suspend fun showTestOfferAd(practiceTestsStarted: Int): AdResult {
+        pushAgeGate()
         if (!mayRequestAds()) {
             dataSource.discard()
             return AdResult.Unavailable
@@ -117,6 +143,7 @@ class AdRepository(
      * the one worth spending, because it is the one that can be bought out of.
      */
     suspend fun showClosingAd(practiceTestsStarted: Int): AdResult {
+        pushAgeGate()
         if (!mayRequestAds()) {
             dataSource.discard()
             return AdResult.Unavailable

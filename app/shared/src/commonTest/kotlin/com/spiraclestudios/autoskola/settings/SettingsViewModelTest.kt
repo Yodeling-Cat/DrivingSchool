@@ -18,9 +18,12 @@ class SettingsViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories().apply {
         preferences.select(TestSelection("sk-sk", LicenseCategory.C))
+        // An adult, because the three switches can only be answered by one — or by an under-16 whose
+        // parent or guardian agreed. The locked state has its own tests below.
+        preferences.setOverConsentAge(true)
     }
     private val viewModel by lazy {
-        SettingsViewModel(repositories.preferences, repositories.exams, repositories.analytics)
+        SettingsViewModel(repositories.preferences, repositories.exams, repositories.analytics, repositories.ads)
     }
 
     @Test
@@ -235,5 +238,71 @@ class SettingsViewModelTest : ViewModelTest() {
         viewModel.onEvent(SettingsUiEvent.DeviceIdentifierCopied)
 
         assertTrue(state.value.deviceIdentifierCopied)
+    }
+
+    // ── The age question ──
+    //
+    // The one thing on this screen a user changes because they changed: somebody answers at 15 and is
+    // 16 the year after. Under 16 the three switches are drawn locked, and refused here as well.
+
+    @Test
+    fun theAgeAnswerCanBeCorrectedHere() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+
+        assertEquals(false, state.value.overConsentAge)
+        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertFalse(state.value.canAnswerSwitches)
+        assertTrue(state.value.asksForParentalConsent)
+    }
+
+    @Test
+    fun under16LocksTheThreeSwitchesAndRefusesChanges() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetAnalytics(true))
+
+        assertFalse(state.value.canAnswerSwitches)
+        assertFalse(state.value.analyticsEnabled)
+        assertFalse(repositories.preferences.preferences.value.analyticsEnabled)
+    }
+
+    @Test
+    fun anUnder16WhoTurns16GetsTheSwitchesBack() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+
+        assertTrue(state.value.canAnswerSwitches)
+        assertFalse(state.value.asksForParentalConsent)
+    }
+
+    @Test
+    fun theGuardiansAgreementUnlocksThem() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetParentalConsent(true))
+        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+
+        assertTrue(state.value.canAnswerSwitches)
+        assertTrue(state.value.adsEnabled)
+        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun anUnansweredQuestionLeavesThemLocked() = runTest {
+        val fresh = TestRepositories(overConsentAge = null).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.C))
+        }
+        val model = SettingsViewModel(fresh.preferences, fresh.exams, fresh.analytics, fresh.ads)
+
+        val state = observe(model.uiState)
+
+        assertFalse(state.value.canAnswerSwitches)
+        assertFalse(state.value.asksForParentalConsent)
     }
 }

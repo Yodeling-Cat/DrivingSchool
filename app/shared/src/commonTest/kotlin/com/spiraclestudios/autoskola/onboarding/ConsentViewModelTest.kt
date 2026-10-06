@@ -12,8 +12,15 @@ import kotlin.test.assertTrue
 
 class ConsentViewModelTest : ViewModelTest() {
 
-    private val repositories = TestRepositories()
-    private val viewModel by lazy { ConsentViewModel(repositories.preferences, repositories.analytics) }
+    private val repositories = TestRepositories().apply {
+        // An adult: this screen's tests are about the three switches, which only an adult — or an
+        // under-16 whose parent or guardian agreed — may answer at all. The under-16 path has its own
+        // fixture, built where it is used.
+        preferences.setOverConsentAge(true)
+    }
+    private val viewModel by lazy {
+        ConsentViewModel(repositories.preferences, repositories.analytics, repositories.ads)
+    }
 
     @Test
     fun nothingIsAnsweredOrAgreedToYet() = runTest {
@@ -195,5 +202,142 @@ class ConsentViewModelTest : ViewModelTest() {
             mapOf("crash_reporting" to true, "analytics" to true, "ads" to false, "choice" to "accept_chosen"),
             repositories.analyticsSink.properties.first(),
         )
+    }
+
+    // ── The age question ──
+    //
+    // Under 16 in Slovakia the three answers are not the user's to give, so they come after the
+    // question and, if the answer is under 16, after a parent or guardian's agreement. Each test here
+    // builds its own repositories, because the answer is what it is about.
+
+    /** A user nothing has asked yet: what a fresh install and an updated app both open on. */
+    private fun unasked() = TestRepositories(overConsentAge = null)
+
+    @Test
+    fun theSwitchesWaitForTheAgeQuestion() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        assertFalse(state.value.switchesEnabled)
+        assertFalse(state.value.asksForParentalConsent)
+    }
+
+    @Test
+    fun aPressBeforeTheQuestionIsAnsweredMarksItAndCommitsNothing() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        model.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertTrue(state.value.ageError)
+        assertEquals(0, fresh.preferences.preferences.value.legalAcceptedVersion)
+        assertEquals(emptyList(), fresh.analyticsSink.events)
+        assertFalse(fresh.preferences.preferences.value.analyticsEnabled)
+    }
+
+    @Test
+    fun under16LocksTheSwitchesAndAsksForAParentOrGuardian() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+
+        assertFalse(state.value.switchesEnabled)
+        assertTrue(state.value.asksForParentalConsent)
+    }
+
+    @Test
+    fun sayingUnder16TakesTheStoredAnswersOffTheSwitches() = runTest {
+        val fresh = TestRepositories().apply { preferences.setAdsEnabled(true) }
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+
+        assertFalse(state.value.adsEnabled)
+    }
+
+    @Test
+    fun under16CannotCommitWithoutTheAgreement() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        model.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertTrue(state.value.parentalError)
+        assertEquals(0, fresh.preferences.preferences.value.legalAcceptedVersion)
+        assertEquals(emptyList(), fresh.analyticsSink.events)
+        assertFalse(fresh.preferences.preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun anUnder16WithNoAgreementSendsNothing() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.AcceptAll)
+
+        assertEquals(emptyList(), fresh.analyticsSink.events)
+        assertFalse(fresh.preferences.preferences.value.crashReportingEnabled)
+        assertFalse(fresh.preferences.preferences.value.analyticsEnabled)
+    }
+
+    @Test
+    fun withTheAgreementTheThreeAnswersAreTheirsToGive() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetParentalConsent(true))
+        assertTrue(state.value.switchesEnabled)
+
+        model.onEvent(ConsentUiEvent.SetAds(true))
+        model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        model.onEvent(ConsentUiEvent.AcceptChosen)
+
+        val preferences = fresh.preferences.preferences.value
+        assertEquals(false, preferences.overConsentAge)
+        assertTrue(preferences.parentalConsent)
+        assertTrue(preferences.adsEnabled)
+        assertFalse(preferences.analyticsEnabled)
+        assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
+    }
+
+    @Test
+    fun withdrawingTheAgreementTakesTheThreeAnswersBack() = runTest {
+        val fresh = unasked()
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+        model.onEvent(ConsentUiEvent.SetParentalConsent(true))
+        model.onEvent(ConsentUiEvent.SetAnalytics(true))
+        assertTrue(state.value.analyticsEnabled)
+
+        model.onEvent(ConsentUiEvent.SetParentalConsent(false))
+
+        assertFalse(state.value.analyticsEnabled)
+        assertFalse(state.value.switchesEnabled)
+    }
+
+    @Test
+    fun aReconsentOpensOnTheAnswerAlreadyGiven() = runTest {
+        val fresh = TestRepositories().apply { preferences.setOverConsentAge(false) }
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+
+        val state = observe(model.uiState)
+
+        assertEquals(false, state.value.overConsentAge)
+        assertTrue(state.value.asksForParentalConsent)
     }
 }

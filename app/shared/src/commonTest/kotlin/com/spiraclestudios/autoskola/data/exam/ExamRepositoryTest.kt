@@ -23,7 +23,10 @@ import kotlin.test.assertIs
 
 class ExamRepositoryTest {
 
-    private val preferences = PreferencesRepository(MapSettings())
+    private val preferences = PreferencesRepository(MapSettings()).apply {
+        // An adult: the age question decides whether the analytics switch may be answered at all.
+        setOverConsentAge(true)
+    }
     private val sink = RecordingAnalyticsDataSource()
     private val analytics = AnalyticsRepository(sink, preferences)
     private val repository = ExamRepository(

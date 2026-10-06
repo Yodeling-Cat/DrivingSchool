@@ -16,6 +16,7 @@ import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -37,6 +38,15 @@ data class SettingsUiState(
     val exam: ExamLabel?,
     /** What the platform reports, or `null` where it reports none. */
     val appVersion: String?,
+    /**
+     * The identifier our statistics and crash reports for this device are filed under, or `null`
+     * while there is nothing to file anything under — which is every device whose owner has agreed
+     * to neither. Published by `AnalyticsRepository`, which has none to publish until the SDK is
+     * running, so it is absent rather than stale once the answers behind it are switched off.
+     */
+    val deviceIdentifier: String?,
+    /** The identifier has been put on the clipboard, which is the only way to know that it was. */
+    val deviceIdentifierCopied: Boolean,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -52,6 +62,12 @@ sealed interface SettingsUiEvent {
     data class SetCrashReporting(val enabled: Boolean) : SettingsUiEvent
     data class SetAnalytics(val enabled: Boolean) : SettingsUiEvent
     data class SetAds(val enabled: Boolean) : SettingsUiEvent
+
+    /**
+     * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
+     * the platform, so the press is a side effect the screen performs and this only records it.
+     */
+    data object DeviceIdentifierCopied : SettingsUiEvent
 }
 
 class SettingsViewModel(
@@ -63,13 +79,28 @@ class SettingsViewModel(
     /** Read once: on Android the platform call is reflective, and the answer cannot change. */
     private val version = appVersion()
 
+    /** Whether the identifier has been copied. Nothing but the user's press changes it. */
+    private val identifierCopied = MutableStateFlow(false)
+
     val uiState: StateFlow<SettingsUiState> =
-        combine(preferences.preferences, exams.current, ::state)
+        combine(preferences.preferences, exams.current, identifierCopied, analytics.deviceIdentifier, ::state)
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
-                state(preferences.preferences.value, CurrentExam.Loading),
+                state(
+                    preferences.preferences.value,
+                    CurrentExam.Loading,
+                    identifierCopied = false,
+                    deviceIdentifier = analytics.deviceIdentifier.value,
+                ),
             )
+
+    init {
+        // The identifier is there only while the SDK is running and has one to report, so the screen
+        // asks for the current one instead of trusting what was read when something else last
+        // changed. Reading it starts nothing.
+        analytics.refreshDeviceIdentifier()
+    }
 
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
@@ -117,10 +148,17 @@ class SettingsViewModel(
                 // about. The ad SDK reads the preference itself, so the write is the whole of it.
                 preferences.setAdsEnabled(event.enabled)
             }
+
+            SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
         }
     }
 
-    private fun state(preferences: Preferences, exam: CurrentExam) = SettingsUiState(
+    private fun state(
+        preferences: Preferences,
+        exam: CurrentExam,
+        identifierCopied: Boolean,
+        deviceIdentifier: String?,
+    ) = SettingsUiState(
         language = preferences.language,
         checkAnswersImmediately = preferences.checkAnswersImmediately,
         advanceAfterAnswer = preferences.advanceAfterAnswer,
@@ -129,5 +167,7 @@ class SettingsViewModel(
         adsEnabled = preferences.adsEnabled,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,
+        deviceIdentifier = deviceIdentifier,
+        deviceIdentifierCopied = identifierCopied,
     )
 }

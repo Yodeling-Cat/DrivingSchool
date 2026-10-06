@@ -4,6 +4,9 @@ import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class AnalyticsRepositoryTest {
 
@@ -90,5 +93,35 @@ class AnalyticsRepositoryTest {
 
         fixture.repository.capture(AnalyticsEvent.ExamSelected)
         assertEquals(1, fixture.sink.events.size)
+    }
+
+    @Test
+    fun theIdentifierIsThereOnlyWhileSomethingMayBeSent() {
+        val fixture = Fixture()
+        fixture.sink.identifier = "ident-1"
+
+        // Neither answer has been given, so there is nothing for an identifier to belong to, and
+        // asking for one is not a way of starting anything: the sink is still stopped.
+        assertNull(fixture.repository.deviceIdentifier.value)
+        assertFalse(fixture.sink.started)
+        assertEquals(listOf(false to false), fixture.sink.consents)
+
+        fixture.preferences.setAnalyticsEnabled(true)
+        fixture.repository.syncConsent()
+
+        assertEquals("ident-1", fixture.repository.deviceIdentifier.value)
+        assertTrue(fixture.sink.started)
+    }
+
+    @Test
+    fun crashReportingAloneIsEnoughForThereToBeAnIdentifier() {
+        // One identifier covers both: crash reports and events are filed under the same one, so a
+        // user who let the crashes through has something to quote either way.
+        val fixture = Fixture(crashReporting = true)
+        fixture.sink.identifier = "ident-2"
+
+        fixture.repository.refreshDeviceIdentifier()
+
+        assertEquals("ident-2", fixture.repository.deviceIdentifier.value)
     }
 }

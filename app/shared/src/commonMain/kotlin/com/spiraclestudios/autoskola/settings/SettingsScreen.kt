@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -24,7 +25,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Policy
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.copyToClipboard
 import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
@@ -55,6 +59,9 @@ import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.NajSwitch
+import com.spiraclestudios.autoskola.ui.OutlinePill
+import com.spiraclestudios.autoskola.ui.PreviewBoard
+import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.SectionLabel
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -78,6 +85,10 @@ fun SettingsRoute(
         onOpenAbout = onOpenAbout,
         onOpenFeedback = onOpenFeedback,
         onOpenDocument = { openUrl(it.url) },
+        onCopyIdentifier = { identifier ->
+            copyToClipboard(identifier)
+            viewModel.onEvent(SettingsUiEvent.DeviceIdentifierCopied)
+        },
     )
 }
 
@@ -89,6 +100,7 @@ fun SettingsScreen(
     onOpenAbout: () -> Unit,
     onOpenFeedback: () -> Unit,
     onOpenDocument: (LegalDocument) -> Unit,
+    onCopyIdentifier: (String) -> Unit,
 ) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
@@ -223,6 +235,14 @@ fun SettingsScreen(
                         leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
                         shape = RectangleShape,
                     )
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    // Last, and not a link to anywhere: what the app files what it holds about this
+                    // device under, which is the one thing a user cannot read off their own device.
+                    SettingsIdentifierRow(
+                        identifier = state.deviceIdentifier,
+                        copied = state.deviceIdentifierCopied,
+                        onCopy = onCopyIdentifier,
+                    )
                 }
             }
         }
@@ -320,6 +340,64 @@ private fun SettingsSwitchRow(
     }
 }
 
+/**
+ * What the statistics and crash reports from this device are filed under, with the press that copies
+ * it.
+ *
+ * It is the one piece of what we hold that a user cannot read off their own device, which is what
+ * makes it worth a row: quoting the identifier is what lets us find their rows, so the press that
+ * puts it on the clipboard is the point of the row. The identifier is drawn in a selection as well,
+ * the same way the feedback screen hands over what it would send, so there is a way through on a
+ * platform whose clipboard refuses.
+ *
+ * [identifier] is `null` until something has been allowed to leave, and the row then says what would
+ * put one there rather than showing an empty value.
+ */
+@Composable
+private fun SettingsIdentifierRow(identifier: String?, copied: Boolean, onCopy: (String) -> Unit) {
+    val colors = Naj.colors
+    NajCard(shape = RectangleShape) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                SettingsRowIcon(Icons.Outlined.Fingerprint, colors.primaryDeep, colors.mintGlow)
+                Column(Modifier.weight(1f)) {
+                    Text(strings.settingsDeviceIdentifier, style = Naj.type.rowTitle, color = colors.ink)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = if (identifier == null) {
+                            strings.settingsDeviceIdentifierEmpty
+                        } else {
+                            strings.settingsDeviceIdentifierDescription
+                        },
+                        style = Naj.type.rowSubtitle,
+                        color = colors.muted,
+                    )
+                }
+                if (identifier != null) {
+                    // The words the feedback screen already uses for the same press: one button, one
+                    // label, kept in one place per language.
+                    OutlinePill(
+                        text = if (copied) strings.feedbackCopied else strings.feedbackCopy,
+                        icon = if (copied) Icons.Filled.Check else Icons.Outlined.ContentCopy,
+                        onClick = { onCopy(identifier) },
+                        height = 36.dp,
+                    )
+                }
+            }
+            if (identifier != null) {
+                Spacer(Modifier.height(10.dp))
+                SelectionContainer {
+                    Text(identifier, style = Naj.type.option, color = colors.ink)
+                }
+            }
+        }
+    }
+}
+
 // ── Previews ──
 
 /** Answers scored at the end, so moving on after an answer is available. */
@@ -337,12 +415,15 @@ private fun SettingsScreenPreview() {
                 adsEnabled = true,
                 exam = previewExam,
                 appVersion = "1.4.2",
+                deviceIdentifier = null,
+                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
+            onCopyIdentifier = {},
         )
     }
 }
@@ -362,12 +443,15 @@ private fun SettingsScreenCheckingPreview() {
                 adsEnabled = false,
                 exam = previewExam,
                 appVersion = "1.4.2",
+                deviceIdentifier = null,
+                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
+            onCopyIdentifier = {},
         )
     }
 }
@@ -387,12 +471,15 @@ private fun SettingsScreenNoVersionPreview() {
                 adsEnabled = false,
                 exam = previewExam,
                 appVersion = null,
+                deviceIdentifier = null,
+                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
+            onCopyIdentifier = {},
         )
     }
 }
@@ -415,12 +502,62 @@ private fun SettingsScreenNoExamYetPreview() {
                 adsEnabled = true,
                 exam = null,
                 appVersion = "1.4.2",
+                deviceIdentifier = null,
+                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
+            onCopyIdentifier = {},
         )
+    }
+}
+
+/** An identifier exists, which is what the App section's last row shows once one does. */
+@Preview(widthDp = 400, heightDp = 1400)
+@Composable
+private fun SettingsScreenIdentifierPreview() {
+    AppPreview {
+        SettingsScreen(
+            state = SettingsUiState(
+                language = AppLanguage.English,
+                checkAnswersImmediately = true,
+                advanceAfterAnswer = false,
+                crashReportingEnabled = false,
+                analyticsEnabled = true,
+                adsEnabled = false,
+                exam = previewExam,
+                appVersion = "1.4.2",
+                deviceIdentifier = PREVIEW_IDENTIFIER,
+                deviceIdentifierCopied = false,
+            ),
+            onEvent = {},
+            onChangeExam = {},
+            onOpenAbout = {},
+            onOpenFeedback = {},
+            onOpenDocument = {},
+            onCopyIdentifier = {},
+        )
+    }
+}
+
+/** Shaped like a real one, and long enough that the row has to wrap it rather than cut it short. */
+private const val PREVIEW_IDENTIFIER = "0195f2c4-3b7e-7a41-9c6d-1f0a4e8b7c22"
+
+/** The row's three shapes: nothing yet, an identifier with the press, and the press answered. */
+@Preview(widthDp = 400, heightDp = 460)
+@Composable
+private fun SettingsIdentifierRowPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("Nothing to show yet")
+            SettingsIdentifierRow(identifier = null, copied = false, onCopy = {})
+            PreviewLabel("An identifier to copy")
+            SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = false, onCopy = {})
+            PreviewLabel("Copied")
+            SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = true, onCopy = {})
+        }
     }
 }

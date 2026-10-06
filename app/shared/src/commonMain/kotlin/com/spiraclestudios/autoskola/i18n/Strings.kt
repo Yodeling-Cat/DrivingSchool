@@ -279,6 +279,15 @@ class Strings(
     val aboutApp: String,
     /** Which build the user is running, e.g. "Version 1.0". */
     val aboutVersion: (version: String) -> String,
+    /**
+     * The row that shows the identifier our statistics and crash reports are filed under. Named for
+     * the device rather than the person, because a device is all it names.
+     */
+    val settingsDeviceIdentifier: String,
+    /** What the identifier is for, drawn under the row's title while there is one to show. */
+    val settingsDeviceIdentifierDescription: String,
+    /** Drawn instead of an identifier, and the reason there is not one to show. */
+    val settingsDeviceIdentifierEmpty: String,
     /** The heading over the list of the projects the app is built from. */
     val aboutLibraries: String,
     val aboutLibrariesIntro: String,
@@ -499,6 +508,11 @@ private val EnglishStrings = Strings(
     settingsApp = "App",
     aboutApp = "About the app",
     aboutVersion = { "Version $it" },
+    settingsDeviceIdentifier = "Device identifier",
+    settingsDeviceIdentifierDescription = "What we file this device's usage statistics and crash " +
+        "reports under. Quote it when you write to us about your data.",
+    settingsDeviceIdentifierEmpty = "Created the first time you turn on usage statistics or crash " +
+        "reports, and shown here while one of them is on.",
     aboutLibraries = "Open source libraries",
     aboutLibrariesIntro = "Naj Autoškola is built with these open source projects. Tap one to see " +
         "its license, and everyone who wrote it.",
@@ -694,6 +708,11 @@ private val SlovakStrings = Strings(
     settingsApp = "Aplikácia",
     aboutApp = "O aplikácii",
     aboutVersion = { "Verzia $it" },
+    settingsDeviceIdentifier = "Identifikátor zariadenia",
+    settingsDeviceIdentifierDescription = "Pod týmto identifikátorom evidujeme štatistiky používania " +
+        "a hlásenia o zrúteniach z tohto zariadenia. Uveďte ho, keď nám napíšete o svojich údajoch.",
+    settingsDeviceIdentifierEmpty = "Vytvorí sa pri prvom zapnutí štatistík používania alebo " +
+        "hlásení o zrúteniach a zobrazuje sa tu, kým je jedno z nich zapnuté.",
     aboutLibraries = "Knižnice s otvoreným kódom",
     aboutLibrariesIntro = "Naj Autoškola je postavená na týchto open source projektoch. Ťuknutím na " +
         "niektorý z nich zobrazíte jeho licenciu aj všetkých, ktorí ho napísali.",
@@ -891,6 +910,11 @@ private val HungarianStrings = Strings(
     settingsApp = "Alkalmazás",
     aboutApp = "Az alkalmazásról",
     aboutVersion = { "$it verzió" },
+    settingsDeviceIdentifier = "Eszközazonosító",
+    settingsDeviceIdentifierDescription = "Ez az azonosító alatt tartjuk nyilván az eszköz használati " +
+        "statisztikáit és összeomlás-jelentéseit. Ezt adja meg, amikor az adatairól ír nekünk.",
+    settingsDeviceIdentifierEmpty = "Akkor jön létre, amikor először bekapcsolja a használati " +
+        "statisztikákat vagy az összeomlás-jelentéseket, és itt addig látható, amíg valamelyik be van kapcsolva.",
     aboutLibraries = "Nyílt forráskódú könyvtárak",
     aboutLibrariesIntro = "A Legjobb Autósiskola ezekre a nyílt forráskódú projektekre épül. " +
         "Koppintson az egyikre a licencéhez és a készítőihez.",
@@ -1086,6 +1110,11 @@ private val CzechStrings = Strings(
     settingsApp = "Aplikace",
     aboutApp = "O aplikaci",
     aboutVersion = { "Verze $it" },
+    settingsDeviceIdentifier = "Identifikátor zařízení",
+    settingsDeviceIdentifierDescription = "Pod tímto identifikátorem evidujeme statistiky používání " +
+        "a hlášení o pádech z tohoto zařízení. Uveďte ho, když nám napíšete o svých datech.",
+    settingsDeviceIdentifierEmpty = "Vytvoří se při prvním zapnutí statistik používání nebo hlášení " +
+        "o pádech a zobrazuje se tu, dokud je jedno z nich zapnuté.",
     aboutLibraries = "Knihovny s otevřeným kódem",
     aboutLibrariesIntro = "Nej Autoškola staví na těchto open source projektech. Klepnutím na " +
         "některý z nich zobrazíte jeho licenci i všechny, kdo ho napsali.",

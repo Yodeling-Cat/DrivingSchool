@@ -87,6 +87,15 @@ interface AnalyticsDataSource {
     fun screen(name: String)
 
     /**
+     * The identifier this device's events are filed under, or `null` while there is none: nothing
+     * has been allowed to leave, so nothing has been given an identifier yet.
+     *
+     * Reading it must never start the SDK. A user who has agreed to nothing has no identifier, and
+     * the app's own screen asking for one is not a reason to open a connection to find out.
+     */
+    fun deviceIdentifier(): String?
+
+    /**
      * Told what the user has consented to — two separate answers, because they are two separate
      * questions. Reading consent is the app's job (see [AnalyticsRepository]); the data source only
      * obeys it.

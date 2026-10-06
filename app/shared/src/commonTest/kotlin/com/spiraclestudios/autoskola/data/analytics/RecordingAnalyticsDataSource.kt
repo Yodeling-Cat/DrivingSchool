@@ -11,6 +11,19 @@ class RecordingAnalyticsDataSource : AnalyticsDataSource {
     /** Every consent [setConsent] was called with, in order. */
     val consents = mutableListOf<Pair<Boolean, Boolean>>()
 
+    /**
+     * What the sink reports as this device's identifier, for a test that is about the screen showing
+     * it. Reported only once something has been allowed to leave, the way the real SDK reports it.
+     */
+    var identifier: String? = null
+
+    /**
+     * Whether an answer allowing something to leave has been given. Only [setConsent] sets it, which
+     * is what lets a test pin that *reading* the identifier never starts anything.
+     */
+    var started: Boolean = false
+        private set
+
     override fun capture(event: AnalyticsEvent, properties: Map<String, Any>) {
         events += event
         this.properties += properties
@@ -20,8 +33,11 @@ class RecordingAnalyticsDataSource : AnalyticsDataSource {
         screens += name
     }
 
+    override fun deviceIdentifier(): String? = identifier?.takeIf { started }
+
     override fun setConsent(crashReporting: Boolean, analytics: Boolean) {
         consents += crashReporting to analytics
+        if (crashReporting || analytics) started = true
     }
 
     /**

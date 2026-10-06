@@ -27,6 +27,14 @@ class PostHogAnalyticsDataSource(private val context: PostHogContext?, private v
 
     private val anyConsent: Boolean get() = crashReporting || analyticsEnabled
 
+    /**
+     * What the SDK knows this device as, once it has been started — and `null` before that, which is
+     * every device whose owner has agreed to nothing. Guarded rather than started: the screen that
+     * shows the identifier is asking a question, not asking for anything to be sent.
+     */
+    override fun deviceIdentifier(): String? =
+        if (started) runCatching { PostHog.getDistinctId() }.getOrNull() else null
+
     override fun setConsent(crashReporting: Boolean, analytics: Boolean) {
         this.crashReporting = crashReporting
         this.analyticsEnabled = analytics

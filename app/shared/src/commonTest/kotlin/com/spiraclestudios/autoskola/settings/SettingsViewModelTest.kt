@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SettingsViewModelTest : ViewModelTest() {
@@ -190,5 +191,31 @@ class SettingsViewModelTest : ViewModelTest() {
         viewModel.onEvent(SettingsUiEvent.SelectLanguage(current))
 
         assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun showsTheIdentifierOurStatisticsAreFiledUnder() = runTest {
+        repositories.analyticsSink.identifier = "ident-9"
+        val state = observe(viewModel.uiState)
+
+        // A fresh install has agreed to nothing, so there is nothing to file anything under yet.
+        assertNull(state.value.deviceIdentifier)
+
+        viewModel.onEvent(SettingsUiEvent.SetAnalytics(true))
+
+        assertEquals("ident-9", state.value.deviceIdentifier)
+    }
+
+    @Test
+    fun copyingTheIdentifierIsRecordedSoTheRowCanSaySo() = runTest {
+        // The clipboard belongs to the platform: the press is the screen's own side effect, and this
+        // flag is the only part of it that exists here.
+        val state = observe(viewModel.uiState)
+
+        assertFalse(state.value.deviceIdentifierCopied)
+
+        viewModel.onEvent(SettingsUiEvent.DeviceIdentifierCopied)
+
+        assertTrue(state.value.deviceIdentifierCopied)
     }
 }

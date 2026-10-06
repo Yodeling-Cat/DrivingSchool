@@ -14,12 +14,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 /** Which part of the app is shown. Inside [Exam], the navigation back stack takes over. */
-enum class AppDestination { Loading, Disclaimer, ChooseExam, Exam }
+enum class AppDestination { Loading, Disclaimer, Consent, ChooseExam, Exam }
+
+/** What the screens above the exam can tell the app. */
+sealed interface AppUiEvent {
+    /** The first screen has been read, so the consent screen comes next. */
+    data object DisclaimerRead : AppUiEvent
+}
 
 data class AppUiState(val language: AppLanguage, val destination: AppDestination)
 
 /** Decides what the app shows at the top level: onboarding until it's done, then the exam. */
-class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : ViewModel() {
+class AppViewModel(private val preferences: PreferencesRepository, exams: ExamRepository) : ViewModel() {
 
     /**
      * Whether the exam has been shown at least once. Choosing another exam (settings → change exam)
@@ -41,6 +47,13 @@ class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : 
 
     private fun state(preferences: Preferences, exam: CurrentExam): AppUiState {
         val destination = when {
+            // Onboarding, in the order it is walked, and from stored facts only: the disclaimer is
+            // read once, and until the documents are accepted at their current version the consent
+            // screen follows it. Stored, because a screen that depends on the frame that drew it is a
+            // screen a rotation takes away — this one has to survive both that and a killed process.
+            preferences.legalAcceptedVersion < CURRENT_LEGAL_VERSION && preferences.disclaimerRead ->
+                AppDestination.Consent
+
             preferences.legalAcceptedVersion < CURRENT_LEGAL_VERSION -> AppDestination.Disclaimer
 
             exam is CurrentExam.Ready -> AppDestination.Exam
@@ -54,5 +67,11 @@ class AppViewModel(preferences: PreferencesRepository, exams: ExamRepository) : 
         }
         if (destination == AppDestination.Exam) examShown = true
         return AppUiState(preferences.language, destination)
+    }
+
+    fun onEvent(event: AppUiEvent) {
+        when (event) {
+            AppUiEvent.DisclaimerRead -> preferences.setDisclaimerRead(true)
+        }
     }
 }

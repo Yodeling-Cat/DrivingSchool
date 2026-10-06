@@ -4,9 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
@@ -34,18 +32,16 @@ fun App() {
         val analytics = koinInject<AnalyticsRepository>()
         val screenState = koinInject<ScreenStateStorage>()
         val strings = state.language.strings
-        // Reading the disclaimer is not agreeing to anything, so the consent screen follows it and
-        // is where the documents and the two sharing questions are answered. It is pure
-        // navigation, so it lives here rather than in the ViewModel.
-        var consentStarted by remember { mutableStateOf(false) }
         LaunchedEffect(strings.appName) { setWindowTitle(strings.appName) }
-        // Onboarding is not on the back stack, so it reports itself from here; every screen after
-        // it reports itself from `ExamNavigation`, which sees each route change.
-        LaunchedEffect(state.destination, consentStarted) {
+        // Onboarding is not on the back stack, so it reports itself from here; every screen after it
+        // reports itself from `ExamNavigation`, which sees each route change. Which of the two
+        // onboarding screens is showing is the ViewModel's, decided from stored preferences, so a
+        // rotation comes back to the same one rather than to the first.
+        LaunchedEffect(state.destination) {
             when (state.destination) {
-                AppDestination.Disclaimer -> {
-                    analytics.screen(if (consentStarted) "consent" else "disclaimer")
-                }
+                AppDestination.Disclaimer -> analytics.screen("disclaimer")
+
+                AppDestination.Consent -> analytics.screen("consent")
 
                 AppDestination.ChooseExam -> analytics.screen("choose_exam")
 
@@ -63,11 +59,14 @@ fun App() {
                     when (state.destination) {
                         AppDestination.Loading -> LoadingScreen()
 
-                        AppDestination.Disclaimer -> if (consentStarted) {
-                            ConsentRoute()
-                        } else {
-                            DisclaimerRoute(onContinue = { consentStarted = true })
-                        }
+                        // Reading the disclaimer is not agreeing to anything, so the consent screen
+                        // follows it and is where the documents and the two sharing questions are
+                        // answered.
+                        AppDestination.Disclaimer -> DisclaimerRoute(
+                            onContinue = { viewModel.onEvent(AppUiEvent.DisclaimerRead) },
+                        )
+
+                        AppDestination.Consent -> ConsentRoute()
 
                         // Picking an exam here changes the destination, so there's nothing else to do when done.
                         AppDestination.ChooseExam -> ExamSelectionRoute(onBack = null, onDone = {})

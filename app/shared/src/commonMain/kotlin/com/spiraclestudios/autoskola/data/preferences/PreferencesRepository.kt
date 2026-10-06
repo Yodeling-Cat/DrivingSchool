@@ -18,6 +18,13 @@ data class Preferences(
      */
     val legalAcceptedVersion: Int,
     /**
+     * Whether the first screen has been read. It agrees to nothing — that is what the consent screen
+     * is for — but it is the fact that decides whether the disclaimer or the consent screen is drawn,
+     * and it is stored for the same reason [legalAcceptedVersion] is: a rotation, or a process the
+     * system killed, has to come back to the screen the user was on rather than to the first one.
+     */
+    val disclaimerRead: Boolean,
+    /**
      * Whether the user lets us collect crash reports. Deliberately its own answer rather than part
      * of accepting the terms: consent has to be specific to what it covers.
      */
@@ -73,6 +80,17 @@ class PreferencesRepository(private val settings: Settings) {
     fun acceptLegal(version: Int) {
         settings.putInt(KEY_LEGAL_VERSION, version)
         state.update { it.copy(legalAcceptedVersion = version) }
+    }
+
+    /**
+     * Records that the first screen has been read, which is what puts the consent screen behind it.
+     *
+     * Stored rather than kept in the composition: it is about the user, not about this particular
+     * frame, and a fact that decides which screen opens has to outlive the activity that read it.
+     */
+    fun setDisclaimerRead(read: Boolean) {
+        settings.putBoolean(KEY_DISCLAIMER_READ, read)
+        state.update { it.copy(disclaimerRead = read) }
     }
 
     /** The answer to "send crash reports?", which the user can change at any time in Settings. */
@@ -168,6 +186,7 @@ class PreferencesRepository(private val settings: Settings) {
 
     private fun read() = Preferences(
         legalAcceptedVersion = settings.getInt(KEY_LEGAL_VERSION, 0),
+        disclaimerRead = settings.getBoolean(KEY_DISCLAIMER_READ, false),
         crashReportingEnabled = settings.getBoolean(KEY_CRASH_REPORTING, false),
         analyticsEnabled = settings.getBoolean(KEY_ANALYTICS, false),
         adsEnabled = settings.getBoolean(KEY_ADS, false),
@@ -188,6 +207,7 @@ class PreferencesRepository(private val settings: Settings) {
 
     private companion object {
         const val KEY_LEGAL_VERSION = "legal_accepted_version"
+        const val KEY_DISCLAIMER_READ = "disclaimer_read"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_ANALYTICS = "analytics_enabled"
         const val KEY_ADS = "ads_enabled"

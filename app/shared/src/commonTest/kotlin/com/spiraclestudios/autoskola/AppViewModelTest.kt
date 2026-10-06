@@ -45,6 +45,39 @@ class AppViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun readingTheDisclaimerLeadsToTheConsentScreen() = runTest {
+        val viewModel = viewModel()
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(AppUiEvent.DisclaimerRead)
+
+        assertEquals(AppDestination.Consent, viewModel.uiState.value.destination)
+    }
+
+    /**
+     * A rotation recreates the activity and builds this ViewModel again over the same stored
+     * preferences. Before the fact that the disclaimer had been read was stored, that read as a first
+     * install and sent the user back to the first screen, losing the consent screen they were on.
+     */
+    @Test
+    fun rotatingOnTheConsentScreenDoesNotGoBackToTheDisclaimer() = runTest {
+        val viewModel = viewModel()
+        observe(viewModel.uiState)
+        viewModel.onEvent(AppUiEvent.DisclaimerRead)
+
+        val afterRotation = viewModel()
+
+        assertEquals(AppDestination.Consent, observe(afterRotation.uiState).value.destination)
+    }
+
+    @Test
+    fun readingTheDisclaimerIsStored() = runTest {
+        viewModel().onEvent(AppUiEvent.DisclaimerRead)
+
+        assertEquals(true, repositories.preferences.preferences.value.disclaimerRead)
+    }
+
+    @Test
     fun afterTheDisclaimerTheUserChoosesAnExam() = runTest {
         repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
 

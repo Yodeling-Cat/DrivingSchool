@@ -207,6 +207,24 @@ class SettingsViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun showsTheIdentifierThatWasRememberedWithBothAnswersOff() = runTest {
+        repositories.analyticsSink.identifier = "ident-9"
+        repositories.preferences.setAnalyticsEnabled(true)
+        repositories.analytics.syncConsent()
+        repositories.analytics.refreshDeviceIdentifier()
+
+        // What a restart with both answers off looks like: the SDK reports nothing, and the row still
+        // shows the identifier the earlier data is filed under.
+        repositories.preferences.setAnalyticsEnabled(false)
+        repositories.analytics.syncConsent()
+        repositories.analyticsSink.identifier = null
+        val state = observe(viewModel.uiState)
+
+        assertFalse(state.value.analyticsEnabled)
+        assertEquals("ident-9", state.value.deviceIdentifier)
+    }
+
+    @Test
     fun copyingTheIdentifierIsRecordedSoTheRowCanSaySo() = runTest {
         // The clipboard belongs to the platform: the press is the screen's own side effect, and this
         // flag is the only part of it that exists here.

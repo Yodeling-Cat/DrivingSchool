@@ -25,14 +25,14 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
      * The identifier our events are filed under, or `null` while there is none. The backing flow is
      * declared first, because the public one reads it where it is built.
      */
-    private val identifier = MutableStateFlow<String?>(null)
+    private val identifier = MutableStateFlow<String?>(preferences.preferences.value.deviceIdentifier)
 
     /**
      * The identifier our events are filed under, or `null` while there is none.
      *
-     * A flow rather than a call, because the identifier exists only while the SDK is running: it
-     * appears when one of the two answers is given, whether or not a screen is open at that moment.
-     * [refreshDeviceIdentifier] is for the screen that is about to show it.
+     * A flow rather than a call, because its value arrives from two places: the SDK, which has one
+     * only while it is running, and the preferences, where it is remembered so the row in Settings
+     * outlives a restart with both answers off. Declared after the backing flow, which it reads.
      */
     val deviceIdentifier: StateFlow<String?> = identifier.asStateFlow()
 
@@ -69,13 +69,27 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
     }
 
     /**
-     * Asks the data source what the identifier is now, and publishes it. Reading it never starts
-     * anything (see [AnalyticsDataSource.deviceIdentifier]), so this is safe to call on a screen that
-     * is only being looked at — and it is what picks the identifier up when the SDK has one to
-     * report that it did not a moment ago.
+     * Asks the data source what the identifier is now, remembers it, and publishes it.
+     *
+     * Three cases, and the remembered value is what makes the second and third one work:
+     *
+     *  - the SDK is running and reports one: it is stored (only ever while an answer allows sending,
+     *    since that is the only state in which the SDK has one to report) and published;
+     *  - the SDK is running and reports none, e.g. this device has never sent anything: whatever was
+     *    remembered stands, because nothing has said it is wrong;
+     *  - the SDK is stopped, which is a restart with both answers off: the remembered one is
+     *    published, so the row in Settings still shows the user what their earlier data is filed
+     *    under — the state in which they are most likely to be asking us about it.
+     *
+     * Reading the data source never starts anything (see [AnalyticsDataSource.deviceIdentifier]), so
+     * this is safe to call on a screen that is only being looked at.
      */
     fun refreshDeviceIdentifier() {
-        val current = analytics.deviceIdentifier()
+        val live = analytics.deviceIdentifier()
+        if (live != null && live != preferences.preferences.value.deviceIdentifier) {
+            preferences.setDeviceIdentifier(live)
+        }
+        val current = live ?: preferences.preferences.value.deviceIdentifier
         if (identifier.value != current) identifier.value = current
     }
 

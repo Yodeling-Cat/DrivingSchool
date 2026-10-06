@@ -39,6 +39,14 @@ data class Preferences(
     val checkAnswersImmediately: Boolean,
     /** Move on to the next question as soon as the user picks an answer. Off in check-immediately mode. */
     val advanceAfterAnswer: Boolean,
+    /**
+     * The identifier our analytics files this device's data under, remembered the first time the SDK
+     * reports one. It is kept rather than read on demand because the SDK has none while it is stopped:
+     * a user who has switched both answers off and restarts the app is exactly the user asking us to
+     * find or delete what we hold, and the one thing that lets us do it is this. `null` until
+     * something has been sent, which is the only state in which nothing is filed under anything.
+     */
+    val deviceIdentifier: String?,
 )
 
 /**
@@ -72,6 +80,23 @@ class PreferencesRepository(private val settings: Settings) {
     fun setAdsEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_ADS, enabled)
         state.update { it.copy(adsEnabled = enabled) }
+    }
+
+    /**
+     * Remembers [identifier], the analytics service's own name for this device. Written when the SDK
+     * reports one (see `AnalyticsRepository.refreshDeviceIdentifier`) and never cleared by a switch:
+     * it is the only thing that lets the user ask us about what was already filed under it, and the
+     * one thing they cannot find anywhere else.
+     */
+    fun setDeviceIdentifier(identifier: String?) {
+        // A null clears it, which nothing in the app does yet: a reset replaces the identifier rather
+        // than removing the record of it, and an identifier that was never created is simply absent.
+        if (identifier == null) {
+            settings.remove(KEY_DEVICE_IDENTIFIER)
+        } else {
+            settings.putString(KEY_DEVICE_IDENTIFIER, identifier)
+        }
+        state.update { it.copy(deviceIdentifier = identifier) }
     }
 
     fun selectLanguage(language: AppLanguage) {
@@ -111,6 +136,7 @@ class PreferencesRepository(private val settings: Settings) {
         language = AppLanguage.fromCode(settings.getStringOrNull(KEY_LANGUAGE)) ?: AppLanguage.system(),
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
         advanceAfterAnswer = settings.getBoolean(KEY_ADVANCE_AFTER_ANSWER, false),
+        deviceIdentifier = settings.getStringOrNull(KEY_DEVICE_IDENTIFIER),
     )
 
     private fun readSelection(): TestSelection? {
@@ -129,5 +155,6 @@ class PreferencesRepository(private val settings: Settings) {
         const val KEY_LANGUAGE = "app_language"
         const val KEY_CHECK_IMMEDIATELY = "check_answers_immediately"
         const val KEY_ADVANCE_AFTER_ANSWER = "advance_after_answer"
+        const val KEY_DEVICE_IDENTIFIER = "device_identifier"
     }
 }

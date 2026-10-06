@@ -124,4 +124,38 @@ class AnalyticsRepositoryTest {
 
         assertEquals("ident-2", fixture.repository.deviceIdentifier.value)
     }
+
+    @Test
+    fun theIdentifierIsRememberedSoItOutlivesTheAnswersThatMadeIt() {
+        val fixture = Fixture(analytics = true)
+        fixture.sink.identifier = "ident-1"
+        fixture.repository.refreshDeviceIdentifier()
+        assertEquals("ident-1", fixture.repository.deviceIdentifier.value)
+
+        // Both answers off and a new process: the SDK is stopped and reports nothing, so what the
+        // user is shown is what was remembered rather than nothing at all. This is the state a user
+        // asking us to delete what we hold is most likely to be in.
+        fixture.preferences.setAnalyticsEnabled(false)
+        fixture.repository.syncConsent()
+        fixture.sink.identifier = null
+        val restarted = AnalyticsRepository(fixture.sink, fixture.preferences)
+
+        assertEquals("ident-1", restarted.deviceIdentifier.value)
+        assertEquals("ident-1", fixture.preferences.preferences.value.deviceIdentifier)
+    }
+
+    @Test
+    fun aNewIdentifierReplacesTheOneThatWasRemembered() {
+        // What a reset looks like from here: the SDK has a different one, and the remembered value
+        // follows it rather than keeping the old identifier on screen.
+        val fixture = Fixture(analytics = true)
+        fixture.sink.identifier = "ident-1"
+        fixture.repository.refreshDeviceIdentifier()
+
+        fixture.sink.identifier = "ident-2"
+        fixture.repository.refreshDeviceIdentifier()
+
+        assertEquals("ident-2", fixture.repository.deviceIdentifier.value)
+        assertEquals("ident-2", fixture.preferences.preferences.value.deviceIdentifier)
+    }
 }

@@ -128,4 +128,17 @@ class PreferencesRepositoryTest {
         assertFalse(TestResult(score = 89, maxScore = 100).passed)
         assertFalse(TestResult(score = 0, maxScore = 0).passed)
     }
+
+    @Test
+    fun theDeviceIdentifierSurvivesRestart() {
+        val settings = MapSettings()
+        // Nothing is filed under an identifier until something has been sent, so there is none.
+        assertNull(PreferencesRepository(settings).preferences.value.deviceIdentifier)
+
+        PreferencesRepository(settings).setDeviceIdentifier("ident-1")
+
+        // And it stays after the switches that produced it are off: it is the user's only way to ask
+        // us about what was already filed under it.
+        assertEquals("ident-1", PreferencesRepository(settings).preferences.value.deviceIdentifier)
+    }
 }

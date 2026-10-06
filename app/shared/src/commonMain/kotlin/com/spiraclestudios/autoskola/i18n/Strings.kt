@@ -522,9 +522,11 @@ private val EnglishStrings = Strings(
     aboutVersion = { "Version $it" },
     settingsDeviceIdentifier = "Device identifier",
     settingsDeviceIdentifierDescription = "What we file this device's usage statistics and crash " +
-        "reports under. Quote it when you write to us about your data.",
-    settingsDeviceIdentifierEmpty = "Created the first time you turn on usage statistics or crash " +
-        "reports, and shown here while one of them is on.",
+        "reports under. It is kept here so you can quote it when you write to us, with the switches " +
+        "on or off.",
+    settingsDeviceIdentifierEmpty = "Nothing has been sent from this device, so there is nothing " +
+        "filed under an identifier yet. One appears here the first time you turn on usage " +
+        "statistics or crash reports.",
     aboutLibraries = "Open source libraries",
     aboutLibrariesIntro = "Naj Autoškola is built with these open source projects. Tap one to see " +
         "its license, and everyone who wrote it.",
@@ -540,8 +542,8 @@ private val EnglishStrings = Strings(
         "example, or delete it.",
     feedbackPrivacyRequestNote = "The app puts the identifier from Settings in this email, so we can " +
         "find what we hold about you.",
-    feedbackPrivacyRequestNoIdentifier = "The app has no identifier to put in this email at the " +
-        "moment. It appears in Settings while usage statistics or crash reports are on.",
+    feedbackPrivacyRequestNoIdentifier = "Nothing has been sent from this device yet, so there is " +
+        "no identifier to add. One appears once you turn on usage statistics or crash reports.",
     feedbackIncludeDeviceInfo = "Include device information",
     feedbackIncludeDeviceInfoDescription = "Your phone's model, its system version and the app version.",
     feedbackSend = "Send",
@@ -732,9 +734,11 @@ private val SlovakStrings = Strings(
     aboutVersion = { "Verzia $it" },
     settingsDeviceIdentifier = "Identifikátor zariadenia",
     settingsDeviceIdentifierDescription = "Pod týmto identifikátorom evidujeme štatistiky používania " +
-        "a hlásenia o zrúteniach z tohto zariadenia. Uveďte ho, keď nám napíšete o svojich údajoch.",
-    settingsDeviceIdentifierEmpty = "Vytvorí sa pri prvom zapnutí štatistík používania alebo " +
-        "hlásení o zrúteniach a zobrazuje sa tu, kým je jedno z nich zapnuté.",
+        "a hlásenia o zrúteniach z tohto zariadenia. Zostáva tu, aby ste ho mohli uviesť, keď nám " +
+        "napíšete — bez ohľadu na to, či sú prepínače zapnuté.",
+    settingsDeviceIdentifierEmpty = "Z tohto zariadenia zatiaľ nebolo nič odoslané, takže pod žiadnym " +
+        "identifikátorom nič neevidujeme. Zobrazí sa tu pri prvom zapnutí štatistík používania " +
+        "alebo hlásení o zrúteniach.",
     aboutLibraries = "Knižnice s otvoreným kódom",
     aboutLibrariesIntro = "Naj Autoškola je postavená na týchto open source projektoch. Ťuknutím na " +
         "niektorý z nich zobrazíte jeho licenciu aj všetkých, ktorí ho napísali.",
@@ -750,9 +754,9 @@ private val SlovakStrings = Strings(
         "evidujeme, alebo to vymazať.",
     feedbackPrivacyRequestNote = "Aplikácia do tohto e-mailu vloží identifikátor z nastavení, aby sme " +
         "našli, čo o vás evidujeme.",
-    feedbackPrivacyRequestNoIdentifier = "Aplikácia momentálne nemá identifikátor, ktorý by do " +
-        "e-mailu vložila. Zobrazí sa v nastaveniach, kým sú zapnuté štatistiky používania alebo " +
-        "hlásenia o zrúteniach.",
+    feedbackPrivacyRequestNoIdentifier = "Z tohto zariadenia zatiaľ nebolo nič odoslané, takže nie " +
+        "je čo pridať. Identifikátor sa zobrazí po zapnutí štatistík používania alebo hlásení o " +
+        "zrúteniach.",
     feedbackIncludeDeviceInfo = "Pridať informácie o zariadení",
     feedbackIncludeDeviceInfoDescription = "Model telefónu, verzia systému a verzia aplikácie.",
     feedbackSend = "Odoslať",
@@ -945,9 +949,11 @@ private val HungarianStrings = Strings(
     aboutVersion = { "$it verzió" },
     settingsDeviceIdentifier = "Eszközazonosító",
     settingsDeviceIdentifierDescription = "Ez az azonosító alatt tartjuk nyilván az eszköz használati " +
-        "statisztikáit és összeomlás-jelentéseit. Ezt adja meg, amikor az adatairól ír nekünk.",
-    settingsDeviceIdentifierEmpty = "Akkor jön létre, amikor először bekapcsolja a használati " +
-        "statisztikákat vagy az összeomlás-jelentéseket, és itt addig látható, amíg valamelyik be van kapcsolva.",
+        "statisztikáit és összeomlás-jelentéseit. Itt marad, hogy megadd, amikor írsz nekünk — akár " +
+        "be vannak kapcsolva a kapcsolók, akár nem.",
+    settingsDeviceIdentifierEmpty = "Erről az eszközről még nem lett semmi elküldve, így még nincs, " +
+        "ami alatt nyilvántartanánk. Az első alkalommal jelenik meg itt, amikor bekapcsolod a " +
+        "használati statisztikákat vagy az összeomlás-jelentéseket.",
     aboutLibraries = "Nyílt forráskódú könyvtárak",
     aboutLibrariesIntro = "A Legjobb Autósiskola ezekre a nyílt forráskódú projektekre épül. " +
         "Koppintson az egyikre a licencéhez és a készítőihez.",
@@ -963,9 +969,9 @@ private val HungarianStrings = Strings(
         "nyilvántartunk, vagy töröljük.",
     feedbackPrivacyRequestNote = "Az alkalmazás beilleszti az e-mailbe a beállításokban látható " +
         "azonosítót, hogy megtaláljuk, mit tartunk nyilván rólad.",
-    feedbackPrivacyRequestNoIdentifier = "Az alkalmazásnak most nincs azonosítója, amit az e-mailbe " +
-        "beilleszthetne. Akkor jelenik meg a beállításokban, amikor a használati statisztikák vagy " +
-        "az összeomlás-jelentések be vannak kapcsolva.",
+    feedbackPrivacyRequestNoIdentifier = "Erről az eszközről még nem lett semmi elküldve, így nincs " +
+        "mit hozzáadni. Az azonosító akkor jelenik meg, amikor bekapcsolod a használati " +
+        "statisztikákat vagy az összeomlás-jelentéseket.",
     feedbackIncludeDeviceInfo = "Eszközadatok mellékelése",
     feedbackIncludeDeviceInfoDescription = "A telefon típusa, a rendszer verziója és az alkalmazás verziója.",
     feedbackSend = "Küldés",
@@ -1156,9 +1162,11 @@ private val CzechStrings = Strings(
     aboutVersion = { "Verze $it" },
     settingsDeviceIdentifier = "Identifikátor zařízení",
     settingsDeviceIdentifierDescription = "Pod tímto identifikátorem evidujeme statistiky používání " +
-        "a hlášení o pádech z tohoto zařízení. Uveďte ho, když nám napíšete o svých datech.",
-    settingsDeviceIdentifierEmpty = "Vytvoří se při prvním zapnutí statistik používání nebo hlášení " +
-        "o pádech a zobrazuje se tu, dokud je jedno z nich zapnuté.",
+        "a hlášení o pádech z tohoto zařízení. Zůstává tu, abyste ho mohli uvést, když nám " +
+        "napíšete — bez ohledu na to, zda jsou přepínače zapnuté.",
+    settingsDeviceIdentifierEmpty = "Z tohoto zařízení zatím nebylo nic odesláno, takže pod žádným " +
+        "identifikátorem nic neevidujeme. Zobrazí se tu při prvním zapnutí statistik používání " +
+        "nebo hlášení o pádech.",
     aboutLibraries = "Knihovny s otevřeným kódem",
     aboutLibrariesIntro = "Nej Autoškola staví na těchto open source projektech. Klepnutím na " +
         "některý z nich zobrazíte jeho licenci i všechny, kdo ho napsali.",
@@ -1174,9 +1182,8 @@ private val CzechStrings = Strings(
         "evidujeme, nebo to smazat.",
     feedbackPrivacyRequestNote = "Aplikace do tohoto e-mailu vloží identifikátor z nastavení, abychom " +
         "našli, co o vás evidujeme.",
-    feedbackPrivacyRequestNoIdentifier = "Aplikace teď nemá identifikátor, který by do e-mailu " +
-        "vložila. Zobrazí se v nastavení, dokud jsou zapnuté statistiky používání nebo hlášení o " +
-        "pádech.",
+    feedbackPrivacyRequestNoIdentifier = "Z tohoto zařízení zatím nebylo nic odesláno, takže není co " +
+        "přidat. Identifikátor se objeví po zapnutí statistik používání nebo hlášení o pádech.",
     feedbackIncludeDeviceInfo = "Přidat informace o zařízení",
     feedbackIncludeDeviceInfoDescription = "Model telefonu, verze systému a verze aplikace.",
     feedbackSend = "Odeslat",

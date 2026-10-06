@@ -30,22 +30,17 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  * Nothing here decides anything: [ConsentAge][com.spiraclestudios.autoskola.data.preferences.ConsentAge]
  * says who may answer, and this draws the answer.
  *
- * @param answer `null` until the user says, which is what the screen draws first.
- * @param missing a button was pressed without an answer, so the question is marked and says so.
+ * @param answer `null` until the user says, which is what the screen draws first — and while it is
+ *   `null` the consent card is closed and its buttons are dead, so the question is the whole screen.
  */
 @Composable
-fun AgeAnswerRow(
-    answer: Boolean?,
-    onAnswer: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    missing: Boolean = false,
-) {
+fun AgeAnswerRow(answer: Boolean?, onAnswer: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             strings.consentAgeQuestion,
             style = Naj.type.body,
-            color = if (missing) colors.wrongOn else colors.ink,
+            color = colors.ink,
             fontWeight = FontWeight.Medium,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -53,13 +48,6 @@ fun AgeAnswerRow(
             // pressable, because changing an answer has to be as easy as giving one.
             AgePill(text = strings.consentAgeOver16, chosen = answer == true) { onAnswer(true) }
             AgePill(text = strings.consentAgeUnder16, chosen = answer == false) { onAnswer(false) }
-        }
-        if (missing) {
-            Text(
-                strings.consentAgeRequired,
-                style = Naj.type.rowSubtitle,
-                color = colors.wrongOn,
-            )
         }
     }
 }
@@ -98,8 +86,6 @@ private fun AgeAnswerRowAnsweredPreview() {
             AgeAnswerRow(answer = true, onAnswer = {})
             PreviewLabel("Under 16")
             AgeAnswerRow(answer = false, onAnswer = {})
-            PreviewLabel("Pressed without an answer")
-            AgeAnswerRow(answer = null, onAnswer = {}, missing = true)
         }
     }
 }

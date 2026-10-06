@@ -28,8 +28,6 @@ data class ConsentUiState(
     val agreementError: Boolean,
     /** Which side of 16 the user is on, `null` until they answer. */
     val overConsentAge: Boolean?,
-    /** A button was pressed before the age question was answered. */
-    val ageError: Boolean,
     /** A parent or guardian has agreed on behalf of a user under 16. */
     val parentalConsent: Boolean,
     /** A button was pressed under 16 without that agreement. */
@@ -47,6 +45,13 @@ data class ConsentUiState(
 
     /** Whether the screen asks for a parent or guardian at all: only under 16 has anything to agree to. */
     val asksForParentalConsent: Boolean get() = overConsentAge == false
+
+    /**
+     * Whether the age question has been answered, which is what the card is drawn from: closed while it
+     * has not, and the choices revealed once it has. The two buttons are dead until then, since nothing
+     * here is answerable before it.
+     */
+    val ageAnswered: Boolean get() = overConsentAge != null
 }
 
 /**
@@ -58,16 +63,11 @@ data class ConsentUiState(
 private data class StagedAnswers(val crashReporting: Boolean, val analytics: Boolean, val ads: Boolean)
 
 /**
- * The age question and what follows from it: a parent or guardian's agreement, and the two marks a
- * press leaves where either is missing. One value for the same reason as [StagedAnswers] — it is one
- * part of the screen, and four flows would each have to be combined on their own.
+ * The age question and what follows from it: a parent or guardian's agreement, and the mark a press
+ * leaves where it is missing. One value for the same reason as [StagedAnswers] — it is one part of the
+ * screen, and three flows would each have to be combined on their own.
  */
-private data class StagedAge(
-    val overConsentAge: Boolean?,
-    val parentalConsent: Boolean,
-    val ageError: Boolean,
-    val parentalError: Boolean,
-)
+private data class StagedAge(val overConsentAge: Boolean?, val parentalConsent: Boolean, val parentalError: Boolean)
 
 sealed interface ConsentUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ConsentUiEvent
@@ -145,7 +145,6 @@ class ConsentViewModel(
         StagedAge(
             overConsentAge = preferences.preferences.value.overConsentAge,
             parentalConsent = preferences.preferences.value.parentalConsent,
-            ageError = false,
             parentalError = false,
         ),
     )
@@ -174,7 +173,6 @@ class ConsentViewModel(
             documentsAccepted = documentsAccepted,
             agreementError = agreementError,
             overConsentAge = age.overConsentAge,
-            ageError = age.ageError,
             parentalConsent = age.parentalConsent,
             parentalError = age.parentalError,
             crashReportingEnabled = staged.crashReporting,
@@ -189,7 +187,6 @@ class ConsentViewModel(
             documentsAccepted = false,
             agreementError = false,
             overConsentAge = preferences.preferences.value.overConsentAge,
-            ageError = false,
             parentalConsent = preferences.preferences.value.parentalConsent,
             parentalError = false,
             crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
@@ -213,7 +210,7 @@ class ConsentViewModel(
             }
 
             is ConsentUiEvent.SetOverConsentAge -> {
-                age.update { it.copy(overConsentAge = event.overConsentAge, ageError = false) }
+                age.update { it.copy(overConsentAge = event.overConsentAge) }
                 // The three answers are deliberately not touched — not turned off for an under-16, not
                 // put back for an adult. What this answer decides is whether the switches may be
                 // answered at all ([ConsentUiState.switchesEnabled]) and whether the answers count
@@ -256,19 +253,18 @@ class ConsentViewModel(
     }
 
     /**
-     * The two requirements that come before either button, marked where they are unmet: the age
-     * question, and — under 16 — a parent or guardian's agreement. Everything else on this screen is an
-     * answer the user gives; these two decide whether they may answer at all.
+     * The two requirements that come before either button, and the one mark a press can leave: under 16
+     * without a parent or guardian's agreement. The age question has no mark of its own — the buttons
+     * are drawn dead until it is answered, and a dead button says that without a red word.
      *
-     * Marked rather than enforced by a dead button, for the reason the documents' box is: a button
-     * that cannot be pressed cannot explain itself, and this screen is where the app has to explain
-     * this.
+     * Marked rather than enforced by a dead button for the guardian's agreement, because the buttons
+     * are live by then and a press has to answer somehow.
      */
     private fun ageAllowsAnswering(): Boolean {
         val asked = age.value
         val answered = asked.overConsentAge != null
         val guardianAgreed = answered && (asked.overConsentAge == true || asked.parentalConsent)
-        age.value = asked.copy(ageError = !answered, parentalError = !guardianAgreed)
+        age.value = asked.copy(parentalError = !guardianAgreed)
         return answered && guardianAgreed
     }
 

@@ -54,8 +54,6 @@ class Strings(
     val consentAgeQuestion: String,
     val consentAgeOver16: String,
     val consentAgeUnder16: String,
-    /** Drawn on the question when a button was pressed without answering it. */
-    val consentAgeRequired: String,
     /** Why the switches cannot be answered yet, drawn with the guardian's agreement. */
     val consentAgeUnder16Reason: String,
     val consentParentalConsent: String,
@@ -376,7 +374,6 @@ private val EnglishStrings = Strings(
     consentAgeQuestion = "Are you 16 or older?",
     consentAgeOver16 = "16 or older",
     consentAgeUnder16 = "Under 16",
-    consentAgeRequired = "Answer this question to continue.",
     consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
         "can agree on your behalf.",
     consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
@@ -597,7 +594,6 @@ private val SlovakStrings = Strings(
     consentAgeQuestion = "Máte 16 rokov alebo viac?",
     consentAgeOver16 = "16 rokov alebo viac",
     consentAgeUnder16 = "Menej ako 16",
-    consentAgeRequired = "Ak chcete pokračovať, odpovedzte na túto otázku.",
     consentAgeUnder16Reason = "Kým nemáte 16 rokov, nemôžete s tým súhlasiť sami: vo vašom mene tak " +
         "môže urobiť len rodič alebo zákonný zástupca.",
     consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
@@ -819,7 +815,6 @@ private val HungarianStrings = Strings(
     consentAgeQuestion = "16 éves vagy idősebb?",
     consentAgeOver16 = "16 éves vagy idősebb",
     consentAgeUnder16 = "16 év alatti",
-    consentAgeRequired = "A folytatáshoz válaszoljon erre a kérdésre.",
     consentAgeUnder16Reason = "16 év alatt ezekhez nem tud egyedül hozzájárulni: Ön helyett ezt csak " +
         "szülő vagy gondviselő teheti meg.",
     consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
@@ -1043,7 +1038,6 @@ private val CzechStrings = Strings(
     consentAgeQuestion = "Je vám 16 let nebo více?",
     consentAgeOver16 = "16 let nebo více",
     consentAgeUnder16 = "Méně než 16",
-    consentAgeRequired = "Chcete-li pokračovat, odpovězte na tuto otázku.",
     consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
         "udělat jen rodič nebo zákonný zástupce.",
     consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",

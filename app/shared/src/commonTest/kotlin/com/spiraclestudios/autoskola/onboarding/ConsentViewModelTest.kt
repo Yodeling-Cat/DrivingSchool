@@ -214,25 +214,33 @@ class ConsentViewModelTest : ViewModelTest() {
     private fun unasked() = TestRepositories(overConsentAge = null)
 
     @Test
-    fun theSwitchesWaitForTheAgeQuestion() = runTest {
+    fun theCardIsClosedUntilTheAgeQuestionIsAnswered() = runTest {
         val fresh = unasked()
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
+        // Closed, which is what the screen draws from: the choices are hidden inside the card and both
+        // buttons are dead until the question is answered.
+        assertFalse(state.value.ageAnswered)
         assertFalse(state.value.switchesEnabled)
         assertFalse(state.value.asksForParentalConsent)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
+
+        assertTrue(state.value.ageAnswered)
     }
 
     @Test
-    fun aPressBeforeTheQuestionIsAnsweredMarksItAndCommitsNothing() = runTest {
+    fun aPressBeforeTheQuestionIsAnsweredCommitsNothing() = runTest {
         val fresh = unasked()
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
-        val state = observe(model.uiState)
+        observe(model.uiState)
 
+        // The buttons are drawn dead on screen; refused here as well, so the rule holds whichever
+        // screen is driving this.
         model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
         model.onEvent(ConsentUiEvent.AcceptAll)
 
-        assertTrue(state.value.ageError)
         assertEquals(0, fresh.preferences.preferences.value.legalAcceptedVersion)
         assertEquals(emptyList(), fresh.analyticsSink.events)
         assertFalse(fresh.preferences.preferences.value.analyticsEnabled)

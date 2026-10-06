@@ -480,7 +480,7 @@ fun QuestionChip(
 @Composable
 fun NajSwitch(
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentDescription: String? = null,
@@ -499,13 +499,25 @@ fun NajSwitch(
                     else -> Brush.linearGradient(listOf(colors.trackOff, colors.trackOff))
                 },
             )
-            .toggleable(
-                value = checked,
-                enabled = enabled,
-                role = Role.Switch,
-                interactionSource = interactionSource,
-                indication = null,
-                onValueChange = onCheckedChange,
+            .then(
+                // A null handler means the row around the switch owns the press (see
+                // `ConsentSwitchRow`), so the switch takes no press of its own. The modifier is left
+                // off rather than disabled, because a dead one would still catch the press on its own
+                // area and answer it with nothing — a tap on the switch would do nothing at all. This
+                // is the same shape the checkbox rows use: the row answers a press wherever it lands,
+                // on the label or on the control.
+                if (onCheckedChange == null) {
+                    Modifier
+                } else {
+                    Modifier.toggleable(
+                        value = checked,
+                        enabled = enabled,
+                        role = Role.Switch,
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onValueChange = onCheckedChange,
+                    )
+                },
             )
             .padding(4.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,

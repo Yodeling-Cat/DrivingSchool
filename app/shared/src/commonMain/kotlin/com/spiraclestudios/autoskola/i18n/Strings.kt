@@ -572,7 +572,7 @@ private val SlovakStrings = Strings(
     consentTitle = "Vaše dáta, vaša voľba",
     consentSubtitle = "Aplikácia môže zobrazovať reklamy a odosielať dve veci, aby sme ju mohli " +
         "opraviť a vylepšiť.",
-    consentCrashReportingTitle = "Hlásenia o zlyhaniach",
+    consentCrashReportingTitle = "Hlásenia o zrúteniach",
     consentCrashReportingDescription = "Ak aplikácia spadne, pošle nám, čo sa pokazilo, model " +
         "zariadenia a verziu aplikácie.",
     consentAnalyticsTitle = "Štatistiky používania",

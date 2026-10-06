@@ -104,6 +104,11 @@ fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> U
                     text = strings.disclaimerAccept,
                     onClick = onContinue,
                     height = 56.dp,
+                    // As wide as the two buttons on the screen after it: this is the same act in the
+                    // same place, and a button that hugs its word here would make the next screen's
+                    // look like a different kind of thing.
+                    modifier = Modifier.widthIn(max = ContentWidth.Narrow),
+                    fillWidth = true,
                 )
             }
         }

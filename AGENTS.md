@@ -77,7 +77,7 @@ Question banks and images are generated into `app/shared/src/commonMain/composeR
 The privacy policy and the terms of use are not in this repository: they are pages on the company's own site (the `tree-among-shrubs/web` repository, served at `autoskola.tree-among-shrubs.com`), and the app links to them from `LegalDocument` (`data/preferences/LegalConsent.kt`). Two things to know when touching anything about them, including the app's own strings that describe them:
 
 - They are published in **English and Slovak**, and the **Slovak text is the authoritative one**; both documents say so. Where the two disagree, Slovak governs, and the app's four `i18n/Strings.kt` tables have to agree with what the documents say.
-- **Every locale changes together.** Adding, rewording or removing anything in one of them means the same change in the other, in the same commit: half a translation is either `translation missing` on the page or a silent fallback to English, in a document the user is asked to agree to. The site repo's `CLAUDE.md` carries the full rule, and `bin/rails test` there renders both locales of both documents and fails on `translation missing`.
+- **Every locale changes together.** Adding, rewording or removing anything in one of them means the same change in the other, in the same commit: half a translation is either `translation missing` on the page or a silent fallback to English, in a document the user is asked to agree to. The site repo's `AGENTS.md` carries the full rule, and `bin/rails test` there renders both locales of both documents and fails on `translation missing`.
 
 ## Running the web repository
 

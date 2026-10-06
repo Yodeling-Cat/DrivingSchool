@@ -57,6 +57,16 @@ class Strings(
     /** Why the switches cannot be answered yet, drawn with the guardian's agreement. */
     val consentAgeUnder16Reason: String,
     val consentParentalConsent: String,
+    /** The question behind the one press that unlocks three switches. */
+    val settingsAgeConfirmTitle: String,
+    val settingsAgeConfirmMessage: String,
+    val settingsAgeConfirmAction: String,
+    val settingsAgeConfirmDismiss: String,
+    /** The one switch whose off position costs the app rather than the user. */
+    val settingsAdsOffTitle: String,
+    val settingsAdsOffMessage: String,
+    val settingsAdsOffAction: String,
+    val settingsAdsKeep: String,
     val consentParentalConsentDescription: String,
     val consentCrashReportingTitle: String,
     val consentCrashReportingDescription: String,
@@ -377,6 +387,16 @@ private val EnglishStrings = Strings(
     consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
         "can agree on your behalf.",
     consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
+    settingsAgeConfirmTitle = "Have you turned 16?",
+    settingsAgeConfirmMessage = "Answering yes unlocks the three switches below, so please answer " +
+        "only if it is true.",
+    settingsAgeConfirmAction = "Yes, I am 16 or older",
+    settingsAgeConfirmDismiss = "Not yet",
+    settingsAdsOffTitle = "Turn the ads off?",
+    settingsAdsOffMessage = "The app is free because of the ads. Turning them off removes the " +
+        "adverts and the revenue that keeps it running.",
+    settingsAdsOffAction = "Turn the ads off",
+    settingsAdsKeep = "Keep the ads",
     consentParentalConsentDescription = "They have read the Privacy Policy and the Terms of Use, and " +
         "agreed to the three answers below for me.",
     consentCrashReportingTitle = "Crash reports",
@@ -597,6 +617,16 @@ private val SlovakStrings = Strings(
     consentAgeUnder16Reason = "Kým nemáte 16 rokov, nemôžete s tým súhlasiť sami: vo vašom mene tak " +
         "môže urobiť len rodič alebo zákonný zástupca.",
     consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
+    settingsAgeConfirmTitle = "Máte už 16 rokov?",
+    settingsAgeConfirmMessage = "Odpoveďou áno sa odomknú tri prepínače nižšie, preto odpovedzte áno " +
+        "len vtedy, ak je to pravda.",
+    settingsAgeConfirmAction = "Áno, mám 16 rokov alebo viac",
+    settingsAgeConfirmDismiss = "Ešte nie",
+    settingsAdsOffTitle = "Vypnúť reklamy?",
+    settingsAdsOffMessage = "Aplikácia je zadarmo vďaka reklámam. Ich vypnutím zmiznú reklamy aj " +
+        "príjem, ktorý ju drží v prevádzke.",
+    settingsAdsOffAction = "Vypnúť reklamy",
+    settingsAdsKeep = "Nechať reklamy",
     consentParentalConsentDescription = "Prečítal si Zásady ochrany osobných údajov a Podmienky " +
         "používania a v mojom mene súhlasil s tromi odpoveďami nižšie.",
     consentCrashReportingTitle = "Hlásenia o zrúteniach",
@@ -818,6 +848,16 @@ private val HungarianStrings = Strings(
     consentAgeUnder16Reason = "16 év alatt ezekhez nem tud egyedül hozzájárulni: Ön helyett ezt csak " +
         "szülő vagy gondviselő teheti meg.",
     consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
+    settingsAgeConfirmTitle = "Már betöltötte a 16. életévét?",
+    settingsAgeConfirmMessage = "Ha igennel válaszol, kinyílnak az alábbi három kapcsoló, ezért csak " +
+        "akkor válaszoljon igennel, ha ez igaz.",
+    settingsAgeConfirmAction = "Igen, 16 éves vagy idősebb vagyok",
+    settingsAgeConfirmDismiss = "Még nem",
+    settingsAdsOffTitle = "Kikapcsolja a reklámokat?",
+    settingsAdsOffMessage = "Az alkalmazás a reklámok miatt ingyenes. Kikapcsolásukkal eltűnnek a " +
+        "reklámok, és az a bevétel is, ami működteti.",
+    settingsAdsOffAction = "Reklámok kikapcsolása",
+    settingsAdsKeep = "Maradjanak a reklámok",
     consentParentalConsentDescription = "Elolvasta az Adatvédelmi szabályzatot és a Felhasználási " +
         "feltételeket, és Ön helyett hozzájárult a lenti három válaszhoz.",
     consentCrashReportingTitle = "Hibajelentések",
@@ -1041,6 +1081,16 @@ private val CzechStrings = Strings(
     consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
         "udělat jen rodič nebo zákonný zástupce.",
     consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",
+    settingsAgeConfirmTitle = "Už je vám 16 let?",
+    settingsAgeConfirmMessage = "Odpovědí ano se odemknou tři přepínače níže, proto odpovězte ano jen " +
+        "tehdy, pokud je to pravda.",
+    settingsAgeConfirmAction = "Ano, je mi 16 let nebo více",
+    settingsAgeConfirmDismiss = "Ještě ne",
+    settingsAdsOffTitle = "Vypnout reklamy?",
+    settingsAdsOffMessage = "Aplikace je zdarma díky reklamám. Jejich vypnutím zmizí reklamy i " +
+        "příjem, který ji drží v provozu.",
+    settingsAdsOffAction = "Vypnout reklamy",
+    settingsAdsKeep = "Nechat reklamy",
     consentParentalConsentDescription = "Přečetl si Zásady ochrany osobních údajů a Podmínky použití " +
         "a souhlasil za mě se třemi odpověďmi níže.",
     consentCrashReportingTitle = "Hlášení o pádech",

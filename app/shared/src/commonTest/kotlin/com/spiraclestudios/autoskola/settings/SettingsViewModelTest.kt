@@ -51,8 +51,15 @@ class SettingsViewModelTest : ViewModelTest() {
         assertTrue(state.value.adsEnabled)
         assertTrue(repositories.preferences.preferences.value.adsEnabled)
 
+        // Taking the ads away is asked about first, so the switch does not move until that is confirmed.
         viewModel.onEvent(SettingsUiEvent.SetAds(false))
 
+        assertTrue(state.value.confirmingAdsOff)
+        assertTrue(state.value.adsEnabled)
+
+        viewModel.onEvent(SettingsUiEvent.ConfirmAdsOff)
+
+        assertFalse(state.value.confirmingAdsOff)
         assertFalse(state.value.adsEnabled)
         assertFalse(repositories.preferences.preferences.value.adsEnabled)
     }
@@ -275,6 +282,7 @@ class SettingsViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
 
         assertTrue(state.value.canAnswerSwitches)
         assertFalse(state.value.underConsentAge)
@@ -315,6 +323,7 @@ class SettingsViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
 
         // The switches are live again, and empty: the app withdraws answers, it never fills one in.
         assertTrue(state.value.canAnswerSwitches)
@@ -333,5 +342,122 @@ class SettingsViewModelTest : ViewModelTest() {
 
         assertFalse(state.value.canAnswerSwitches)
         assertFalse(state.value.underConsentAge)
+    }
+
+    // The two questions this screen asks before it changes something.
+
+    @Test
+    fun turning16AsksBeforeItCounts() = runTest {
+        // An under-16 whose switches are locked, which is the state this question is about.
+        repositories.preferences.setOverConsentAge(false)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+
+        assertTrue(state.value.confirmingAge)
+        // Nothing is written while the question is on screen: the answer still in force is the old one.
+        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertFalse(state.value.canAnswerSwitches)
+    }
+
+    @Test
+    fun confirmingTheAgeAnswerAppliesIt() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+
+        viewModel.onEvent(SettingsUiEvent.ConfirmOverConsentAge)
+
+        assertFalse(state.value.confirmingAge)
+        assertEquals(true, repositories.preferences.preferences.value.overConsentAge)
+        assertTrue(state.value.canAnswerSwitches)
+    }
+
+    @Test
+    fun backingOutOfTheAgeQuestionChangesNothing() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(true))
+
+        viewModel.onEvent(SettingsUiEvent.DismissAgeConfirmation)
+
+        assertFalse(state.value.confirmingAge)
+        assertEquals(false, state.value.overConsentAge)
+        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+    }
+
+    @Test
+    fun turningUnder16NeedsNoQuestion() = runTest {
+        repositories.preferences.setCrashReportingEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+
+        // It takes answers away rather than giving any, so it is applied at once and asks nothing.
+        assertFalse(state.value.confirmingAge)
+        assertEquals(false, repositories.preferences.preferences.value.overConsentAge)
+        assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
+    }
+
+    @Test
+    fun takingTheAdsAwayAsksFirst() = runTest {
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        repositories.analyticsSink.events.clear()
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+
+        assertTrue(state.value.confirmingAdsOff)
+        assertTrue(state.value.adsEnabled)
+        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+        // Nothing is recorded for an answer that has not been given yet.
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+    }
+
+    @Test
+    fun confirmingTheAdsOffRecordsItAndTakesEffect() = runTest {
+        // Analytics has to be on for the record of a change to be sent at all, which is all
+        // `ConsentChanged` is: without it the answer would still be written, and nothing said.
+        repositories.preferences.setAnalyticsEnabled(true)
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+
+        viewModel.onEvent(SettingsUiEvent.ConfirmAdsOff)
+
+        assertFalse(state.value.confirmingAdsOff)
+        assertFalse(state.value.adsEnabled)
+        assertFalse(repositories.preferences.preferences.value.adsEnabled)
+        assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("switch" to "ads", "enabled" to false),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun backingOutOfTheAdsQuestionLeavesThemOn() = runTest {
+        repositories.preferences.setAdsEnabled(true)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+
+        viewModel.onEvent(SettingsUiEvent.DismissAdsOff)
+
+        assertFalse(state.value.confirmingAdsOff)
+        assertTrue(state.value.adsEnabled)
+        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+    }
+
+    @Test
+    fun puttingTheAdsBackNeedsNoQuestion() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+
+        // The answer the app prefers is not one to ask the user to confirm.
+        assertFalse(state.value.confirmingAdsOff)
+        assertTrue(repositories.preferences.preferences.value.adsEnabled)
     }
 }

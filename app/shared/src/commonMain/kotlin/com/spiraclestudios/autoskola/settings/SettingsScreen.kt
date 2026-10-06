@@ -57,6 +57,7 @@ import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AgeAnswerRow
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardRadius
+import com.spiraclestudios.autoskola.ui.ConfirmDialog
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
@@ -199,7 +200,7 @@ fun SettingsScreen(
                             strings.consentAgeUnder16Reason,
                             style = Naj.type.rowSubtitle,
                             color = colors.muted,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                         )
                     }
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
@@ -269,6 +270,32 @@ fun SettingsScreen(
                         identifier = state.deviceIdentifier,
                         copied = state.deviceIdentifierCopied,
                         onCopy = onCopyIdentifier,
+                    )
+                }
+
+                // The two questions this screen asks before it changes something. Neither writes
+                // anything on its own: the answer is applied by the ViewModel when it is confirmed,
+                // and backing out leaves the stored answer exactly as it was.
+                if (state.confirmingAge) {
+                    ConfirmDialog(
+                        title = strings.settingsAgeConfirmTitle,
+                        message = strings.settingsAgeConfirmMessage,
+                        confirmLabel = strings.settingsAgeConfirmAction,
+                        onConfirm = { onEvent(SettingsUiEvent.ConfirmOverConsentAge) },
+                        dismissLabel = strings.settingsAgeConfirmDismiss,
+                        onDismiss = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
+                        onDismissRequest = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
+                    )
+                }
+                if (state.confirmingAdsOff) {
+                    ConfirmDialog(
+                        title = strings.settingsAdsOffTitle,
+                        message = strings.settingsAdsOffMessage,
+                        confirmLabel = strings.settingsAdsOffAction,
+                        onConfirm = { onEvent(SettingsUiEvent.ConfirmAdsOff) },
+                        dismissLabel = strings.settingsAdsKeep,
+                        onDismiss = { onEvent(SettingsUiEvent.DismissAdsOff) },
+                        onDismissRequest = { onEvent(SettingsUiEvent.DismissAdsOff) },
                     )
                 }
             }
@@ -666,5 +693,23 @@ private fun SettingsScreenUnder16Preview() {
 private fun SettingsScreenUnder16AgreedPreview() {
     AppPreview {
         SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, parentalConsent = true))
+    }
+}
+
+/** The question before turning 16 counts, because that press unlocks the three switches. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenAgeConfirmationPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, confirmingAge = true))
+    }
+}
+
+/** And the question before the ads are taken away, which is the one answer the app asks about. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenAdsOffConfirmationPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(adsEnabled = true, confirmingAdsOff = true))
     }
 }

@@ -114,10 +114,11 @@ class PreferencesRepository(private val settings: Settings) {
      * The answer to "are you 16 or older?", which the consent screen asks and Settings lets the user
      * correct later — somebody answers at 15 and is 16 the year after.
      *
-     * The three answers are pinned to this one: below 16 with no parent or guardian agreeing they are
-     * all off, so a switch left on by an earlier version of the app does not survive the question
-     * being answered that way. A caller that writes both writes this one last, which is what puts the
-     * three answers under the new age answer (see [ConsentAge]).
+     * It records this answer and nothing else. In particular it does not touch the three consent
+     * answers: they are the user's, given by their own presses, and what the age answer decides is
+     * whether they may be answered and whether they count at all ([ConsentAge]). An app that filled
+     * one in — or cleared one — because the user answered a different question would be answering a
+     * question it is supposed to ask.
      */
     fun setOverConsentAge(overConsentAge: Boolean?) {
         if (overConsentAge == null) {
@@ -126,30 +127,15 @@ class PreferencesRepository(private val settings: Settings) {
             settings.putBoolean(KEY_OVER_CONSENT_AGE, overConsentAge)
         }
         state.update { it.copy(overConsentAge = overConsentAge) }
-        pinAnswersToTheAge()
     }
 
     /**
-     * Whether a parent or guardian agreed on behalf of a user under 16. Unticking it takes the three
-     * answers with it, because that agreement is the whole of what they rested on.
+     * Whether a parent or guardian agreed on behalf of a user under 16: what lets the three switches
+     * be answered at all, and nothing more. Written and withdrawn without touching the answers.
      */
     fun setParentalConsent(given: Boolean) {
         settings.putBoolean(KEY_PARENTAL_CONSENT, given)
         state.update { it.copy(parentalConsent = given) }
-        pinAnswersToTheAge()
-    }
-
-    /**
-     * An under-16 whose parent or guardian has agreed to nothing agrees to nothing, so the three
-     * stored answers are brought down to what the age answer allows. Written rather than merely
-     * filtered on the way out, because what the switches in Settings show has to be what is true.
-     */
-    private fun pinAnswersToTheAge() {
-        val current = state.value
-        if (ConsentAge.mayAnswerSwitches(current.overConsentAge, current.parentalConsent)) return
-        setCrashReportingEnabled(false)
-        setAnalyticsEnabled(false)
-        setAdsEnabled(false)
     }
 
     fun selectLanguage(language: AppLanguage) {

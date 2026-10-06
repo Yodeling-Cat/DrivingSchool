@@ -294,6 +294,20 @@ class SettingsViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun changingTheAgeAnswerDoesNotTouchTheThreeSwitches() = runTest {
+        repositories.preferences.setCrashReportingEnabled(true)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+
+        // Here the answer is written rather than staged, so this is the case that would have persisted
+        // a change nobody asked for. The row locks; the answer stays where the user left it.
+        assertFalse(state.value.canAnswerSwitches)
+        assertTrue(state.value.crashReportingEnabled)
+        assertTrue(repositories.preferences.preferences.value.crashReportingEnabled)
+    }
+
+    @Test
     fun anUnansweredQuestionLeavesThemLocked() = runTest {
         val fresh = TestRepositories(overConsentAge = null).apply {
             preferences.select(TestSelection("sk-sk", LicenseCategory.C))

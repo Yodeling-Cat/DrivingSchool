@@ -214,17 +214,17 @@ class ConsentViewModel(
 
             is ConsentUiEvent.SetOverConsentAge -> {
                 age.update { it.copy(overConsentAge = event.overConsentAge, ageError = false) }
-                // Under 16 the three answers are not the user's to give, so they go off until a parent
-                // or guardian agrees — and stay off if the user answers that way again. Saying "16 or
-                // older" puts back whatever was stored, which is what a re-consent opens on.
-                staged.value = if (event.overConsentAge) storedAnswers() else noAnswers()
+                // The three answers are deliberately not touched — not turned off for an under-16, not
+                // put back for an adult. What this answer decides is whether the switches may be
+                // answered at all ([ConsentUiState.switchesEnabled]) and whether the answers count
+                // (the gates read the same rule); it is not an answer to any of the three, and filling
+                // one in on the user's behalf is the app answering a question it is here to ask.
             }
 
             is ConsentUiEvent.SetParentalConsent -> {
                 age.update { it.copy(parentalConsent = event.given, parentalError = false) }
-                // Withdrawing it takes the three answers with it: that agreement was the whole of what
-                // they rested on.
-                if (!event.given) staged.value = noAnswers()
+                // The agreement unlocks the switches and withdrawing it locks them again; either way
+                // the values the user set are left exactly as they are.
             }
 
             // Held, not written. These are what the buttons commit.
@@ -254,14 +254,6 @@ class ConsentViewModel(
             }
         }
     }
-
-    private fun noAnswers() = StagedAnswers(crashReporting = false, analytics = false, ads = false)
-
-    private fun storedAnswers() = StagedAnswers(
-        crashReporting = preferences.preferences.value.crashReportingEnabled,
-        analytics = preferences.preferences.value.analyticsEnabled,
-        ads = preferences.preferences.value.adsEnabled,
-    )
 
     /**
      * The two requirements that come before either button, marked where they are unmet: the age

@@ -251,14 +251,41 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun sayingUnder16TakesTheStoredAnswersOffTheSwitches() = runTest {
+    fun answeringTheAgeQuestionLeavesTheThreeAnswersAlone() = runTest {
+        // The switches are the user's, given by their own presses. This screen asks a different
+        // question and must not answer one of those for them — in either direction.
         val fresh = TestRepositories().apply { preferences.setAdsEnabled(true) }
+        val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
+        val state = observe(model.uiState)
+        assertTrue(state.value.adsEnabled)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
+
+        assertTrue(state.value.adsEnabled)
+        assertFalse(state.value.switchesEnabled)
+
+        model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
+
+        assertTrue(state.value.adsEnabled)
+        assertTrue(state.value.switchesEnabled)
+    }
+
+    @Test
+    fun answeringThatYouAreUnder16DoesNotTurnAStoredAnswerOff() = runTest {
+        // The state an updated app arrives in, with answers already given: the two switches that were
+        // on stay on. What keeps them from sending anything is the gate, not this screen.
+        val fresh = TestRepositories().apply {
+            preferences.setCrashReportingEnabled(true)
+            preferences.setAnalyticsEnabled(true)
+        }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
 
         model.onEvent(ConsentUiEvent.SetOverConsentAge(false))
 
-        assertFalse(state.value.adsEnabled)
+        assertTrue(state.value.crashReportingEnabled)
+        assertTrue(state.value.analyticsEnabled)
+        assertFalse(state.value.switchesEnabled)
     }
 
     @Test
@@ -314,7 +341,7 @@ class ConsentViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun withdrawingTheAgreementTakesTheThreeAnswersBack() = runTest {
+    fun withdrawingTheAgreementLeavesTheThreeAnswersAlone() = runTest {
         val fresh = unasked()
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
@@ -326,7 +353,9 @@ class ConsentViewModelTest : ViewModelTest() {
 
         model.onEvent(ConsentUiEvent.SetParentalConsent(false))
 
-        assertFalse(state.value.analyticsEnabled)
+        // The switch stays where the user put it. What the withdrawal takes back is the permission to
+        // answer it at all.
+        assertTrue(state.value.analyticsEnabled)
         assertFalse(state.value.switchesEnabled)
     }
 

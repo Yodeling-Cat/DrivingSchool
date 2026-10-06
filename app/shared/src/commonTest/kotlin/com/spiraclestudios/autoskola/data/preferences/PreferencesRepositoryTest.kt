@@ -161,7 +161,7 @@ class PreferencesRepositoryTest {
     }
 
     @Test
-    fun anUnder16WithoutAnAgreementKeepsTheThreeAnswersOff() {
+    fun answeringTheAgeQuestionLeavesTheThreeStoredAnswersAlone() {
         val preferences = PreferencesRepository(MapSettings())
         preferences.setCrashReportingEnabled(true)
         preferences.setAnalyticsEnabled(true)
@@ -169,11 +169,12 @@ class PreferencesRepositoryTest {
 
         preferences.setOverConsentAge(false)
 
-        // Written down rather than merely filtered on the way out: what the switches show in Settings
-        // has to be what is true.
-        assertFalse(preferences.preferences.value.crashReportingEnabled)
-        assertFalse(preferences.preferences.value.analyticsEnabled)
-        assertFalse(preferences.preferences.value.adsEnabled)
+        // The answers are the user's and the age answer is not one of them: it decides whether they may
+        // be given and whether they count (`ConsentAge`), never what they say.
+        assertTrue(preferences.preferences.value.crashReportingEnabled)
+        assertTrue(preferences.preferences.value.analyticsEnabled)
+        assertTrue(preferences.preferences.value.adsEnabled)
+        assertFalse(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = false))
     }
 
     @Test

@@ -91,6 +91,10 @@ wsl.exe -d Ubuntu -e bash -lc 'export PATH=$HOME/.local/share/mise/shims:$PATH; 
 - **Two other ways work**, and they are what to use when a command has to see `~/.bashrc` for another reason: `wsl.exe -d Ubuntu -e bash -ic '…'` (interactive, so the file is sourced), or `mise exec -- <command>` (mise is at `~/.local/bin/mise`).
 - **From Windows the repository is a UNC path**: `\\wsl.localhost\Ubuntu\` followed by the path the repository has inside WSL — `~/projects/tree-among-shrubs/web`, so `\\wsl.localhost\Ubuntu\home\<you>\projects\tree-among-shrubs\web`. Reading and writing files through it is fine — that is how the document edits are made — but **git is not**: on that path git refuses with a "dubious ownership" error. Git, Rails, Bundler and RuboCop all run inside WSL.
 
+## App icon sources
+
+`assets/design/app-icon/` holds the design sources for the launcher icons, one directory per target: the Android adaptive set (including the 512 the Play listing uses), an iOS `AppIcon` set and the web icons. Nothing in the build reads it — each platform has its own copy in its own format, under `app/androidApp/src/main/res/` and `app/iosApp/iosApp/Assets.xcassets/` — so it is not a resource to wire up: it is where an icon change starts.
+
 ## Open source libraries
 
 The About screen lists the app's dependencies with [AboutLibraries](https://github.com/mikepenz/AboutLibraries), whose Gradle plugin writes them to `app/shared/src/commonMain/composeResources/files/aboutlibraries.json`. The file is generated and **committed** — the plugin is not wired into the build, so no build fetches anything — and `./gradlew :app:shared:exportLibraryDefinitions` refreshes it. Run that after adding, removing or bumping a dependency, and commit the result with it: a stale file is exactly what the user reads. `AboutViewModel` reads it from the app's Compose resources and `AboutScreen` draws AboutLibraries' own container (`LibrariesVariant.Refined`, `LibraryActionMode.Chips`), supplying only the words around it.

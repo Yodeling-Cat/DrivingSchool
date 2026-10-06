@@ -19,8 +19,14 @@ package com.spiraclestudios.autoskola.data.preferences
  * 16 — a parent or guardian has agreed. It is a bump rather than a quiet addition because a user who
  * accepted 2 was never asked, and an answer nobody gave is not one the app may go on using
  * (`plans/age-gate.md`).
+ *
+ * **4 is the release in which the ads switch changes meaning.** It used to decide whether ads were
+ * shown at all; ads are now shown to everyone, and the switch decides only whether they are
+ * personalized. It is a bump rather than a quiet rename because a user who accepted 3 answered a
+ * different question, and a yes to that one is not a yes to this one — the stored answer is not read
+ * across either (`PreferencesRepository`), so everybody is asked again and starts from generic ads.
  */
-const val CURRENT_LEGAL_VERSION = 3
+const val CURRENT_LEGAL_VERSION = 4
 
 /**
  * Which published document a link opens.

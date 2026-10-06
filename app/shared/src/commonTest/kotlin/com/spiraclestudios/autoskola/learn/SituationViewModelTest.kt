@@ -4,6 +4,8 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.practice.ChipState
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
@@ -31,15 +33,17 @@ class SituationViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+    fun theBannerIsDrawnUntilPremiumIsBought() = runTest {
         val repositories = TestRepositories(testSituationsBank())
         val state = observe(viewModel(1, repositories).uiState)
 
-        assertFalse(assertIs<SituationUiState.Ready>(state.value).showAds)
-
-        repositories.preferences.setAdsEnabled(true)
-
+        // Ads are shown to everyone who has not paid for them to stop, whatever they answered about
+        // personalizing them.
         assertTrue(assertIs<SituationUiState.Ready>(state.value).showAds)
+
+        repositories.premium.update(PremiumStatus.Premium(PurchaseSource.Play))
+
+        assertFalse(assertIs<SituationUiState.Ready>(state.value).showAds)
     }
 
     @Test

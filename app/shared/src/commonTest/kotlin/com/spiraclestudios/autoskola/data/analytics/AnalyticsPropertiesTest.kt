@@ -77,8 +77,13 @@ class AnalyticsPropertiesTest {
     @Test
     fun theConsentEventsCarryTheirChoicesAndAnswers() {
         assertEquals(
-            mapOf("crash_reporting" to true, "analytics" to true, "ads" to true, "choice" to "accept_all"),
-            consentAnsweredProperties(true, true, ads = true, choice = CONSENT_CHOICE_ACCEPT_ALL),
+            mapOf(
+                "crash_reporting" to true,
+                "analytics" to true,
+                "personalized_ads" to true,
+                "choice" to "accept_all",
+            ),
+            consentAnsweredProperties(true, true, personalizedAds = true, choice = CONSENT_CHOICE_ACCEPT_ALL),
         )
         assertEquals(
             mapOf("switch" to "analytics", "enabled" to false),

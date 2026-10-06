@@ -6,6 +6,8 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
@@ -64,7 +66,6 @@ class HomeViewModelTest : ViewModelTest() {
     @Test
     fun theTenthTestAsksBeforeItStarts() = runTest {
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
 
@@ -81,7 +82,6 @@ class HomeViewModelTest : ViewModelTest() {
         // The random button picks the test, so what the gate holds is the test it picked rather than
         // the fact that a button was pressed.
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(HomeUiEvent.StartRandomTest(notPassed = true))
@@ -94,7 +94,6 @@ class HomeViewModelTest : ViewModelTest() {
     @Test
     fun dismissingTheGateLeavesTheTestUnstarted() = runTest {
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
         viewModel.onEvent(HomeUiEvent.StartTest(test.number))
@@ -111,7 +110,6 @@ class HomeViewModelTest : ViewModelTest() {
         // Dismissing writes nothing, so the offer is still due and the next tap is asked about again
         // rather than quietly starting the test.
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
         viewModel.onEvent(HomeUiEvent.StartTest(test.number))
@@ -125,7 +123,6 @@ class HomeViewModelTest : ViewModelTest() {
     @Test
     fun watchingTheAdStartsTheTestThatWasHeld() = runTest {
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
         viewModel.onEvent(HomeUiEvent.StartTest(test.number))
@@ -139,9 +136,10 @@ class HomeViewModelTest : ViewModelTest() {
 
     @Test
     fun nothingIsHeldWhenNoAdCanBeAskedFor() = runTest {
-        // Ads off, so there is no gate: the test simply starts, and the user is never stood in front
-        // of a dialog about an ad the app is not allowed to request.
+        // Premium bought, so there is no gate: the test simply starts, and the user is never stood in
+        // front of a dialog about an ad the app is not allowed to request.
         practiceTestsStarted(9)
+        repositories.premium.update(PremiumStatus.Premium(PurchaseSource.Play))
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
 
@@ -154,7 +152,6 @@ class HomeViewModelTest : ViewModelTest() {
     @Test
     fun aTestBeforeTheTenthIsNotGated() = runTest {
         practiceTestsStarted(8)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
 
@@ -169,7 +166,6 @@ class HomeViewModelTest : ViewModelTest() {
         // A repeat of the questions the driver got wrong is a short drill started on impulse, and it
         // is not what the gate is for - even with the offer due.
         practiceTestsStarted(9, wrong = true)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(HomeUiEvent.PracticeMistakes)
@@ -181,7 +177,6 @@ class HomeViewModelTest : ViewModelTest() {
     @Test
     fun theHeldTestIsForgottenOnceItIsUnderWay() = runTest {
         practiceTestsStarted(9)
-        repositories.preferences.setAdsEnabled(true)
         val state = observe(viewModel.uiState)
         val test = state.ready.tests.first()
         viewModel.onEvent(HomeUiEvent.StartTest(test.number))
@@ -601,15 +596,16 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+    fun theBannerIsDrawnUntilPremiumIsBought() = runTest {
         val state = observe(viewModel.uiState)
 
-        // The app ships with ads off, so the space under the mistakes card stays empty.
-        assertFalse(state.ready.showAds)
-
-        repositories.preferences.setAdsEnabled(true)
-
+        // Ads are shown to everyone who has not paid for them to stop, whatever they answered about
+        // personalizing them.
         assertTrue(state.ready.showAds)
+
+        repositories.premium.update(PremiumStatus.Premium(PurchaseSource.Play))
+
+        assertFalse(state.ready.showAds)
     }
 
     @Test

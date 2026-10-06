@@ -32,12 +32,14 @@ data class Preferences(
     /** Whether the user lets us collect usage analytics. Independent of [crashReportingEnabled]. */
     val analyticsEnabled: Boolean,
     /**
-     * Whether the user lets us ask for ads. Off until they say so, and its own answer like the other
-     * two: an ad request reaches for the device's storage and an advertising identifier before it
-     * shows anything, so it has to be asked for rather than assumed. Refusing turns ads off, and
-     * turns nothing else off.
+     * Whether the user lets ads be chosen for them, using the device's advertising ID. Off until they
+     * say so, and its own answer like the other two: personalizing is a use of personal data, so it
+     * has to be asked for rather than assumed.
+     *
+     * It decides which *kind* of ad is requested, never whether one is: the app shows ads to everyone
+     * who has not paid for them to stop, and refusing here means generic ads (`plans/ads.md`).
      */
-    val adsEnabled: Boolean,
+    val personalizedAdsEnabled: Boolean,
     /** `null` until the user has picked an exam in onboarding. */
     val selection: TestSelection?,
     /** UI language; follows the device language until the user picks one. */
@@ -56,8 +58,8 @@ data class Preferences(
     val deviceIdentifier: String?,
     /**
      * Whether the user is 16 or older, `null` until the consent screen asks. In Slovakia that is the
-     * age at which a user can agree to crash reports, usage statistics and ads alone; below it only a
-     * parent or guardian can, on their behalf (see [ConsentAge]).
+     * age at which a user can agree to crash reports, usage statistics and personalized ads alone;
+     * below it only a parent or guardian can, on their behalf (see [ConsentAge]).
      */
     val overConsentAge: Boolean?,
     /**
@@ -105,10 +107,10 @@ class PreferencesRepository(private val settings: Settings) {
         state.update { it.copy(analyticsEnabled = enabled) }
     }
 
-    /** The answer to "show you ads?", which the user can change at any time in Settings. */
-    fun setAdsEnabled(enabled: Boolean) {
-        settings.putBoolean(KEY_ADS, enabled)
-        state.update { it.copy(adsEnabled = enabled) }
+    /** The answer to "personalize your ads?", which the user can change at any time in Settings. */
+    fun setPersonalizedAdsEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_PERSONALIZED_ADS, enabled)
+        state.update { it.copy(personalizedAdsEnabled = enabled) }
     }
 
     /**
@@ -189,7 +191,7 @@ class PreferencesRepository(private val settings: Settings) {
         disclaimerRead = settings.getBoolean(KEY_DISCLAIMER_READ, false),
         crashReportingEnabled = settings.getBoolean(KEY_CRASH_REPORTING, false),
         analyticsEnabled = settings.getBoolean(KEY_ANALYTICS, false),
-        adsEnabled = settings.getBoolean(KEY_ADS, false),
+        personalizedAdsEnabled = settings.getBoolean(KEY_PERSONALIZED_ADS, false),
         selection = readSelection(),
         language = AppLanguage.fromCode(settings.getStringOrNull(KEY_LANGUAGE)) ?: AppLanguage.system(),
         checkAnswersImmediately = settings.getBoolean(KEY_CHECK_IMMEDIATELY, true),
@@ -210,7 +212,12 @@ class PreferencesRepository(private val settings: Settings) {
         const val KEY_DISCLAIMER_READ = "disclaimer_read"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_ANALYTICS = "analytics_enabled"
-        const val KEY_ADS = "ads_enabled"
+
+        /**
+         * Not `ads_enabled`, which an earlier version stored for "show me ads". A yes to that was never a
+         * yes to personalizing them, so the old key is left unread rather than reinterpreted.
+         */
+        const val KEY_PERSONALIZED_ADS = "personalized_ads_enabled"
         const val KEY_BANK = "question_bank"
         const val KEY_CATEGORY = "license_category"
         const val KEY_LANGUAGE = "app_language"

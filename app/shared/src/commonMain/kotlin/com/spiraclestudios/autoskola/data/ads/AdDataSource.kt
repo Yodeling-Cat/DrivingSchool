@@ -42,4 +42,16 @@ interface AdDataSource {
      * and neither does [NoOpAdDataSource]: "cannot serve ads" already means no request is made.
      */
     fun setUnderAgeOfConsent(underAge: Boolean) = Unit
+
+    /**
+     * Tells the SDK whether the ads it requests from now on may be chosen for this user, which is the
+     * user's own answer to "personalize your ads?" as far as their age lets it count. False is the
+     * state every request starts in and the one anyone who has not agreed is in: the request asks for
+     * a generic ad, and the SDK is not to use the advertising ID to pick one.
+     *
+     * Like [setUnderAgeOfConsent] it is pushed by [AdRepository] rather than decided here, and for the
+     * same reason it has to be in place before the *next* request, banners included - a banner asks
+     * the SDK itself, so this is the only way an answer reaches one.
+     */
+    fun setPersonalizedAds(personalized: Boolean) = Unit
 }

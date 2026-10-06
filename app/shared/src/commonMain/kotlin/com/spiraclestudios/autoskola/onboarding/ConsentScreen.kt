@@ -77,11 +77,13 @@ private val CardRevealFadeSpec =
     tween<Float>(durationMillis = CARD_REVEAL_MILLIS, easing = FastOutSlowInEasing)
 
 /**
- * The second screen after install, and the one that actually asks: what the app shows and sends,
- * three switches to answer with, and the documents to read before agreeing to them.
+ * The second screen after install, and the one that actually asks: what the app sends and what kind
+ * of ads it shows, three switches to answer with, and the documents to read before agreeing to them.
  *
  * The continue button stays disabled until the agreement is ticked. The switches do not gate it —
- * refusing both is a valid answer, because neither is required to use the app.
+ * refusing all three is a valid answer, because none is required to use the app. The ads are not
+ * among the things to refuse: the app shows them to everyone, and the third switch only decides
+ * whether they are personalized.
  *
  * Two buttons, not one. "Accept all" answers all three questions in a single act and is always live;
  * "Accept chosen" keeps whatever the switches say and waits for the documents to be ticked. That
@@ -187,15 +189,17 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                                         enabled = state.switchesEnabled,
                                         onCheckedChange = { onEvent(ConsentUiEvent.SetAnalytics(it)) },
                                     )
-                                    // Last, and about showing rather than sending: refusing it costs the
-                                    // user nothing but the ads, which is why it sits after the two that
-                                    // decide what leaves the device.
+                                    // Last, and about which ads are shown rather than whether there are
+                                    // any: the user sees ads either way, and this decides whether they
+                                    // are chosen for them. Refusing it costs nothing but the tailoring,
+                                    // which is why it sits after the two that decide what leaves the
+                                    // device for us.
                                     ConsentSwitchRow(
-                                        title = strings.consentAdsTitle,
-                                        description = strings.consentAdsDescription,
-                                        checked = state.adsEnabled,
+                                        title = strings.consentPersonalizedAdsTitle,
+                                        description = strings.consentPersonalizedAdsDescription,
+                                        checked = state.personalizedAdsEnabled,
                                         enabled = state.switchesEnabled,
-                                        onCheckedChange = { onEvent(ConsentUiEvent.SetAds(it)) },
+                                        onCheckedChange = { onEvent(ConsentUiEvent.SetPersonalizedAds(it)) },
                                     )
                                 }
                             }
@@ -357,7 +361,7 @@ private val previewConsentState = ConsentUiState(
     parentalError = false,
     crashReportingEnabled = false,
     analyticsEnabled = false,
-    adsEnabled = false,
+    personalizedAdsEnabled = false,
 )
 
 /** The screen as it opens: nothing answered, and the button that cannot be pressed yet. */
@@ -379,7 +383,7 @@ private fun ConsentScreenAnsweredPreview() {
                 documentsAccepted = true,
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
-                adsEnabled = true,
+                personalizedAdsEnabled = true,
             ),
             onEvent = {},
             onOpenDocument = {},
@@ -401,15 +405,15 @@ private fun ConsentScreenRefusedBothPreview() {
 }
 
 /**
- * Ads allowed while both sharing answers are refused: the shape of "keep it free, don't measure me",
- * and the combination the third switch exists to make possible.
+ * Personalized ads allowed while both sharing answers are refused: the shape of "tailor my ads, don't
+ * measure me", and the combination the third switch exists to make possible.
  */
 @Preview(widthDp = 400, heightDp = 860)
 @Composable
-private fun ConsentScreenAdsOnlyPreview() {
+private fun ConsentScreenPersonalizedAdsOnlyPreview() {
     AppPreview {
         ConsentScreen(
-            previewConsentState.copy(documentsAccepted = true, adsEnabled = true),
+            previewConsentState.copy(documentsAccepted = true, personalizedAdsEnabled = true),
             onEvent = {},
             onOpenDocument = {},
         )
@@ -521,7 +525,7 @@ private fun ConsentScreenUnder16UnagreedPreview() {
 private fun ConsentScreenUnder16AgreedPreview() {
     AppPreview {
         ConsentScreen(
-            previewConsentState.copy(overConsentAge = false, parentalConsent = true, adsEnabled = true),
+            previewConsentState.copy(overConsentAge = false, parentalConsent = true, personalizedAdsEnabled = true),
             onEvent = {},
             onOpenDocument = {},
         )

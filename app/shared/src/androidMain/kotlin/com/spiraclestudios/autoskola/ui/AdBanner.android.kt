@@ -13,10 +13,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.spiraclestudios.autoskola.data.ads.AdSlot
+import com.spiraclestudios.autoskola.data.ads.adRequest
 import com.spiraclestudios.autoskola.data.ads.adUnitId
 import com.spiraclestudios.autoskola.isDebugBuild
 import kotlin.math.roundToInt
@@ -54,7 +54,7 @@ actual fun AdBanner(slot: AdSlot, modifier: Modifier) {
                     AdView(ctx).apply {
                         adUnitId = unit
                         setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, widthDp))
-                        loadAd(AdRequest.Builder().build())
+                        loadAd(adRequest())
                     }
                 },
             )

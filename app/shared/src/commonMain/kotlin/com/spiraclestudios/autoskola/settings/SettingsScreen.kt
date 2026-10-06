@@ -227,16 +227,16 @@ fun SettingsScreen(
                     )
                     Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
                     SettingsSwitchRow(
-                        title = strings.consentAdsTitle,
-                        description = strings.consentAdsDescription,
-                        checked = state.adsEnabled,
+                        title = strings.consentPersonalizedAdsTitle,
+                        description = strings.consentPersonalizedAdsDescription,
+                        checked = state.personalizedAdsEnabled,
                         enabled = state.canAnswerSwitches,
-                        // The megaphone, because this row is about what the app shows the user rather
-                        // than about what leaves the device.
+                        // The megaphone, because this row is about which ads the app shows the user
+                        // rather than about what leaves the device.
                         icon = Icons.Outlined.Campaign,
                         iconTint = colors.primaryDeep,
                         iconBackground = colors.mintGlow,
-                        onCheckedChange = { onEvent(SettingsUiEvent.SetAds(it)) },
+                        onCheckedChange = { onEvent(SettingsUiEvent.SetPersonalizedAds(it)) },
                     )
                 }
 
@@ -273,9 +273,9 @@ fun SettingsScreen(
                     )
                 }
 
-                // The two questions this screen asks before it changes something. Neither writes
-                // anything on its own: the answer is applied by the ViewModel when it is confirmed,
-                // and backing out leaves the stored answer exactly as it was.
+                // The one question this screen asks before it changes something. It writes nothing on
+                // its own: the answer is applied by the ViewModel when it is confirmed, and backing out
+                // leaves the stored answer exactly as it was.
                 if (state.confirmingAge) {
                     ConfirmDialog(
                         title = strings.settingsAgeConfirmTitle,
@@ -285,17 +285,6 @@ fun SettingsScreen(
                         dismissLabel = strings.settingsAgeConfirmDismiss,
                         onDismiss = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
                         onDismissRequest = { onEvent(SettingsUiEvent.DismissAgeConfirmation) },
-                    )
-                }
-                if (state.confirmingAdsOff) {
-                    ConfirmDialog(
-                        title = strings.settingsAdsOffTitle,
-                        message = strings.settingsAdsOffMessage,
-                        confirmLabel = strings.settingsAdsOffAction,
-                        onConfirm = { onEvent(SettingsUiEvent.ConfirmAdsOff) },
-                        dismissLabel = strings.settingsAdsKeep,
-                        onDismiss = { onEvent(SettingsUiEvent.DismissAdsOff) },
-                        onDismissRequest = { onEvent(SettingsUiEvent.DismissAdsOff) },
                     )
                 }
             }
@@ -469,7 +458,7 @@ private fun SettingsScreenPreview() {
                 advanceAfterAnswer = true,
                 crashReportingEnabled = true,
                 analyticsEnabled = false,
-                adsEnabled = true,
+                personalizedAdsEnabled = true,
                 overConsentAge = true,
                 parentalConsent = false,
                 exam = previewExam,
@@ -499,7 +488,7 @@ private fun SettingsScreenCheckingPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
-                adsEnabled = false,
+                personalizedAdsEnabled = false,
                 overConsentAge = true,
                 parentalConsent = false,
                 exam = previewExam,
@@ -529,7 +518,7 @@ private fun SettingsScreenNoVersionPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = false,
                 analyticsEnabled = false,
-                adsEnabled = false,
+                personalizedAdsEnabled = false,
                 overConsentAge = true,
                 parentalConsent = false,
                 exam = previewExam,
@@ -562,7 +551,7 @@ private fun SettingsScreenNoExamYetPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = true,
                 analyticsEnabled = true,
-                adsEnabled = true,
+                personalizedAdsEnabled = true,
                 overConsentAge = true,
                 parentalConsent = false,
                 exam = null,
@@ -592,7 +581,7 @@ private fun SettingsScreenIdentifierPreview() {
                 advanceAfterAnswer = false,
                 crashReportingEnabled = false,
                 analyticsEnabled = true,
-                adsEnabled = false,
+                personalizedAdsEnabled = false,
                 overConsentAge = true,
                 parentalConsent = false,
                 exam = previewExam,
@@ -653,7 +642,7 @@ private val previewPrivacyState = SettingsUiState(
     advanceAfterAnswer = false,
     crashReportingEnabled = false,
     analyticsEnabled = false,
-    adsEnabled = false,
+    personalizedAdsEnabled = false,
     overConsentAge = true,
     parentalConsent = false,
     exam = previewExam,
@@ -702,14 +691,5 @@ private fun SettingsScreenUnder16AgreedPreview() {
 private fun SettingsScreenAgeConfirmationPreview() {
     AppPreview {
         SettingsAgeBoard(previewPrivacyState.copy(overConsentAge = false, confirmingAge = true))
-    }
-}
-
-/** And the question before the ads are taken away, which is the one answer the app asks about. */
-@Preview(widthDp = 400, heightDp = 900)
-@Composable
-private fun SettingsScreenAdsOffConfirmationPreview() {
-    AppPreview {
-        SettingsAgeBoard(previewPrivacyState.copy(adsEnabled = true, confirmingAdsOff = true))
     }
 }

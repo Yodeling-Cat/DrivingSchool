@@ -90,34 +90,43 @@ class PreferencesRepositoryTest {
     }
 
     @Test
-    fun adsAreOffUntilTheUserSaysOtherwise() {
+    fun adsAreGenericUntilTheUserSaysOtherwise() {
         val settings = MapSettings()
         val repository = PreferencesRepository(settings)
 
-        // An ad request touches the device's storage and an advertising identifier before it shows
-        // anything, so this answer starts as no and has to be given - it is not a default the user
-        // was never asked about. It is its own answer, like the other two consents.
-        assertFalse(repository.preferences.value.adsEnabled)
+        // Personalizing is a use of personal data, so this answer starts as no and has to be given -
+        // it is not a default the user was never asked about. It is its own answer, like the other
+        // two consents.
+        assertFalse(repository.preferences.value.personalizedAdsEnabled)
 
-        repository.setAdsEnabled(true)
-        assertTrue(repository.preferences.value.adsEnabled)
-        assertTrue(PreferencesRepository(settings).preferences.value.adsEnabled)
+        repository.setPersonalizedAdsEnabled(true)
+        assertTrue(repository.preferences.value.personalizedAdsEnabled)
+        assertTrue(PreferencesRepository(settings).preferences.value.personalizedAdsEnabled)
 
         // And it can be taken back at any time, which is what the Settings switch does.
-        repository.setAdsEnabled(false)
-        assertFalse(repository.preferences.value.adsEnabled)
-        assertFalse(PreferencesRepository(settings).preferences.value.adsEnabled)
+        repository.setPersonalizedAdsEnabled(false)
+        assertFalse(repository.preferences.value.personalizedAdsEnabled)
+        assertFalse(PreferencesRepository(settings).preferences.value.personalizedAdsEnabled)
     }
 
     @Test
-    fun theAdAnswerIsSeparateFromTheOtherTwo() {
+    fun anOldYesToShowingAdsIsNotAYesToPersonalizingThem() {
+        // Stored by the version in which this switch decided whether ads were shown at all. A yes to
+        // that question was never an answer to this one, so it is left unread rather than reinterpreted.
+        val settings = MapSettings("ads_enabled" to true)
+
+        assertFalse(PreferencesRepository(settings).preferences.value.personalizedAdsEnabled)
+    }
+
+    @Test
+    fun thePersonalizedAdsAnswerIsSeparateFromTheOtherTwo() {
         val repository = PreferencesRepository(MapSettings())
         repository.setCrashReportingEnabled(false)
         repository.setAnalyticsEnabled(false)
-        repository.setAdsEnabled(true)
+        repository.setPersonalizedAdsEnabled(true)
 
         val preferences = repository.preferences.value
-        assertTrue(preferences.adsEnabled)
+        assertTrue(preferences.personalizedAdsEnabled)
         assertFalse(preferences.analyticsEnabled)
         assertFalse(preferences.crashReportingEnabled)
     }
@@ -165,7 +174,7 @@ class PreferencesRepositoryTest {
         val preferences = PreferencesRepository(MapSettings())
         preferences.setCrashReportingEnabled(true)
         preferences.setAnalyticsEnabled(true)
-        preferences.setAdsEnabled(true)
+        preferences.setPersonalizedAdsEnabled(true)
 
         preferences.setOverConsentAge(false)
 
@@ -173,7 +182,7 @@ class PreferencesRepositoryTest {
         // be given and whether they count (`ConsentAge`), never what they say.
         assertTrue(preferences.preferences.value.crashReportingEnabled)
         assertTrue(preferences.preferences.value.analyticsEnabled)
-        assertTrue(preferences.preferences.value.adsEnabled)
+        assertTrue(preferences.preferences.value.personalizedAdsEnabled)
         assertFalse(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = false))
     }
 
@@ -185,7 +194,7 @@ class PreferencesRepositoryTest {
         preferences.setParentalConsent(true)
 
         // The agreement is what lets the user answer; it is not an answer itself.
-        assertFalse(preferences.preferences.value.adsEnabled)
+        assertFalse(preferences.preferences.value.personalizedAdsEnabled)
         assertTrue(ConsentAge.mayAnswerSwitches(overConsentAge = false, parentalConsent = true))
     }
 

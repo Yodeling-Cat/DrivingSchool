@@ -5,6 +5,8 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
@@ -97,7 +99,6 @@ class ResultsViewModelTest : ViewModelTest() {
     fun dismissingTheResultShowsTheClosingAdAndThenLetsTheUserLeave() = runTest {
         val attempt = startTest()
         repositories.exams.currentSession().finish(attempt.id)
-        repositories.preferences.setAdsEnabled(true)
         val viewModel = ResultsViewModel(attempt.id, repositories.exams, repositories.ads)
         val state = observe(viewModel.uiState)
         assertFalse(assertIs<ResultsUiState.Ready>(state.value).leaving)
@@ -118,7 +119,6 @@ class ResultsViewModelTest : ViewModelTest() {
         val attempts = (0 until 9).map { index ->
             session.restart(session.tests[index % session.tests.size]).also { session.finish(it.id) }
         }
-        repositories.preferences.setAdsEnabled(true)
 
         val viewModel = ResultsViewModel(attempts.last().id, repositories.exams, repositories.ads)
         val state = observe(viewModel.uiState)
@@ -130,9 +130,10 @@ class ResultsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun aDriverWhoHasNotAgreedToAdsLeavesWithoutWaitingForOne() = runTest {
+    fun aDriverWhoHasPaidForTheAdsToStopLeavesWithoutWaitingForOne() = runTest {
         val attempt = startTest()
         repositories.exams.currentSession().finish(attempt.id)
+        repositories.premium.update(PremiumStatus.Premium(PurchaseSource.Play))
 
         val viewModel = ResultsViewModel(attempt.id, repositories.exams, repositories.ads)
         val state = observe(viewModel.uiState)

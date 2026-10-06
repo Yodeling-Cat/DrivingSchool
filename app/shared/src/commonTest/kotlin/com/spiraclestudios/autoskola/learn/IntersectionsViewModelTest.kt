@@ -5,6 +5,8 @@ import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.banks.testQuestion
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
@@ -36,15 +38,17 @@ class IntersectionsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun theBannerIsDrawnOnlyOnceTheUserHasAgreedToAds() = runTest {
+    fun theBannerIsDrawnUntilPremiumIsBought() = runTest {
         val repositories = TestRepositories(testSituationsBank())
         val state = observe(viewModel(repositories).uiState)
 
-        assertFalse(assertIs<IntersectionsUiState.Ready>(state.value).showAds)
-
-        repositories.preferences.setAdsEnabled(true)
-
+        // Ads are shown to everyone who has not paid for them to stop, whatever they answered about
+        // personalizing them.
         assertTrue(assertIs<IntersectionsUiState.Ready>(state.value).showAds)
+
+        repositories.premium.update(PremiumStatus.Premium(PurchaseSource.Play))
+
+        assertFalse(assertIs<IntersectionsUiState.Ready>(state.value).showAds)
     }
 
     @Test

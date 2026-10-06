@@ -62,18 +62,13 @@ class Strings(
     val settingsAgeConfirmMessage: String,
     val settingsAgeConfirmAction: String,
     val settingsAgeConfirmDismiss: String,
-    /** The one switch whose off position costs the app rather than the user. */
-    val settingsAdsOffTitle: String,
-    val settingsAdsOffMessage: String,
-    val settingsAdsOffAction: String,
-    val settingsAdsKeep: String,
     val consentParentalConsentDescription: String,
     val consentCrashReportingTitle: String,
     val consentCrashReportingDescription: String,
     val consentAnalyticsTitle: String,
     val consentAnalyticsDescription: String,
-    val consentAdsTitle: String,
-    val consentAdsDescription: String,
+    val consentPersonalizedAdsTitle: String,
+    val consentPersonalizedAdsDescription: String,
     val consentAgree: String,
     /** Announced rather than drawn: what a screen reader hears when the agreement is missing. */
     val consentAgreeRequired: String,
@@ -379,8 +374,8 @@ private val EnglishStrings = Strings(
         "anything differs, the official exam and current law apply.",
     disclaimerAccept = "I understand",
     consentTitle = "Your data, your choice",
-    consentSubtitle = "This app can show ads, and can send two things to help us fix it and " +
-        "improve it.",
+    consentSubtitle = "This app shows ads. You decide whether they are personalized, and whether it sends " +
+        "two things to help us fix and improve it.",
     consentAgeQuestion = "Are you 16 or older?",
     consentAgeOver16 = "16 or older",
     consentAgeUnder16 = "Under 16",
@@ -392,11 +387,6 @@ private val EnglishStrings = Strings(
         "only if it is true.",
     settingsAgeConfirmAction = "Yes, I am 16 or older",
     settingsAgeConfirmDismiss = "Not yet",
-    settingsAdsOffTitle = "Turn the ads off?",
-    settingsAdsOffMessage = "The app is free because of the ads. Turning them off removes the " +
-        "adverts and the revenue that keeps it running.",
-    settingsAdsOffAction = "Turn the ads off",
-    settingsAdsKeep = "Keep the ads",
     consentParentalConsentDescription = "They have read the Privacy Policy and the Terms of Use, and " +
         "agreed to the three answers below for me.",
     consentCrashReportingTitle = "Crash reports",
@@ -404,8 +394,9 @@ private val EnglishStrings = Strings(
         "your device model and the app version.",
     consentAnalyticsTitle = "Usage statistics",
     consentAnalyticsDescription = "Tracks usage metrics and events while you use the app.",
-    consentAdsTitle = "Ads",
-    consentAdsDescription = "Shows ads, which is what keeps the app free.",
+    consentPersonalizedAdsTitle = "Personalized ads",
+    consentPersonalizedAdsDescription = "Chooses ads to suit you, using your device's advertising " +
+        "ID. Off, you still see ads, just not ones picked for you.",
     consentAgree = "I agree to the Privacy Policy and the Terms of Use",
     consentAgreeRequired = "Tick this box to continue.",
     legalPrivacyPolicy = "Privacy Policy",
@@ -609,8 +600,8 @@ private val SlovakStrings = Strings(
         "niečo líši, platí oficiálna skúška a aktuálne predpisy.",
     disclaimerAccept = "Rozumiem",
     consentTitle = "Vaše dáta, vaša voľba",
-    consentSubtitle = "Aplikácia môže zobrazovať reklamy a odosielať dve veci, aby sme ju mohli " +
-        "opraviť a vylepšiť.",
+    consentSubtitle = "Aplikácia zobrazuje reklamy. Vy rozhodujete, či budú personalizované a či odosiela " +
+        "dve veci, aby sme ju mohli opraviť a vylepšiť.",
     consentAgeQuestion = "Máte 16 rokov alebo viac?",
     consentAgeOver16 = "16 rokov alebo viac",
     consentAgeUnder16 = "Menej ako 16",
@@ -622,11 +613,6 @@ private val SlovakStrings = Strings(
         "len vtedy, ak je to pravda.",
     settingsAgeConfirmAction = "Áno, mám 16 rokov alebo viac",
     settingsAgeConfirmDismiss = "Ešte nie",
-    settingsAdsOffTitle = "Vypnúť reklamy?",
-    settingsAdsOffMessage = "Aplikácia je zadarmo vďaka reklámam. Ich vypnutím zmiznú reklamy aj " +
-        "príjem, ktorý ju drží v prevádzke.",
-    settingsAdsOffAction = "Vypnúť reklamy",
-    settingsAdsKeep = "Nechať reklamy",
     consentParentalConsentDescription = "Prečítal si Zásady ochrany osobných údajov a Podmienky " +
         "používania a v mojom mene súhlasil s tromi odpoveďami nižšie.",
     consentCrashReportingTitle = "Hlásenia o zrúteniach",
@@ -634,8 +620,9 @@ private val SlovakStrings = Strings(
         "zariadenia a verziu aplikácie.",
     consentAnalyticsTitle = "Štatistiky používania",
     consentAnalyticsDescription = "Sleduje štatistiky používania a udalosti počas používania aplikácie.",
-    consentAdsTitle = "Reklamy",
-    consentAdsDescription = "Zobrazuje reklamy, vďaka ktorým je aplikácia zadarmo.",
+    consentPersonalizedAdsTitle = "Personalizované reklamy",
+    consentPersonalizedAdsDescription = "Vyberá reklamy podľa vás pomocou reklamného ID vášho " +
+        "zariadenia. Vypnuté vidíte reklamy aj tak, len nie vybrané pre vás.",
     consentAgree = "Súhlasím so Zásadami ochrany osobných údajov a Podmienkami používania",
     consentAgreeRequired = "Ak chcete pokračovať, zaškrtnite toto políčko.",
     legalPrivacyPolicy = "Zásady ochrany osobných údajov",
@@ -840,8 +827,8 @@ private val HungarianStrings = Strings(
         "esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók.",
     disclaimerAccept = "Értem",
     consentTitle = "Az Ön adatai, az Ön döntése",
-    consentSubtitle = "Az alkalmazás reklámokat jeleníthet meg, és két dolgot küldhet, hogy " +
-        "javíthassuk és fejleszthessük.",
+    consentSubtitle = "Az alkalmazás reklámokat jelenít meg. Ön dönti el, hogy személyre szabottak " +
+        "legyenek-e, és hogy küldjön-e két dolgot, hogy javíthassuk és fejleszthessük.",
     consentAgeQuestion = "16 éves vagy idősebb?",
     consentAgeOver16 = "16 éves vagy idősebb",
     consentAgeUnder16 = "16 év alatti",
@@ -853,11 +840,6 @@ private val HungarianStrings = Strings(
         "akkor válaszoljon igennel, ha ez igaz.",
     settingsAgeConfirmAction = "Igen, 16 éves vagy idősebb vagyok",
     settingsAgeConfirmDismiss = "Még nem",
-    settingsAdsOffTitle = "Kikapcsolja a reklámokat?",
-    settingsAdsOffMessage = "Az alkalmazás a reklámok miatt ingyenes. Kikapcsolásukkal eltűnnek a " +
-        "reklámok, és az a bevétel is, ami működteti.",
-    settingsAdsOffAction = "Reklámok kikapcsolása",
-    settingsAdsKeep = "Maradjanak a reklámok",
     consentParentalConsentDescription = "Elolvasta az Adatvédelmi szabályzatot és a Felhasználási " +
         "feltételeket, és Ön helyett hozzájárult a lenti három válaszhoz.",
     consentCrashReportingTitle = "Hibajelentések",
@@ -866,8 +848,9 @@ private val HungarianStrings = Strings(
     consentAnalyticsTitle = "Használati statisztikák",
     consentAnalyticsDescription = "Használati mérőszámokat és eseményeket követ nyomon, miközben " +
         "használja az alkalmazást.",
-    consentAdsTitle = "Reklámok",
-    consentAdsDescription = "Reklámokat jelenít meg, ez teszi ingyenessé az alkalmazást.",
+    consentPersonalizedAdsTitle = "Személyre szabott reklámok",
+    consentPersonalizedAdsDescription = "Önhöz illő reklámokat választ az eszköz hirdetési " +
+        "azonosítója alapján. Kikapcsolva is lát reklámokat, csak nem Önnek kiválasztottakat.",
     consentAgree = "Elfogadom az Adatvédelmi szabályzatot és a Felhasználási feltételeket",
     consentAgreeRequired = "A folytatáshoz jelölje be ezt a négyzetet.",
     legalPrivacyPolicy = "Adatvédelmi szabályzat",
@@ -1073,8 +1056,8 @@ private val CzechStrings = Strings(
         "něco liší, platí oficiální zkouška a aktuální předpisy.",
     disclaimerAccept = "Rozumím",
     consentTitle = "Vaše data, vaše volba",
-    consentSubtitle = "Aplikace může zobrazovat reklamy a odesílat dvě věci, abychom ji mohli " +
-        "opravit a vylepšit.",
+    consentSubtitle = "Aplikace zobrazuje reklamy. Vy rozhodujete, zda budou personalizované a zda " +
+        "odesílá dvě věci, abychom ji mohli opravit a vylepšit.",
     consentAgeQuestion = "Je vám 16 let nebo více?",
     consentAgeOver16 = "16 let nebo více",
     consentAgeUnder16 = "Méně než 16",
@@ -1086,11 +1069,6 @@ private val CzechStrings = Strings(
         "tehdy, pokud je to pravda.",
     settingsAgeConfirmAction = "Ano, je mi 16 let nebo více",
     settingsAgeConfirmDismiss = "Ještě ne",
-    settingsAdsOffTitle = "Vypnout reklamy?",
-    settingsAdsOffMessage = "Aplikace je zdarma díky reklamám. Jejich vypnutím zmizí reklamy i " +
-        "příjem, který ji drží v provozu.",
-    settingsAdsOffAction = "Vypnout reklamy",
-    settingsAdsKeep = "Nechat reklamy",
     consentParentalConsentDescription = "Přečetl si Zásady ochrany osobních údajů a Podmínky použití " +
         "a souhlasil za mě se třemi odpověďmi níže.",
     consentCrashReportingTitle = "Hlášení o pádech",
@@ -1098,8 +1076,9 @@ private val CzechStrings = Strings(
         "zařízení a verzi aplikace.",
     consentAnalyticsTitle = "Statistiky používání",
     consentAnalyticsDescription = "Sleduje statistiky používání a události při používání aplikace.",
-    consentAdsTitle = "Reklamy",
-    consentAdsDescription = "Zobrazuje reklamy, díky kterým je aplikace zdarma.",
+    consentPersonalizedAdsTitle = "Personalizované reklamy",
+    consentPersonalizedAdsDescription = "Vybírá reklamy podle vás pomocí reklamního ID vašeho " +
+        "zařízení. Vypnuté uvidíte reklamy i tak, jen ne vybrané pro vás.",
     consentAgree = "Souhlasím se Zásadami ochrany osobních údajů a Podmínkami použití",
     consentAgreeRequired = "Chcete-li pokračovat, zaškrtněte toto políčko.",
     legalPrivacyPolicy = "Zásady ochrany osobních údajů",

@@ -2,7 +2,6 @@ package com.spiraclestudios.autoskola.data.ads
 
 import android.content.Context
 import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
@@ -17,9 +16,10 @@ import kotlin.coroutines.resume
 /**
  * Google's ads SDK on Android.
  *
- * Deliberately thin: it loads, shows and discards, and knows nothing about consent, the entitlement
- * or how often an ad is due. All three of those are [AdRepository]'s, which is why this is a class
- * with no policy in it rather than one that checks anything.
+ * Deliberately thin: it loads, shows and discards, and knows nothing about the entitlement or how
+ * often an ad is due. Both are [AdRepository]'s, which is why this is a class with no policy in it
+ * rather than one that checks anything. What it is told about the user - under the age of consent,
+ * and whether ads may be personalized - it applies and does not question.
  *
  * One ad is held at a time, because one is all that is ever asked for: a fullscreen ad belongs to a
  * slot, and a second load would be paying for an ad the app has no moment to show.
@@ -79,7 +79,7 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
         InterstitialAd.load(
             context,
             unit,
-            AdRequest.Builder().build(),
+            adRequest(),
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
                     if (continuation.isActive) continuation.resume(ad)
@@ -127,5 +127,14 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
             },
         )
         MobileAds.setRequestConfiguration(builder.build())
+    }
+
+    /**
+     * Recorded for [adRequest], which every request on this platform is built by, banners included.
+     * The SDK has no global switch for it the way it has for the age tag, so the answer travels with
+     * each request instead.
+     */
+    override fun setPersonalizedAds(personalized: Boolean) {
+        AdPersonalization.personalized = personalized
     }
 }

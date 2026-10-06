@@ -73,7 +73,7 @@ class ConsentViewModelTest : ViewModelTest() {
         // All three start off, and that is a requirement rather than a default waiting to be
         // improved: a pre-ticked switch takes its answer from the user not touching it.
         assertFalse(state.value.analyticsEnabled)
-        assertFalse(state.value.adsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
     }
 
     @Test
@@ -82,33 +82,64 @@ class ConsentViewModelTest : ViewModelTest() {
 
         viewModel.onEvent(ConsentUiEvent.SetCrashReporting(true))
         viewModel.onEvent(ConsentUiEvent.SetAnalytics(true))
-        viewModel.onEvent(ConsentUiEvent.SetAds(true))
+        viewModel.onEvent(ConsentUiEvent.SetPersonalizedAds(true))
 
         // Held, not written: the screen is still asking and the user can still walk away.
         assertFalse(repositories.preferences.preferences.value.crashReportingEnabled)
         assertFalse(repositories.preferences.preferences.value.analyticsEnabled)
-        assertFalse(repositories.preferences.preferences.value.adsEnabled)
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
         // The only push is the repository's own, from when it was built.
         assertEquals(listOf(false to false), repositories.analyticsSink.consents)
     }
 
     @Test
-    fun theAdsAnswerIsCommittedSeparatelyFromTheOtherTwo() = runTest {
+    fun thePersonalizedAdsAnswerIsCommittedSeparatelyFromTheOtherTwo() = runTest {
         observe(viewModel.uiState)
 
-        // Ads allowed, tracking refused. Three separate answers, and this is the shape a user who
-        // wants the app to stay free but not to be measured gives.
-        viewModel.onEvent(ConsentUiEvent.SetAds(true))
+        // Personalized ads allowed, tracking refused. Three separate answers, and this is the shape a user who
+        // wants their ads tailored but not to be measured gives.
+        viewModel.onEvent(ConsentUiEvent.SetPersonalizedAds(true))
         viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
         viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
         val preferences = repositories.preferences.preferences.value
-        assertTrue(preferences.adsEnabled)
+        assertTrue(preferences.personalizedAdsEnabled)
         assertFalse(preferences.crashReportingEnabled)
         assertFalse(preferences.analyticsEnabled)
-        // And the analytics sink hears nothing about it: ads are not a PostHog answer, so the SDK
+        // And the analytics sink hears nothing about it: personalization is not a PostHog answer, so the SDK
         // is told only what it is allowed to collect.
         assertEquals(listOf(false to false), repositories.analyticsSink.consents)
+    }
+
+    @Test
+    fun theAdSdkIsToldWhatWasCommittedAndNothingBefore() = runTest {
+        observe(viewModel.uiState)
+        // What the repository pushed when it was built: generic, because nothing has been agreed to.
+        assertEquals(listOf(false), repositories.adDataSource.personalizedAds)
+
+        viewModel.onEvent(ConsentUiEvent.SetPersonalizedAds(true))
+        // A switch on its own is held, so the SDK has still heard nothing new.
+        assertEquals(listOf(false), repositories.adDataSource.personalizedAds)
+
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        assertEquals(true, repositories.adDataSource.personalizedAds.last())
+    }
+
+    @Test
+    fun refusingPersonalizationStillLeavesTheUserInTheApp() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
+        viewModel.onEvent(ConsentUiEvent.AcceptChosen)
+
+        // Generic ads, and the same way into the app as anyone who said yes: the answer is not a
+        // condition of anything.
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
+        assertEquals(false, repositories.adDataSource.personalizedAds.last())
+        assertTrue(repositories.ads.mayRequestAds())
+        assertEquals(CURRENT_LEGAL_VERSION, repositories.preferences.preferences.value.legalAcceptedVersion)
     }
 
     @Test
@@ -149,7 +180,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val preferences = repositories.preferences.preferences.value
         assertTrue(preferences.crashReportingEnabled)
         assertTrue(preferences.analyticsEnabled)
-        assertTrue(preferences.adsEnabled)
+        assertTrue(preferences.personalizedAdsEnabled)
         assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
         // The press is the only thing that could have answered: no switch was touched.
         assertEquals(true to true, repositories.analyticsSink.consents.last())
@@ -184,7 +215,7 @@ class ConsentViewModelTest : ViewModelTest() {
             repositories.analyticsSink.events,
         )
         assertEquals(
-            mapOf("crash_reporting" to true, "analytics" to true, "ads" to true, "choice" to "accept_all"),
+            mapOf("crash_reporting" to true, "analytics" to true, "personalized_ads" to true, "choice" to "accept_all"),
             repositories.analyticsSink.properties.first(),
         )
     }
@@ -199,7 +230,12 @@ class ConsentViewModelTest : ViewModelTest() {
         viewModel.onEvent(ConsentUiEvent.AcceptChosen)
 
         assertEquals(
-            mapOf("crash_reporting" to true, "analytics" to true, "ads" to false, "choice" to "accept_chosen"),
+            mapOf(
+                "crash_reporting" to true,
+                "analytics" to true,
+                "personalized_ads" to false,
+                "choice" to "accept_chosen",
+            ),
             repositories.analyticsSink.properties.first(),
         )
     }
@@ -262,14 +298,14 @@ class ConsentViewModelTest : ViewModelTest() {
     fun answeringThatYouAreOver16LeavesTheAnswersAlone() = runTest {
         // The app never fills one of these in: only the user's own presses turn an answer on, and
         // answering this question is not one of them.
-        val fresh = TestRepositories().apply { preferences.setAdsEnabled(true) }
+        val fresh = TestRepositories().apply { preferences.setPersonalizedAdsEnabled(true) }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
-        assertTrue(state.value.adsEnabled)
+        assertTrue(state.value.personalizedAdsEnabled)
 
         model.onEvent(ConsentUiEvent.SetOverConsentAge(true))
 
-        assertTrue(state.value.adsEnabled)
+        assertTrue(state.value.personalizedAdsEnabled)
         assertTrue(state.value.switchesEnabled)
     }
 
@@ -281,7 +317,7 @@ class ConsentViewModelTest : ViewModelTest() {
         val fresh = TestRepositories().apply {
             preferences.setCrashReportingEnabled(true)
             preferences.setAnalyticsEnabled(true)
-            preferences.setAdsEnabled(true)
+            preferences.setPersonalizedAdsEnabled(true)
         }
         val model = ConsentViewModel(fresh.preferences, fresh.analytics, fresh.ads)
         val state = observe(model.uiState)
@@ -290,11 +326,11 @@ class ConsentViewModelTest : ViewModelTest() {
 
         assertFalse(state.value.crashReportingEnabled)
         assertFalse(state.value.analyticsEnabled)
-        assertFalse(state.value.adsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
         assertFalse(state.value.switchesEnabled)
         assertFalse(fresh.preferences.preferences.value.crashReportingEnabled)
         assertFalse(fresh.preferences.preferences.value.analyticsEnabled)
-        assertFalse(fresh.preferences.preferences.value.adsEnabled)
+        assertFalse(fresh.preferences.preferences.value.personalizedAdsEnabled)
     }
 
     @Test
@@ -310,7 +346,7 @@ class ConsentViewModelTest : ViewModelTest() {
         assertTrue(state.value.parentalError)
         assertEquals(0, fresh.preferences.preferences.value.legalAcceptedVersion)
         assertEquals(emptyList(), fresh.analyticsSink.events)
-        assertFalse(fresh.preferences.preferences.value.adsEnabled)
+        assertFalse(fresh.preferences.preferences.value.personalizedAdsEnabled)
     }
 
     @Test
@@ -337,14 +373,14 @@ class ConsentViewModelTest : ViewModelTest() {
         model.onEvent(ConsentUiEvent.SetParentalConsent(true))
         assertTrue(state.value.switchesEnabled)
 
-        model.onEvent(ConsentUiEvent.SetAds(true))
+        model.onEvent(ConsentUiEvent.SetPersonalizedAds(true))
         model.onEvent(ConsentUiEvent.SetDocumentsAccepted(true))
         model.onEvent(ConsentUiEvent.AcceptChosen)
 
         val preferences = fresh.preferences.preferences.value
         assertEquals(false, preferences.overConsentAge)
         assertTrue(preferences.parentalConsent)
-        assertTrue(preferences.adsEnabled)
+        assertTrue(preferences.personalizedAdsEnabled)
         assertFalse(preferences.analyticsEnabled)
         assertEquals(CURRENT_LEGAL_VERSION, preferences.legalAcceptedVersion)
     }

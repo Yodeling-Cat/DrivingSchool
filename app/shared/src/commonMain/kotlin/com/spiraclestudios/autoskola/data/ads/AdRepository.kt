@@ -2,7 +2,6 @@ package com.spiraclestudios.autoskola.data.ads
 
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.data.preferences.ConsentAge
-import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.premium.PremiumFeature
@@ -10,8 +9,8 @@ import com.spiraclestudios.autoskola.premium.PremiumRules
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -19,16 +18,20 @@ import kotlinx.coroutines.withContext
 /**
  * Whether an ad may be asked for at all, and when one is due.
  *
- * Three questions, and every request goes through all three in this order:
+ * Two questions, and every request goes through both in this order:
  *
- * 1. **Consent** ([PreferencesRepository]) - the user has agreed to ads. Off until they say so.
- * 2. **The entitlement** ([PremiumRepository]) - nobody who has paid for the ads to stop gets one.
- * 3. **The frequency** ([AdRules]) - every tenth practice test, and never more often than that.
+ * 1. **The entitlement** ([PremiumRepository]) - nobody who has paid for the ads to stop gets one.
+ * 2. **The frequency** ([AdRules]) - every tenth practice test, and never more often than that.
  *
- * Consent and the entitlement are read at the moment of each request rather than remembered from
- * when something was loaded, which is why [showTestOfferAd] throws away a preloaded ad it turns out
- * it may no longer show. A purchase arrives mid-session, and what was bought is the absence of
- * exactly that.
+ * **Consent is not on that list, because it does not decide whether an ad is shown.** Ads are what
+ * pays for the app, so every user who has not paid for them to stop is shown them; what the user's
+ * answer decides is the *kind*: a personalized ad if they agreed to that, a generic one if they did
+ * not or are too young for the agreement to count ([personalizedAds]). That is a setting on the SDK
+ * rather than a gate in front of it, which is why it is pushed ([pushConsent]) instead of checked.
+ *
+ * The entitlement is read at the moment of each request rather than remembered from when something
+ * was loaded, which is why [showTestOfferAd] throws away a preloaded ad it turns out it may no longer
+ * show. A purchase arrives mid-session, and what was bought is the absence of exactly that.
  */
 class AdRepository(
     private val dataSource: AdDataSource,
@@ -49,14 +52,10 @@ class AdRepository(
     /**
      * Whether the app may request an ad, as it changes.
      *
-     * What a banner placement follows: both of the answers it depends on change while a screen is
-     * open - consent can be withdrawn in Settings, and Premium can be bought - and a placement drawn
-     * from a snapshot would keep showing an ad the user had just switched off.
+     * What a banner placement follows: Premium can be bought while a screen is open, and a placement
+     * drawn from a snapshot would keep showing an ad the user had just paid to be rid of.
      */
-    val adsAllowed: Flow<Boolean> =
-        combine(preferences.preferences, premium.entitlement) { preferences, entitlement ->
-            allowed(preferences, entitlement)
-        }.distinctUntilChanged()
+    val adsAllowed: Flow<Boolean> = premium.entitlement.map(::allowed).distinctUntilChanged()
 
     /**
      * The same answer, read once: what the request paths below ask before asking the SDK anything.
@@ -65,38 +64,45 @@ class AdRepository(
      * question a caller that is about to act needs answered now, and the flow is the one a screen
      * drawing itself needs to follow.
      */
-    fun mayRequestAds(): Boolean = allowed(preferences.preferences.value, premium.entitlement.value)
+    fun mayRequestAds(): Boolean = allowed(premium.entitlement.value)
 
     /**
-     * The one place the four conditions are put together: the target can serve ads, the user has
-     * agreed to them, their age answer lets them have agreed at all, and nobody has paid for them to
-     * stop. The age answer is asked here as well as at the switches, because a value stored before the
-     * app asked about age must not be able to send anything on its own ([ConsentAge.effective]).
+     * The one place the two conditions are put together: the target can serve ads at all, and nobody
+     * has paid for them to stop. The user's answer about personalization is not one of them - it
+     * changes what is requested, not whether anything is.
      */
-    private fun allowed(preferences: Preferences, entitlement: PremiumStatus): Boolean {
-        val agreed = ConsentAge.effective(
-            preferences.adsEnabled,
-            preferences.overConsentAge,
-            preferences.parentalConsent,
-        )
+    private fun allowed(entitlement: PremiumStatus): Boolean {
         val paid = PremiumRules.isUnlocked(PremiumFeature.NoAds, entitlement)
-        return dataSource.available && agreed && !paid
+        return dataSource.available && !paid
+    }
+
+    /**
+     * Whether the ads requested for this user may be chosen for them: they said yes, and their age
+     * answer lets that yes count at all. The age answer is asked here as well as at the switch,
+     * because a value stored before the app asked about age must not personalize anything on its own
+     * ([ConsentAge.effective]).
+     */
+    fun personalizedAds(): Boolean = preferences.preferences.value.let {
+        ConsentAge.effective(it.personalizedAdsEnabled, it.overConsentAge, it.parentalConsent)
     }
 
     init {
         // The SDK has to be told before it is asked for anything, and a banner asks it directly
         // without coming through this class, so this cannot wait for the first request.
-        pushAgeGate()
+        pushConsent()
     }
 
     /**
-     * Tells the ad SDK whether this user is under the age of consent, which Google requires in place
-     * before a request is made for such a user. This class is the only thing that knows the answer, so
-     * it is pushed from here: once when the repository is built, before every request, and from the
-     * screens that change the answer, which is what keeps a banner right.
+     * Tells the ad SDK the two things it needs to know about the user before a request: whether they
+     * are under the age of consent, which Google requires in place before a request is made for such
+     * a user, and whether the ads may be personalized. This class is the only thing that knows both
+     * answers, so they are pushed from here: once when the repository is built, before every request,
+     * and from the screens that change either answer, which is what keeps a banner right.
      */
-    fun pushAgeGate() {
-        dataSource.setUnderAgeOfConsent(ConsentAge.underAgeOfConsent(preferences.preferences.value.overConsentAge))
+    fun pushConsent() {
+        val answers = preferences.preferences.value
+        dataSource.setUnderAgeOfConsent(ConsentAge.underAgeOfConsent(answers.overConsentAge))
+        dataSource.setPersonalizedAds(personalizedAds())
     }
 
     /**
@@ -111,7 +117,7 @@ class AdRepository(
      * load. *When* to call this is a screen's decision; whether it does anything is not.
      */
     suspend fun preloadTestOffer() {
-        pushAgeGate()
+        pushConsent()
         if (mayRequestAds()) dataSource.preload(AdSlot.TestOfferInterstitial)
     }
 
@@ -124,7 +130,7 @@ class AdRepository(
      * tapping again asks again.
      */
     suspend fun showTestOfferAd(practiceTestsStarted: Int): AdResult {
-        pushAgeGate()
+        pushConsent()
         if (!mayRequestAds()) {
             dataSource.discard()
             return AdResult.Unavailable
@@ -143,7 +149,7 @@ class AdRepository(
      * the one worth spending, because it is the one that can be bought out of.
      */
     suspend fun showClosingAd(practiceTestsStarted: Int): AdResult {
-        pushAgeGate()
+        pushConsent()
         if (!mayRequestAds()) {
             dataSource.discard()
             return AdResult.Unavailable

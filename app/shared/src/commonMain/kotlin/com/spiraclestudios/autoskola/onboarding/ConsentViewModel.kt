@@ -34,7 +34,7 @@ data class ConsentUiState(
     val parentalError: Boolean,
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
-    val adsEnabled: Boolean,
+    val personalizedAdsEnabled: Boolean,
 ) {
     /**
      * Whether the three switches may be answered at all: an adult may, and so may a user under 16 whose
@@ -60,7 +60,7 @@ data class ConsentUiState(
  * One value rather than three flows, because the screen is one question with three answers and
  * [ConsentViewModel.uiState] would otherwise have to combine six sources to draw it.
  */
-private data class StagedAnswers(val crashReporting: Boolean, val analytics: Boolean, val ads: Boolean)
+private data class StagedAnswers(val crashReporting: Boolean, val analytics: Boolean, val personalizedAds: Boolean)
 
 /**
  * The age question and what follows from it: a parent or guardian's agreement, and the mark a press
@@ -88,10 +88,11 @@ sealed interface ConsentUiEvent {
     data class SetAnalytics(val enabled: Boolean) : ConsentUiEvent
 
     /**
-     * Optional, and its own answer. Ads are the one thing here the app *shows* rather than sends,
-     * and refusing costs the user nothing but the ads: everything in the app works without them.
+     * Optional, and its own answer. It decides whether the ads the user sees are chosen for them, never
+     * whether there are any: refusing costs the user nothing but the tailoring, and the app works the
+     * same either way.
      */
-    data class SetAds(val enabled: Boolean) : ConsentUiEvent
+    data class SetPersonalizedAds(val enabled: Boolean) : ConsentUiEvent
 
     /** Agree to the documents and to all three answers in one act. */
     data object AcceptAll : ConsentUiEvent
@@ -157,7 +158,7 @@ class ConsentViewModel(
         StagedAnswers(
             crashReporting = preferences.preferences.value.crashReportingEnabled,
             analytics = preferences.preferences.value.analyticsEnabled,
-            ads = preferences.preferences.value.adsEnabled,
+            personalizedAds = preferences.preferences.value.personalizedAdsEnabled,
         ),
     )
 
@@ -177,7 +178,7 @@ class ConsentViewModel(
             parentalError = age.parentalError,
             crashReportingEnabled = staged.crashReporting,
             analyticsEnabled = staged.analytics,
-            adsEnabled = staged.ads,
+            personalizedAdsEnabled = staged.personalizedAds,
         )
     }.stateIn(
         viewModelScope,
@@ -191,7 +192,7 @@ class ConsentViewModel(
             parentalError = false,
             crashReportingEnabled = preferences.preferences.value.crashReportingEnabled,
             analyticsEnabled = preferences.preferences.value.analyticsEnabled,
-            adsEnabled = preferences.preferences.value.adsEnabled,
+            personalizedAdsEnabled = preferences.preferences.value.personalizedAdsEnabled,
         ),
     )
 
@@ -236,11 +237,11 @@ class ConsentViewModel(
 
             is ConsentUiEvent.SetAnalytics -> staged.update { it.copy(analytics = event.enabled) }
 
-            is ConsentUiEvent.SetAds -> staged.update { it.copy(ads = event.enabled) }
+            is ConsentUiEvent.SetPersonalizedAds -> staged.update { it.copy(personalizedAds = event.enabled) }
 
             ConsentUiEvent.AcceptAll -> {
                 if (!ageAllowsAnswering()) return
-                staged.value = StagedAnswers(crashReporting = true, analytics = true, ads = true)
+                staged.value = StagedAnswers(crashReporting = true, analytics = true, personalizedAds = true)
                 documentsAccepted.value = true
                 agreementError.value = false
                 commitAnswers(CONSENT_CHOICE_ACCEPT_ALL)
@@ -295,16 +296,16 @@ class ConsentViewModel(
         preferences.setParentalConsent(asked.parentalConsent)
         preferences.setCrashReportingEnabled(answers.crashReporting)
         preferences.setAnalyticsEnabled(answers.analytics)
-        preferences.setAdsEnabled(answers.ads)
+        preferences.setPersonalizedAdsEnabled(answers.personalizedAds)
         preferences.setOverConsentAge(asked.overConsentAge)
         analytics.syncConsent()
         // The ad SDK is told here as well as on the repository's own construction: this screen is
-        // where the answer first exists, and a banner can be drawn before the next request path runs.
-        ads.pushAgeGate()
+        // where the answers first exist, and a banner can be drawn before the next request path runs.
+        ads.pushConsent()
         preferences.acceptLegal(CURRENT_LEGAL_VERSION)
         analytics.capture(
             AnalyticsEvent.ConsentAnswered,
-            consentAnsweredProperties(answers.crashReporting, answers.analytics, answers.ads, choice),
+            consentAnsweredProperties(answers.crashReporting, answers.analytics, answers.personalizedAds, choice),
         )
         analytics.capture(AnalyticsEvent.OnboardingCompleted)
     }
@@ -317,13 +318,13 @@ class ConsentViewModel(
      * consent on the user's behalf.
      */
     private fun withdrawTheAnswers() {
-        staged.value = StagedAnswers(crashReporting = false, analytics = false, ads = false)
+        staged.value = StagedAnswers(crashReporting = false, analytics = false, personalizedAds = false)
         preferences.setCrashReportingEnabled(false)
         preferences.setAnalyticsEnabled(false)
-        preferences.setAdsEnabled(false)
+        preferences.setPersonalizedAdsEnabled(false)
         // Told now rather than at the next commit: the SDKs follow the stored answers, and these have
         // just changed without a button being pressed.
         analytics.syncConsent()
-        ads.pushAgeGate()
+        ads.pushConsent()
     }
 }

@@ -15,11 +15,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The gate on asking for an ad at all: consent first, then the entitlement, then the frequency.
+ * The gate on asking for an ad at all - the entitlement, then the frequency - and what the user's
+ * answer does instead of gating: it decides whether the ads are personalized, never whether there are
+ * any.
  *
  * All of it is settled here rather than on a device, because these are the rules whose mistakes show
- * up as a policy problem or a chargeback rather than as a crash: an app that asks before it was
- * allowed to, or that keeps asking a user who has paid to make it stop.
+ * up as a policy problem or a chargeback rather than as a crash: an app that personalizes before it
+ * was allowed to, or that keeps asking a user who has paid to make it stop.
  *
  * Every test drives the real [AdRepository] over [FakeAdDataSource] and a real [PremiumRepository],
  * never the dud flag, so what is verified is the wiring the app will actually run.
@@ -41,13 +43,13 @@ class AdRepositoryTest {
     private fun fixture(
         available: Boolean = true,
         result: AdResult = AdResult.Shown,
-        adsEnabled: Boolean = true,
+        personalizedAds: Boolean = true,
         premium: PremiumStatus = PremiumStatus.Free,
         settings: Settings = MapSettings(),
-        // 16 or older unless a test says otherwise: consent, the entitlement and the frequency are all
-        // settled by an adult, and the age rule itself is in `ConsentAgeTest`. The age is written
-        // before the ads answer, so a test can build the state a version 2 install arrives in — the
-        // switch stored as yes, and no question ever asked.
+        // 16 or older unless a test says otherwise: the answer, the entitlement and the frequency are
+        // all settled by an adult, and the age rule itself is in `ConsentAgeTest`. The age is written
+        // before the answer, so a test can build the state an older install arrives in — the switch
+        // stored as yes, and no question ever asked.
         overConsentAge: Boolean? = true,
         parentalConsent: Boolean = false,
     ) = Fixture(
@@ -55,34 +57,54 @@ class AdRepositoryTest {
         preferences = PreferencesRepository(settings).apply {
             setParentalConsent(parentalConsent)
             setOverConsentAge(overConsentAge)
-            setAdsEnabled(adsEnabled)
+            setPersonalizedAdsEnabled(personalizedAds)
         },
         entitlement = PremiumRepository(premium),
         settings = settings,
     )
 
-    // --- consent ------------------------------------------------------------
+    // --- the user's answer --------------------------------------------------
 
     @Test
-    fun nothingIsAskedForWithoutConsent() = runTest {
-        val fixture = fixture(adsEnabled = false)
+    fun adsAreRequestedWhateverTheUserAnsweredAboutPersonalizing() = runTest {
+        val fixture = fixture(personalizedAds = false)
 
-        assertFalse(fixture.ads.mayRequestAds())
-        assertFalse(fixture.ads.shouldOfferTest(9))
-        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
-        assertEquals(emptyList(), fixture.dataSource.shown)
+        // The answer decides which kind of ad is asked for, so refusing it leaves every request in
+        // place: the app is free because of the ads, and a refusal is not a way to switch them off.
+        assertTrue(fixture.ads.mayRequestAds())
+        assertTrue(fixture.ads.shouldOfferTest(9))
+        assertEquals(AdResult.Shown, fixture.ads.showTestOfferAd(9))
+        assertEquals(listOf(AdSlot.TestOfferInterstitial), fixture.dataSource.shown)
     }
 
     @Test
-    fun consentWithdrawnMidSessionStopsTheVeryNextRequest() = runTest {
-        val fixture = fixture()
+    fun theSdkIsToldToKeepAdsGenericUntilTheUserAgrees() = runTest {
+        // Pushed when the repository is built, because a banner asks the SDK directly rather than
+        // coming through here.
+        assertEquals(listOf(false), fixture(personalizedAds = false).dataSource.personalizedAds)
+        assertEquals(listOf(true), fixture(personalizedAds = true).dataSource.personalizedAds)
+    }
 
-        assertTrue(fixture.ads.mayRequestAds())
-        fixture.preferences.setAdsEnabled(false)
+    @Test
+    fun withdrawingThePersonalizationMidSessionReachesTheSdkBeforeTheNextRequest() = runTest {
+        val fixture = fixture(personalizedAds = true)
 
-        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
-        assertFalse(fixture.ads.shouldOfferTest(19))
-        assertEquals(emptyList(), fixture.dataSource.shown)
+        fixture.preferences.setPersonalizedAdsEnabled(false)
+        val result = fixture.ads.showTestOfferAd(9)
+
+        // Still shown - only generic now - and told so before the request was made.
+        assertEquals(AdResult.Shown, result)
+        assertEquals(false, fixture.dataSource.personalizedAds.last())
+    }
+
+    @Test
+    fun theAnswerIsPushedAgainWhenAScreenChangesIt() = runTest {
+        val fixture = fixture(personalizedAds = false)
+
+        fixture.preferences.setPersonalizedAdsEnabled(true)
+        fixture.ads.pushConsent()
+
+        assertEquals(listOf(false, true), fixture.dataSource.personalizedAds)
     }
 
     @Test
@@ -122,13 +144,13 @@ class AdRepositoryTest {
     }
 
     @Test
-    fun aRefundBringsTheAdsBackWithoutASecondConsent() = runTest {
+    fun aRefundBringsTheAdsBackWithoutAskingAnythingAgain() = runTest {
         val fixture = fixture(premium = PremiumStatus.Premium(PurchaseSource.Play))
 
         fixture.entitlement.update(PremiumStatus.Free)
 
-        // Consent was given once and never taken back, so "may we ask" follows the entitlement
-        // rather than the user having to answer the same question again.
+        // Nothing else changed, so "may we ask" follows the entitlement alone: the user has no
+        // second question to answer.
         assertTrue(fixture.ads.mayRequestAds())
         assertTrue(fixture.ads.shouldOfferTest(9))
     }
@@ -213,26 +235,30 @@ class AdRepositoryTest {
     }
 
     @Test
-    fun theClosingAdFollowsConsentAndTheEntitlementToo() = runTest {
-        assertEquals(AdResult.Unavailable, fixture(adsEnabled = false).ads.showClosingAd(3))
+    fun theClosingAdFollowsTheEntitlementToo() = runTest {
         assertEquals(
             AdResult.Unavailable,
             fixture(premium = PremiumStatus.Premium(PurchaseSource.Play)).ads.showClosingAd(3),
         )
     }
 
+    @Test
+    fun theClosingAdIsShownToAUserWhoRefusedPersonalizing() = runTest {
+        assertEquals(AdResult.Shown, fixture(personalizedAds = false).ads.showClosingAd(3))
+    }
+
     // --- what a placement reads ---------------------------------------------
 
     @Test
     fun theAllowedAnswerIsAvailableAsAFlowForThePlacementsToFollow() = runTest {
-        val fixture = fixture(adsEnabled = false)
+        val fixture = fixture(personalizedAds = false)
 
         // What a banner placement reads: the answer as it changes, rather than a snapshot taken when
-        // the screen was built. Both of the things it depends on change while the user is looking at
-        // the screen - they can withdraw consent in Settings, and they can buy Premium.
-        assertEquals(false, fixture.ads.adsAllowed.first())
+        // the screen was built. What it depends on can change while the user is looking at the screen
+        // - they can buy Premium - and the personalization answer, which can too, is not part of it.
+        assertEquals(true, fixture.ads.adsAllowed.first())
 
-        fixture.preferences.setAdsEnabled(true)
+        fixture.preferences.setPersonalizedAdsEnabled(true)
         assertEquals(true, fixture.ads.adsAllowed.first())
 
         fixture.entitlement.update(PremiumStatus.Premium(PurchaseSource.Play))
@@ -250,36 +276,44 @@ class AdRepositoryTest {
 
         // And not at all when it may not be asked for. Loading is a request like any other, and the
         // one that reaches the network before a single pixel is drawn.
-        val off = fixture(adsEnabled = false)
-        off.ads.preloadTestOffer()
-        assertEquals(emptyList(), off.dataSource.preloaded)
+        val paid = fixture(premium = PremiumStatus.Premium(PurchaseSource.Play))
+        paid.ads.preloadTestOffer()
+        assertEquals(emptyList(), paid.dataSource.preloaded)
     }
 
     // --- the age answer -----------------------------------------------------
 
     @Test
-    fun anUnder16WithoutAnAgreementIsAskedForNothing() = runTest {
+    fun anUnder16WithoutAnAgreementIsStillShownAdsButNeverPersonalizedOnes() = runTest {
         val fixture = fixture(overConsentAge = false)
 
-        // What the switch says is not the question: nobody who cannot agree alone gets a request.
-        assertTrue(fixture.preferences.preferences.value.adsEnabled)
-        assertFalse(fixture.ads.mayRequestAds())
-        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
-        assertEquals(emptyList(), fixture.dataSource.preloaded)
+        // What the switch says is not the question: nobody who cannot agree alone gets a personalized
+        // ad, whatever was stored. They are shown generic ones like everybody who has not agreed.
+        assertTrue(fixture.preferences.preferences.value.personalizedAdsEnabled)
+        assertFalse(fixture.ads.personalizedAds())
+        assertEquals(listOf(false), fixture.dataSource.personalizedAds)
+        assertTrue(fixture.ads.mayRequestAds())
+        assertEquals(AdResult.Shown, fixture.ads.showTestOfferAd(9))
     }
 
     @Test
-    fun anUnansweredQuestionIsAskedForNothingEither() = runTest {
+    fun anUnansweredQuestionIsNeverPersonalizedEither() = runTest {
         val fixture = fixture(overConsentAge = null)
 
-        assertFalse(fixture.ads.mayRequestAds())
+        assertFalse(fixture.ads.personalizedAds())
+        assertTrue(fixture.ads.mayRequestAds())
     }
 
     @Test
-    fun anUnder16WhoseParentOrGuardianAgreedIsAsked() = runTest {
+    fun anUnder16WhoseParentOrGuardianAgreedMayHaveTheirAnswerCount() = runTest {
         val fixture = fixture(overConsentAge = false, parentalConsent = true)
 
-        assertTrue(fixture.ads.mayRequestAds())
+        assertTrue(fixture.ads.personalizedAds())
+    }
+
+    @Test
+    fun anAdultWhoAnsweredNoIsNotPersonalized() = runTest {
+        assertFalse(fixture(personalizedAds = false).ads.personalizedAds())
     }
 
     @Test

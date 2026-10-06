@@ -34,62 +34,55 @@ class SettingsViewModelTest : ViewModelTest() {
 
         assertEquals(true, state.value.crashReportingEnabled)
         assertEquals(false, state.value.analyticsEnabled)
-        assertEquals(false, state.value.adsEnabled)
+        assertEquals(false, state.value.personalizedAdsEnabled)
         assertEquals(true, repositories.preferences.preferences.value.crashReportingEnabled)
     }
 
     @Test
-    fun theAdsAnswerBelongsToSettingsToo() = runTest {
+    fun thePersonalizedAdsAnswerBelongsToSettingsToo() = runTest {
         val state = observe(viewModel.uiState)
 
         // Off, because it starts off and this is a fresh install. The row is what lets a user who
         // said no in onboarding change their mind without reinstalling.
-        assertFalse(state.value.adsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
 
-        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
-        assertTrue(state.value.adsEnabled)
-        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+        assertTrue(state.value.personalizedAdsEnabled)
+        assertTrue(repositories.preferences.preferences.value.personalizedAdsEnabled)
 
-        // Taking the ads away is asked about first, so the switch does not move until that is confirmed.
-        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(false))
 
-        assertTrue(state.value.confirmingAdsOff)
-        assertTrue(state.value.adsEnabled)
-
-        viewModel.onEvent(SettingsUiEvent.ConfirmAdsOff)
-
-        assertFalse(state.value.confirmingAdsOff)
-        assertFalse(state.value.adsEnabled)
-        assertFalse(repositories.preferences.preferences.value.adsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
     }
 
     @Test
-    fun changingTheAdsSwitchRecordsTheChange() = runTest {
+    fun changingThePersonalizedAdsSwitchRecordsTheChange() = runTest {
         repositories.preferences.setAnalyticsEnabled(true)
         observe(viewModel.uiState)
         repositories.analyticsSink.events.clear()
 
-        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
         assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
         assertEquals(
-            mapOf("switch" to "ads", "enabled" to true),
+            mapOf("switch" to "personalized_ads", "enabled" to true),
             repositories.analyticsSink.properties.single(),
         )
     }
 
     @Test
-    fun theAdsAnswerIsNotOnePostHogIsTold() = runTest {
+    fun thePersonalizedAdsAnswerIsNotOnePostHogIsTold() = runTest {
         repositories.preferences.setAnalyticsEnabled(true)
         observe(viewModel.uiState)
         val before = repositories.analyticsSink.consents.size
 
-        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
         // `syncConsent` is what tells PostHog which of its own switches are on, so it is called for
-        // the two answers that gate what PostHog may collect and not for this one: the ad SDK reads
-        // the preference itself.
+        // the two answers that gate what PostHog may collect and not for this one: the ad SDK is told
+        // through `AdRepository`.
         assertEquals(before, repositories.analyticsSink.consents.size)
     }
 
@@ -295,11 +288,11 @@ class SettingsViewModelTest : ViewModelTest() {
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
-        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
         assertTrue(state.value.canAnswerSwitches)
-        assertTrue(state.value.adsEnabled)
-        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+        assertTrue(state.value.personalizedAdsEnabled)
+        assertTrue(repositories.preferences.preferences.value.personalizedAdsEnabled)
     }
 
     @Test
@@ -400,64 +393,50 @@ class SettingsViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun takingTheAdsAwayAsksFirst() = runTest {
-        repositories.preferences.setAdsEnabled(true)
-        val state = observe(viewModel.uiState)
-        repositories.analyticsSink.events.clear()
-
-        viewModel.onEvent(SettingsUiEvent.SetAds(false))
-
-        assertTrue(state.value.confirmingAdsOff)
-        assertTrue(state.value.adsEnabled)
-        assertTrue(repositories.preferences.preferences.value.adsEnabled)
-        // Nothing is recorded for an answer that has not been given yet.
-        assertEquals(emptyList(), repositories.analyticsSink.events)
-    }
-
-    @Test
-    fun confirmingTheAdsOffRecordsItAndTakesEffect() = runTest {
+    fun turningPersonalizationOffAsksNothingAndTakesEffectAtOnce() = runTest {
         // Analytics has to be on for the record of a change to be sent at all, which is all
         // `ConsentChanged` is: without it the answer would still be written, and nothing said.
         repositories.preferences.setAnalyticsEnabled(true)
-        repositories.preferences.setAdsEnabled(true)
+        repositories.preferences.setPersonalizedAdsEnabled(true)
         val state = observe(viewModel.uiState)
         repositories.analyticsSink.events.clear()
         repositories.analyticsSink.properties.clear()
-        viewModel.onEvent(SettingsUiEvent.SetAds(false))
 
-        viewModel.onEvent(SettingsUiEvent.ConfirmAdsOff)
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(false))
 
-        assertFalse(state.value.confirmingAdsOff)
-        assertFalse(state.value.adsEnabled)
-        assertFalse(repositories.preferences.preferences.value.adsEnabled)
+        // Nothing stands between the user and the answer: they are shown ads either way, so there is
+        // nothing the app loses by it that would be worth a question.
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
         assertEquals(listOf(AnalyticsEvent.ConsentChanged), repositories.analyticsSink.events)
         assertEquals(
-            mapOf("switch" to "ads", "enabled" to false),
+            mapOf("switch" to "personalized_ads", "enabled" to false),
             repositories.analyticsSink.properties.single(),
         )
     }
 
     @Test
-    fun backingOutOfTheAdsQuestionLeavesThemOn() = runTest {
-        repositories.preferences.setAdsEnabled(true)
-        val state = observe(viewModel.uiState)
-        viewModel.onEvent(SettingsUiEvent.SetAds(false))
+    fun theAdSdkIsToldTheMomentThePersonalizationAnswerChanges() = runTest {
+        observe(viewModel.uiState)
+        // What the repository pushed when it was built: generic, because nothing has been agreed to.
+        assertEquals(listOf(false), repositories.adDataSource.personalizedAds)
 
-        viewModel.onEvent(SettingsUiEvent.DismissAdsOff)
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(false))
 
-        assertFalse(state.value.confirmingAdsOff)
-        assertTrue(state.value.adsEnabled)
-        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+        // A banner asks the SDK itself, so this is the only way either answer reaches the next one.
+        assertEquals(listOf(false, true, false), repositories.adDataSource.personalizedAds)
     }
 
     @Test
-    fun puttingTheAdsBackNeedsNoQuestion() = runTest {
+    fun anUnder16WithoutAnAgreementCannotTurnPersonalizationOn() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(SettingsUiEvent.SetAds(true))
+        viewModel.onEvent(SettingsUiEvent.SetOverConsentAge(false))
+        viewModel.onEvent(SettingsUiEvent.SetPersonalizedAds(true))
 
-        // The answer the app prefers is not one to ask the user to confirm.
-        assertFalse(state.value.confirmingAdsOff)
-        assertTrue(repositories.preferences.preferences.value.adsEnabled)
+        assertFalse(state.value.personalizedAdsEnabled)
+        assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
+        assertEquals(false, repositories.adDataSource.personalizedAds.last())
     }
 }

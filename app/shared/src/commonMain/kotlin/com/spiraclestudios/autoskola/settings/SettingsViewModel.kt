@@ -6,9 +6,9 @@ import com.spiraclestudios.autoskola.appVersion
 import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
-import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ADS
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_ANALYTICS
 import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_CRASH_REPORTING
+import com.spiraclestudios.autoskola.data.analytics.CONSENT_SWITCH_PERSONALIZED_ADS
 import com.spiraclestudios.autoskola.data.analytics.consentChangedProperties
 import com.spiraclestudios.autoskola.data.analytics.languageChanged
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
@@ -31,7 +31,7 @@ data class SettingsUiState(
     /** The three answers the consent screen asked for, which the user can change here. */
     val crashReportingEnabled: Boolean,
     val analyticsEnabled: Boolean,
-    val adsEnabled: Boolean,
+    val personalizedAdsEnabled: Boolean,
     /**
      * Which side of 16 the user is on, `null` while nothing has asked — which is the state an app
      * updated from a version before the question is in. Correctable here on purpose: somebody answers
@@ -63,11 +63,6 @@ data class SettingsUiState(
      * itself.
      */
     val confirmingAge: Boolean = false,
-    /**
-     * Whether the screen is asking whether they really want to take the ads away. The app is free
-     * because of them, so that answer is worth one question.
-     */
-    val confirmingAdsOff: Boolean = false,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -99,7 +94,7 @@ sealed interface SettingsUiEvent {
     data class SetAdvanceAfterAnswer(val enabled: Boolean) : SettingsUiEvent
     data class SetCrashReporting(val enabled: Boolean) : SettingsUiEvent
     data class SetAnalytics(val enabled: Boolean) : SettingsUiEvent
-    data class SetAds(val enabled: Boolean) : SettingsUiEvent
+    data class SetPersonalizedAds(val enabled: Boolean) : SettingsUiEvent
 
     /** Which side of 16 the user is on, changed here when they turn 16 or answer wrongly. */
     data class SetOverConsentAge(val overConsentAge: Boolean) : SettingsUiEvent
@@ -109,12 +104,6 @@ sealed interface SettingsUiEvent {
 
     /** Backing out of that question: the answer is not given and nothing changes. */
     data object DismissAgeConfirmation : SettingsUiEvent
-
-    /** The user wants the ads gone, and the screen asks whether that is really what they want. */
-    data object ConfirmAdsOff : SettingsUiEvent
-
-    /** Backing out of that: the ads stay on. */
-    data object DismissAdsOff : SettingsUiEvent
 
     /**
      * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
@@ -136,9 +125,8 @@ class SettingsViewModel(
     /** Whether the identifier has been copied. Nothing but the user's press changes it. */
     private val identifierCopied = MutableStateFlow(false)
 
-    /** The two questions this screen puts before it changes something (see [Confirmations]). */
+    /** Whether the screen is asking the user to confirm that they have turned 16. */
     private val ageConfirmation = MutableStateFlow(false)
-    private val adsOffConfirmation = MutableStateFlow(false)
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -146,7 +134,7 @@ class SettingsViewModel(
             exams.current,
             identifierCopied,
             analytics.deviceIdentifier,
-            combine(ageConfirmation, adsOffConfirmation, ::Confirmations),
+            ageConfirmation,
             ::state,
         )
             .stateIn(
@@ -157,7 +145,7 @@ class SettingsViewModel(
                     CurrentExam.Loading,
                     identifierCopied = false,
                     deviceIdentifier = analytics.deviceIdentifier.value,
-                    confirmations = Confirmations(age = false, adsOff = false),
+                    confirmingAge = false,
                 ),
             )
 
@@ -207,20 +195,20 @@ class SettingsViewModel(
                 analytics.syncConsent()
             }
 
-            is SettingsUiEvent.SetAds -> {
+            is SettingsUiEvent.SetPersonalizedAds -> {
                 if (!canAnswerSwitches()) return
-                // Taking the ads away is asked about first: the app is free because of them. Putting
-                // them back is not, because that is the answer the app prefers — a question there
-                // would be pushing rather than asking.
-                if (event.enabled) answerTheAdsSwitch(enabled = true) else adsOffConfirmation.value = true
+                if (preferences.preferences.value.personalizedAdsEnabled != event.enabled) {
+                    analytics.capture(
+                        AnalyticsEvent.ConsentChanged,
+                        consentChangedProperties(CONSENT_SWITCH_PERSONALIZED_ADS, event.enabled),
+                    )
+                }
+                preferences.setPersonalizedAdsEnabled(event.enabled)
+                // No syncConsent after this one: the answer is not something PostHog is told about. The
+                // ad SDK is, and at once - a banner that is loaded next should already ask for the kind
+                // of ad the user has just chosen.
+                ads.pushConsent()
             }
-
-            SettingsUiEvent.ConfirmAdsOff -> {
-                adsOffConfirmation.value = false
-                answerTheAdsSwitch(enabled = false)
-            }
-
-            SettingsUiEvent.DismissAdsOff -> adsOffConfirmation.value = false
 
             is SettingsUiEvent.SetOverConsentAge -> {
                 // Turning 16 unlocks three switches in one press and the app has no way to check the
@@ -243,19 +231,6 @@ class SettingsViewModel(
         }
     }
 
-    /** Records the ads answer, with the event that says it changed. */
-    private fun answerTheAdsSwitch(enabled: Boolean) {
-        if (preferences.preferences.value.adsEnabled != enabled) {
-            analytics.capture(
-                AnalyticsEvent.ConsentChanged,
-                consentChangedProperties(CONSENT_SWITCH_ADS, enabled),
-            )
-        }
-        // No syncConsent after this one: the ads answer is not something PostHog is told about. The
-        // ad SDK reads the preference itself, so the write is the whole of it.
-        preferences.setAdsEnabled(enabled)
-    }
-
     /**
      * Records the age answer and everything that follows from it.
      *
@@ -269,7 +244,7 @@ class SettingsViewModel(
         if (!overConsentAge) {
             preferences.setCrashReportingEnabled(false)
             preferences.setAnalyticsEnabled(false)
-            preferences.setAdsEnabled(false)
+            preferences.setPersonalizedAdsEnabled(false)
         }
         syncGates()
     }
@@ -277,12 +252,12 @@ class SettingsViewModel(
     /**
      * Both things that act on an answer are told, because changing the age answer can change what the
      * three answers are worth: the SDK stops or starts, and the ad SDK learns whether this user is
-     * under the age of consent — which has to be right before the next banner, not just before the
-     * next fullscreen request.
+     * under the age of consent and whether their ads may be personalized — which has to be right before
+     * the next banner, not just before the next fullscreen request.
      */
     private fun syncGates() {
         analytics.syncConsent()
-        ads.pushAgeGate()
+        ads.pushConsent()
     }
 
     /**
@@ -298,27 +273,20 @@ class SettingsViewModel(
         exam: CurrentExam,
         identifierCopied: Boolean,
         deviceIdentifier: String?,
-        confirmations: Confirmations,
+        confirmingAge: Boolean,
     ) = SettingsUiState(
         language = preferences.language,
         checkAnswersImmediately = preferences.checkAnswersImmediately,
         advanceAfterAnswer = preferences.advanceAfterAnswer,
         crashReportingEnabled = preferences.crashReportingEnabled,
         analyticsEnabled = preferences.analyticsEnabled,
-        adsEnabled = preferences.adsEnabled,
+        personalizedAdsEnabled = preferences.personalizedAdsEnabled,
         overConsentAge = preferences.overConsentAge,
         parentalConsent = preferences.parentalConsent,
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,
         deviceIdentifier = deviceIdentifier,
         deviceIdentifierCopied = identifierCopied,
-        confirmingAge = confirmations.age,
-        confirmingAdsOff = confirmations.adsOff,
+        confirmingAge = confirmingAge,
     )
 }
-
-/**
- * The two questions this screen puts before it changes something, held together so the state is built
- * from one value rather than from six flows. Both are false in the state where nothing is being asked.
- */
-private data class Confirmations(val age: Boolean, val adsOff: Boolean)

@@ -22,8 +22,12 @@ internal const val CONSENT_SWITCH_CRASH_REPORTING = "crash_reporting"
 /** The `consent_changed` switch for the analytics answer. */
 internal const val CONSENT_SWITCH_ANALYTICS = "analytics"
 
-/** The `consent_changed` switch for the ads answer. */
-internal const val CONSENT_SWITCH_ADS = "ads"
+/**
+ * The `consent_changed` switch for the personalized-ads answer. Not `ads`, which is what the switch
+ * was called while it decided whether ads were shown at all: it is a different question now, and an
+ * unchanged name would read in the dashboard as a continuation of the old one.
+ */
+internal const val CONSENT_SWITCH_PERSONALIZED_ADS = "personalized_ads"
 
 /**
  * The wire name of [AttemptKind], kept apart from the constant's own name so renaming a Kotlin
@@ -75,19 +79,19 @@ internal fun situationOpenedProperties(number: Int): Map<String, Any> = mapOf("n
 /**
  * The properties `consent_answered` carries: the answers committed, and the button pressed.
  *
- * Ads are recorded here as a boolean like the other two - the answer itself, never what was seen or
- * asked for - because the whole point of the event is what the user agreed to at the moment they
- * agreed to it.
+ * Personalized ads are recorded here as a boolean like the other two - the answer itself, never what
+ * was seen or asked for - because the whole point of the event is what the user agreed to at the
+ * moment they agreed to it.
  */
 internal fun consentAnsweredProperties(
     crashReporting: Boolean,
     analytics: Boolean,
-    ads: Boolean,
+    personalizedAds: Boolean,
     choice: String,
 ): Map<String, Any> = mapOf(
     "crash_reporting" to crashReporting,
     "analytics" to analytics,
-    "ads" to ads,
+    "personalized_ads" to personalizedAds,
     "choice" to choice,
 )
 

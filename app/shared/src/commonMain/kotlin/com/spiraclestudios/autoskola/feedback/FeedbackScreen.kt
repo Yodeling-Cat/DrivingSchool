@@ -46,6 +46,8 @@ import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.OutlinePill
+import com.spiraclestudios.autoskola.ui.PreviewBoard
+import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -77,7 +79,14 @@ fun FeedbackRoute(onBack: () -> Unit, viewModel: FeedbackViewModel = koinViewMod
                 // what says what is missing.
                 viewModel.onEvent(FeedbackUiEvent.MessageMissing)
             } else {
-                val mailto = feedbackMailto(words, state.message, state.deviceToSend, state.appVersion)
+                val mailto = feedbackMailto(
+                    words,
+                    state.message,
+                    state.deviceToSend,
+                    state.appVersion,
+                    state.identifierToSend,
+                    state.kind,
+                )
                 if (!openEmail(mailto)) viewModel.onEvent(FeedbackUiEvent.NoEmailApp)
             }
         },
@@ -113,7 +122,10 @@ fun FeedbackScreen(
 ) {
     val colors = Naj.colors
     // The same block the phones write into the mail, drawn here for the user to paste themselves.
-    val details = feedbackDetails(strings, state.device, state.appVersion)
+    // The device is named in it whether or not it would be in a mail (a browser's user has no switch
+    // to ask, see below), and the identifier is there when what is being written is a request about
+    // the reader's own data.
+    val details = feedbackDetails(strings, state.device, state.appVersion, state.identifierToSend)
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             Box(
@@ -141,6 +153,7 @@ fun FeedbackScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
+                        KindPicker(state, onEvent)
                         if (state.hasEmailApp) {
                             MessageField(state, onEvent)
                             DeviceInfoRow(state, onEvent)
@@ -201,6 +214,54 @@ private fun FeedbackHeader(onBack: () -> Unit) {
 }
 
 /**
+ * The two things a user can write to us about: what the app did, or what we hold about them.
+ *
+ * The choice is not decoration. It decides what the mail is called, which is what puts it in the
+ * right place in our inbox, and it is the only thing that puts the identifier in it - attaching that
+ * to an ordinary report would join the sender's address to everything filed under the identifier,
+ * which is the one thing the analytics are built never to do.
+ *
+ * The line under the pills says what the request carries, and says it differently when the app is
+ * showing no identifier: the reader who wonders why is told where one appears rather than left with
+ * an email that cannot be matched to anything.
+ */
+@Composable
+private fun KindPicker(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> Unit) {
+    val colors = Naj.colors
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            KindPill(strings.feedbackKindFeedback, state.kind == FeedbackKind.Feedback) {
+                onEvent(FeedbackUiEvent.SetKind(FeedbackKind.Feedback))
+            }
+            KindPill(strings.feedbackKindPrivacyRequest, state.kind == FeedbackKind.PrivacyRequest) {
+                onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
+            }
+        }
+        if (state.kind == FeedbackKind.PrivacyRequest) {
+            Text(
+                text = if (state.deviceIdentifier == null) {
+                    strings.feedbackPrivacyRequestNoIdentifier
+                } else {
+                    strings.feedbackPrivacyRequestNote
+                },
+                style = Naj.type.rowSubtitle,
+                color = colors.muted,
+            )
+        }
+    }
+}
+
+/** One of the two kinds: the chosen one filled, the other only outlined. */
+@Composable
+private fun KindPill(text: String, selected: Boolean, onClick: () -> Unit) {
+    if (selected) {
+        PrimaryPill(text = text, onClick = onClick, height = 36.dp)
+    } else {
+        OutlinePill(text = text, onClick = onClick, height = 36.dp)
+    }
+}
+
+/**
  * The report itself, on a card tall enough to write a paragraph in.
  *
  * A press with nothing written marks the field and says what is missing: the mark alone would
@@ -228,7 +289,17 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
                     },
             ) {
                 if (state.message.isEmpty()) {
-                    Text(strings.feedbackMessageHint, style = Naj.type.option, color = colors.muted)
+                    Text(
+                        // The same field, asked differently: a report says what happened, a request
+                        // says what the reader wants done.
+                        text = if (state.kind == FeedbackKind.PrivacyRequest) {
+                            strings.feedbackRequestHint
+                        } else {
+                            strings.feedbackMessageHint
+                        },
+                        style = Naj.type.option,
+                        color = colors.muted,
+                    )
                 }
                 BasicTextField(
                     value = state.message,
@@ -387,16 +458,23 @@ private fun previewFeedback(
     copied: Boolean = false,
     device: String = previewPhone,
     appVersion: String? = "1.4.2",
+    kind: FeedbackKind = FeedbackKind.Feedback,
+    deviceIdentifier: String? = null,
 ): FeedbackUiState = FeedbackUiState(
     message = message,
     includeDeviceInfo = includeDeviceInfo,
     device = device,
     appVersion = appVersion,
     hasEmailApp = hasEmailApp,
+    kind = kind,
+    deviceIdentifier = deviceIdentifier,
     messageMissing = messageMissing,
     noEmailApp = noEmailApp,
     copied = copied,
 )
+
+/** Shaped like a real one: what the identifier in a request looks like when it is written out. */
+private const val PREVIEW_IDENTIFIER = "0195f2c4-3b7e-7a41-9c6d-1f0a4e8b7c22"
 
 /** The screen as it opens: nothing written, and the device left out of the report. */
 @Preview(widthDp = 400, heightDp = 860)
@@ -539,5 +617,79 @@ private fun FeedbackScreenLandscapePreview() {
             onSend = {},
             onCopy = {},
         )
+    }
+}
+
+/** A request about the reader's own data, with the identifier the mail will carry. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun FeedbackScreenPrivacyRequestPreview() {
+    AppPreview {
+        FeedbackScreen(
+            previewFeedback(
+                message = "Please delete the statistics and crash reports you hold about me.",
+                kind = FeedbackKind.PrivacyRequest,
+                deviceIdentifier = PREVIEW_IDENTIFIER,
+            ),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+            onCopy = {},
+        )
+    }
+}
+
+/** The same request on a device the app has no identifier for, which the line under the pills says. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun FeedbackScreenPrivacyRequestNoIdentifierPreview() {
+    AppPreview {
+        FeedbackScreen(
+            previewFeedback(kind = FeedbackKind.PrivacyRequest),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+            onCopy = {},
+        )
+    }
+}
+
+/** A request written in a browser, where the identifier travels in the block the reader pastes. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun FeedbackScreenBrowserRequestPreview() {
+    AppPreview {
+        FeedbackScreen(
+            previewFeedback(
+                message = "Please delete the statistics you hold about me.",
+                hasEmailApp = false,
+                device = previewBrowser,
+                kind = FeedbackKind.PrivacyRequest,
+                deviceIdentifier = PREVIEW_IDENTIFIER,
+            ),
+            onEvent = {},
+            onBack = {},
+            onSend = {},
+            onCopy = {},
+        )
+    }
+}
+
+/** The picker's three shapes: a report, a request with an identifier to quote, and one without. */
+@Preview(widthDp = 400, heightDp = 320)
+@Composable
+private fun KindPickerPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("A report")
+            KindPicker(previewFeedback(), onEvent = {})
+            PreviewLabel("A request, with an identifier to quote")
+            KindPicker(
+                previewFeedback(kind = FeedbackKind.PrivacyRequest, deviceIdentifier = PREVIEW_IDENTIFIER),
+                onEvent = {},
+            )
+            PreviewLabel("A request, with no identifier to quote")
+            KindPicker(previewFeedback(kind = FeedbackKind.PrivacyRequest), onEvent = {})
+        }
     }
 }

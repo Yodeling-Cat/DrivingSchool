@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.feedback
 
+import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -10,8 +11,14 @@ import kotlin.test.assertTrue
 
 class FeedbackViewModelTest : ViewModelTest() {
 
+    private val repositories = TestRepositories()
+
     private val viewModel by lazy {
-        FeedbackViewModel(version = "1.4.2", device = "Pixel 7 · Android 14")
+        FeedbackViewModel(
+            repositories.analytics,
+            version = "1.4.2",
+            device = "Pixel 7 · Android 14",
+        )
     }
 
     @Test
@@ -82,7 +89,7 @@ class FeedbackViewModelTest : ViewModelTest() {
         assertTrue(observe(viewModel.uiState).value.hasEmailApp)
 
         // A browser: it says where to write, and offers the details to paste.
-        val browser = FeedbackViewModel(version = null, device = "a browser", emailApp = false)
+        val browser = FeedbackViewModel(repositories.analytics, version = null, device = "a browser", emailApp = false)
         assertFalse(observe(browser.uiState).value.hasEmailApp)
     }
 
@@ -110,7 +117,7 @@ class FeedbackViewModelTest : ViewModelTest() {
     @Test
     fun aBuildWithNothingToReportStillSends() = runTest {
         // A build with no version to name, and a device only if the user asks for it.
-        val web = FeedbackViewModel(version = null, device = null)
+        val web = FeedbackViewModel(repositories.analytics, version = null, device = null)
         val state = observe(web.uiState)
 
         assertNull(state.value.appVersion)
@@ -118,5 +125,46 @@ class FeedbackViewModelTest : ViewModelTest() {
 
         web.onEvent(FeedbackUiEvent.Write("Hello"))
         assertTrue(state.value.canSend)
+    }
+
+    @Test
+    fun aRequestAboutDataCarriesTheIdentifierAndAReportDoesNot() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        repositories.analytics.syncConsent()
+        repositories.analyticsSink.identifier = "ident-5"
+        repositories.analytics.refreshDeviceIdentifier()
+        val state = observe(viewModel.uiState)
+
+        // A report is not about their data: there is nothing to match, so nothing is attached.
+        assertEquals(FeedbackKind.Feedback, state.value.kind)
+        assertEquals("ident-5", state.value.deviceIdentifier)
+        assertNull(state.value.identifierToSend)
+
+        viewModel.onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
+
+        assertEquals("ident-5", state.value.identifierToSend)
+    }
+
+    @Test
+    fun aRequestWithNothingToMatchItToStillSends() = runTest {
+        // A device the app is showing no identifier for. The request goes anyway; what tells the
+        // reader that nothing will be found is the line under the picker, not the press.
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
+        viewModel.onEvent(FeedbackUiEvent.Write("Please delete everything you hold about me."))
+
+        assertNull(state.value.identifierToSend)
+        assertTrue(state.value.canSend)
+    }
+
+    @Test
+    fun pickingADifferentKindForgetsTheCopyThatWasMade() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(FeedbackUiEvent.Copied)
+
+        viewModel.onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
+
+        assertFalse(state.value.copied)
     }
 }

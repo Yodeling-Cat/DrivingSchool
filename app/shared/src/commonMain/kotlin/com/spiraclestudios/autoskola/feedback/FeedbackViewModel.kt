@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.feedback
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.appVersion
+import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.deviceDescription
 import com.spiraclestudios.autoskola.hasEmailApp
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+
+/**
+ * What the user is writing about, which decides what the mail is called and whether the identifier
+ * goes in it.
+ */
+enum class FeedbackKind {
+    /** Something the app did, or did not do, which is what a report is for. */
+    Feedback,
+
+    /**
+     * A request about the user's own data. The only kind that carries the identifier, because it is
+     * the only kind where matching matters: we cannot find what we hold without it, and it is the one
+     * thing about our side of the app that a user cannot find on their own device.
+     */
+    PrivacyRequest,
+}
 
 data class FeedbackUiState(
     /** What the user has written, which is what the report will carry. */
@@ -22,6 +39,13 @@ data class FeedbackUiState(
     val appVersion: String?,
     /** Whether this platform can open an email app on the report - the phones can, a browser cannot. */
     val hasEmailApp: Boolean,
+    /** What is being written: a report about the app, or a request about their own data. */
+    val kind: FeedbackKind,
+    /**
+     * The identifier Settings is showing for this device, or `null` while the app has none to show.
+     * Published by [AnalyticsRepository], which has none until the SDK is running.
+     */
+    val deviceIdentifier: String?,
     /** The press that found nothing written, until the next thing typed. */
     val messageMissing: Boolean,
     /** The platform has no email app to open, which there is nothing to do about but say. */
@@ -34,6 +58,13 @@ data class FeedbackUiState(
 
     /** The device the report names, only while the user has asked for it. */
     val deviceToSend: String? get() = device?.takeIf { includeDeviceInfo }
+
+    /**
+     * The identifier the mail carries. Only a request about data gets one: in an ordinary report it
+     * would join the sender's address to everything filed under the identifier, which is the one
+     * thing the analytics are built never to do.
+     */
+    val identifierToSend: String? get() = deviceIdentifier?.takeIf { kind == FeedbackKind.PrivacyRequest }
 }
 
 sealed interface FeedbackUiEvent {
@@ -42,6 +73,9 @@ sealed interface FeedbackUiEvent {
 
     /** The answer to whether the device goes in the report. */
     data class IncludeDeviceInfo(val included: Boolean) : FeedbackUiEvent
+
+    /** What is being written: a report about the app, or a request about the user's own data. */
+    data class SetKind(val kind: FeedbackKind) : FeedbackUiEvent
 
     /** Send was pressed with nothing written, which is the correction the user has to make. */
     data object MessageMissing : FeedbackUiEvent
@@ -60,9 +94,12 @@ sealed interface FeedbackUiEvent {
  * app's translations - and this holds the facts it is built from. [version], [device] and
  * [hasEmailApp] are read once, because the platform's answers cannot change while the screen is
  * up, and taking them as parameters is also what lets a test say which build, which phone, and
- * whether a mail app, a report would be written against.
+ * whether a mail app, a report would be written against. The identifier is the exception: it comes
+ * from [analytics] as a flow, because it exists only while the SDK is running rather than whenever
+ * a screen is built.
  */
 class FeedbackViewModel(
+    private val analytics: AnalyticsRepository,
     private val version: String? = appVersion(),
     private val device: String? = deviceDescription(),
     private val emailApp: Boolean = hasEmailApp(),
@@ -73,24 +110,24 @@ class FeedbackViewModel(
     private val messageMissing = MutableStateFlow(false)
     private val noEmailApp = MutableStateFlow(false)
     private val copied = MutableStateFlow(false)
+    private val kind = MutableStateFlow(FeedbackKind.Feedback)
 
     val uiState: StateFlow<FeedbackUiState> =
         combine(
-            message,
-            includeDeviceInfo,
-            messageMissing,
-            noEmailApp,
-            copied,
-        ) { message, include, missing, noApp, copied ->
+            combine(message, includeDeviceInfo, messageMissing, noEmailApp, copied, ::Draft),
+            combine(kind, analytics.deviceIdentifier, ::Request),
+        ) { draft, request ->
             FeedbackUiState(
-                message = message,
-                includeDeviceInfo = include,
+                message = draft.message,
+                includeDeviceInfo = draft.includeDeviceInfo,
                 device = device,
                 appVersion = version,
                 hasEmailApp = emailApp,
-                messageMissing = missing,
-                noEmailApp = noApp,
-                copied = copied,
+                kind = request.kind,
+                deviceIdentifier = request.identifier,
+                messageMissing = draft.messageMissing,
+                noEmailApp = draft.noEmailApp,
+                copied = draft.copied,
             )
         }.stateIn(
             viewModelScope,
@@ -101,11 +138,20 @@ class FeedbackViewModel(
                 device = device,
                 appVersion = version,
                 hasEmailApp = emailApp,
+                kind = FeedbackKind.Feedback,
+                deviceIdentifier = analytics.deviceIdentifier.value,
                 messageMissing = false,
                 noEmailApp = false,
                 copied = false,
             ),
         )
+
+    init {
+        // The identifier is there only while the SDK is running and has one to report, so the screen
+        // asks for the current one instead of trusting what was read when something else last
+        // changed. Reading it starts nothing.
+        analytics.refreshDeviceIdentifier()
+    }
 
     fun onEvent(event: FeedbackUiEvent) {
         when (event) {
@@ -121,6 +167,13 @@ class FeedbackViewModel(
                 copied.value = false
             }
 
+            // A different kind of message is a different mail, and the copy that was made was of the
+            // one that is no longer being written.
+            is FeedbackUiEvent.SetKind -> {
+                kind.value = event.kind
+                copied.value = false
+            }
+
             FeedbackUiEvent.MessageMissing -> messageMissing.value = true
 
             FeedbackUiEvent.NoEmailApp -> noEmailApp.value = true
@@ -129,3 +182,15 @@ class FeedbackViewModel(
         }
     }
 }
+
+/** The part of the screen the user is typing into and answering. */
+private data class Draft(
+    val message: String,
+    val includeDeviceInfo: Boolean,
+    val messageMissing: Boolean,
+    val noEmailApp: Boolean,
+    val copied: Boolean,
+)
+
+/** What is being written, and the identifier that only a request about data carries. */
+private data class Request(val kind: FeedbackKind, val identifier: String?)

@@ -302,6 +302,14 @@ class Strings(
     val feedbackSendTo: (address: String) -> String,
     /** What the empty message field says. */
     val feedbackMessageHint: String,
+    /** The two things a user can write to us about, as the picker offers them. */
+    val feedbackKindFeedback: String,
+    val feedbackKindPrivacyRequest: String,
+    /** What the empty field asks for when it is a request about data rather than a report. */
+    val feedbackRequestHint: String,
+    /** What a request carries that a report does not, and what it means when there is no identifier. */
+    val feedbackPrivacyRequestNote: String,
+    val feedbackPrivacyRequestNoIdentifier: String,
     /** The answer to whether the report carries the device it was written on. */
     val feedbackIncludeDeviceInfo: String,
     val feedbackIncludeDeviceInfoDescription: String,
@@ -317,10 +325,14 @@ class Strings(
     val feedbackCopied: String,
     /** The subject of the report, which names the app: "Feedback: Naj Autoškola". */
     val feedbackSubject: (appName: String) -> String,
+    /** The subject of a request about the user's own data: "Privacy request: Naj Autoškola". */
+    val feedbackRequestSubject: (appName: String) -> String,
     /** The build the report came from, which every report carries: "App version: 1.0". */
     val feedbackVersionLine: (version: String) -> String,
     /** What the report was written on: "Device: Pixel 7 · Android 14". */
     val feedbackDeviceLine: (device: String) -> String,
+    /** The identifier a request carries, when the app has one to quote. */
+    val feedbackIdentifierLine: (identifier: String) -> String,
 )
 
 /** Slovak and Czech plurals: 1 / 2–4 / 5+ (and 0). */
@@ -519,9 +531,17 @@ private val EnglishStrings = Strings(
     aboutLibrariesSearch = "Search libraries",
     aboutLibrariesNothingFound = "No library matches your search",
     feedbackTitle = "Send feedback",
-    feedbackIntro = "Found a bug, or have an idea? Tell us about it.",
+    feedbackIntro = "Found a bug, have an idea, or want to ask about your data? Tell us about it.",
     feedbackSendTo = { "Send your feedback over email to: $it" },
     feedbackMessageHint = "Your message…",
+    feedbackKindFeedback = "Feedback",
+    feedbackKindPrivacyRequest = "Privacy request",
+    feedbackRequestHint = "What you would like us to do — send you a copy of what we hold, for " +
+        "example, or delete it.",
+    feedbackPrivacyRequestNote = "The app puts the identifier from Settings in this email, so we can " +
+        "find what we hold about you.",
+    feedbackPrivacyRequestNoIdentifier = "The app has no identifier to put in this email at the " +
+        "moment. It appears in Settings while usage statistics or crash reports are on.",
     feedbackIncludeDeviceInfo = "Include device information",
     feedbackIncludeDeviceInfoDescription = "Your phone's model, its system version and the app version.",
     feedbackSend = "Send",
@@ -531,8 +551,10 @@ private val EnglishStrings = Strings(
     feedbackCopy = "Copy",
     feedbackCopied = "Copied",
     feedbackSubject = { "Feedback: $it" },
+    feedbackRequestSubject = { "Privacy request: $it" },
     feedbackVersionLine = { "App version: $it" },
     feedbackDeviceLine = { "Device: $it" },
+    feedbackIdentifierLine = { "Device identifier: $it" },
 )
 
 private val SlovakStrings = Strings(
@@ -719,9 +741,18 @@ private val SlovakStrings = Strings(
     aboutLibrariesSearch = "Hľadať knižnice",
     aboutLibrariesNothingFound = "Hľadanému výrazu nezodpovedá žiadna knižnica",
     feedbackTitle = "Poslať spätnú väzbu",
-    feedbackIntro = "Našli ste chybu alebo máte nápad? Napíšte nám o tom.",
+    feedbackIntro = "Našli ste chybu, máte nápad alebo sa chcete opýtať na svoje údaje? Napíšte nám o tom.",
     feedbackSendTo = { "Pošlite svoju spätnú väzbu e-mailom na: $it" },
     feedbackMessageHint = "Vaša správa…",
+    feedbackKindFeedback = "Spätná väzba",
+    feedbackKindPrivacyRequest = "Žiadosť o údaje",
+    feedbackRequestHint = "Čo by ste chceli, aby sme urobili — napríklad poslať kópiu toho, čo o vás " +
+        "evidujeme, alebo to vymazať.",
+    feedbackPrivacyRequestNote = "Aplikácia do tohto e-mailu vloží identifikátor z nastavení, aby sme " +
+        "našli, čo o vás evidujeme.",
+    feedbackPrivacyRequestNoIdentifier = "Aplikácia momentálne nemá identifikátor, ktorý by do " +
+        "e-mailu vložila. Zobrazí sa v nastaveniach, kým sú zapnuté štatistiky používania alebo " +
+        "hlásenia o zrúteniach.",
     feedbackIncludeDeviceInfo = "Pridať informácie o zariadení",
     feedbackIncludeDeviceInfoDescription = "Model telefónu, verzia systému a verzia aplikácie.",
     feedbackSend = "Odoslať",
@@ -731,8 +762,10 @@ private val SlovakStrings = Strings(
     feedbackCopy = "Kopírovať",
     feedbackCopied = "Skopírované",
     feedbackSubject = { "Spätná väzba: $it" },
+    feedbackRequestSubject = { "Žiadosť o údaje: $it" },
     feedbackVersionLine = { "Verzia aplikácie: $it" },
     feedbackDeviceLine = { "Zariadenie: $it" },
+    feedbackIdentifierLine = { "Identifikátor zariadenia: $it" },
 )
 
 private val HungarianStrings = Strings(
@@ -921,9 +954,18 @@ private val HungarianStrings = Strings(
     aboutLibrariesSearch = "Keresés a könyvtárakban",
     aboutLibrariesNothingFound = "Egyetlen könyvtár sem felel meg a keresésnek",
     feedbackTitle = "Visszajelzés küldése",
-    feedbackIntro = "Hibát találtál, vagy ötleted van? Írd meg nekünk.",
+    feedbackIntro = "Hibát találtál, ötleted van, vagy az adataidról kérdeznél? Írd meg nekünk.",
     feedbackSendTo = { "Küldd el a visszajelzésed e-mailben erre a címre: $it" },
     feedbackMessageHint = "Az üzeneted…",
+    feedbackKindFeedback = "Visszajelzés",
+    feedbackKindPrivacyRequest = "Adatkérés",
+    feedbackRequestHint = "Mit szeretnél, mit tegyünk — például küldjünk másolatot arról, amit " +
+        "nyilvántartunk, vagy töröljük.",
+    feedbackPrivacyRequestNote = "Az alkalmazás beilleszti az e-mailbe a beállításokban látható " +
+        "azonosítót, hogy megtaláljuk, mit tartunk nyilván rólad.",
+    feedbackPrivacyRequestNoIdentifier = "Az alkalmazásnak most nincs azonosítója, amit az e-mailbe " +
+        "beilleszthetne. Akkor jelenik meg a beállításokban, amikor a használati statisztikák vagy " +
+        "az összeomlás-jelentések be vannak kapcsolva.",
     feedbackIncludeDeviceInfo = "Eszközadatok mellékelése",
     feedbackIncludeDeviceInfoDescription = "A telefon típusa, a rendszer verziója és az alkalmazás verziója.",
     feedbackSend = "Küldés",
@@ -933,8 +975,10 @@ private val HungarianStrings = Strings(
     feedbackCopy = "Másolás",
     feedbackCopied = "Másolva",
     feedbackSubject = { "Visszajelzés: $it" },
+    feedbackRequestSubject = { "Adatkérés: $it" },
     feedbackVersionLine = { "Alkalmazás verziója: $it" },
     feedbackDeviceLine = { "Eszköz: $it" },
+    feedbackIdentifierLine = { "Eszközazonosító: $it" },
 )
 
 private val CzechStrings = Strings(
@@ -1121,9 +1165,18 @@ private val CzechStrings = Strings(
     aboutLibrariesSearch = "Hledat knihovny",
     aboutLibrariesNothingFound = "Hledanému výrazu neodpovídá žádná knihovna",
     feedbackTitle = "Poslat zpětnou vazbu",
-    feedbackIntro = "Našli jste chybu nebo máte nápad? Napište nám o tom.",
+    feedbackIntro = "Našli jste chybu, máte nápad nebo se chcete zeptat na svá data? Napište nám o tom.",
     feedbackSendTo = { "Pošlete svou zpětnou vazbu e-mailem na: $it" },
     feedbackMessageHint = "Vaše zpráva…",
+    feedbackKindFeedback = "Zpětná vazba",
+    feedbackKindPrivacyRequest = "Žádost o data",
+    feedbackRequestHint = "Co byste chtěli, abychom udělali — například poslat kopii toho, co o vás " +
+        "evidujeme, nebo to smazat.",
+    feedbackPrivacyRequestNote = "Aplikace do tohoto e-mailu vloží identifikátor z nastavení, abychom " +
+        "našli, co o vás evidujeme.",
+    feedbackPrivacyRequestNoIdentifier = "Aplikace teď nemá identifikátor, který by do e-mailu " +
+        "vložila. Zobrazí se v nastavení, dokud jsou zapnuté statistiky používání nebo hlášení o " +
+        "pádech.",
     feedbackIncludeDeviceInfo = "Přidat informace o zařízení",
     feedbackIncludeDeviceInfoDescription = "Model telefonu, verze systému a verze aplikace.",
     feedbackSend = "Odeslat",
@@ -1133,6 +1186,8 @@ private val CzechStrings = Strings(
     feedbackCopy = "Kopírovat",
     feedbackCopied = "Zkopírováno",
     feedbackSubject = { "Zpětná vazba: $it" },
+    feedbackRequestSubject = { "Žádost o data: $it" },
     feedbackVersionLine = { "Verze aplikace: $it" },
     feedbackDeviceLine = { "Zařízení: $it" },
+    feedbackIdentifierLine = { "Identifikátor zařízení: $it" },
 )

@@ -90,9 +90,9 @@ val appModule = module {
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
     viewModel { AboutViewModel() }
-    // Both of these read the platform's own answers as their defaults, which Koin must not
-    // resolve for them.
-    viewModel { FeedbackViewModel() }
+    // Feedback reads the platform's own answers as its defaults, which Koin must not resolve for it;
+    // the analytics repository it also needs comes from here.
+    viewModel { FeedbackViewModel(get()) }
     viewModel { (attemptId: String) -> PracticeViewModel(attemptId, get(), get(), get(), get(), get()) }
     viewModel { (attemptId: String) -> ResultsViewModel(attemptId, get(), get()) }
 }

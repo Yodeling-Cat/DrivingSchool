@@ -5,6 +5,7 @@ import com.spiraclestudios.autoskola.i18n.Strings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /**
@@ -51,13 +52,27 @@ class FeedbackMailTest {
 
     @Test
     fun theAddressIsTheOneWeRead() {
-        val url = feedbackMailto(english, "Hello", device = null, version = null)
+        val url = feedbackMailto(
+            english,
+            "Hello",
+            device = null,
+            version = null,
+            identifier = null,
+            kind = FeedbackKind.Feedback,
+        )
         assertTrue(url.startsWith("mailto:anima@tree-among-shrubs.com?subject="), url)
     }
 
     @Test
     fun theSubjectSaysWhatTheMailIs() {
-        val url = feedbackMailto(english, "Hello", device = null, version = null)
+        val url = feedbackMailto(
+            english,
+            "Hello",
+            device = null,
+            version = null,
+            identifier = null,
+            kind = FeedbackKind.Feedback,
+        )
         assertEquals(
             "subject=Feedback%3A%20Naj%20Auto%C5%A1kola",
             url.substringAfter('?').substringBefore('&'),
@@ -67,7 +82,14 @@ class FeedbackMailTest {
 
     @Test
     fun whatWouldBreakTheAddressIsEncoded() {
-        val url = feedbackMailto(english, "A ? and a # and an & and a newline\nand š", device = null, version = null)
+        val url = feedbackMailto(
+            english,
+            "A ? and a # and an & and a newline\nand š",
+            device = null,
+            version = null,
+            identifier = null,
+            kind = FeedbackKind.Feedback,
+        )
         val body = url.substringAfter("&body=")
 
         // Nothing that would end the query early, or read as a character that was meant to be
@@ -123,7 +145,14 @@ class FeedbackMailTest {
     @Test
     fun everyLanguageGivesAnAddressThatCarriesItAll() {
         AppLanguage.entries.forEach { language ->
-            val url = feedbackMailto(language.strings, "Hello", device = null, version = "9.9")
+            val url = feedbackMailto(
+                language.strings,
+                "Hello",
+                device = null,
+                version = "9.9",
+                identifier = null,
+                kind = FeedbackKind.Feedback,
+            )
 
             assertTrue(url.startsWith("mailto:anima@tree-among-shrubs.com?subject="), url)
             assertTrue(url.endsWith("9.9"), url)
@@ -131,6 +160,63 @@ class FeedbackMailTest {
             // raw space or line break anywhere in the address is one the platform may cut off.
             assertFalse(' ' in url, url)
             assertFalse('\n' in url, url)
+        }
+    }
+
+    @Test
+    fun aRequestIsNamedAsOneAndCarriesTheIdentifier() {
+        val url = feedbackMailto(
+            english,
+            "Please delete what you hold about me.",
+            device = null,
+            version = "1.4.2",
+            identifier = "ident-5",
+            kind = FeedbackKind.PrivacyRequest,
+        )
+
+        assertTrue(url.startsWith("mailto:anima@tree-among-shrubs.com?subject=Privacy%20request%3A"), url)
+        assertTrue("Device%20identifier%3A%20ident-5" in url, url)
+    }
+
+    @Test
+    fun theIdentifierSitsWithTheOtherFactsInTheReport() {
+        assertEquals(
+            "Hello\n\nApp version: 1.4.2\nDevice identifier: ident-5",
+            feedbackBody(english, "Hello", device = null, version = "1.4.2", identifier = "ident-5"),
+        )
+    }
+
+    @Test
+    fun aReportWithNothingToMatchCarriesNoIdentifierLine() {
+        // What an ordinary report is: the screen passes no identifier, so no line is written.
+        assertEquals(
+            "Hello\n\nApp version: 1.4.2",
+            feedbackBody(english, "Hello", device = null, version = "1.4.2", identifier = null),
+        )
+    }
+
+    @Test
+    fun everyLanguageNamesARequestAndItsIdentifier() {
+        AppLanguage.entries.forEach { language ->
+            val strings = language.strings
+            val url = feedbackMailto(
+                strings,
+                "Hello",
+                device = null,
+                version = "9.9",
+                identifier = "ident-5",
+                kind = FeedbackKind.PrivacyRequest,
+            )
+
+            assertTrue(strings.appName in feedbackSubject(strings, FeedbackKind.PrivacyRequest), language.name)
+            // A request is not called a report: the two subjects are what sorts them in the inbox.
+            assertNotEquals(
+                feedbackSubject(strings, FeedbackKind.Feedback),
+                feedbackSubject(strings, FeedbackKind.PrivacyRequest),
+                language.name,
+            )
+            assertTrue(url.endsWith("ident-5"), url)
+            assertFalse(' ' in url, url)
         }
     }
 }

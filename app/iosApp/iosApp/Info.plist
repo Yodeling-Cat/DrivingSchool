@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!--
+	  The app draws one palette and it is a light one (see NajAutoskolaTheme in the shared module),
+	  so it stays light however the system is set. The status bar is the visible part of that: it
+	  draws its own text and follows the system into dark mode - white on our paper - unless the app
+	  says which way it is drawn. Remove this key with the change that gives the app a dark palette.
+	-->
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 </dict>

@@ -115,7 +115,9 @@ android {
         applicationId = releaseApplicationId
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
+        // Play already holds 45 for this package, from the listing that predates this rewrite, and
+        // an upload has to be higher than anything it has seen. Raise it for every upload.
+        versionCode = 46
         // The version every Gradle-built target of this app reports (see the root build file).
         versionName = rootProject.version.toString()
         // The demo id here, and the real one in the release build type below.

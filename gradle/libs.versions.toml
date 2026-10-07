@@ -31,6 +31,7 @@ materialIconsExtended = "1.7.3"
 aboutlibraries = "15.2.0"
 playServicesAds = "25.5.0"
 ump = "4.0.0"
+playBilling = "8.0.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -74,6 +75,7 @@ ktor-clientJs = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 play-services-ump = { module = "com.google.android.ump:user-messaging-platform", version.ref = "ump" }
+play-billing = { module = "com.android.billingclient:billing", version.ref = "playBilling" }
 compose-materialIconsExtended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 wrappers-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibraries" }

@@ -19,7 +19,9 @@ import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.premium.FakeBillingDataSource
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumSync
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -74,6 +76,10 @@ class TestRepositories(bank: QuestionBank = testBank(), ageBand: AgeBand? = AgeB
 
     /** What the user owns. Nothing is bought in a test, so this answers Free like the app ships. */
     val premium = PremiumRepository()
+
+    /** The store, answering "nothing bought" until a test says it knows better. */
+    val billing = FakeBillingDataSource()
+    val premiumSync = PremiumSync(billing, premium, settings)
 
     /**
      * The ads, over a [FakeAdDataSource] rather than the no-op one. The no-op source answers "this

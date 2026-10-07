@@ -67,6 +67,7 @@ kotlin {
             // own yet - they answer `NoOpAdDataSource` - which is `plans/ads.md` step 13.
             implementation(libs.play.services.ads)
             implementation(libs.play.services.ump)
+            implementation(libs.play.billing)
         }
         commonMain.dependencies {
             api(projects.core)

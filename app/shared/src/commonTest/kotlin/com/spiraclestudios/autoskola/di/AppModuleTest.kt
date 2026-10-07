@@ -12,6 +12,7 @@ import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumSync
 import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.testSignCatalog
@@ -65,6 +66,7 @@ class AppModuleTest : ViewModelTest() {
         koin.get<ResultsViewModel> { parametersOf("attempt-id") }
         koin.get<AnalyticsRepository>()
         koin.get<PremiumRepository>()
+        koin.get<PremiumSync>()
         koin.get<AdRepository>()
     }
 }

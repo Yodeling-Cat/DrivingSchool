@@ -49,6 +49,23 @@ class PremiumRulesTest {
         }
     }
 
+    /**
+     * The old "remove ads" product: ads go and nothing else changes. Written as a table so that a
+     * feature added later has to be decided for these buyers too, rather than inheriting Premium.
+     */
+    @Test
+    fun theOldRemoveAdsProductUnlocksNothingButNoAds() {
+        val adsRemoved = PremiumStatus.AdsRemoved(PurchaseSource.Play)
+
+        for (feature in PremiumFeature.entries) {
+            assertEquals(
+                feature == PremiumFeature.NoAds,
+                PremiumRules.isUnlocked(feature, adsRemoved),
+                "$feature for AdsRemoved",
+            )
+        }
+    }
+
     /** Which store granted it does not change what is unlocked. */
     @Test
     fun premiumUnlocksEverythingWhicheverStoreItCameFrom() {

@@ -1,7 +1,6 @@
 package com.spiraclestudios.autoskola.learn
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -71,7 +70,6 @@ private val SituationThumbHeight = 88.dp
 @Composable
 fun IntersectionsRoute(
     onBack: () -> Unit,
-    onOpenSituation: (Int) -> Unit,
     onOpenAttempt: (attemptId: String) -> Unit,
     viewModel: IntersectionsViewModel = koinViewModel(),
 ) {
@@ -84,21 +82,15 @@ fun IntersectionsRoute(
             viewModel.onEvent(IntersectionsUiEvent.AttemptOpened)
         }
     }
-    IntersectionsScreen(state, viewModel::onEvent, onBack, onOpenSituation)
+    IntersectionsScreen(state, viewModel::onEvent, onBack)
 }
 
 /**
  * The situations the exam asks about at intersections: the drawing of each and how many questions
- * come with it. The drawing opens bigger when it's tapped; the row opens the situation itself, and
- * the action above the list drills them all.
+ * come with it. The action above the list drills them all.
  */
 @Composable
-fun IntersectionsScreen(
-    state: IntersectionsUiState,
-    onEvent: (IntersectionsUiEvent) -> Unit,
-    onBack: () -> Unit,
-    onOpenSituation: (Int) -> Unit,
-) {
+fun IntersectionsScreen(state: IntersectionsUiState, onEvent: (IntersectionsUiEvent) -> Unit, onBack: () -> Unit) {
     // Measured here, outside the list, so an enlarged drawing is never drawn bigger than the screen.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val page = DpSize(maxWidth, maxHeight)
@@ -134,12 +126,6 @@ fun IntersectionsScreen(
                                 SituationList(
                                     situations = state.situations,
                                     page = page,
-                                    // Reported before navigating, so which situation was opened is
-                                    // known: the screen view that follows only says "situation".
-                                    onOpenSituation = { number ->
-                                        onEvent(IntersectionsUiEvent.OpenSituation(number))
-                                        onOpenSituation(number)
-                                    },
                                     modifier = Modifier.weight(1f),
                                 )
                                 // Pinned under the list rather than at the end of it: the list
@@ -241,18 +227,13 @@ private fun SituationsOverflowMenu(onResetAnswers: () -> Unit) {
 
 /** The situations, in the order the exam lists them. */
 @Composable
-private fun SituationList(
-    situations: List<SituationItem>,
-    page: DpSize,
-    onOpenSituation: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun SituationList(situations: List<SituationItem>, page: DpSize, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         items(situations, key = { it.number }) { situation ->
-            SituationRow(situation, page, onClick = { onOpenSituation(situation.number) })
+            SituationRow(situation, page)
             CardDivider()
         }
     }
@@ -260,18 +241,22 @@ private fun SituationList(
 
 /** One situation: its drawing, what it is called, and how much is asked about it. */
 @Composable
-private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> Unit) {
+private fun SituationRow(situation: SituationItem, page: DpSize) {
     val colors = Naj.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(Modifier.width(SituationThumbWidth)) {
-            EnlargeableImage(uri = situation.imageUri, page = page, maxHeight = SituationThumbHeight)
+            EnlargeableImage(
+                uri = situation.imageUri,
+                page = page,
+                maxHeight = SituationThumbHeight,
+                enlargeable = false,
+            )
         }
         Column(Modifier.weight(1f)) {
             Text(strings.situationName(situation.number), style = Naj.type.rowTitle, color = colors.ink)
@@ -326,7 +311,6 @@ private fun IntersectionsScreenPreview() {
             state = IntersectionsUiState.Ready(previewSituations),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }
@@ -340,7 +324,6 @@ private fun IntersectionsScreenBannerPreview() {
             state = IntersectionsUiState.Ready(previewSituations, showAds = true),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }
@@ -350,7 +333,7 @@ private fun IntersectionsScreenBannerPreview() {
 @Composable
 private fun IntersectionsScreenLoadingPreview() {
     AppPreview {
-        IntersectionsScreen(IntersectionsUiState.Loading, onEvent = {}, onBack = {}, onOpenSituation = {})
+        IntersectionsScreen(IntersectionsUiState.Loading, onEvent = {}, onBack = {})
     }
 }
 
@@ -363,7 +346,6 @@ private fun IntersectionsScreenWidePreview() {
             state = IntersectionsUiState.Ready(previewSituations),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }
@@ -377,7 +359,6 @@ private fun IntersectionsScreenSlovakPreview() {
             state = IntersectionsUiState.Ready(previewSituations),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }
@@ -389,8 +370,8 @@ private fun SituationRowPreview() {
     AppPreview {
         PreviewBoard {
             PreviewLabel("a situation with questions of its own")
-            SituationRow(previewSituations[0], DpSize(400.dp, 220.dp), onClick = {})
-            SituationRow(previewSituations[1], DpSize(400.dp, 220.dp), onClick = {})
+            SituationRow(previewSituations[0], DpSize(400.dp, 220.dp))
+            SituationRow(previewSituations[1], DpSize(400.dp, 220.dp))
         }
     }
 }
@@ -407,7 +388,6 @@ private fun IntersectionsScreenDrillPromptPreview() {
             ),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }
@@ -421,7 +401,6 @@ private fun IntersectionsScreenResetPromptPreview() {
             state = IntersectionsUiState.Ready(situations = previewSituations, resetPrompt = true),
             onEvent = {},
             onBack = {},
-            onOpenSituation = {},
         )
     }
 }

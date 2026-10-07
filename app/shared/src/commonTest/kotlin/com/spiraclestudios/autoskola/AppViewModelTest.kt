@@ -8,7 +8,10 @@ import com.spiraclestudios.autoskola.data.banks.testBankInfo
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.data.premium.PurchaseQuery
 import com.spiraclestudios.autoskola.i18n.AppLanguage
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,12 +20,15 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
-    private fun viewModel() = AppViewModel(repositories.preferences, repositories.exams, repositories.ads)
+    private fun viewModel() =
+        AppViewModel(repositories.preferences, repositories.exams, repositories.ads, repositories.premiumSync)
 
     /** The app over two banks, so the exam can be moved from one to another, neither read yet. */
     private val exams = ExamRepository(
@@ -77,6 +83,42 @@ class AppViewModelTest : ViewModelTest() {
 
         // Every launch asks, because Google's answer can expire and its vendor list changes.
         assertEquals(1, repositories.adConsent.gathered.size)
+    }
+
+    @Test
+    fun theStoreIsAskedWhatTheUserOwnsAtLaunchAndEveryTimeTheAppComesBack() = runTest {
+        val viewModel = viewModel()
+        observe(viewModel.uiState)
+        assertEquals(1, repositories.billing.queries)
+
+        viewModel.onEvent(AppUiEvent.Resumed)
+
+        assertEquals(2, repositories.billing.queries)
+    }
+
+    @Test
+    fun aBuyerOfRemoveAdsIsNeverAskedAboutAdsOrHasTheSdkStarted() = runTest {
+        repositories.billing.answer = PurchaseQuery.Answered(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+        repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+
+        observe(viewModel().uiState)
+
+        // The entitlement is asked for first, so by the time the ads are prepared the user is known to
+        // have paid: no consent form, and the SDK is not started for them.
+        assertEquals(PremiumStatus.AdsRemoved(PurchaseSource.Play), repositories.premium.entitlement.value)
+        assertEquals(emptyList(), repositories.adConsent.gathered)
+        assertEquals(0, repositories.adDataSource.initializations)
+        assertFalse(repositories.ads.mayRequestAds())
+    }
+
+    @Test
+    fun aUserWhoBoughtNothingStillHasTheirAdsPrepared() = runTest {
+        repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+
+        observe(viewModel().uiState)
+
+        assertEquals(1, repositories.adConsent.gathered.size)
+        assertTrue(repositories.ads.mayRequestAds())
     }
 
     @Test
@@ -140,7 +182,7 @@ class AppViewModelTest : ViewModelTest() {
     fun changingTheExamNeverLeavesIt() = runTest {
         repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
-        val viewModel = AppViewModel(repositories.preferences, exams, repositories.ads)
+        val viewModel = AppViewModel(repositories.preferences, exams, repositories.ads, repositories.premiumSync)
         val seen = mutableListOf<AppDestination>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.uiState.collect { seen += it.destination }

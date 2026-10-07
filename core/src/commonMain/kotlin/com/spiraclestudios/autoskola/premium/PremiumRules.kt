@@ -10,6 +10,10 @@ object PremiumRules {
     /** Whether [status] unlocks [feature]. */
     fun isUnlocked(feature: PremiumFeature, status: PremiumStatus): Boolean = when (status) {
         PremiumStatus.Free -> false
+
         is PremiumStatus.Premium -> true
+
+        // The old "remove ads" product unlocks the one thing it was sold for.
+        is PremiumStatus.AdsRemoved -> feature == PremiumFeature.NoAds
     }
 }

@@ -91,6 +91,8 @@ internal fun EnlargeableImage(
     modifier: Modifier = Modifier,
     maxHeight: Dp = ImageMaxHeight,
     shape: Shape = pictureShape(uri),
+    /** Whether tapping the picture opens the enlarged copy; off, it is drawn and does nothing. */
+    enlargeable: Boolean = true,
     /** Called once when the picture fails to load, which otherwise shows as empty space. */
     onError: () -> Unit = {},
 ) {
@@ -121,7 +123,7 @@ internal fun EnlargeableImage(
                 modifier = Modifier
                     .size(size)
                     .clip(shape)
-                    .clickable { enlarged = true },
+                    .then(if (enlargeable) Modifier.clickable { enlarged = true } else Modifier),
                 contentScale = ContentScale.Fit,
             )
             if (enlarged) {

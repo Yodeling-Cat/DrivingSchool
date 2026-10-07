@@ -8,6 +8,7 @@ import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
 import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumSync
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,12 @@ enum class AppDestination { Loading, Disclaimer, Consent, ChooseExam, Exam }
 sealed interface AppUiEvent {
     /** The first screen has been read, so the consent screen comes next. */
     data object DisclaimerRead : AppUiEvent
+
+    /**
+     * The app came to the front. The store is asked again what the user owns: a refund can have taken a
+     * purchase back while the app was away, and a purchase made on another device can have arrived.
+     */
+    data object Resumed : AppUiEvent
 }
 
 data class AppUiState(val language: AppLanguage, val destination: AppDestination)
@@ -38,10 +45,15 @@ class AppViewModel(
     private val preferences: PreferencesRepository,
     exams: ExamRepository,
     private val ads: AdRepository,
+    private val premiumSync: PremiumSync,
 ) : ViewModel() {
 
     init {
         viewModelScope.launch {
+            // What the user owns comes first, before anything about ads: somebody who bought "remove ads"
+            // must not be asked about ads, and must not have the SDK started for them. It waits for the
+            // store only as long as PremiumSync lets it, and a store that does not answer changes nothing.
+            premiumSync.refresh()
             // Wait for the documents to be accepted at their current version - at once for a returning
             // user, after the consent screen for a new one - and then get the ads ready. Every launch
             // does it, because Google's answer can expire and its vendor list changes.
@@ -97,6 +109,7 @@ class AppViewModel(
     fun onEvent(event: AppUiEvent) {
         when (event) {
             AppUiEvent.DisclaimerRead -> preferences.setDisclaimerRead(true)
+            AppUiEvent.Resumed -> viewModelScope.launch { premiumSync.refresh() }
         }
     }
 }

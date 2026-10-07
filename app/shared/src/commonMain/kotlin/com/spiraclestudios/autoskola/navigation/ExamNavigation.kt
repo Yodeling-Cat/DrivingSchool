@@ -204,7 +204,6 @@ fun ExamNavigation() {
             entry<IntersectionsKey> {
                 IntersectionsRoute(
                     onBack = pop,
-                    onOpenSituation = { number -> backStack.add(SituationKey(number)) },
                     onOpenAttempt = { attemptId -> backStack.add(PracticeKey(attemptId)) },
                 )
             }

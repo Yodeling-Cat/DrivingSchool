@@ -260,6 +260,19 @@ class AdRepositoryTest {
     }
 
     @Test
+    fun aBuyerOfTheOldRemoveAdsProductIsAskedForNothing() = runTest {
+        // Bought in the app before it had ads of its own: the product says the ads do not come back.
+        val fixture = fixture(premium = PremiumStatus.AdsRemoved(PurchaseSource.Play))
+
+        assertFalse(fixture.ads.mayRequestAds())
+        assertFalse(fixture.ads.shouldOfferTest(9))
+        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
+        assertEquals(AdResult.Unavailable, fixture.ads.showClosingAd(3))
+        assertEquals(false, fixture.ads.adsAllowed.first())
+        assertEquals(emptyList(), fixture.dataSource.shown)
+    }
+
+    @Test
     fun theEntitlementArrivingMidSessionDropsWhatWasAlreadyLoaded() = runTest {
         val fixture = fixture()
         fixture.ads.preloadTestOffer()

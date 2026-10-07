@@ -33,13 +33,19 @@ class PremiumRepositoryTest {
         }
     }
 
-    /**
-     * The dud the app actually ships, and the test that tells you [PREMIUM_UNLOCKED] is still flipped
-     * on. That flag is a local, temporary change - flip it to walk the premium paths by hand - so it
-     * failing is the reminder to put it back, not a broken test.
-     */
+    /** What the app starts from before the store has been asked: nothing owned. */
     @Test
-    fun theShippedDudIsFree() {
+    fun aRepositoryStartsFreeUnlessToldOtherwise() {
         assertEquals(PremiumStatus.Free, PremiumRepository().entitlement.value)
+    }
+
+    @Test
+    fun theOldRemoveAdsProductUnlocksNoAdsAndNothingElse() {
+        val premium = PremiumRepository(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+
+        assertTrue(premium.isUnlocked(PremiumFeature.NoAds))
+        for (feature in PremiumFeature.entries - PremiumFeature.NoAds) {
+            assertFalse(premium.isUnlocked(feature), "$feature should stay locked for AdsRemoved")
+        }
     }
 }

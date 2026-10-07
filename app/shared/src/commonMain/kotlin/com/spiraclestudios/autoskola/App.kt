@@ -6,6 +6,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.di.initKoin
@@ -33,6 +35,9 @@ fun App() {
         val screenState = koinInject<ScreenStateStorage>()
         val strings = state.language.strings
         LaunchedEffect(strings.appName) { setWindowTitle(strings.appName) }
+        // Every time the app comes to the front the store is asked again what the user owns: a refund can
+        // have taken "remove ads" back while it was away, and a purchase made elsewhere can have arrived.
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(AppUiEvent.Resumed) }
         // Onboarding is not on the back stack, so it reports itself from here; every screen after it
         // reports itself from `ExamNavigation`, which sees each route change. Which of the two
         // onboarding screens is showing is the ViewModel's, decided from stored preferences, so a

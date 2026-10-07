@@ -28,9 +28,11 @@ import kotlin.coroutines.resume
  *
  * **Testing the form.** It is only shown in the EEA, the UK and Switzerland, so on a phone anywhere
  * else it never appears. Set [FORCE_EEA_FOR_TESTING] to `true` in a debug build to be treated as in the
- * EEA, and add the device's hashed id from the logcat line Google prints the first time (the form
- * ignores the setting on a device it does not know). It does nothing in a release build, and it must
- * not be committed on.
+ * EEA. Google applies that only to a device it knows, which is what [TEST_DEVICE_HASHED_IDS] is: a
+ * device's id is printed to logcat the first time a debug build asks (look for "addTestDeviceHashedId"
+ * under the tag `UserMessagingPlatform`), and it is safe to commit, because it names a device and
+ * unlocks nothing. Neither does anything in a release build, and [FORCE_EEA_FOR_TESTING] must not be
+ * committed on.
  */
 class UmpAdConsent(private val context: Context) : AdConsent {
 
@@ -101,10 +103,19 @@ class UmpAdConsent(private val context: Context) : AdConsent {
         return null
     }
 
+    /**
+     * What makes a debug build testable, and nothing in a release one. The known devices are
+     * registered whenever there are any, so a listed device is recognized; the geography is forced only
+     * while [FORCE_EEA_FOR_TESTING] is on.
+     */
     private fun debugSettings(activity: Activity): ConsentDebugSettings? {
-        if (!isDebugBuild() || !FORCE_EEA_FOR_TESTING) return null
+        if (!isDebugBuild()) return null
+        if (!FORCE_EEA_FOR_TESTING && TEST_DEVICE_HASHED_IDS.isEmpty()) return null
         return ConsentDebugSettings.Builder(activity)
-            .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
+            .apply {
+                if (FORCE_EEA_FOR_TESTING) setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
+                TEST_DEVICE_HASHED_IDS.forEach { addTestDeviceHashedId(it) }
+            }
             .build()
     }
 
@@ -114,5 +125,8 @@ class UmpAdConsent(private val context: Context) : AdConsent {
 
         /** See the class comment. Leave `false` in anything that is committed. */
         const val FORCE_EEA_FOR_TESTING = false
+
+        /** Devices Google recognizes as test devices: the Pixel 9 Pro this was first tried on. */
+        val TEST_DEVICE_HASHED_IDS = listOf("55EB73158EB4E63A5C939E2AF919FF4E")
     }
 }

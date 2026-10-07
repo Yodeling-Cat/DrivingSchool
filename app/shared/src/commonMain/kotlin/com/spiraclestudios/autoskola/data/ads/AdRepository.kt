@@ -23,8 +23,9 @@ import kotlinx.coroutines.withContext
  * Three questions, and every request goes through all of them in this order:
  *
  * 1. **Google's consent form** ([AdConsent]) - the form has said ads may be requested. In the EEA, the
- *    UK and Switzerland that means the user agreed to it, because Google serves nothing worth having
- *    without a certified form; elsewhere the form has nothing to ask and says yes.
+ *    UK and Switzerland that means the user has dealt with it, agreeing or declining: Google serves
+ *    nothing worth having without a certified form, and a decline is answered by Google itself with
+ *    limited ads rather than by the app with none. Elsewhere the form has nothing to ask and says yes.
  * 2. **The entitlement** ([PremiumRepository]) - nobody who has paid for the ads to stop gets one.
  * 3. **The frequency** ([AdRules]) - every tenth practice test, and never more often than that.
  *

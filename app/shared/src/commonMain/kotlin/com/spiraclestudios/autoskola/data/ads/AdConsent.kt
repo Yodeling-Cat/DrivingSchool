@@ -8,8 +8,14 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * **Google requires this, not only the law.** Since January 2024 AdMob serves only limited ads in the
  * EEA, the UK and Switzerland unless a Google-certified consent form is in use, so in the app's main
- * market nothing is requested without it (`plans/ads.md`, "The risk this decision takes"). What the
- * form decides is therefore the first condition on every ad request: [canRequestAds].
+ * market nothing is requested before the form has been dealt with (`plans/ads.md`, "The risk this
+ * decision took, and how it was closed"). Whether it has been is therefore the first condition on every
+ * ad request: [canRequestAds].
+ *
+ * **Declining is not a way to switch ads off, and the app does not treat it as one.** A user who
+ * declines is still allowed requests ([canRequestAds] is true), and Google then serves only *limited
+ * ads* - no cookies or other device storage, nothing personalized, and often no fill. That was checked
+ * on a device: after declining, the test banner still loaded.
  *
  * It is separate from the app's own "Personalized ads" answer on purpose. The form is Google's record
  * of what the user agreed to for Google's purposes and vendors; the switch is the app's, age-gated
@@ -24,9 +30,11 @@ interface AdConsent {
     /**
      * Whether the ad SDK may be asked for an ad, as the form last left it. The first condition on
      * every request, and a flow because it changes while the app runs: the form is answered after the
-     * app has started, and the user can withdraw from it later.
+     * app has started, and the user can change their answer later.
      *
-     * False until the form has answered, and false on a target with no form — the safe direction.
+     * False until the user has dealt with the form, whichever way they answered it — agreeing and
+     * declining both make it true, and what they chose is Google's to act on (limited ads for a
+     * decline). False on a target with no form — the safe direction.
      */
     val canRequestAds: StateFlow<Boolean>
 

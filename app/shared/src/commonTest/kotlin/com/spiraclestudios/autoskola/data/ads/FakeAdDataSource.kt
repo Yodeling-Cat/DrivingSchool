@@ -38,6 +38,14 @@ class FakeAdDataSource(
         loaded = null
     }
 
+    /** How many times the SDK was started. */
+    var initializations = 0
+        private set
+
+    override suspend fun initialize() {
+        initializations++
+    }
+
     /** Every value [setAudience] was handed, in order. */
     val audiences = mutableListOf<AdAudience>()
 

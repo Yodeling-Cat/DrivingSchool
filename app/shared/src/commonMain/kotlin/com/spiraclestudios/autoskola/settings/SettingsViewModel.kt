@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val language: AppLanguage,
@@ -64,6 +65,12 @@ data class SettingsUiState(
      * the answer itself.
      */
     val confirmingAge: AgeBand? = null,
+    /**
+     * Whether to offer a way back into Google's consent form. Only where Google shows one — the EEA,
+     * the UK and Switzerland — so a user elsewhere is never shown a row about a form that does not
+     * exist for them.
+     */
+    val adPrivacyOptionsRequired: Boolean = false,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -128,6 +135,9 @@ sealed interface SettingsUiEvent {
     /** Backing out of that question: the answer is not given and nothing changes. */
     data object DismissAgeConfirmation : SettingsUiEvent
 
+    /** The user wants to review what they agreed to in Google's consent form, and the form is shown. */
+    data object OpenAdPrivacyOptions : SettingsUiEvent
+
     /**
      * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
      * the platform, so the press is a side effect the screen performs and this only records it.
@@ -157,7 +167,7 @@ class SettingsViewModel(
             exams.current,
             identifierCopied,
             analytics.deviceIdentifier,
-            ageConfirmation,
+            combine(ageConfirmation, ads.privacyOptionsRequired, ::Extras),
             ::state,
         )
             .stateIn(
@@ -168,7 +178,7 @@ class SettingsViewModel(
                     CurrentExam.Loading,
                     identifierCopied = false,
                     deviceIdentifier = analytics.deviceIdentifier.value,
-                    confirmingAge = null,
+                    extras = Extras(confirmingAge = null, adPrivacyOptionsRequired = ads.privacyOptionsRequired.value),
                 ),
             )
 
@@ -258,6 +268,8 @@ class SettingsViewModel(
 
             SettingsUiEvent.DismissAgeConfirmation -> ageConfirmation.value = null
 
+            SettingsUiEvent.OpenAdPrivacyOptions -> viewModelScope.launch { ads.showPrivacyOptions() }
+
             SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
         }
     }
@@ -272,6 +284,9 @@ class SettingsViewModel(
     private fun answerTheAgeQuestion(band: AgeBand) {
         preferences.setAgeBand(band)
         syncGates()
+        // The form asks different things of different ages, so it is asked again: somebody who has just
+        // turned 16 is no longer one it leaves alone, and is shown it now rather than at the next launch.
+        viewModelScope.launch { ads.refreshConsent() }
     }
 
     /**
@@ -301,7 +316,7 @@ class SettingsViewModel(
         exam: CurrentExam,
         identifierCopied: Boolean,
         deviceIdentifier: String?,
-        confirmingAge: AgeBand?,
+        extras: Extras,
     ) = SettingsUiState(
         language = preferences.language,
         checkAnswersImmediately = preferences.checkAnswersImmediately,
@@ -315,6 +330,13 @@ class SettingsViewModel(
         appVersion = version,
         deviceIdentifier = deviceIdentifier,
         deviceIdentifierCopied = identifierCopied,
-        confirmingAge = confirmingAge,
+        confirmingAge = extras.confirmingAge,
+        adPrivacyOptionsRequired = extras.adPrivacyOptionsRequired,
     )
 }
+
+/**
+ * The two answers about a dialog and a row that are not preferences, held together so the state is
+ * built from one value rather than from a flow each.
+ */
+private data class Extras(val confirmingAge: AgeBand?, val adPrivacyOptionsRequired: Boolean)

@@ -10,8 +10,9 @@ import com.spiraclestudios.autoskola.premium.PremiumRules
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -19,16 +20,20 @@ import kotlinx.coroutines.withContext
 /**
  * Whether an ad may be asked for at all, and when one is due.
  *
- * Two questions, and every request goes through both in this order:
+ * Three questions, and every request goes through all of them in this order:
  *
- * 1. **The entitlement** ([PremiumRepository]) - nobody who has paid for the ads to stop gets one.
- * 2. **The frequency** ([AdRules]) - every tenth practice test, and never more often than that.
+ * 1. **Google's consent form** ([AdConsent]) - the form has said ads may be requested. In the EEA, the
+ *    UK and Switzerland that means the user agreed to it, because Google serves nothing worth having
+ *    without a certified form; elsewhere the form has nothing to ask and says yes.
+ * 2. **The entitlement** ([PremiumRepository]) - nobody who has paid for the ads to stop gets one.
+ * 3. **The frequency** ([AdRules]) - every tenth practice test, and never more often than that.
  *
- * **Consent is not on that list, because it does not decide whether an ad is shown.** Ads are what
- * pays for the app, so every user who has not paid for them to stop is shown them; what the user's
- * answer decides is the *kind*: a personalized ad if they agreed to that, a generic one if they did
- * not or are too young for the agreement to count ([personalizedAds]). That is a setting on the SDK
- * rather than a gate in front of it, which is why it is pushed ([pushConsent]) instead of checked.
+ * **The user's own answer is not on that list, because it does not decide whether an ad is shown.**
+ * Ads are what pays for the app, so every user who has not paid for them to stop, and whom the form
+ * allows, is shown them; what the user's answer decides is the *kind*: a personalized ad if they
+ * agreed to that, a generic one if they did not or are too young for the agreement to count
+ * ([personalizedAds]). That is a setting on the SDK rather than a gate in front of it, which is why it
+ * is pushed ([pushConsent]) instead of checked.
  *
  * The entitlement is read at the moment of each request rather than remembered from when something
  * was loaded, which is why [showTestOfferAd] throws away a preloaded ad it turns out it may no longer
@@ -39,6 +44,7 @@ class AdRepository(
     private val preferences: PreferencesRepository,
     private val premium: PremiumRepository,
     private val settings: Settings,
+    private val consent: AdConsent,
 ) {
 
     /**
@@ -56,7 +62,14 @@ class AdRepository(
      * What a banner placement follows: Premium can be bought while a screen is open, and a placement
      * drawn from a snapshot would keep showing an ad the user had just paid to be rid of.
      */
-    val adsAllowed: Flow<Boolean> = premium.entitlement.map(::allowed).distinctUntilChanged()
+    val adsAllowed: Flow<Boolean> =
+        combine(premium.entitlement, consent.canRequestAds, ::allowed).distinctUntilChanged()
+
+    /**
+     * Whether the user must be offered a way back into Google's consent form, which Google requires
+     * wherever it shows one. What Settings draws its "ad privacy options" row from.
+     */
+    val privacyOptionsRequired: StateFlow<Boolean> get() = consent.privacyOptionsRequired
 
     /**
      * The same answer, read once: what the request paths below ask before asking the SDK anything.
@@ -65,16 +78,16 @@ class AdRepository(
      * question a caller that is about to act needs answered now, and the flow is the one a screen
      * drawing itself needs to follow.
      */
-    fun mayRequestAds(): Boolean = allowed(premium.entitlement.value)
+    fun mayRequestAds(): Boolean = allowed(premium.entitlement.value, consent.canRequestAds.value)
 
     /**
-     * The one place the two conditions are put together: the target can serve ads at all, and nobody
-     * has paid for them to stop. The user's answer about personalization is not one of them - it
-     * changes what is requested, not whether anything is.
+     * The one place the conditions are put together: the target can serve ads at all, Google's form
+     * has said they may be requested, and nobody has paid for them to stop. The user's answer about
+     * personalization is not one of them - it changes what is requested, not whether anything is.
      */
-    private fun allowed(entitlement: PremiumStatus): Boolean {
+    private fun allowed(entitlement: PremiumStatus, canRequestAds: Boolean): Boolean {
         val paid = PremiumRules.isUnlocked(PremiumFeature.NoAds, entitlement)
-        return dataSource.available && !paid
+        return dataSource.available && canRequestAds && !paid
     }
 
     /**
@@ -115,6 +128,41 @@ class AdRepository(
         dataSource.setAudience(audience())
         dataSource.setPersonalizedAds(personalizedAds())
     }
+
+    /**
+     * Gets the ads ready for this launch: asks Google's consent form what it needs for this user, shows
+     * it if it is required, and starts the SDK if the answer is that ads may be requested.
+     *
+     * Called once the user has been through the app's own consent screen — never before, so nobody is
+     * asked about ads before the app has said what it is — and again when something that changes what
+     * the form asks has changed ([refreshConsent]). Nothing here is needed for a user who has paid for
+     * the ads to stop, or on a target that cannot serve them, so neither is asked a question with no
+     * consequence.
+     */
+    suspend fun prepare() {
+        pushConsent()
+        if (!dataSource.available || paid()) return
+        consent.gather(audience())
+        startIfAllowed()
+    }
+
+    /**
+     * Asks again after the age answer has changed, because it changes what the form says to do: a user
+     * who has just turned 16 is no longer one to leave unasked, and the form is shown to them now.
+     */
+    suspend fun refreshConsent() = prepare()
+
+    /** Reopens Google's form so the user can change what they agreed to, and starts the SDK if that now allows it. */
+    suspend fun showPrivacyOptions() {
+        consent.showPrivacyOptions()
+        startIfAllowed()
+    }
+
+    private suspend fun startIfAllowed() {
+        if (mayRequestAds()) dataSource.initialize()
+    }
+
+    private fun paid(): Boolean = PremiumRules.isUnlocked(PremiumFeature.NoAds, premium.entitlement.value)
 
     /**
      * Whether the offer is due before the next test: every tenth one, unless it has already been

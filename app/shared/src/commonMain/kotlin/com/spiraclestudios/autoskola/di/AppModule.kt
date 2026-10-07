@@ -3,8 +3,10 @@ package com.spiraclestudios.autoskola.di
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.data.ads.AdConsent
 import com.spiraclestudios.autoskola.data.ads.AdDataSource
 import com.spiraclestudios.autoskola.data.ads.AdRepository
+import com.spiraclestudios.autoskola.data.ads.platformAdConsent
 import com.spiraclestudios.autoskola.data.ads.platformAdDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
@@ -59,6 +61,9 @@ val appModule = module {
     // Android answers Google's SDK, which falls back to the no-op source until the entry point has
     // handed over an application; iOS and the web answer the no-op one outright.
     single<AdDataSource> { platformAdDataSource() }
+    // Google's consent form: the first condition on every ad request. Android answers Google's form;
+    // iOS and the web answer one that asks for nothing.
+    single<AdConsent> { platformAdConsent() }
 
     // Repositories
     single { AttemptRepository(get()) }
@@ -71,7 +76,7 @@ val appModule = module {
     single { ExamRepository(get(), get(), get(), get()) }
     // The store is not wired up yet, so this answers from one flag in code; see `plans/premium.md`.
     single { PremiumRepository() }
-    single { AdRepository(get(), get(), get(), get()) }
+    single { AdRepository(get(), get(), get(), get(), get()) }
 
     // Navigation
     single { navigationState(get()) }

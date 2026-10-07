@@ -484,6 +484,43 @@ class SettingsViewModelTest : ViewModelTest() {
         assertEquals(AgeBand.Under16, repositories.preferences.preferences.value.ageBand)
     }
 
+    // ── Google's consent form ──
+
+    @Test
+    fun theWayBackIntoTheFormIsOfferedOnlyWhereTheFormExists() = runTest {
+        val state = observe(viewModel.uiState)
+        assertFalse(state.value.adPrivacyOptionsRequired)
+
+        val where = TestRepositories().apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.C))
+            adConsent.privacyOptions(required = true)
+        }
+        val model = SettingsViewModel(where.preferences, where.exams, where.analytics, where.ads)
+        val shown = observe(model.uiState)
+
+        assertTrue(shown.value.adPrivacyOptionsRequired)
+    }
+
+    @Test
+    fun openingThePrivacyOptionsReopensTheForm() = runTest {
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.OpenAdPrivacyOptions)
+
+        assertEquals(1, repositories.adConsent.privacyOptionsShown)
+    }
+
+    @Test
+    fun turningOlderAsksTheFormAgainForTheNewAudience() = runTest {
+        repositories.preferences.setAgeBand(AgeBand.From16To17)
+        observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.SetAgeBand(AgeBand.Adult))
+        viewModel.onEvent(SettingsUiEvent.ConfirmAgeBand)
+
+        assertEquals(listOf(AdAudience.Adult), repositories.adConsent.gathered)
+    }
+
     @Test
     fun turningPersonalizationOffAsksNothingAndTakesEffectAtOnce() = runTest {
         // Analytics has to be on for the record of a change to be sent at all, which is all

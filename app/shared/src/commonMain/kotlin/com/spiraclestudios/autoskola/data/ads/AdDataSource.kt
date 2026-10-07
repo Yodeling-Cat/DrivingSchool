@@ -34,6 +34,14 @@ interface AdDataSource {
     suspend fun discard()
 
     /**
+     * Starts the SDK. Called by [AdRepository] only once the consent form has said ads may be
+     * requested, because Google wants the SDK started after consent and not before it, and more than
+     * once is harmless: a second call finds it running. It has a body because a target with no SDK has
+     * nothing to start.
+     */
+    suspend fun initialize() = Unit
+
+    /**
      * Tells the SDK who the ads are for ([AdAudience]): under the age of consent, a teenager, or an
      * adult. Google requires the under-age flag to be in place before anything is requested for such a
      * user, and the content rating follows the band too. Only the app knows the answer, so

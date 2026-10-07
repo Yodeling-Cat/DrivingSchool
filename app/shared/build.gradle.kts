@@ -66,6 +66,7 @@ kotlin {
             // The ads SDK is Android only. iOS and the web targets have no implementation of their
             // own yet - they answer `NoOpAdDataSource` - which is `plans/ads.md` step 13.
             implementation(libs.play.services.ads)
+            implementation(libs.play.services.ump)
         }
         commonMain.dependencies {
             api(projects.core)

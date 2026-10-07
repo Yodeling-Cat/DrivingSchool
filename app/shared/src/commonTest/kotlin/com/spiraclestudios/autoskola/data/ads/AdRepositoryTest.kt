@@ -34,11 +34,12 @@ class AdRepositoryTest {
         val preferences: PreferencesRepository,
         val entitlement: PremiumRepository,
         val settings: Settings,
+        val consent: FakeAdConsent,
     ) {
-        val ads = AdRepository(dataSource, preferences, entitlement, settings)
+        val ads = AdRepository(dataSource, preferences, entitlement, settings, consent)
 
-        /** The app restarted: same storage, same store, fresh repository. */
-        fun restarted() = AdRepository(dataSource, PreferencesRepository(settings), entitlement, settings)
+        /** The app restarted: same storage, same store, same consent, fresh repository. */
+        fun restarted() = AdRepository(dataSource, PreferencesRepository(settings), entitlement, settings, consent)
     }
 
     private fun fixture(
@@ -47,6 +48,10 @@ class AdRepositoryTest {
         personalizedAds: Boolean = true,
         premium: PremiumStatus = PremiumStatus.Free,
         settings: Settings = MapSettings(),
+        // Google's form says ads may be requested unless a test is about it saying otherwise.
+        canRequestAds: Boolean = true,
+        privacyOptionsRequired: Boolean = false,
+        answerOnGather: Boolean = canRequestAds,
         // 16 or older unless a test says otherwise: the answer, the entitlement and the frequency are
         // all settled by an adult, and the age rule itself is in `ConsentAgeTest`. The age is written
         // before the answer, so a test can build the state an older install arrives in — the switch
@@ -62,6 +67,7 @@ class AdRepositoryTest {
         },
         entitlement = PremiumRepository(premium),
         settings = settings,
+        consent = FakeAdConsent(canRequestAds, privacyOptionsRequired, answerOnGather),
     )
 
     // --- the user's answer --------------------------------------------------
@@ -115,6 +121,130 @@ class AdRepositoryTest {
         assertFalse(fixture.ads.mayRequestAds())
         assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
         assertEquals(emptyList(), fixture.dataSource.preloaded)
+    }
+
+    // --- Google's consent form ----------------------------------------------
+
+    @Test
+    fun nothingIsAskedForUntilTheFormSaysAdsMayBeRequested() = runTest {
+        val fixture = fixture(canRequestAds = false)
+
+        // The form is the first condition on every request, whatever else is true: in the EEA nothing
+        // is worth requesting without it, and nothing may be.
+        assertFalse(fixture.ads.mayRequestAds())
+        assertFalse(fixture.ads.shouldOfferTest(9))
+        assertEquals(AdResult.Unavailable, fixture.ads.showTestOfferAd(9))
+        assertEquals(AdResult.Unavailable, fixture.ads.showClosingAd(3))
+        assertEquals(emptyList(), fixture.dataSource.shown)
+        assertEquals(emptyList(), fixture.dataSource.preloaded)
+    }
+
+    @Test
+    fun theFormAnsweringMidSessionIsFollowedByThePlacements() = runTest {
+        val fixture = fixture(canRequestAds = false)
+        assertEquals(false, fixture.ads.adsAllowed.first())
+
+        fixture.consent.answer(canRequestAds = true)
+        assertEquals(true, fixture.ads.adsAllowed.first())
+
+        // And withdrawing from it later takes them away again, which is what the form promises.
+        fixture.consent.answer(canRequestAds = false)
+        assertEquals(false, fixture.ads.adsAllowed.first())
+        assertFalse(fixture.ads.mayRequestAds())
+    }
+
+    @Test
+    fun preparingAsksTheFormForThisAudienceAndThenStartsTheSdk() = runTest {
+        val fixture = fixture(canRequestAds = false, answerOnGather = true, ageBand = AgeBand.From16To17)
+
+        fixture.ads.prepare()
+
+        assertEquals(listOf(AdAudience.Teen), fixture.consent.gathered)
+        assertEquals(1, fixture.dataSource.initializations)
+        assertTrue(fixture.ads.mayRequestAds())
+    }
+
+    @Test
+    fun theSdkIsNotStartedWhenTheUserDeclinedTheForm() = runTest {
+        val fixture = fixture(canRequestAds = false, answerOnGather = false)
+
+        fixture.ads.prepare()
+
+        assertEquals(listOf(AdAudience.Adult), fixture.consent.gathered)
+        // Google wants the SDK started after consent and not before it.
+        assertEquals(0, fixture.dataSource.initializations)
+        assertFalse(fixture.ads.mayRequestAds())
+    }
+
+    @Test
+    fun aChildIsAskedForTheFormAsAChild() = runTest {
+        // The form itself does not ask a user under the age of consent anything; it only has to be told.
+        val fixture = fixture(ageBand = AgeBand.Under16)
+
+        fixture.ads.prepare()
+
+        assertEquals(listOf(AdAudience.Child), fixture.consent.gathered)
+    }
+
+    @Test
+    fun aUserWhoHasPaidIsNeverAskedAQuestionWithNoConsequence() = runTest {
+        val fixture = fixture(canRequestAds = false, premium = PremiumStatus.Premium(PurchaseSource.Play))
+
+        fixture.ads.prepare()
+
+        assertEquals(emptyList(), fixture.consent.gathered)
+        assertEquals(0, fixture.dataSource.initializations)
+    }
+
+    @Test
+    fun aTargetThatCannotServeAdsNeverShowsTheForm() = runTest {
+        val fixture = fixture(available = false, canRequestAds = false)
+
+        fixture.ads.prepare()
+
+        assertEquals(emptyList(), fixture.consent.gathered)
+        assertEquals(0, fixture.dataSource.initializations)
+    }
+
+    @Test
+    fun preparingPushesWhatTheSdkNeedsToKnowBeforeAnythingIsAsked() = runTest {
+        val fixture = fixture(personalizedAds = true, ageBand = AgeBand.Adult)
+
+        fixture.ads.prepare()
+
+        assertEquals(AdAudience.Adult, fixture.dataSource.audiences.last())
+        assertEquals(true, fixture.dataSource.personalizedAds.last())
+    }
+
+    @Test
+    fun theFormIsAskedAgainWhenTheAgeAnswerChanges() = runTest {
+        val fixture = fixture(ageBand = AgeBand.Under16)
+        fixture.ads.prepare()
+
+        fixture.preferences.setAgeBand(AgeBand.Adult)
+        fixture.ads.refreshConsent()
+
+        // Somebody who has just turned 18 is no longer one to leave unasked.
+        assertEquals(listOf(AdAudience.Child, AdAudience.Adult), fixture.consent.gathered)
+    }
+
+    @Test
+    fun reopeningThePrivacyOptionsRestartsAdsIfTheUserNowAllowsThem() = runTest {
+        val fixture = fixture(canRequestAds = false, privacyOptionsRequired = true)
+        fixture.consent.answerOnPrivacyOptions = true
+
+        assertTrue(fixture.ads.privacyOptionsRequired.value)
+        fixture.ads.showPrivacyOptions()
+
+        assertEquals(1, fixture.consent.privacyOptionsShown)
+        assertTrue(fixture.ads.mayRequestAds())
+        assertEquals(1, fixture.dataSource.initializations)
+    }
+
+    @Test
+    fun theWayBackIntoTheFormIsOfferedOnlyWhereTheFormExists() = runTest {
+        assertFalse(fixture().ads.privacyOptionsRequired.value)
+        assertTrue(fixture(privacyOptionsRequired = true).ads.privacyOptionsRequired.value)
     }
 
     // --- entitlement --------------------------------------------------------

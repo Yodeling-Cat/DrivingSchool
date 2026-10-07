@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.preferences.CURRENT_LEGAL_VERSION
@@ -11,7 +12,10 @@ import com.spiraclestudios.autoskola.i18n.AppLanguage
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /** Which part of the app is shown. Inside [Exam], the navigation back stack takes over. */
 enum class AppDestination { Loading, Disclaimer, Consent, ChooseExam, Exam }
@@ -24,8 +28,29 @@ sealed interface AppUiEvent {
 
 data class AppUiState(val language: AppLanguage, val destination: AppDestination)
 
-/** Decides what the app shows at the top level: onboarding until it's done, then the exam. */
-class AppViewModel(private val preferences: PreferencesRepository, exams: ExamRepository) : ViewModel() {
+/**
+ * Decides what the app shows at the top level: onboarding until it's done, then the exam.
+ *
+ * It also starts the ads, once onboarding is over: Google's consent form is shown after the app's own
+ * consent screen and never before it, so nobody is asked about ads before the app has said what it is.
+ */
+class AppViewModel(
+    private val preferences: PreferencesRepository,
+    exams: ExamRepository,
+    private val ads: AdRepository,
+) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            // Wait for the documents to be accepted at their current version - at once for a returning
+            // user, after the consent screen for a new one - and then get the ads ready. Every launch
+            // does it, because Google's answer can expire and its vendor list changes.
+            preferences.preferences
+                .map { it.legalAcceptedVersion >= CURRENT_LEGAL_VERSION }
+                .first { it }
+            ads.prepare()
+        }
+    }
 
     /**
      * Whether the exam has been shown at least once. Choosing another exam (settings → change exam)

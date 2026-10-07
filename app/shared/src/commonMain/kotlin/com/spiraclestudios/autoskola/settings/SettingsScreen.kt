@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Policy
+import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -256,6 +257,21 @@ fun SettingsScreen(
                         iconBackground = colors.mintGlow,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetPersonalizedAds(it)) },
                     )
+                    // Google requires a way back into its consent form wherever it shows one, so the row
+                    // exists only where the form does. It opens the form rather than answering anything
+                    // here: what the user agreed to there is Google's record, not one of the app's.
+                    if (state.adPrivacyOptionsRequired) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                        SettingsNavRow(
+                            title = strings.settingsAdPrivacyOptions,
+                            subtitle = strings.settingsAdPrivacyOptionsDescription,
+                            onClick = { onEvent(SettingsUiEvent.OpenAdPrivacyOptions) },
+                            leading = {
+                                SettingsRowIcon(Icons.Outlined.PrivacyTip, colors.primaryDeep, colors.mintGlow)
+                            },
+                            shape = RectangleShape,
+                        )
+                    }
                 }
 
                 SectionLabel(strings.settingsApp, Modifier.padding(start = 6.dp))
@@ -714,6 +730,15 @@ private fun SettingsScreenUnder16AgreedPreview() {
 private fun SettingsScreenTeenPreview() {
     AppPreview {
         SettingsAgeBoard(previewPrivacyState.copy(ageBand = AgeBand.From16To17, crashReportingEnabled = true))
+    }
+}
+
+/** Where Google shows its consent form, Settings carries the way back into it, as the card's last row. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenAdPrivacyOptionsPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(adPrivacyOptionsRequired = true))
     }
 }
 

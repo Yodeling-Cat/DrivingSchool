@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
 class AppViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
-    private fun viewModel() = AppViewModel(repositories.preferences, repositories.exams)
+    private fun viewModel() = AppViewModel(repositories.preferences, repositories.exams, repositories.ads)
 
     /** The app over two banks, so the exam can be moved from one to another, neither read yet. */
     private val exams = ExamRepository(
@@ -42,6 +42,41 @@ class AppViewModelTest : ViewModelTest() {
         val state = observe(viewModel().uiState)
 
         assertEquals(AppDestination.Disclaimer, state.value.destination)
+    }
+
+    // ── Google's consent form comes after the app's own ──
+
+    @Test
+    fun theAdsAreNotPreparedWhileTheUserIsStillOnboarding() = runTest {
+        val viewModel = viewModel()
+        observe(viewModel.uiState)
+
+        // Neither the disclaimer nor the consent screen has been through, so nobody has been told what
+        // the app is yet, and Google's form must not be the first thing they are asked.
+        assertEquals(emptyList(), repositories.adConsent.gathered)
+        viewModel.onEvent(AppUiEvent.DisclaimerRead)
+        assertEquals(emptyList(), repositories.adConsent.gathered)
+    }
+
+    @Test
+    fun theAdsArePreparedOnceTheDocumentsAreAccepted() = runTest {
+        val viewModel = viewModel()
+        observe(viewModel.uiState)
+
+        repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+
+        assertEquals(1, repositories.adConsent.gathered.size)
+        assertEquals(1, repositories.adDataSource.initializations)
+    }
+
+    @Test
+    fun aReturningUserHasTheirAdsPreparedAtOnce() = runTest {
+        repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
+
+        observe(viewModel().uiState)
+
+        // Every launch asks, because Google's answer can expire and its vendor list changes.
+        assertEquals(1, repositories.adConsent.gathered.size)
     }
 
     @Test
@@ -105,7 +140,7 @@ class AppViewModelTest : ViewModelTest() {
     fun changingTheExamNeverLeavesIt() = runTest {
         repositories.preferences.acceptLegal(CURRENT_LEGAL_VERSION)
         repositories.preferences.select(TestSelection("sk-sk", LicenseCategory.B))
-        val viewModel = AppViewModel(repositories.preferences, exams)
+        val viewModel = AppViewModel(repositories.preferences, exams, repositories.ads)
         val seen = mutableListOf<AppDestination>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.uiState.collect { seen += it.destination }

@@ -59,6 +59,9 @@ class Strings(
     val consentAgeUnder16Reason: String,
     /** Why the personalized-ads switch is locked for anyone under 18, whatever else they may answer. */
     val consentPersonalizedAdsUnder18Reason: String,
+    /** The way back into Google's consent form, drawn only where Google shows one. */
+    val settingsAdPrivacyOptions: String,
+    val settingsAdPrivacyOptionsDescription: String,
     val consentParentalConsent: String,
     /** The question behind the one press that unlocks switches: [age] is the band's lower bound, 16 or 18. */
     val settingsAgeConfirmTitle: (age: Int) -> String,
@@ -386,6 +389,9 @@ private val EnglishStrings = Strings(
     consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
         "can agree on your behalf.",
     consentPersonalizedAdsUnder18Reason = "Personalized ads are for people 18 or older. You will see generic ads.",
+    settingsAdPrivacyOptions = "Ad privacy choices",
+    settingsAdPrivacyOptionsDescription = "Review or change what you agreed to in Google's consent " +
+        "form.",
     consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
     settingsAgeConfirmTitle = { "Have you turned $it?" },
     settingsAgeConfirmMessage = "Answering yes unlocks more of the switches below, so please answer " +
@@ -615,6 +621,9 @@ private val SlovakStrings = Strings(
         "môže urobiť len rodič alebo zákonný zástupca.",
     consentPersonalizedAdsUnder18Reason = "Personalizované reklamy sú pre osoby od 18 rokov. Zobrazia sa vám " +
         "všeobecné reklamy.",
+    settingsAdPrivacyOptions = "Voľby súkromia pri reklamách",
+    settingsAdPrivacyOptionsDescription = "Skontrolujte alebo zmeňte, s čím ste súhlasili vo " +
+        "formulári súhlasu spoločnosti Google.",
     consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
     settingsAgeConfirmTitle = { "Máte už $it rokov?" },
     settingsAgeConfirmMessage = "Odpoveďou áno sa odomknú ďalšie prepínače nižšie, preto odpovedzte áno " +
@@ -845,6 +854,9 @@ private val HungarianStrings = Strings(
         "szülő vagy gondviselő teheti meg.",
     consentPersonalizedAdsUnder18Reason = "A személyre szabott reklámok 18 éves kortól érhetők el. Általános " +
         "reklámokat fog látni.",
+    settingsAdPrivacyOptions = "Hirdetési adatvédelmi beállítások",
+    settingsAdPrivacyOptionsDescription = "Tekintse át vagy módosítsa, amibe a Google hozzájárulási " +
+        "űrlapján beleegyezett.",
     consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
     settingsAgeConfirmTitle = { "Már betöltötte a $it. életévét?" },
     settingsAgeConfirmMessage = "Ha igennel válaszol, további kapcsolók nyílnak ki lent, ezért csak " +
@@ -1076,6 +1088,9 @@ private val CzechStrings = Strings(
     consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
         "udělat jen rodič nebo zákonný zástupce.",
     consentPersonalizedAdsUnder18Reason = "Personalizované reklamy jsou od 18 let. Zobrazí se vám obecné reklamy.",
+    settingsAdPrivacyOptions = "Možnosti soukromí u reklam",
+    settingsAdPrivacyOptionsDescription = "Zkontrolujte nebo změňte, s čím jste souhlasili ve " +
+        "formuláři souhlasu společnosti Google.",
     consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",
     settingsAgeConfirmTitle = { "Už je vám $it let?" },
     settingsAgeConfirmMessage = "Odpovědí ano se odemknou další přepínače níže, proto odpovězte ano jen " +

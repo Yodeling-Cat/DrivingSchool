@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.testing
 import com.russhwolf.settings.MapSettings
 import com.spiraclestudios.autoskola.bank.QuestionBank
 import com.spiraclestudios.autoskola.data.ads.AdRepository
+import com.spiraclestudios.autoskola.data.ads.FakeAdConsent
 import com.spiraclestudios.autoskola.data.ads.FakeAdDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.RecordingAnalyticsDataSource
@@ -80,7 +81,10 @@ class TestRepositories(bank: QuestionBank = testBank(), ageBand: AgeBand? = AgeB
      * only the second is what these tests are about.
      */
     val adDataSource = FakeAdDataSource()
-    val ads = AdRepository(adDataSource, preferences, premium, settings)
+
+    /** Google's consent form, answering that ads may be requested: the gate is shut only where a test says so. */
+    val adConsent = FakeAdConsent()
+    val ads = AdRepository(adDataSource, preferences, premium, settings, adConsent)
 
     /** What the tests asserted was sent, and the consent gate in front of it. */
     val analyticsSink = RecordingAnalyticsDataSource()

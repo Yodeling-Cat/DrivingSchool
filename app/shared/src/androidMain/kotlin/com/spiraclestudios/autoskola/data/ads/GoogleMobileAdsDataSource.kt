@@ -10,7 +10,10 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.spiraclestudios.autoskola.currentActivity
 import com.spiraclestudios.autoskola.isDebugBuild
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 /**
@@ -32,6 +35,9 @@ import kotlin.coroutines.resume
 class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
 
     override val available: Boolean = true
+
+    /** Whether the SDK has been started, so asking twice starts it once. */
+    private val started = AtomicBoolean(false)
 
     /** The slot whose ad is loaded and ready, if any. */
     private var loaded: Pair<AdSlot, InterstitialAd>? = null
@@ -72,6 +78,15 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
 
     override suspend fun discard() {
         loaded = null
+    }
+
+    /**
+     * Off the main thread, as Google asks: starting the SDK reads configuration and can block. The
+     * flag makes a second call a no-op, so the repository may call this at every opportunity.
+     */
+    override suspend fun initialize() {
+        if (!started.compareAndSet(false, true)) return
+        withContext(Dispatchers.Default) { MobileAds.initialize(context) }
     }
 
     /** A load that answers `null` rather than throwing: no fill is an answer, not a failure. */

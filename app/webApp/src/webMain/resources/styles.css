@@ -4,4 +4,7 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    /* The app's paper, so the first paint and everything the app doesn't cover looks like the app
+       rather than the browser's white or a dark-mode canvas. */
+    background: #FFF8EE;
 }

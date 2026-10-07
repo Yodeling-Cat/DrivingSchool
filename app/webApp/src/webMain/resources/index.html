@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+      The app draws one palette and it is a light one (see NajAutoskolaTheme in the shared module), so
+      the browser is told not to go dark behind it. "only light" is what forbids it: plain "light"
+      still lets a browser in dark mode repaint the page itself (Chrome's auto dark turns it black),
+      where "only" rules that out, and the canvas, the scrollbars and our controls stay light.
+      theme-color tints the browser's own chrome - the address bar, and the status bar area above it
+      on a phone - with the paper the app opens on. A dark palette would have to follow here too.
+    -->
+    <meta name="color-scheme" content="only light">
+    <meta name="theme-color" content="#FFF8EE">
     <title>Naj Autoškola</title>
     <link type="text/css" rel="stylesheet" href="styles.css">
 </head>

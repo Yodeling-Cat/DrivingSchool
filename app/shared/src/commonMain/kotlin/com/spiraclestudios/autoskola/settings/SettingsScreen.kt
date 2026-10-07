@@ -200,6 +200,8 @@ fun SettingsScreen(
                         AgeAnswerRow(
                             answer = state.ageBand,
                             onAnswer = { onEvent(SettingsUiEvent.SetAgeBand(it)) },
+                            // Nobody gets younger: a 16 or 17-year-old is not offered "under 16".
+                            options = state.ageOptions,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         )
                         // Only an under-16 is told why the first two switches are locked: from 16 they are

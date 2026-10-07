@@ -34,9 +34,16 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  *
  * @param answer `null` until the user says, which is what the screen draws first — and while it is
  *   `null` the consent card is closed and its buttons are dead, so the question is the whole screen.
+ * @param options the bands offered, lowest first. All three on the consent screen; Settings passes only
+ *   the user's own band and the ones above it, because nobody gets younger.
  */
 @Composable
-fun AgeAnswerRow(answer: AgeBand?, onAnswer: (AgeBand) -> Unit, modifier: Modifier = Modifier) {
+fun AgeAnswerRow(
+    answer: AgeBand?,
+    onAnswer: (AgeBand) -> Unit,
+    modifier: Modifier = Modifier,
+    options: List<AgeBand> = AgeBand.entries,
+) {
     val colors = Naj.colors
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -53,17 +60,19 @@ fun AgeAnswerRow(answer: AgeBand?, onAnswer: (AgeBand) -> Unit, modifier: Modifi
         ) {
             // The chosen one is the filled pill, so the answer reads at a glance; the others stay
             // pressable, because changing an answer has to be as easy as giving one.
-            AgePill(text = strings.consentAgeUnder16, chosen = answer == AgeBand.Under16) {
-                onAnswer(AgeBand.Under16)
-            }
-            AgePill(text = strings.consentAgeTeen, chosen = answer == AgeBand.From16To17) {
-                onAnswer(AgeBand.From16To17)
-            }
-            AgePill(text = strings.consentAgeAdult, chosen = answer == AgeBand.Adult) {
-                onAnswer(AgeBand.Adult)
+            options.forEach { band ->
+                AgePill(text = band.label(), chosen = answer == band) { onAnswer(band) }
             }
         }
     }
+}
+
+/** The words on the band's pill. */
+@Composable
+private fun AgeBand.label(): String = when (this) {
+    AgeBand.Under16 -> strings.consentAgeUnder16
+    AgeBand.From16To17 -> strings.consentAgeTeen
+    AgeBand.Adult -> strings.consentAgeAdult
 }
 
 /** One of the answers. Filled when chosen, outlined when not, and never disabled. */
@@ -103,6 +112,19 @@ private fun AgeAnswerRowAnsweredPreview() {
             PreviewLabel("18 or older")
             AgeAnswerRow(answer = AgeBand.Adult, onAnswer = {})
         }
+    }
+}
+
+/** What a 16 or 17-year-old is offered: their own band and the one above it, and no way back down. */
+@Preview(widthDp = 400)
+@Composable
+private fun AgeAnswerRowTeenOptionsPreview() {
+    AppPreview {
+        AgeAnswerRow(
+            answer = AgeBand.From16To17,
+            onAnswer = {},
+            options = listOf(AgeBand.From16To17, AgeBand.Adult),
+        )
     }
 }
 

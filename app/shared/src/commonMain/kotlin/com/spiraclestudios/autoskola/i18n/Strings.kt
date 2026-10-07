@@ -382,7 +382,7 @@ private val EnglishStrings = Strings(
     consentAgeQuestion = "How old are you?",
     consentAgeUnder16 = "Under 16",
     consentAgeTeen = "16–17",
-    consentAgeAdult = "18 or older",
+    consentAgeAdult = "18+",
     consentAgeUnder16Reason = "Under 16 you cannot agree to these yourself: only a parent or guardian " +
         "can agree on your behalf.",
     consentPersonalizedAdsUnder18Reason = "Personalized ads are for people 18 or older. You will see generic ads.",
@@ -610,7 +610,7 @@ private val SlovakStrings = Strings(
     consentAgeQuestion = "Koľko máte rokov?",
     consentAgeUnder16 = "Menej ako 16",
     consentAgeTeen = "16 – 17",
-    consentAgeAdult = "18 rokov alebo viac",
+    consentAgeAdult = "18+",
     consentAgeUnder16Reason = "Kým nemáte 16 rokov, nemôžete s tým súhlasiť sami: vo vašom mene tak " +
         "môže urobiť len rodič alebo zákonný zástupca.",
     consentPersonalizedAdsUnder18Reason = "Personalizované reklamy sú pre osoby od 18 rokov. Zobrazia sa vám " +
@@ -840,7 +840,7 @@ private val HungarianStrings = Strings(
     consentAgeQuestion = "Hány éves?",
     consentAgeUnder16 = "16 év alatti",
     consentAgeTeen = "16–17",
-    consentAgeAdult = "18 éves vagy idősebb",
+    consentAgeAdult = "18+",
     consentAgeUnder16Reason = "16 év alatt ezekhez nem tud egyedül hozzájárulni: Ön helyett ezt csak " +
         "szülő vagy gondviselő teheti meg.",
     consentPersonalizedAdsUnder18Reason = "A személyre szabott reklámok 18 éves kortól érhetők el. Általános " +
@@ -1072,7 +1072,7 @@ private val CzechStrings = Strings(
     consentAgeQuestion = "Kolik vám je let?",
     consentAgeUnder16 = "Méně než 16",
     consentAgeTeen = "16–17",
-    consentAgeAdult = "18 let nebo více",
+    consentAgeAdult = "18+",
     consentAgeUnder16Reason = "Pod 16 let s tím nemůžete souhlasit sami: ve vašem jménu to může " +
         "udělat jen rodič nebo zákonný zástupce.",
     consentPersonalizedAdsUnder18Reason = "Personalizované reklamy jsou od 18 let. Zobrazí se vám obecné reklamy.",

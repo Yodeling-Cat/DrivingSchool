@@ -96,6 +96,13 @@ data class SettingsUiState(
      */
     val canCorrectAge: Boolean get() = ageBand == AgeBand.Under16 || ageBand == AgeBand.From16To17
 
+    /**
+     * The answers the age row offers: the band the user is in and every band above it, never one
+     * below. Somebody who is 16 does not become 15 again, so "under 16" is not offered to them, and
+     * [SettingsUiEvent.SetAgeBand] refuses it as well as the row hiding it.
+     */
+    val ageOptions: List<AgeBand> get() = AgeBand.entries.filter { ageBand == null || it.ordinal >= ageBand.ordinal }
+
     /** Whether the user is under 16, which is when the reason the switches are locked is drawn. */
     val underConsentAge: Boolean get() = ageBand == AgeBand.Under16
 }
@@ -109,8 +116,9 @@ sealed interface SettingsUiEvent {
     data class SetPersonalizedAds(val enabled: Boolean) : SettingsUiEvent
 
     /**
-     * Which age band the user is in, changed here when they have a birthday or answered wrongly. A
-     * higher band is asked about before it counts; a lower one takes answers away and counts at once.
+     * Which age band the user is in, changed here when they have a birthday. A higher band is asked
+     * about before it counts. A lower one is refused: nobody gets younger, and an answer that took
+     * switches away would be a way to withdraw them by mistake.
      */
     data class SetAgeBand(val band: AgeBand) : SettingsUiEvent
 
@@ -229,14 +237,16 @@ class SettingsViewModel(
             is SettingsUiEvent.SetAgeBand -> {
                 val current = preferences.preferences.value.ageBand
                 when {
-                    event.band == current -> Unit
+                    // Nothing to change, and nothing to ask: the same band, or a question that has not
+                    // been answered, which the consent screen makes sure cannot be reached from here.
+                    current == null || event.band == current -> Unit
 
                     // A higher band unlocks switches in one press and the app has no way to check the
                     // answer, so it asks first. Nothing is written while the question is on screen.
-                    current == null || current.rises(event.band) -> ageConfirmation.value = event.band
+                    current.rises(event.band) -> ageConfirmation.value = event.band
 
-                    // A lower band takes answers away and needs no question.
-                    else -> answerTheAgeQuestion(event.band)
+                    // A lower band is refused. The row does not offer it either; this is the rule.
+                    else -> Unit
                 }
             }
 
@@ -256,23 +266,11 @@ class SettingsViewModel(
      * Records the age answer and everything that follows from it.
      *
      * No analytics event: the age band is not something the app sends, and the documents list what is
-     * sent. Under 16 withdraws all three answers exactly as it does on the consent screen, and 16 to
-     * 17 withdraws the personalized-ads one — they are not that user's to give, and leaving them on
-     * behind a locked row would keep answers the app may not act on. Moving up changes none of them.
+     * sent. Only ever a *higher* band, so it takes no answer away: moving up changes none of them, and
+     * the app never fills one in either.
      */
     private fun answerTheAgeQuestion(band: AgeBand) {
         preferences.setAgeBand(band)
-        when (band) {
-            AgeBand.Under16 -> {
-                preferences.setCrashReportingEnabled(false)
-                preferences.setAnalyticsEnabled(false)
-                preferences.setPersonalizedAdsEnabled(false)
-            }
-
-            AgeBand.From16To17 -> preferences.setPersonalizedAdsEnabled(false)
-
-            AgeBand.Adult -> Unit
-        }
         syncGates()
     }
 

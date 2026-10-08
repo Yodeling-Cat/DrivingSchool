@@ -2,6 +2,9 @@ package com.spiraclestudios.autoskola.screenstate
 
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import com.russhwolf.settings.MapSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,14 +15,24 @@ class StoredSaveableStateTest {
 
     @Test
     fun aScreenComesBackToWhereItWasLeft() {
-        val state = StoredSaveableState(RecordingStorage(mapOf("scroll" to listOf(1200))), platform = null)
+        val state =
+            StoredSaveableState(
+                RecordingStorage(mapOf("scroll" to listOf(1200))),
+                platform = null,
+                writer = Dispatchers.Unconfined,
+            )
 
         assertEquals(1200, state.consumeRestored("scroll"))
     }
 
     @Test
     fun aValueIsRestoredOnlyOnce() {
-        val state = StoredSaveableState(RecordingStorage(mapOf("scroll" to listOf(1200))), platform = null)
+        val state =
+            StoredSaveableState(
+                RecordingStorage(mapOf("scroll" to listOf(1200))),
+                platform = null,
+                writer = Dispatchers.Unconfined,
+            )
 
         assertEquals(1200, state.consumeRestored("scroll"))
         assertNull(state.consumeRestored("scroll"))
@@ -28,7 +41,7 @@ class StoredSaveableStateTest {
     @Test
     fun aPositionThatChangesIsWrittenOnTheNextSave() {
         val storage = RecordingStorage()
-        val state = StoredSaveableState(storage, platform = null)
+        val state = StoredSaveableState(storage, platform = null, writer = Dispatchers.Unconfined)
         var scroll = 0
         state.registerProvider("scroll") { scroll }
 
@@ -41,9 +54,26 @@ class StoredSaveableStateTest {
     }
 
     @Test
+    fun theStateIsTakenAtTheSaveAndWrittenOnTheWriter() = runTest {
+        // Asking the screens for their state has to happen where they live, on the main thread; turning
+        // it into text and writing it does not, so the main thread hands that to the writer.
+        val storage = RecordingStorage()
+        val state = StoredSaveableState(storage, platform = null, writer = StandardTestDispatcher(testScheduler))
+        var scroll = 300
+        state.registerProvider("scroll") { scroll }
+
+        state.save()
+        scroll = 900
+
+        assertEquals(0, storage.writes)
+        testScheduler.advanceUntilIdle()
+        assertEquals(mapOf("scroll" to listOf(300)), storage.state)
+    }
+
+    @Test
     fun aStateThatHasNotChangedIsNotWrittenAgain() {
         val storage = RecordingStorage(mapOf("scroll" to listOf(1200)))
-        val state = StoredSaveableState(storage, platform = null)
+        val state = StoredSaveableState(storage, platform = null, writer = Dispatchers.Unconfined)
         state.registerProvider("scroll") { 1200 }
 
         state.save()
@@ -58,7 +88,7 @@ class StoredSaveableStateTest {
         // compares unequal while the state it describes is the same. What is compared is what the
         // storage is given - the text - so a screen doesn't rewrite the whole state every moment.
         val storage = RecordingStorage()
-        val state = StoredSaveableState(storage, platform = null)
+        val state = StoredSaveableState(storage, platform = null, writer = Dispatchers.Unconfined)
         state.registerProvider("backStack") { listOf(mapOf("the platform's own saved state" to Any())) }
         state.registerProvider("scroll") { 1200 }
 
@@ -75,7 +105,7 @@ class StoredSaveableStateTest {
         // the test behind it is still loading. A save in that moment must not take it away.
         val stored = mapOf<String, List<Any?>>("practice" to listOf(listOf(11, 0f, 40)))
         val storage = RecordingStorage(stored)
-        val state = StoredSaveableState(storage, platform = null)
+        val state = StoredSaveableState(storage, platform = null, writer = Dispatchers.Unconfined)
 
         state.save()
 
@@ -89,7 +119,7 @@ class StoredSaveableStateTest {
         // it; leaving it out costs the screen nothing that was ever kept there.
         val settings = MapSettings()
         val storage = StoredScreenState(settings)
-        val state = StoredSaveableState(storage, platform = null)
+        val state = StoredSaveableState(storage, platform = null, writer = Dispatchers.Unconfined)
 
         assertTrue(state.canBeSaved(Any()))
         state.registerProvider("pager") { listOf(11, 0f, 40) }
@@ -103,7 +133,7 @@ class StoredSaveableStateTest {
     fun whatTheRegistryAboveCanKeepIsGivenToItAsWell() {
         // Android's saved instance state keeps what it always kept, so nothing is lost by this.
         val platform = RecordingRegistry()
-        val state = StoredSaveableState(RecordingStorage(), platform)
+        val state = StoredSaveableState(RecordingStorage(), platform, writer = Dispatchers.Unconfined)
 
         val entry = state.registerProvider("scroll") { 1200 }
 
@@ -117,7 +147,7 @@ class StoredSaveableStateTest {
     @Test
     fun whatTheRegistryAboveCannotKeepIsNotForcedOnIt() {
         val platform = RecordingRegistry(keep = { false })
-        val state = StoredSaveableState(RecordingStorage(), platform)
+        val state = StoredSaveableState(RecordingStorage(), platform, writer = Dispatchers.Unconfined)
 
         state.registerProvider("scroll") { 1200 }
 
@@ -130,7 +160,7 @@ class StoredSaveableStateTest {
         // moment behind it, so what the platform has is the fresher one.
         val platform = RecordingRegistry(restored = mapOf("pager" to listOf(listOf(4, 0f, 40))))
         val stored = mapOf<String, List<Any?>>("pager" to listOf(listOf(11, 0f, 40)))
-        val state = StoredSaveableState(RecordingStorage(stored), platform)
+        val state = StoredSaveableState(RecordingStorage(stored), platform, writer = Dispatchers.Unconfined)
 
         assertEquals(4, (state.consumeRestored("pager") as List<*>).first())
     }
@@ -139,7 +169,7 @@ class StoredSaveableStateTest {
     fun aValueNothingKeepsIsStillTaken() {
         // With no registry above it there is nowhere to hand a value to, and refusing it would
         // crash the screen holding it - which is what the platform registry would do anyway.
-        val state = StoredSaveableState(RecordingStorage(), platform = null)
+        val state = StoredSaveableState(RecordingStorage(), platform = null, writer = Dispatchers.Unconfined)
 
         assertTrue(state.canBeSaved(Any()))
         state.registerProvider("bundle") { Any() }

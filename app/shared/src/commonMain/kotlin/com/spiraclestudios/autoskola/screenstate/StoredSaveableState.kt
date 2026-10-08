@@ -8,10 +8,21 @@ import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** How long the state is left to settle after it changes before it is written. */
 private const val WRITE_DELAY_MILLIS = 500L
+
+/**
+ * Where the screens' state is turned into text and written: off the main thread, one save at a time.
+ * A browser has one thread, so there it is the main one, a moment later.
+ */
+private val ScreenStateWriter: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1)
 
 /**
  * Keeps what `rememberSaveable` holds - the question a test was on, how far a screen was scrolled,
@@ -29,11 +40,23 @@ private const val WRITE_DELAY_MILLIS = 500L
  * registry holds is also preferred when a screen asks for its state back, for the same reason:
  * [storage] is written a moment behind it. What neither can keep is left out of [storage] by
  * [ScreenStateText] rather than refused, so a value that cannot be written can never fail a screen.
+ *
+ * A save is split in two. The screens are asked for their state on the thread they live on, the
+ * main one, because that is where their state changes. Turning it into text, comparing it with the
+ * last write and writing it happens on [writer], one save at a time and in the order they were made,
+ * so the main thread only pays for the asking.
  */
 internal class StoredSaveableState(
     private val storage: ScreenStateStorage,
     private val platform: SaveableStateRegistry?,
+    writer: CoroutineDispatcher,
 ) : SaveableStateRegistry {
+
+    /**
+     * Where the saves are written. Not tied to a composition: a save made as the app leaves the
+     * front is written even when the screens are gone by the time it gets its turn.
+     */
+    private val writes = CoroutineScope(SupervisorJob() + writer)
 
     /** What the storage held, kept here as the screens take it up. */
     private val stored: Map<String, List<Any?>> = storage.read()
@@ -43,7 +66,7 @@ internal class StoredSaveableState(
 
     /**
      * What was written last, as the text that was written: what is compared is what [storage] is
-     * given, not the values behind it. Compose's own savers hand over a fresh object each time they
+     * given, not the values behind it. Only ever touched on [writes]. Compose's own savers hand over a fresh object each time they
      * are asked (Navigation 3's screens do), so the values compare unequal from one moment to the
      * next while the state they describe is the same - and the state would be written every time.
      */
@@ -68,11 +91,16 @@ internal class StoredSaveableState(
     override fun performSave(): Map<String, List<Any?>> = saved.performSave()
 
     /**
-     * Writes what the screens hold now, if it differs from the last write: a screen's position
-     * settles as the driver works, so writing on every change would write it over and over.
+     * Takes what the screens hold now and has [writer] write it, if it differs from the last write: a
+     * screen's position settles as the driver works, so writing on every change would write it over
+     * and over. Called on the main thread, where the screens' state lives.
      */
     fun save() {
         val state = performSave()
+        writes.launch { writeIfChanged(state) }
+    }
+
+    private fun writeIfChanged(state: Map<String, List<Any?>>) {
         val text = ScreenStateText.write(state)
         if (text == written) return
         written = text
@@ -102,7 +130,7 @@ internal class StoredSaveableState(
 @Composable
 fun ProvideStoredScreenState(storage: ScreenStateStorage, content: @Composable () -> Unit) {
     val platform = LocalSaveableStateRegistry.current
-    val state = remember(storage) { StoredSaveableState(storage, platform) }
+    val state = remember(storage) { StoredSaveableState(storage, platform, ScreenStateWriter) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { state.save() }
     LaunchedEffect(state) {
         while (true) {

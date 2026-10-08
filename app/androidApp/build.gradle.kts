@@ -183,6 +183,15 @@ android {
             // has something to send (docs/error-reporting.md). R8 rewrites the app's own frames,
             // which is why proguard-rules.pro exists.
             isMinifyEnabled = true
+            // Drops resources nothing references, which only works once R8 has removed the code
+            // that used them.
+            isShrinkResources = true
+            // Native libraries come from dependencies (the ads SDK, for one) and arrive stripped,
+            // so Play warns that the bundle has no debug symbols. The symbol table is what is left
+            // to extract from them, and it makes native crash reports show function names.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

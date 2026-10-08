@@ -17,7 +17,7 @@ On Windows, use the PowerShell version:
 ./tools/screenshots/take-screenshots.ps1
 ```
 
-One run builds the app, takes 14 screenshots on the phone and 12 on each tablet, and pulls them to the
+One run builds the app, takes 14 screenshots on the phone and on the 7-inch tablet and 12 on the 10-inch tablet, and pulls them to the
 computer. When the build is already done, this takes about 5 minutes, most of it booting the tablets.
 
 To take only some of them:
@@ -103,7 +103,7 @@ store-screenshots/
       03-practice.png
       04-situation.png
       05-results.png
-      06-practice-questions.png   (phone only)
+      06-practice-questions.png   (phone and 7-inch tablet)
       07-signs.png
     en/
       …
@@ -146,11 +146,14 @@ The script does not check the phone screenshots.
 | `03-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on both tablets. |
 | `04-situation.png`            | Intersection situation 27, with its questions answered correctly.       |
 | `05-results.png`              | The results of test 3: passed, with three wrong answers.                |
-| `06-practice-questions.png`   | Phone only. Test 23 with the question list open.                        |
+| `06-practice-questions.png`   | Phone and 7-inch tablet. Test 23 with the question list open.          |
 | `07-signs.png`                | The road signs.                                                         |
 
-The tablets have no `06-practice-questions.png`. On a tablet the question list is always shown beside
-the question, so `03-practice.png` already shows it.
+The 10-inch tablet has no `06-practice-questions.png`. The app shows the question list as a panel
+beside the question when the screen is at least 840 dp wide and 480 dp high, so on the 10-inch tablet
+in landscape `03-practice.png` already shows it. On the phone and on the 7-inch tablet in portrait, the
+list is a sheet that opens over the question, so it gets a screenshot of its own. The test uses the same
+rule to decide.
 
 ### The test history
 

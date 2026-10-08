@@ -74,6 +74,16 @@ class StoreScreenshots {
     /** The app's own line between a phone and a tablet layout (`ui/Adaptive.kt`). */
     private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
 
+    /**
+     * Whether the practice screen's question list is a sheet over the questions rather than a panel
+     * beside them: the practice screen's own rule, which gives it a panel only on an Expanded width
+     * (840 dp, `ui/Adaptive.kt`) that is not also a Compact height (480 dp). A phone and the 7-inch
+     * tablet in portrait have a sheet; the 10-inch tablet in landscape has a panel.
+     */
+    private val questionListIsASheet = context.resources.configuration.let {
+        it.screenWidthDp < 840 || it.screenHeightDp < 480
+    }
+
     /** On the device's shared storage, where `adb pull` can reach it without root. */
     private val output = File(context.getExternalFilesDir(null), OUTPUT_DIRECTORY)
 
@@ -117,9 +127,9 @@ class StoreScreenshots {
                 // On top of its own test, which is where the app puts it.
                 Target("home/practice/$id/results/$id", waitFor = strings.reviewAnswers)
             }
-            // The list covers most of a phone's screen, which makes it a picture of its own; on a
-            // tablet it is a column beside the question, already in the practice screenshot.
-            if (!isTablet) {
+            // Where the list is a sheet it covers the question when open, which makes it a picture of its
+            // own; where it is a panel beside the question, the practice screenshot already shows it.
+            if (questionListIsASheet) {
                 capture(
                     language,
                     "06-practice-questions",

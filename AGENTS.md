@@ -213,6 +213,7 @@ The README has the canonical commands; key ones:
 - Web (JS, dev): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
 - Server: `./gradlew :server:run`
 - iOS: open `app/iosApp/` in Xcode and run.
+- Store screenshots: `./tools/screenshots/take-screenshots.sh` (or `.ps1`) runs the `StoreScreenshots` instrumented test on a phone and a tablet emulator and pulls the PNGs into the git-ignored `store-screenshots/` (see `docs/store-screenshots.md`). It is the only instrumented test, and `connectedAndroidTest` skips it. A new screen in the listing gets a `capture` call there.
 
 On Windows use `gradlew.bat` (e.g. `.\gradlew.bat :server:run`).
 

@@ -29,3 +29,6 @@ node_modules/
 tools/import/.venv/
 tools/import/cache/
 __pycache__/
+
+# Store listing screenshots, pulled from the emulators by tools/screenshots/take-screenshots
+/store-screenshots/

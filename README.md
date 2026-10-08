@@ -166,6 +166,8 @@ GitHub Actions runs on every push to `main` and on every pull request:
 - [Importing questions](docs/importing-questions.md): how to run the importer and publish a new bank
   version.
 - [Error reporting](docs/error-reporting.md): crash-report symbolication on each platform.
+- [Store screenshots](docs/store-screenshots.md): taking the store listing's screenshots on a phone
+  and a tablet emulator.
 - [AGENTS.md](AGENTS.md): the full engineering conventions for this repository.
 
 ## Roadmap

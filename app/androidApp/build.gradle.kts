@@ -84,7 +84,24 @@ dependencies {
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
     debugImplementation(libs.leakcanary.android)
+
+    // The store screenshots (`tools/screenshots/`). The only instrumented test, and not part of any
+    // test run: see `storeScreenshotAnnotation` below.
+    androidTestImplementation(libs.androidx.testRunner)
+    androidTestImplementation(libs.androidx.testExt.junit)
+    androidTestImplementation(libs.androidx.uiautomator)
+    androidTestImplementation(project.dependencies.platform(libs.koin.bom))
+    androidTestImplementation(libs.koin.core)
+    androidTestImplementation(libs.multiplatformSettings)
+    androidTestImplementation(libs.kotlinx.coroutines.core)
 }
+
+/**
+ * Marks the store-screenshot test, which `connectedAndroidTest` leaves out: it takes minutes, needs
+ * an emulator per screen size, and checks nothing. `tools/screenshots/take-screenshots` runs it by
+ * class with `am instrument`, which does not pass this filter.
+ */
+val storeScreenshotAnnotation = "com.spiraclestudios.autoskola.screenshots.StoreScreenshot"
 
 /** The application id a released build ships under. */
 val releaseApplicationId = "com.spiraclestudios.autoskola"
@@ -122,6 +139,9 @@ android {
         versionName = rootProject.version.toString()
         // The demo id here, and the real one in the release build type below.
         manifestPlaceholders["admobAppId"] = demoAdMobAppId
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["notAnnotation"] = storeScreenshotAnnotation
     }
     packaging {
         resources {

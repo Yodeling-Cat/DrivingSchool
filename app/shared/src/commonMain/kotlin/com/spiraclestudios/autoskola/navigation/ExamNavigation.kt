@@ -6,6 +6,8 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -103,10 +105,22 @@ private val navConfiguration = SavedStateConfiguration {
     }
 }
 
-/** Switching tabs is instant, like the bars themselves; other screens use the slide below. */
+/** How long switching tabs takes: a quick cross-fade, well under the slide's [SCREEN_SLIDE_MILLIS]. */
+private const val TAB_FADE_MILLIS = 200
+
+/**
+ * Switching tabs cross-fades; other screens use the slide below. Each tab draws its own bar, so only
+ * the screen on top fades - in over the old tab when one is picked, out over the tests when going
+ * back to them - and the other stays opaque underneath. Fading both would let the page show through
+ * the bar halfway; this way the bar stays put and only its active tab changes.
+ *
+ * Navigation 3 takes these from whichever screen is on top, so they only play between two tabs:
+ * opening or leaving any other screen from a tab still slides.
+ */
 private val tabMetadata =
-    NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
-        NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
+    NavDisplay.transitionSpec {
+        fadeIn(tween(TAB_FADE_MILLIS)) togetherWith ExitTransition.KeepUntilTransitionsFinished
+    } + NavDisplay.popTransitionSpec { EnterTransition.None togetherWith fadeOut(tween(TAB_FADE_MILLIS)) }
 
 /** How long a screen takes to come in or leave. */
 private const val SCREEN_SLIDE_MILLIS = 300

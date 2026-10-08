@@ -25,6 +25,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -125,7 +126,10 @@ fun FeedbackScreen(
     // The device is named in it whether or not it would be in a mail (a browser's user has no switch
     // to ask, see below), and the identifier is there when what is being written is a request about
     // the reader's own data.
-    val details = feedbackDetails(strings, state.device, state.appVersion, state.identifierToSend)
+    val words = strings
+    val details = remember(words, state.device, state.appVersion, state.identifierToSend) {
+        feedbackDetails(words, state.device, state.appVersion, state.identifierToSend)
+    }
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             Box(
@@ -153,10 +157,12 @@ fun FeedbackScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(strings.feedbackIntro, style = Naj.type.body, color = colors.muted)
-                        KindPicker(state, onEvent)
+                        // Each part is handed only what it draws, so typing - a new state with every
+                        // letter - recomposes the field being typed in and nothing else.
+                        KindPicker(state.kind, hasIdentifier = state.deviceIdentifier != null, onEvent)
                         if (state.hasEmailApp) {
-                            MessageField(state, onEvent)
-                            DeviceInfoRow(state, onEvent)
+                            MessageField(state.message, state.kind, state.messageMissing, onEvent)
+                            DeviceInfoRow(state.includeDeviceInfo, onEvent)
                         } else {
                             // No field at all in a browser: the report is written in the mail app
                             // the user already has open, and a field here would only be a place to
@@ -192,7 +198,7 @@ fun FeedbackScreen(
                             .fillMaxWidth()
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp + LocalNavBarInset.current),
                     ) {
-                        SendButton(state, onSend)
+                        SendButton(noEmailApp = state.noEmailApp, onSend = onSend)
                     }
                 }
             }
@@ -226,23 +232,23 @@ private fun FeedbackHeader(onBack: () -> Unit) {
  * an email that cannot be matched to anything.
  */
 @Composable
-private fun KindPicker(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> Unit) {
+private fun KindPicker(kind: FeedbackKind, hasIdentifier: Boolean, onEvent: (FeedbackUiEvent) -> Unit) {
     val colors = Naj.colors
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            KindPill(strings.feedbackKindFeedback, state.kind == FeedbackKind.Feedback) {
+            KindPill(strings.feedbackKindFeedback, kind == FeedbackKind.Feedback) {
                 onEvent(FeedbackUiEvent.SetKind(FeedbackKind.Feedback))
             }
-            KindPill(strings.feedbackKindPrivacyRequest, state.kind == FeedbackKind.PrivacyRequest) {
+            KindPill(strings.feedbackKindPrivacyRequest, kind == FeedbackKind.PrivacyRequest) {
                 onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
             }
         }
-        if (state.kind == FeedbackKind.PrivacyRequest) {
+        if (kind == FeedbackKind.PrivacyRequest) {
             Text(
-                text = if (state.deviceIdentifier == null) {
-                    strings.feedbackPrivacyRequestNoIdentifier
-                } else {
+                text = if (hasIdentifier) {
                     strings.feedbackPrivacyRequestNote
+                } else {
+                    strings.feedbackPrivacyRequestNoIdentifier
                 },
                 style = Naj.type.rowSubtitle,
                 color = colors.muted,
@@ -268,7 +274,13 @@ private fun KindPill(text: String, selected: Boolean, onClick: () -> Unit) {
  * reach only the users who can see it, and the announcement is what reaches the rest.
  */
 @Composable
-private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> Unit) {
+private fun MessageField(
+    message: String,
+    kind: FeedbackKind,
+    /** A press found nothing written, which the field is marked with until the next thing typed. */
+    messageMissing: Boolean,
+    onEvent: (FeedbackUiEvent) -> Unit,
+) {
     val colors = Naj.colors
     // Read out here: the semantics block below is not a composable scope.
     val missingMessage = strings.feedbackMessageMissing
@@ -280,7 +292,7 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
                     .heightIn(min = 180.dp)
                     .padding(16.dp)
                     .semantics {
-                        if (state.messageMissing) {
+                        if (messageMissing) {
                             // `this.` on purpose: `error` alone would be ambiguous with
                             // kotlin.error, which throws instead.
                             this.error(missingMessage)
@@ -288,11 +300,11 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
                         }
                     },
             ) {
-                if (state.message.isEmpty()) {
+                if (message.isEmpty()) {
                     Text(
                         // The same field, asked differently: a report says what happened, a request
                         // says what the reader wants done.
-                        text = if (state.kind == FeedbackKind.PrivacyRequest) {
+                        text = if (kind == FeedbackKind.PrivacyRequest) {
                             strings.feedbackRequestHint
                         } else {
                             strings.feedbackMessageHint
@@ -302,7 +314,7 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
                     )
                 }
                 BasicTextField(
-                    value = state.message,
+                    value = message,
                     onValueChange = { onEvent(FeedbackUiEvent.Write(it)) },
                     textStyle = Naj.type.option.copy(color = colors.ink),
                     cursorBrush = SolidColor(colors.primaryDeep),
@@ -310,7 +322,7 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
                 )
             }
         }
-        if (state.messageMissing) {
+        if (messageMissing) {
             Spacer(Modifier.height(8.dp))
             // In the same color as the mark, for anyone the mark alone does not reach.
             Text(
@@ -329,19 +341,19 @@ private fun MessageField(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> U
  * send something they were not told about.
  */
 @Composable
-private fun DeviceInfoRow(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> Unit) {
+private fun DeviceInfoRow(includeDeviceInfo: Boolean, onEvent: (FeedbackUiEvent) -> Unit) {
     val colors = Naj.colors
     NajCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onEvent(FeedbackUiEvent.IncludeDeviceInfo(!state.includeDeviceInfo)) }
+                .clickable { onEvent(FeedbackUiEvent.IncludeDeviceInfo(!includeDeviceInfo)) }
                 .padding(start = 8.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Checkbox(
-                checked = state.includeDeviceInfo,
+                checked = includeDeviceInfo,
                 onCheckedChange = { onEvent(FeedbackUiEvent.IncludeDeviceInfo(it)) },
                 colors = CheckboxDefaults.colors(
                     checkedColor = colors.primaryDeep,
@@ -364,7 +376,11 @@ private fun DeviceInfoRow(state: FeedbackUiState, onEvent: (FeedbackUiEvent) -> 
 
 /** The press that opens the email app, and what the screen says when there was none to open. */
 @Composable
-private fun SendButton(state: FeedbackUiState, onSend: () -> Unit) {
+private fun SendButton(
+    /** The last press found no email app to open, which the button says under it. */
+    noEmailApp: Boolean,
+    onSend: () -> Unit,
+) {
     val colors = Naj.colors
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         PrimaryPill(
@@ -373,7 +389,7 @@ private fun SendButton(state: FeedbackUiState, onSend: () -> Unit) {
             height = 56.dp,
             fillWidth = true,
         )
-        if (state.noEmailApp) {
+        if (noEmailApp) {
             Spacer(Modifier.height(10.dp))
             // Read out here: the semantics block below is not a composable scope. And announced,
             // because the press that produced it left the focus up on the button.
@@ -682,14 +698,11 @@ private fun KindPickerPreview() {
     AppPreview {
         PreviewBoard {
             PreviewLabel("A report")
-            KindPicker(previewFeedback(), onEvent = {})
+            KindPicker(FeedbackKind.Feedback, hasIdentifier = false, onEvent = {})
             PreviewLabel("A request, with an identifier to quote")
-            KindPicker(
-                previewFeedback(kind = FeedbackKind.PrivacyRequest, deviceIdentifier = PREVIEW_IDENTIFIER),
-                onEvent = {},
-            )
+            KindPicker(FeedbackKind.PrivacyRequest, hasIdentifier = true, onEvent = {})
             PreviewLabel("A request, with no identifier to quote")
-            KindPicker(previewFeedback(kind = FeedbackKind.PrivacyRequest), onEvent = {})
+            KindPicker(FeedbackKind.PrivacyRequest, hasIdentifier = false, onEvent = {})
         }
     }
 }

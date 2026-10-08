@@ -12,6 +12,8 @@ import com.spiraclestudios.autoskola.MainActivity
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.bank.Question
+import com.spiraclestudios.autoskola.bank.QuestionBankInfo
+import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
@@ -22,17 +24,21 @@ import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import com.spiraclestudios.autoskola.di.appModule
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.navigation.StoredNavigationState
+import com.spiraclestudios.autoskola.onboarding.bankTitle
+import com.spiraclestudios.autoskola.onboarding.displayName
 import com.spiraclestudios.autoskola.provideApplication
 import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.stats.score
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import java.io.File
@@ -80,27 +86,25 @@ class StoreScreenshots {
 
     @Test
     fun takeStoreScreenshots() {
-        for ((language, bankId) in LANGUAGES) {
+        for (language in LANGUAGES) {
             val strings = language.strings
-            capture(language, bankId, "01-exam-selection", examChosen = false) {
-                Target(route = null, waitFor = strings.examSelectionCountrySubtitle)
-            }
-            capture(language, bankId, "02-signs") {
+            val exam = chooseExam(language)
+            capture(language, "02-signs", exam) {
                 Target("home/learn/signs", waitFor = strings.learnRoadSigns)
             }
-            capture(language, bankId, "03-situation") {
+            capture(language, "03-situation", exam) {
                 Target("home/learn/intersections/situation/1", waitFor = strings.situationName(1))
             }
-            capture(language, bankId, "04-home") { session ->
+            capture(language, "04-home", exam) { session ->
                 seedProgress(session!!)
                 Target("home", waitFor = strings.allTests)
             }
-            capture(language, bankId, "05-practice") { session ->
+            capture(language, "05-practice", exam) { session ->
                 val progress = seedProgress(session!!)
                 val id = progress.underWay.id
                 Target("home/practice/$id", waitFor = progress.nextQuestion.text.lineSequence().first().take(30))
             }
-            capture(language, bankId, "06-results") { session ->
+            capture(language, "06-results", exam) { session ->
                 val id = seedProgress(session!!).passed.id
                 // On top of its own test, which is where the app puts it.
                 Target("home/practice/$id/results/$id", waitFor = strings.reviewAnswers)
@@ -108,20 +112,63 @@ class StoreScreenshots {
         }
     }
 
+    /**
+     * Walks the exam selection the way a user would - [COUNTRY], then its exam in [language] - and
+     * takes the screenshot on its last page, where the license group is picked. Then it picks
+     * [CATEGORY] there and returns what the app stored, which is the exam every other screenshot in
+     * this language is taken with.
+     *
+     * The exam is in the app's language rather than in a language of its own, so a listing is in one
+     * language throughout. A language with no exam in [COUNTRY] fails the run here.
+     */
+    private fun chooseExam(language: AppLanguage): TestSelection {
+        val strings = language.strings
+        lateinit var bank: QuestionBankInfo
+        var chosen: TestSelection? = null
+        capture(
+            language,
+            "01-exam-selection",
+            exam = null,
+            beforeShot = {
+                tap(strings.countryName(COUNTRY))
+                tap(bankTitle(bank.language))
+                await(CATEGORY.displayName(bank.language))
+            },
+            afterShot = { koin ->
+                tap(CATEGORY.displayName(bank.language))
+                chosen = runBlocking {
+                    withTimeout(LOAD_TIMEOUT_MILLIS) {
+                        koin.get<PreferencesRepository>().preferences.mapNotNull { it.selection }.first()
+                    }
+                }
+            },
+        ) {
+            bank = get<QuestionBankRepository>().index()
+                .firstOrNull { it.country == COUNTRY && it.language == language.code }
+                ?: error("There is no $COUNTRY exam in ${language.nativeName} to take its screenshots with")
+            Target(route = null, waitFor = strings.countryName(COUNTRY))
+        }
+        return chosen!!
+    }
+
     /** Which screen to open, and a text that is on it once it has loaded. */
     private class Target(val route: String?, val waitFor: String)
 
     /**
      * Opens one screen from a clean start and saves what the device shows as
-     * `<language>/<name>.png`. [prepare] writes what the screen needs - given the exam, unless
-     * [examChosen] is false and the app is still asking for one - and says where to go.
+     * `<language>/<name>.png`.
+     *
+     * [prepare] writes what the screen needs and says where to go. It is given the session of [exam],
+     * or `null` while [exam] is `null` and the app is still asking for one. [beforeShot] runs once
+     * the screen is showing, to get it to the state to shoot, and [afterShot] while it is still open.
      */
     private fun capture(
         language: AppLanguage,
-        bankId: String,
         name: String,
-        examChosen: Boolean = true,
-        prepare: suspend (ExamSession?) -> Target,
+        exam: TestSelection?,
+        beforeShot: () -> Unit = {},
+        afterShot: (Koin) -> Unit = {},
+        prepare: suspend Koin.(ExamSession?) -> Target,
     ) {
         stopKoin()
         val settings = screenshotSettings(context)
@@ -138,26 +185,38 @@ class StoreScreenshots {
             preferences.selectLanguage(language)
             // The card asking for a rating would sit on top of the home screen.
             koin.get<ReviewRepository>().rated()
-            val session = if (examChosen) {
-                preferences.select(TestSelection(bankId, LicenseCategory.B))
+            val session = exam?.let {
+                preferences.select(it)
                 withTimeout(LOAD_TIMEOUT_MILLIS) {
                     koin.get<ExamRepository>().current.filterIsInstance<CurrentExam.Ready>().first().session
                 }
-            } else {
-                null
             }
-            prepare(session)
+            koin.prepare(session)
         }
         target.route?.let { StoredNavigationState(settings).record(it) }
 
         ActivityScenario.launch(MainActivity::class.java).use {
-            val shown = device.wait(Until.hasObject(By.text(containing(target.waitFor))), LOAD_TIMEOUT_MILLIS)
-            check(shown) { "$name (${language.code}): \"${target.waitFor}\" never appeared on screen" }
+            await(target.waitFor, "$name (${language.code})")
+            beforeShot()
             // The text is there; the pictures Coil loads, and the last frames of any animation, follow it.
             device.waitForIdle()
             Thread.sleep(SETTLE_MILLIS)
             save(language, name)
+            afterShot(koin)
         }
+    }
+
+    /** Waits until [text] is on screen; [what] names the screenshot in the failure. */
+    private fun await(text: String, what: String = "The screen") {
+        val shown = device.wait(Until.hasObject(By.text(containing(text))), LOAD_TIMEOUT_MILLIS)
+        check(shown) { "$what: \"$text\" never appeared on screen" }
+    }
+
+    /** Taps the element showing exactly [text], once it appears. */
+    private fun tap(text: String) {
+        val element = device.wait(Until.findObject(By.text(text)), LOAD_TIMEOUT_MILLIS)
+            ?: error("\"$text\" never appeared on screen to be tapped")
+        element.click()
     }
 
     private fun save(language: AppLanguage, name: String) {
@@ -222,11 +281,12 @@ class StoreScreenshots {
         Pattern.compile(".*" + Pattern.quote(text.trim()) + ".*", Pattern.CASE_INSENSITIVE or Pattern.DOTALL)
 
     private companion object {
-        /** The languages a listing is made in, each with the question bank shown under it. */
-        val LANGUAGES = listOf(
-            AppLanguage.Slovak to "sk-sk",
-            AppLanguage.English to "sk-en",
-        )
+        /** The languages a listing is made in. Each takes its exam in the same language (see [chooseExam]). */
+        val LANGUAGES = listOf(AppLanguage.Slovak, AppLanguage.English)
+
+        /** The country whose exam the screenshots show, and the license group picked for it. */
+        const val COUNTRY = "SK"
+        val CATEGORY = LicenseCategory.B
 
         /** Under the app's external files directory; `take-screenshots` pulls it from there. */
         const val OUTPUT_DIRECTORY = "store-screenshots"

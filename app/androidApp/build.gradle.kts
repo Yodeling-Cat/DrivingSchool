@@ -152,11 +152,32 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    // The upload key, which Play checks before it re-signs the app with its own. It comes from the
+    // environment so the keystore and its passwords never sit in the repo: the release workflow
+    // sets them from secrets, and a developer exports them in the shell. Without all of them the
+    // release build is simply left unsigned, as it is for anyone who has no key.
+    val uploadKeystore = System.getenv("AUTOSKOLA_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+    val uploadStorePassword = System.getenv("AUTOSKOLA_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+    val uploadKeyAlias = System.getenv("AUTOSKOLA_KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "upload"
+    val uploadKeyPassword = System.getenv("AUTOSKOLA_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+        ?: uploadStorePassword
+    val canSignRelease = uploadKeystore != null && uploadStorePassword != null
+    if (canSignRelease) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(uploadKeystore)
+                storePassword = uploadStorePassword
+                keyAlias = uploadKeyAlias
+                keyPassword = uploadKeyPassword
+            }
+        }
+    }
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = debugApplicationIdSuffix
         }
         getByName("release") {
+            if (canSignRelease) signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["admobAppId"] = releaseAdMobAppId
             // Release builds are minified, so the mapping file exists and PostHog's symbol upload
             // has something to send (docs/error-reporting.md). R8 rewrites the app's own frames,

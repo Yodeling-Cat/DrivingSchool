@@ -16,6 +16,8 @@ It writes:
   background when the home screen is dark.
 - ios/AppIcon-tinted.png: the same book in grays on black, which iOS 18 colors with the user's
   tint: the lighter a pixel, the more of the tint it takes.
+- in-app/rail_mark.png: the book alone, cropped to its edges, which the app draws at the top of its
+  navigation rail. 256 pixels wide covers the 48dp it is drawn at on a 4x screen with room to spare.
 
 The design has two colors, a yellow page and a coral cover, and the script tells them apart by
 their green channel, so a redesign in other colors needs the constants below changed.
@@ -35,6 +37,7 @@ YELLOW_GREEN = 198
 CORAL_WEIGHT = 0.45
 # How far into the book the anti-aliased edge against the white background reaches, in pixels.
 EDGE = 3
+RAIL_MARK_WIDTH = 256
 
 
 def weight(rgb):
@@ -135,6 +138,10 @@ def main():
     book = extract_book(Image.open(ROOT / "ios" / "AppIcon~ios-marketing.png"))
     book.save(ROOT / "ios" / "AppIcon-dark.png", optimize=True)
     tinted(book).save(ROOT / "ios" / "AppIcon-tinted.png", optimize=True)
+    mark = book.crop(book.getbbox())
+    mark = mark.resize((RAIL_MARK_WIDTH, round(mark.height * RAIL_MARK_WIDTH / mark.width)), Image.LANCZOS)
+    (ROOT / "in-app").mkdir(exist_ok=True)
+    mark.save(ROOT / "in-app" / "rail_mark.png", optimize=True)
     for density in sorted((ROOT / "android" / "res").glob("mipmap-*dpi")):
         foreground = Image.open(density / "ic_launcher_foreground.png")
         monochrome(foreground).save(density / "ic_launcher_monochrome.png", optimize=True)

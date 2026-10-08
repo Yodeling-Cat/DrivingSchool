@@ -42,7 +42,7 @@ import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
 import najautoskola.app.shared.generated.resources.Res
-import najautoskola.app.shared.generated.resources.app_icon
+import najautoskola.app.shared.generated.resources.rail_mark
 import org.jetbrains.compose.resources.painterResource
 
 /** The top-level destinations of the app bar. */
@@ -159,9 +159,9 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Image(
-            painterResource(Res.drawable.app_icon),
+            painterResource(Res.drawable.rail_mark),
             contentDescription = strings.appName,
-            modifier = Modifier.size(RailTileSize),
+            modifier = Modifier.width(RailTileSize),
         )
         NavTab.entries.forEach { tab ->
             val isActive = tab == selected

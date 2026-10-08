@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,7 +36,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,12 +46,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -109,6 +119,7 @@ import com.spiraclestudios.autoskola.ui.theme.paperBackground
 import com.spiraclestudios.autoskola.ui.theme.paperGlows
 import com.spiraclestudios.autoskola.ui.theme.rememberGrainShader
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.roundToInt
 
 // ── Measurements the design draws but the component kit doesn't name ──
 
@@ -139,6 +150,9 @@ private const val HOME_BANNER_KEY = "home-banner"
 
 /** The strip under the stuck banner that the tests fade out beneath. */
 private val StickyBannerGap = 12.dp
+
+/** The gap between the actions, the mistakes card and the banner in the wide layout's band. */
+private val BandGap = 12.dp
 
 /** The room the pane beside the overview band keeps on either side of its content. */
 private val PaneLeading = 16.dp
@@ -208,9 +222,20 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
     // Out here, not in the grid's item: the grid drops the item when it is scrolled off screen, and
     // the banner would go with it - a new request, an empty gap and a jump every time it came back.
     val banner = rememberAdBannerState(AdSlot.HomeBanner)
+    val grid = rememberLazyGridState()
+    // Stuck once the grid has scrolled past the banner's own place, so the tests are passing under it.
+    val bannerStuck by remember {
+        derivedStateOf {
+            val item = grid.layoutInfo.visibleItemsInfo.firstOrNull { it.key == HOME_BANNER_KEY }
+                ?: return@derivedStateOf false
+            grid.firstVisibleItemIndex > item.index ||
+                (grid.firstVisibleItemIndex == item.index && grid.firstVisibleItemScrollOffset > 0)
+        }
+    }
 
     LazyVerticalGrid(
         columns = columns,
+        state = grid,
         modifier = Modifier.fillMaxHeight().widthIn(max = ContentWidth.Narrow).fillMaxWidth(),
         contentPadding = PaddingValues(
             start = PagePadding,
@@ -251,7 +276,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         // header, so it scrolls up with the cards and then stays at the top of the screen while the
         // tests scroll beneath it.
         if (state.showAds) {
-            stickyHeader(key = HOME_BANNER_KEY) { StickyBanner(banner) }
+            stickyHeader(key = HOME_BANNER_KEY) { StickyBanner(banner, stuck = bannerStuck) }
         }
         state.rateCard?.let { card ->
             fullWidthItem {
@@ -285,30 +310,75 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
     // A phone held sideways, or a window whose pane is too narrow for the desktop's measurements,
     // gets this layout without them; see [twoPaneColumns] and [twoPaneResumeWide].
     val height = LocalHeightClass.current
+    // Remembered here rather than where the banner is drawn: it moves between two places in the band,
+    // and a banner remembered at one of them would be a new ad request every time it moved.
+    val banner = rememberAdBannerState(AdSlot.HomeBanner)
+    // What decides between the two places: how tall the band's window is, where the banner ends in the
+    // band's content, and how much room the mistakes card takes. See [bannerFitsUnderMistakes].
+    var viewportPx by remember { mutableIntStateOf(0) }
+    var bandContent by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var bannerBottomPx by remember { mutableIntStateOf(0) }
+    var mistakesHeightPx by remember { mutableIntStateOf(0) }
+    var bannerAboveMistakes by remember { mutableStateOf(false) }
+    val bandGapPx = with(LocalDensity.current) { BandGap.roundToPx() }
+    LaunchedEffect(viewportPx, bannerBottomPx, mistakesHeightPx) {
+        if (viewportPx > 0 && bannerBottomPx > 0) {
+            bannerAboveMistakes = !bannerFitsUnderMistakes(
+                bannerBottomPx = bannerBottomPx,
+                aboveMistakes = bannerAboveMistakes,
+                mistakesHeightPx = mistakesHeightPx,
+                gapPx = bandGapPx,
+                viewportPx = viewportPx,
+            )
+        }
+    }
+    val bannerSlot = @Composable {
+        if (state.showAds) {
+            AdBanner(
+                banner,
+                Modifier.onGloballyPositioned { coordinates ->
+                    val content = bandContent ?: return@onGloballyPositioned
+                    if (!content.isAttached) return@onGloballyPositioned
+                    val top = content.localPositionOf(coordinates, Offset.Zero).y
+                    bannerBottomPx = (top + coordinates.size.height).roundToInt()
+                },
+            )
+        }
+    }
 
     Row(Modifier.widthIn(max = ContentWidth.Wide).fillMaxHeight()) {
         Column(
             modifier = Modifier
                 .width(HomeBandWidth)
                 .fillMaxHeight()
+                .onSizeChanged { viewportPx = it.height }
                 .verticalScroll(rememberScrollState())
+                // The scrolled content, so a position measured against it does not move with scrolling.
+                .onPlaced { bandContent = it }
                 .padding(horizontal = 24.dp, vertical = 36.dp),
         ) {
             ScreenHeader(trailing = { ExamPill(state.exam, onChangeExam) })
             Spacer(Modifier.height(20.dp))
             LicenseCard(totalTests = tests.size, progress = progress)
             Spacer(Modifier.height(28.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(BandGap)) {
                 ActionRow(
                     tests = tests,
                     notPassedEnabled = state.hasNotPassedTests,
                     onEvent = onEvent,
                     stacked = true,
                 )
-                MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
-                // This layout gets the banner too, under the same card. The two are the same screen
-                // drawn for different windows, so a placement in one is a placement in both.
-                if (state.showAds) AdBanner(AdSlot.HomeBanner)
+                // This layout gets the banner too, under the same card - or above it where under it the
+                // banner would be cut off at the bottom of the window, as on a 7-inch tablet on its side.
+                // The two are the same screen drawn for different windows, so a placement in one is a
+                // placement in both.
+                if (bannerAboveMistakes) bannerSlot()
+                MistakesCard(
+                    count = progress.mistakeCount,
+                    onClick = { onEvent(HomeUiEvent.PracticeMistakes) },
+                    modifier = Modifier.onSizeChanged { mistakesHeightPx = it.height },
+                )
+                if (!bannerAboveMistakes) bannerSlot()
                 state.rateCard?.let { card ->
                     RateCard(
                         card = card,
@@ -364,20 +434,54 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
  * sit flush against the row of tiles scrolling under it, and a tile edge right against an ad is where
  * accidental clicks come from. The strip takes a press itself, so a tap just under the ad opens neither
  * the ad nor a test.
+ *
+ * It is drawn only while the banner is [stuck] with an ad in it: an empty slot still loading has nothing
+ * framing it, and in its own place under the mistakes card there is nothing passing under it to fade -
+ * a flat strip over the grainy page would only show as a band. It hangs below the banner rather than
+ * taking room of its own, so the gap to the tests' heading is the grid's own and appearing moves nothing.
  */
 @Composable
-private fun StickyBanner(banner: AdBannerState) {
+private fun StickyBanner(banner: AdBannerState, stuck: Boolean) {
     val paper = Naj.colors.paper
-    Column(Modifier.fillMaxWidth()) {
-        AdBanner(banner)
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(StickyBannerGap)
-                .background(Brush.verticalGradient(listOf(paper, paper.copy(alpha = 0f))))
-                .pointerInput(Unit) {},
+    Layout(
+        modifier = Modifier.fillMaxWidth(),
+        content = {
+            AdBanner(banner)
+            if (stuck && banner.showsAd) {
+                Box(
+                    Modifier
+                        .background(Brush.verticalGradient(listOf(paper, paper.copy(alpha = 0f))))
+                        .pointerInput(Unit) {},
+                )
+            }
+        },
+    ) { measurables, constraints ->
+        val ad = measurables[0].measure(constraints)
+        val strip = measurables.getOrNull(1)?.measure(
+            Constraints.fixed(ad.width, StickyBannerGap.roundToPx()),
         )
+        layout(ad.width, ad.height) {
+            ad.place(0, 0)
+            strip?.place(0, ad.height)
+        }
     }
+}
+
+/**
+ * Whether the wide layout's banner fits on screen whole under the mistakes card, from where it ends now:
+ * [bannerBottomPx] in the band's content, measured [aboveMistakes] the card or under it. Measured above
+ * it, it is judged where it would end under it - lower by the card and the gap - so the answer is the
+ * same in both places and the banner does not jump back and forth between them.
+ */
+internal fun bannerFitsUnderMistakes(
+    bannerBottomPx: Int,
+    aboveMistakes: Boolean,
+    mistakesHeightPx: Int,
+    gapPx: Int,
+    viewportPx: Int,
+): Boolean {
+    val bottomUnderMistakes = if (aboveMistakes) bannerBottomPx + mistakesHeightPx + gapPx else bannerBottomPx
+    return bottomUnderMistakes <= viewportPx
 }
 
 /** The white pill naming the exam, which opens the exam picker. */

@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -89,6 +92,9 @@ internal expect fun PlatformAdBanner(state: AdBannerState, modifier: Modifier)
 @Stable
 class AdBannerState internal constructor(val slot: AdSlot) {
     internal val banner = RetainedBanner()
+
+    /** Whether an ad is in the banner right now, rather than an empty slot still loading. */
+    val showsAd: Boolean get() = banner.showsAd
 }
 
 /** Remembers [slot]'s banner here, and destroys it when this leaves the composition. */
@@ -115,6 +121,14 @@ internal class RetainedBanner {
     private var loaded: LoadedBanner? = null
 
     /**
+     * Whether the banner has an ad in it: false while it is still loading, when no ad came, and after it
+     * is gone. What is drawn around a banner - a strip under it, say - goes by this, so it never frames
+     * an empty slot. State, so a composable reading it is redrawn when the ad arrives.
+     */
+    var showsAd: Boolean by mutableStateOf(false)
+        private set
+
+    /**
      * The width the banner was last asked for, in dp, or 0 before it was. A placement that comes back
      * starts at this width, so its slot keeps its size instead of collapsing until it is measured.
      */
@@ -128,16 +142,26 @@ internal class RetainedBanner {
     fun at(widthDp: Int, load: (widthDp: Int) -> LoadedBanner): LoadedBanner {
         loaded?.let { if (widthDp == this.widthDp) return it }
         release()
+        showsAd = false
         return load(widthDp).also {
             loaded = it
             this.widthDp = widthDp
         }
     }
 
+    /**
+     * The platform's word that [banner] has an ad in it. Ignored for a banner that has since been
+     * replaced or released: its answer is about something no longer on screen.
+     */
+    fun loaded(banner: LoadedBanner) {
+        if (banner === loaded) showsAd = true
+    }
+
     /** Destroys the banner, if there is one; the next [at] asks again. */
     fun release() {
         loaded?.destroy()
         loaded = null
+        showsAd = false
     }
 }
 

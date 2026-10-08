@@ -75,4 +75,41 @@ class RetainedBannerTest {
 
         assertEquals(0, loads.size)
     }
+
+    @Test
+    fun itShowsNoAdUntilTheBannerSaysOneLoaded() {
+        val retained = RetainedBanner()
+        assertEquals(false, retained.showsAd)
+
+        val banner = retained.at(360, load)
+        // Asked for, and still loading: nothing is drawn yet, so nothing around it should be either.
+        assertEquals(false, retained.showsAd)
+
+        retained.loaded(banner)
+        assertEquals(true, retained.showsAd)
+    }
+
+    @Test
+    fun aNewWidthShowsNoAdUntilTheNewBannerLoads() {
+        val retained = RetainedBanner()
+        val narrow = retained.at(360, load)
+        retained.loaded(narrow)
+
+        retained.at(700, load)
+
+        assertEquals(false, retained.showsAd)
+        // The old banner's late answer is about a banner that is gone.
+        retained.loaded(narrow)
+        assertEquals(false, retained.showsAd)
+    }
+
+    @Test
+    fun releasingShowsNoAd() {
+        val retained = RetainedBanner()
+        retained.loaded(retained.at(360, load))
+
+        retained.release()
+
+        assertEquals(false, retained.showsAd)
+    }
 }

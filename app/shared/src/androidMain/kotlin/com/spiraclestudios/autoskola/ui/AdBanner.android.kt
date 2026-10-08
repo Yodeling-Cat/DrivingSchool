@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.spiraclestudios.autoskola.data.ads.adRequest
@@ -62,13 +63,18 @@ internal actual fun PlatformAdBanner(state: AdBannerState, modifier: Modifier) {
                 factory = { ctx -> FrameLayout(ctx) },
                 update = { frame ->
                     val banner = state.banner.at(widthDp) { width ->
-                        PlayBanner(
-                            AdView(context).apply {
-                                adUnitId = unit
-                                setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, width))
-                                loadAd(adRequest())
-                            },
-                        )
+                        val view = AdView(context).apply {
+                            adUnitId = unit
+                            setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, width))
+                        }
+                        PlayBanner(view).also { loaded ->
+                            // Set before the request, so the first answer is not missed. A refresh that
+                            // fails later leaves the last ad on screen, so only a load is reported.
+                            view.adListener = object : AdListener() {
+                                override fun onAdLoaded() = state.banner.loaded(loaded)
+                            }
+                            view.loadAd(adRequest())
+                        }
                     } as PlayBanner
                     // Still inside the frame of the place it was last drawn, which the lazy list let go
                     // of: an Android view can have one parent.

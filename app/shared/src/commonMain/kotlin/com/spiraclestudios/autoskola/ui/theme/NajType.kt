@@ -38,7 +38,6 @@ class NajFonts(
 class NajType(fonts: NajFonts) {
     // Titles: Fraunces 800, 22-32, one word set in coral italic by [withAccent].
     val brand = TextStyle(fontFamily = fonts.fraunces, fontSize = 24.sp, letterSpacing = (-0.5).sp)
-    val railMark = TextStyle(fontFamily = fonts.frauncesItalic, fontSize = 26.sp)
     val stepTitle = TextStyle(
         fontFamily = fonts.fraunces,
         fontSize = 32.sp,

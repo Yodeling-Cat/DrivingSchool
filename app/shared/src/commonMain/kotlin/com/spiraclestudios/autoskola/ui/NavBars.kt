@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,9 @@ import com.spiraclestudios.autoskola.i18n.Strings
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
+import najautoskola.app.shared.generated.resources.Res
+import najautoskola.app.shared.generated.resources.app_icon
+import org.jetbrains.compose.resources.painterResource
 
 /** The top-level destinations of the app bar. */
 enum class NavTab(val icon: ImageVector, val label: (Strings) -> String) {
@@ -154,7 +158,11 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text(strings.appName.take(1), style = Naj.type.railMark, color = colors.coral)
+        Image(
+            painterResource(Res.drawable.app_icon),
+            contentDescription = strings.appName,
+            modifier = Modifier.size(RailTileSize),
+        )
         NavTab.entries.forEach { tab ->
             val isActive = tab == selected
             Column(

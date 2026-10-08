@@ -326,6 +326,8 @@ private fun ConsentSwitchRow(
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
+        // So a description long enough to reach the switch stops short of it.
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f)) {
             Text(title, style = Naj.type.body, color = Naj.colors.ink, fontWeight = FontWeight.Medium)

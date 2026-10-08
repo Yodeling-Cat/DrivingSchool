@@ -70,6 +70,9 @@ private val RailWidth = 88.dp
 /** A rail item: the tile that holds the icon, and the rounded mask its press ripple is drawn in. */
 private val RailTileSize = 48.dp
 private val RailItemRadius = 16.dp
+
+/** The app's mark at the top of the rail: a little narrower than the tiles below it. */
+private val RailMarkWidth = RailTileSize * 0.9f
 private val PillItemWidth = 100.dp
 private val PillItemHeight = 56.dp
 
@@ -161,7 +164,7 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
         Image(
             painterResource(Res.drawable.rail_mark),
             contentDescription = strings.appName,
-            modifier = Modifier.width(RailTileSize),
+            modifier = Modifier.width(RailMarkWidth),
         )
         NavTab.entries.forEach { tab ->
             val isActive = tab == selected

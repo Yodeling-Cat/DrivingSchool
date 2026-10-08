@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,6 +60,7 @@ import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
 import com.spiraclestudios.autoskola.practice.IconClose
 import com.spiraclestudios.autoskola.ui.AdBanner
+import com.spiraclestudios.autoskola.ui.AdBannerState
 import com.spiraclestudios.autoskola.ui.AdGateDialog
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.BarIconButton
@@ -131,6 +133,12 @@ private val GridGap = 12.dp
 private val SectionGap = 16.dp
 private val GridTileMinWidth = 180.dp
 private val HeaderTopInset = 52.dp
+
+/** The home banner's key in the grid, so the sticky header is the same item from one frame to the next. */
+private const val HOME_BANNER_KEY = "home-banner"
+
+/** The strip under the stuck banner that the tests fade out beneath. */
+private val StickyBannerGap = 12.dp
 
 /** The room the pane beside the overview band keeps on either side of its content. */
 private val PaneLeading = 16.dp
@@ -239,9 +247,11 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
             MistakesCard(count = progress.mistakeCount, onClick = { onEvent(HomeUiEvent.PracticeMistakes) })
         }
         // Under the mistakes card, in space the screen was already leaving empty: the place the plan
-        // argues for, because nothing above or beside it is where a thumb is already going.
+        // argues for, because nothing above or beside it is where a thumb is already going. A sticky
+        // header, so it scrolls up with the cards and then stays at the top of the screen while the
+        // tests scroll beneath it.
         if (state.showAds) {
-            fullWidthItem { AdBanner(banner) }
+            stickyHeader(key = HOME_BANNER_KEY) { StickyBanner(banner) }
         }
         state.rateCard?.let { card ->
             fullWidthItem {
@@ -344,6 +354,29 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                 }
             }
         }
+    }
+}
+
+/**
+ * The home banner as the grid's sticky header, with a strip under it that the tests fade out beneath.
+ *
+ * The strip is there for the taps as much as for the look: stuck to the top, the banner would otherwise
+ * sit flush against the row of tiles scrolling under it, and a tile edge right against an ad is where
+ * accidental clicks come from. The strip takes a press itself, so a tap just under the ad opens neither
+ * the ad nor a test.
+ */
+@Composable
+private fun StickyBanner(banner: AdBannerState) {
+    val paper = Naj.colors.paper
+    Column(Modifier.fillMaxWidth()) {
+        AdBanner(banner)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(StickyBannerGap)
+                .background(Brush.verticalGradient(listOf(paper, paper.copy(alpha = 0f))))
+                .pointerInput(Unit) {},
+        )
     }
 }
 

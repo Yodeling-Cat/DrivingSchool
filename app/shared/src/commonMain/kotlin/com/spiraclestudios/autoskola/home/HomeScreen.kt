@@ -99,6 +99,7 @@ import com.spiraclestudios.autoskola.ui.previewResults
 import com.spiraclestudios.autoskola.ui.previewResumable
 import com.spiraclestudios.autoskola.ui.previewResumePrompt
 import com.spiraclestudios.autoskola.ui.previewTests
+import com.spiraclestudios.autoskola.ui.rememberAdBannerState
 import com.spiraclestudios.autoskola.ui.theme.GRAIN_CARD
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.grain
@@ -196,6 +197,9 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
     } else {
         GridCells.Fixed(PHONE_COLUMNS)
     }
+    // Out here, not in the grid's item: the grid drops the item when it is scrolled off screen, and
+    // the banner would go with it - a new request, an empty gap and a jump every time it came back.
+    val banner = rememberAdBannerState(AdSlot.HomeBanner)
 
     LazyVerticalGrid(
         columns = columns,
@@ -237,7 +241,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         // Under the mistakes card, in space the screen was already leaving empty: the place the plan
         // argues for, because nothing above or beside it is where a thumb is already going.
         if (state.showAds) {
-            fullWidthItem { AdBanner(AdSlot.HomeBanner) }
+            fullWidthItem { AdBanner(banner) }
         }
         state.rateCard?.let { card ->
             fullWidthItem {

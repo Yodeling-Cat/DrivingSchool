@@ -2,7 +2,6 @@ package com.spiraclestudios.autoskola.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.spiraclestudios.autoskola.data.ads.AdSlot
 
 /**
  * Nothing in a browser.
@@ -12,4 +11,4 @@ import com.spiraclestudios.autoskola.data.ads.AdSlot
  * `plans/ads.md` step 15.
  */
 @Composable
-actual fun AdBanner(slot: AdSlot, modifier: Modifier) = Unit
+internal actual fun PlatformAdBanner(state: AdBannerState, modifier: Modifier) = Unit

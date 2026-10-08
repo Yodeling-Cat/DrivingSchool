@@ -1,8 +1,9 @@
 # Store screenshots
 
 The screenshots for the store listing are taken automatically. A script runs an instrumented test on
-a phone emulator and a tablet emulator. The test opens each screen in every listing language and saves
-what the device shows. Ads are switched off for the run.
+three emulators: a phone, a 7-inch tablet and a 10-inch tablet. The test opens each screen in every
+listing language and saves what the device shows. Ads are switched off for the run. At the end, the
+script checks that the tablet screenshots meet the store's requirements.
 
 ## Taking them
 
@@ -16,27 +17,77 @@ On Windows, use the PowerShell version:
 ./tools/screenshots/take-screenshots.ps1
 ```
 
-One run builds the app, takes 14 screenshots on the phone and 12 on the tablet, and pulls them to the
-computer. When the build is already done, this takes about 2 minutes.
+One run builds the app, takes 14 screenshots on the phone and 12 on each tablet, and pulls them to the
+computer. When the build is already done, this takes about 5 minutes, most of it booting the tablets.
+
+To take only some of them:
+
+```powershell
+./tools/screenshots/take-screenshots.ps1 -Only phone
+./tools/screenshots/take-screenshots.ps1 -Only tablet
+```
 
 ### Requirements
 
 - The Android SDK, found from `sdk.dir` in `local.properties` or from `ANDROID_HOME`. The script uses
   `adb` and `emulator` from it.
-- An AVD for the phone and an AVD for the tablet. The defaults are `Pixel_10` and `Pixel_Tablet`.
-  `emulator -list-avds` shows the AVDs on the machine.
+- The three AVDs below. `emulator -list-avds` shows the AVDs on the machine.
 
-You do not have to start the emulators first. If an emulator is already running, the script uses it.
-If it is not running, the script starts it and shuts it down at the end. A physical device that is
-also connected is not used.
+| Device         | AVD name               | Name in Android Studio | Screen                              |
+|----------------|------------------------|------------------------|-------------------------------------|
+| Phone          | `Pixel_10`             | Pixel 10               | 1080x2424, 420 dpi, portrait        |
+| 7-inch tablet  | `Pixel_Tablet_7-inch`  | Pixel Tablet 7-inch    | 1080x1920 (9:16), 280 dpi, portrait |
+| 10-inch tablet | `Pixel_Tablet_10-inch` | Pixel Tablet 10-inch   | 2560x1440 (16:9), 280 dpi, landscape |
+
+Both tablets use the Android 13 (API 33) Google Play system image.
+
+#### How the tablets are set up
+
+Android Studio has no device profile with a 16:9 screen in either tablet size. So both tablet AVDs
+start from the Pixel Tablet profile, with a different screen. To make them again:
+
+```bash
+avdmanager create avd -n Pixel_Tablet_7-inch -k "system-images;android-33;google_apis_playstore;x86_64" -d pixel_tablet
+avdmanager create avd -n Pixel_Tablet_10-inch -k "system-images;android-33;google_apis_playstore;x86_64" -d pixel_tablet
+```
+
+Then set these lines in each AVD's `config.ini` (`~/.android/avd/<AVD name>.avd/config.ini`):
+
+| Key                     | 7-inch                | 10-inch                |
+|-------------------------|-----------------------|------------------------|
+| `avd.ini.displayname`   | `Pixel Tablet 7-inch` | `Pixel Tablet 10-inch` |
+| `hw.lcd.width`          | `1080`                | `2560`                 |
+| `hw.lcd.height`         | `1920`                | `1440`                 |
+| `hw.lcd.density`        | `280`                 | `280`                  |
+| `hw.initialOrientation` | `portrait`            | `landscape`            |
+| `skin.name`             | `1080x1920`           | `2560x1440`            |
+| `skin.path`             | `_no_skin`            | `_no_skin`             |
+| `showDeviceFrame`       | `no`                  | `no`                   |
+
+The density decides which layout the app draws. At 280 dpi, the 7-inch tablet is 617 dp wide, so the
+app uses its tablet layout, which starts at 600 dp. A 16:9 screen with an exact 7-inch diagonal is
+only 549 dp wide and gets the phone layout. The emulators' nominal sizes are about 7.9 and 10.5
+inches. The store checks only the pixels, not the inches.
+
+### Running emulators
+
+- **An emulator that is already running**, for example one you started, is used as it is. The script
+  leaves it running at the end.
+- **An emulator that is not running** is started by the script and shut down when its screenshots are
+  taken. The script waits until it has stopped before it starts the next one. So only one emulator
+  that the script started runs at a time. Each one needs about 3 GB of memory.
+- **A physical device** that is also connected is not used.
 
 ### Options
 
-| `.sh`               | `.ps1`            | What it does                                     |
-|---------------------|-------------------|--------------------------------------------------|
-| `--phone <AVD>`     | `-Phone <AVD>`    | The phone AVD to use. Default: `Pixel_10`.       |
-| `--tablet <AVD>`    | `-Tablet <AVD>`   | The tablet AVD to use. Default: `Pixel_Tablet`.  |
-| `--skip-build`      | `-SkipBuild`      | Use the APKs from the last build.                |
+| `.sh`                 | `.ps1`               | What it does                                                    |
+|-----------------------|----------------------|-----------------------------------------------------------------|
+| `--only phone`        | `-Only phone`        | Take only the phone screenshots.                                |
+| `--only tablet`       | `-Only tablet`       | Take only the two tablets' screenshots, and check them.         |
+| `--phone <AVD>`       | `-Phone <AVD>`       | The phone AVD. Default: `Pixel_10`.                             |
+| `--tablet-7 <AVD>`    | `-Tablet7 <AVD>`     | The 7-inch tablet AVD. Default: `Pixel_Tablet_7-inch`.          |
+| `--tablet-10 <AVD>`   | `-Tablet10 <AVD>`    | The 10-inch tablet AVD. Default: `Pixel_Tablet_10-inch`.        |
+| `--skip-build`        | `-SkipBuild`         | Use the APKs from the last build.                               |
 
 ### Output
 
@@ -57,14 +108,34 @@ store-screenshots/
     en/
       …
   tablet/
-    sk/
-      …
-    en/
-      …
+    7-inch/
+      sk/
+        …
+      en/
+        …
+    10-inch/
+      sk/
+        …
+      en/
+        …
 ```
 
-The images are at the emulator's full resolution: 1080x2424 for `Pixel_10` and 2560x1600 (landscape)
-for `Pixel_Tablet`.
+The images are at the emulator's full resolution: 1080x2424 for the phone, 1080x1920 for the 7-inch
+tablet and 2560x1440 for the 10-inch tablet.
+
+### The store's requirements
+
+After it takes the tablet screenshots, the script checks each one against what Google Play accepts:
+
+| Folder            | File size  | Aspect ratio | Each side            |
+|-------------------|------------|--------------|----------------------|
+| `tablet/7-inch/`  | Up to 8 MB | 16:9 or 9:16 | 320 px to 3,840 px   |
+| `tablet/10-inch/` | Up to 8 MB | 16:9 or 9:16 | 1,080 px to 7,680 px |
+
+The aspect ratio must be correct to within one pixel. If a screenshot breaks a rule, the script lists
+each problem and ends with an error. The screenshots stay in the folder, so you can look at them.
+
+The script does not check the phone screenshots.
 
 ## What is in each screenshot
 
@@ -72,13 +143,13 @@ for `Pixel_Tablet`.
 |-------------------------------|-------------------------------------------------------------------------|
 | `01-exam-selection.png`       | The last page of the exam selection, where the license group is picked. |
 | `02-home.png`                 | The home screen, with the test history below.                           |
-| `03-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on the tablet. |
+| `03-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on both tablets. |
 | `04-situation.png`            | Intersection situation 27, with its questions answered correctly.       |
 | `05-results.png`              | The results of test 3: passed, with three wrong answers.                |
 | `06-practice-questions.png`   | Phone only. Test 23 with the question list open.                        |
 | `07-signs.png`                | The road signs.                                                         |
 
-The tablet has no `06-practice-questions.png`. On a tablet the question list is always shown beside
+The tablets have no `06-practice-questions.png`. On a tablet the question list is always shown beside
 the question, so `03-practice.png` already shows it.
 
 ### The test history
@@ -125,7 +196,8 @@ every language.
 `tools/screenshots/take-screenshots.sh` and `.ps1` do the same steps:
 
 1. Build the debug app and its instrumented test APK with Gradle.
-2. For each emulator, install both APKs.
+2. For each emulator, one at a time: use it if it is running, or start it and wait until it has
+   booted. Then install both APKs.
 3. Put the status bar in demo mode: the clock shows 10:00, the battery is full and no notifications
    are shown. Switch off the system animations.
 4. Run the `StoreScreenshots` test with `adb shell am instrument`.
@@ -133,7 +205,10 @@ every language.
    test fails.
 6. Pull the PNGs from the app's external files directory
    (`/sdcard/Android/data/com.spiraclestudios.autoskola.dev/files/store-screenshots/`) to
-   `store-screenshots/<phone|tablet>/`.
+   `store-screenshots/phone/`, `store-screenshots/tablet/7-inch/` or
+   `store-screenshots/tablet/10-inch/`.
+7. If the script started the emulator, shut it down and wait until it has stopped.
+8. After the tablets, check their screenshots against the store's requirements.
 
 If the test fails, the script prints the test's output and stops. The screenshots that were already
 on the computer stay as they were.
@@ -200,8 +275,13 @@ picks.
 - **`"…" never appeared on screen`.** The test did not find the text it waits for within 30 seconds.
   The screen did not open, or its text changed. Make the `Target`'s text match the screen again.
 - **`There is no SK exam in …`.** A language in `LANGUAGES` has no exam in that language.
-- **`<AVD> did not boot within 5 minutes`.** Start the emulator yourself and run the script again. The
-  script uses an emulator that is already running.
+- **`<AVD> did not boot within 5 minutes. Is it an AVD that 'emulator -list-avds' lists?`** Check the
+  AVD name with `emulator -list-avds`, or give the correct name with the options above. If the name is
+  correct, start the emulator yourself and run the script again. The script uses an emulator that is
+  already running. Before it stops, the script shuts down the emulator that did not boot.
+- **`… tablet screenshot problem(s): the store will not accept them as they are.`** A tablet AVD's
+  screen is not 16:9, or its sides are outside the store's limits. Compare its `config.ini` with
+  [How the tablets are set up](#how-the-tablets-are-set-up).
 - **`Test … was meant to pass` (or `fail`).** The seeded test results no longer give the result the
   home screen needs, possibly after a new question bank version. Change the number of wrong answers in
   `seedProgress`.

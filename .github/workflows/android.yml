@@ -34,12 +34,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # compileSdk is 37, which runner images do not carry yet, so the platform and the matching
-      # build tools are installed rather than assumed. `yes` answers the license prompt that a
-      # fresh SDK would otherwise wait on.
-      - uses: android-actions/setup-android@v3
+      # The runner image ships the Android SDK. compileSdk is 37, which it does not carry yet, so the
+      # platform and build tools are installed here. `yes` answers the license prompt.
       - name: Install the SDK platform and build tools
-        run: yes | sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0"
+        run: |
+          sdkmanager="$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -n 1)"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          yes | "$sdkmanager" --install "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: ktlint
         run: ./gradlew ktlintCheck
@@ -61,9 +62,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - uses: android-actions/setup-android@v3
+      # The runner image ships the Android SDK. compileSdk is 37, which it does not carry yet, so the
+      # platform and build tools are installed here. `yes` answers the license prompt.
       - name: Install the SDK platform and build tools
-        run: yes | sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0"
+        run: |
+          sdkmanager="$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -n 1)"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          yes | "$sdkmanager" --install "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Assemble the debug build
         run: ./gradlew :app:androidApp:assembleDebug

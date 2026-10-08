@@ -29,6 +29,8 @@ import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumSync
 import com.spiraclestudios.autoskola.data.premium.platformBillingDataSource
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
+import com.spiraclestudios.autoskola.data.review.StoreReviewDataSource
+import com.spiraclestudios.autoskola.data.review.platformStoreReviewDataSource
 import com.spiraclestudios.autoskola.data.signs.ResourceSignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
@@ -68,6 +70,8 @@ val appModule = module {
     // Google's consent form: the first condition on every ad request. Android answers Google's form;
     // iOS and the web answer one that asks for nothing.
     single<AdConsent> { platformAdConsent() }
+    // The store's own rating: Google Play's in-app review sheet on Android, the App Store page on iOS.
+    single<StoreReviewDataSource> { platformStoreReviewDataSource() }
 
     // Repositories
     single { AttemptRepository(get()) }
@@ -76,7 +80,7 @@ val appModule = module {
     single { PracticeAnswerRepository(get()) }
     single { PreferencesRepository(get()) }
     single { AnalyticsRepository(get(), get()) }
-    single { ReviewRepository(get()) }
+    single { ReviewRepository(get(), get()) }
     single { ExamRepository(get(), get(), get(), get()) }
     // What the user owns. It starts from what was last confirmed (cached in Settings), and `PremiumSync` asks
     // the store at every launch and resume; see `plans/premium.md`. Android asks Google Play, which sells

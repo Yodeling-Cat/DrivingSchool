@@ -68,6 +68,8 @@ kotlin {
             implementation(libs.play.services.ads)
             implementation(libs.play.services.ump)
             implementation(libs.play.billing)
+            // Google Play's in-app review sheet, which the home screen's rating card opens.
+            implementation(libs.play.review)
         }
         commonMain.dependencies {
             api(projects.core)

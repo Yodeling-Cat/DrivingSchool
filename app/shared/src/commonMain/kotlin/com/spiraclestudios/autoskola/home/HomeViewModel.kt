@@ -16,7 +16,6 @@ import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.exam.TestPick
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
-import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.storeListing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -138,7 +137,7 @@ sealed interface HomeUiEvent {
     data object PracticeMistakes : HomeUiEvent
     data object AttemptOpened : HomeUiEvent
 
-    /** The card's button: the user is taken to the store to rate the app, which ends the asking. */
+    /** The card's button: the store is asked to let the user rate the app, which ends the asking. */
     data object RateApp : HomeUiEvent
 
     /** The card's cross: not now, which the app asks again about later in the ladder. */
@@ -308,8 +307,8 @@ class HomeViewModel(
 
             // The card's two answers. The cross only closes the app's ask, so the ladder knows how
             // many tests had been done when it was closed and when to put it again; the press on the
-            // button takes the user out to the store, and the asking is over whether or not they
-            // went on to write the rating.
+            // button asks the store for its rating (Play's sheet over the app, or the store's page),
+            // and the asking is over whether or not they went on to write the rating.
             HomeUiEvent.DismissRateCard -> viewModelScope.launch {
                 val ready = shown ?: return@launch
                 review.dismissed(
@@ -332,10 +331,7 @@ class HomeViewModel(
 
             HomeUiEvent.RateApp -> {
                 val listing = store?.takeIf { shown?.rateCard != null } ?: return
-                viewModelScope.launch {
-                    review.rated()
-                    openUrl(listing.url)
-                }
+                viewModelScope.launch { review.rate(listing) }
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.data.review
 
 import com.russhwolf.settings.Settings
+import com.spiraclestudios.autoskola.StoreListing
 import com.spiraclestudios.autoskola.review.ReviewAsk
 import com.spiraclestudios.autoskola.review.ReviewRequest
 import kotlinx.coroutines.NonCancellable
@@ -14,13 +15,13 @@ import kotlinx.coroutines.withContext
 /**
  * How far the app has got in asking the user to rate it, kept in [Settings] the way preferences
  * are: it is two small values the home screen needs for its first frame, so [request] is read once
- * and answered synchronously.
+ * and answered synchronously. The rating itself is the [store]'s.
  *
  * Writes are suspended and run to the end even when the screen that made them goes away, and one
  * at a time, so two answers - a press on the store and a cross, one after the other - can't lose
  * one another. What the ladder means, and how it moves, is [ReviewRequest]'s job in `:core`.
  */
-class ReviewRepository(private val settings: Settings) {
+class ReviewRepository(private val settings: Settings, private val store: StoreReviewDataSource) {
 
     private val state = MutableStateFlow(read())
 
@@ -33,7 +34,17 @@ class ReviewRepository(private val settings: Settings) {
     suspend fun dismissed(finishedTests: Int, everyTestPassed: Boolean) =
         write { request -> request.dismissed(finishedTests, everyTestPassed) }
 
-    /** The user was taken to the store, which ends the asking whether or not they rated the app. */
+    /**
+     * The user asked to rate the app: the asking ends, and the store is asked for its rating, in
+     * [listing] if it has no better way. The ask is recorded first, because nothing tells the app
+     * whether the user went on to rate it, and asking again after they did is the worse mistake.
+     */
+    suspend fun rate(listing: StoreListing) {
+        rated()
+        store.requestReview(listing)
+    }
+
+    /** The asking ends, whether or not the user rated the app. */
     suspend fun rated() = write(ReviewRequest::rated)
 
     private suspend fun write(change: (ReviewRequest) -> ReviewRequest) = withContext(NonCancellable) {

@@ -22,6 +22,7 @@ import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.premium.FakeBillingDataSource
 import com.spiraclestudios.autoskola.data.premium.PremiumRepository
 import com.spiraclestudios.autoskola.data.premium.PremiumSync
+import com.spiraclestudios.autoskola.data.review.FakeStoreReviewDataSource
 import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,8 +72,11 @@ class TestRepositories(bank: QuestionBank = testBank(), ageBand: AgeBand? = AgeB
     val answers = PracticeAnswerRepository(SettingsPracticeAnswerDataSource(settings))
     val banks = QuestionBankRepository(FakeQuestionBankDataSource.of(bank))
 
+    /** The store's own rating dialog, which records being asked rather than showing anything. */
+    val storeReview = FakeStoreReviewDataSource()
+
     /** How far the app has got in asking the user to rate it, over the same in-memory storage. */
-    val review = ReviewRepository(settings)
+    val review = ReviewRepository(settings, storeReview)
 
     /** What the user owns. Nothing is bought in a test, so this answers Free like the app ships. */
     val premium = PremiumRepository()

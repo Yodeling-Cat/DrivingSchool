@@ -596,6 +596,26 @@ class HomeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theButtonAsksTheStoreForItsRatingDialog() = runTest {
+        observe(viewModel.uiState)
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+
+        viewModel.onEvent(HomeUiEvent.RateApp)
+
+        assertEquals(listOf(store), repositories.storeReview.requested)
+    }
+
+    @Test
+    fun theCrossDoesNotAskTheStore() = runTest {
+        observe(viewModel.uiState)
+        repeat(10) { finishTest(testNumber = 1, passed = false) }
+
+        viewModel.onEvent(HomeUiEvent.DismissRateCard)
+
+        assertEquals(emptyList(), repositories.storeReview.requested)
+    }
+
+    @Test
     fun theBannerIsDrawnUntilPremiumIsBought() = runTest {
         val state = observe(viewModel.uiState)
 

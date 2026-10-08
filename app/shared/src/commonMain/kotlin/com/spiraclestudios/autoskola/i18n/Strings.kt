@@ -595,8 +595,8 @@ private val EnglishStrings = Strings(
     feedbackKindPrivacyRequest = "Privacy request",
     feedbackRequestHint = "What you would like us to do — send you a copy of what we hold, for " +
         "example, or delete it.",
-    feedbackPrivacyRequestNote = "The app puts the identifier from Settings in this email, so we can " +
-        "find what we hold about you.",
+    feedbackPrivacyRequestNote = "The app puts your identifier in this email, so we can find what we " +
+        "hold about you.",
     feedbackPrivacyRequestNoIdentifier = "Nothing has been sent from this device yet, so there is " +
         "no identifier to add. One appears once you turn on usage statistics or crash reports.",
     feedbackIncludeDeviceInfo = "Include device information",
@@ -833,8 +833,8 @@ private val SlovakStrings = Strings(
     feedbackKindPrivacyRequest = "Žiadosť o údaje",
     feedbackRequestHint = "Čo by ste chceli, aby sme urobili — napríklad poslať kópiu toho, čo o vás " +
         "evidujeme, alebo to vymazať.",
-    feedbackPrivacyRequestNote = "Aplikácia do tohto e-mailu vloží identifikátor z nastavení, aby sme " +
-        "našli, čo o vás evidujeme.",
+    feedbackPrivacyRequestNote = "Aplikácia do tohto e-mailu vloží váš identifikátor, aby sme našli, " +
+        "čo o vás evidujeme.",
     feedbackPrivacyRequestNoIdentifier = "Z tohto zariadenia zatiaľ nebolo nič odoslané, takže nie " +
         "je čo pridať. Identifikátor sa zobrazí po zapnutí štatistík používania alebo hlásení o " +
         "zrúteniach.",
@@ -1074,8 +1074,8 @@ private val HungarianStrings = Strings(
     feedbackKindPrivacyRequest = "Adatkérés",
     feedbackRequestHint = "Mit szeretnél, mit tegyünk — például küldjünk másolatot arról, amit " +
         "nyilvántartunk, vagy töröljük.",
-    feedbackPrivacyRequestNote = "Az alkalmazás beilleszti az e-mailbe a beállításokban látható " +
-        "azonosítót, hogy megtaláljuk, mit tartunk nyilván rólad.",
+    feedbackPrivacyRequestNote = "Az alkalmazás beilleszti az e-mailbe az azonosítódat, hogy " +
+        "megtaláljuk, mit tartunk nyilván rólad.",
     feedbackPrivacyRequestNoIdentifier = "Erről az eszközről még nem lett semmi elküldve, így nincs " +
         "mit hozzáadni. Az azonosító akkor jelenik meg, amikor bekapcsolod a használati " +
         "statisztikákat vagy az összeomlás-jelentéseket.",
@@ -1312,8 +1312,8 @@ private val CzechStrings = Strings(
     feedbackKindPrivacyRequest = "Žádost o data",
     feedbackRequestHint = "Co byste chtěli, abychom udělali — například poslat kopii toho, co o vás " +
         "evidujeme, nebo to smazat.",
-    feedbackPrivacyRequestNote = "Aplikace do tohoto e-mailu vloží identifikátor z nastavení, abychom " +
-        "našli, co o vás evidujeme.",
+    feedbackPrivacyRequestNote = "Aplikace do tohoto e-mailu vloží váš identifikátor, abychom našli, " +
+        "co o vás evidujeme.",
     feedbackPrivacyRequestNoIdentifier = "Z tohoto zařízení zatím nebylo nic odesláno, takže není co " +
         "přidat. Identifikátor se objeví po zapnutí statistik používání nebo hlášení o pádech.",
     feedbackIncludeDeviceInfo = "Přidat informace o zařízení",

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6B2E9D4F1A3C5E7082B4D6F1 /* KotlinMultiplatformLinkedPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 6B2E9D4F1A3C5E7082B4D6F3 /* KotlinMultiplatformLinkedPackage */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		89A7DF2AB18F44BA0571D1C9 /* NajAutoskola.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NajAutoskola.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -41,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B2E9D4F1A3C5E7082B4D6F1 /* KotlinMultiplatformLinkedPackage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +91,7 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				6B2E9D4F1A3C5E7082B4D6F3 /* KotlinMultiplatformLinkedPackage */,
 			);
 			productName = iosApp;
 			productReference = 89A7DF2AB18F44BA0571D1C9 /* NajAutoskola.app */;
@@ -118,6 +124,9 @@
 			);
 			mainGroup = F61DC07A986C99B4256B9D9B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6B2E9D4F1A3C5E7082B4D6F2 /* XCLocalSwiftPackageReference "KotlinMultiplatformLinkedPackage" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B55E10F19D7E7FF85B4A1D95 /* Products */;
 			projectDirPath = "";
@@ -393,6 +402,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		6B2E9D4F1A3C5E7082B4D6F2 /* XCLocalSwiftPackageReference "KotlinMultiplatformLinkedPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = KotlinMultiplatformLinkedPackage;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6B2E9D4F1A3C5E7082B4D6F3 /* KotlinMultiplatformLinkedPackage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = KotlinMultiplatformLinkedPackage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FD068782BF055AAE7F1D5AAE /* Project object */;
 }

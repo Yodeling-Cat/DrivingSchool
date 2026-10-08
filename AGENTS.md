@@ -105,6 +105,18 @@ The icon follows the system's colors where the system offers it: Android 13+ the
 
 The About screen lists the app's dependencies with [AboutLibraries](https://github.com/mikepenz/AboutLibraries), whose Gradle plugin writes them to `app/shared/src/commonMain/composeResources/files/aboutlibraries.json`. The file is generated and **committed** — the plugin is not wired into the build, so no build fetches anything — and `./gradlew :app:shared:exportLibraryDefinitions` refreshes it. Run that after adding, removing or bumping a dependency, and commit the result with it: a stale file is exactly what the user reads. `AboutViewModel` reads it from the app's Compose resources and `AboutScreen` draws AboutLibraries' own container (`LibrariesVariant.Refined`, `LibraryActionMode.Chips`), supplying only the words around it.
 
+## SwiftPM linkage package
+
+`posthog-kmp` brings the PostHog iOS SDK in as a SwiftPM dependency, and since Kotlin 2.4 the Xcode project has to link such dependencies itself, through a local Swift package that the Kotlin plugin generates: `app/iosApp/KotlinMultiplatformLinkedPackage/`. The Xcode project references it (a local package, linked in the `iosApp` target's Frameworks phase), and the directory is **committed**: Xcode resolves packages before the "Compile Kotlin Framework" phase runs, and that phase regenerates the package and fails the build if anything in it changed (`checkSyntheticImportProjectIsCorrectlyIntegrated…` and "Synthetic project regenerated" are the two errors).
+
+So after adding, removing or bumping a dependency that declares SwiftPM dependencies — any `posthog-kmp` bump does, since the package names its version — regenerate it and commit the result with the bump. The task only writes files, so it runs on Windows too; give it the Xcode project as an absolute path:
+
+```bash
+XCODEPROJ_PATH="$PWD/app/iosApp/iosApp.xcodeproj" ./gradlew :app:shared:generateSyntheticLinkageSwiftPMImportProjectForLinkageForCli
+```
+
+On a Mac, `:app:shared:integrateLinkagePackage` with the same variable does that and also adds the package to the Xcode project, which is already done here.
+
 ## Question bank versions
 
 Governments periodically publish updated question sets. Each bank therefore has a `version` (all banks are currently **v1**), and its file is `banks/<bank>-v<version>.json`.

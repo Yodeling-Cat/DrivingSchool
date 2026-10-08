@@ -32,3 +32,9 @@ __pycache__/
 
 # Store listing screenshots, pulled from the emulators by tools/screenshots/take-screenshots
 /store-screenshots/
+
+# SwiftPM's own state inside the generated linkage package; the package itself is committed
+# (AGENTS.md, "SwiftPM linkage package").
+app/iosApp/KotlinMultiplatformLinkedPackage/**/.build/
+app/iosApp/KotlinMultiplatformLinkedPackage/**/.swiftpm/
+app/iosApp/KotlinMultiplatformLinkedPackage/**/Package.resolved

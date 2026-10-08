@@ -65,6 +65,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +82,7 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -88,6 +90,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -215,11 +218,18 @@ fun PracticeRoute(
 @Composable
 fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> Unit, onOpenResults: () -> Unit) {
     val colors = Naj.colors
-    val questions = remember(state.questions) { state.questions.map { it.question } }
+    // What the state holds is read out of it here, and only that is used below: the state is a new
+    // one every second the clock ticks, and a slot that held on to it would be redrawn every time.
+    val practiceQuestions = state.questions
+    val questions = remember(practiceQuestions) { practiceQuestions.map { it.question } }
     val sections = state.sections
     val testName = attemptName(state.kind, state.testNumber)
-    val elapsed = elapsedClock(state.elapsedSeconds)
+    // The clock is the one thing here that changes every second, so it is handed down to be read
+    // where it is drawn: the bars around it, the questions and the list then sit the tick out.
+    val elapsedSeconds by rememberUpdatedState(state.elapsedSeconds)
+    val elapsed = { elapsedClock(elapsedSeconds) }
     val overTime = isOverTime(state.elapsedSeconds, state.allottedSeconds)
+    val allAnswered = state.allAnswered
     val checkImmediately = state.checkImmediately
     val finished = state.finished
     val revealCorrectness = revealsCorrectness(checkImmediately, finished)
@@ -348,7 +358,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
         onShown = { onEvent(PracticeUiEvent.TimeLimitToastShown) },
     )
     FinishPromptEffect(
-        prompt = finishPrompt(state.allAnswered, finished),
+        prompt = finishPrompt(allAnswered, finished),
         snackbarHostState = snackbarHostState,
         onFinish = { onEvent(PracticeUiEvent.Finish) },
         onShowResults = onOpenResults,
@@ -362,7 +372,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     testName = testName,
                     elapsed = elapsed,
                     overTime = overTime,
-                    allAnswered = state.allAnswered,
+                    allAnswered = allAnswered,
                     checkImmediately = checkImmediately,
                     finished = finished,
                     answered = answered,
@@ -376,12 +386,14 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
 
     /**
      * [cover] is how much of the sheet's open look the bar has taken on: it is what turns the
-     * toggle into a cross and takes the arrows away as the sheet opens over the questions.
+     * toggle into a cross and takes the arrows away as the sheet opens over the questions. It is
+     * read as the bar is drawn rather than handed over as a number, because it changes on every
+     * frame of a drag.
      */
     val barContent: @Composable RowScope.(
         listExpanded: Boolean,
         onToggleList: () -> Unit,
-        cover: Float,
+        cover: () -> Float,
     ) -> Unit = { listExpanded, onToggleList, cover ->
         PracticeBarContent(
             compactHeight = compactHeight,
@@ -439,7 +451,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 ) { page ->
                     QuestionPage(
                         question = questions[page],
-                        imageUri = state.questions[page].imageUri,
+                        imageUri = practiceQuestions[page].imageUri,
                         selectedIndex = selectedAnswers[page],
                         locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
                         skipped = questionSkipped(selectedAnswers[page], finished),
@@ -528,7 +540,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                             sheetContent = {
                                 // The list is always visible next to the question here, so the toggle is
                                 // inert and the arrows never leave the bar.
-                                BarPill(pillHeight, pillGap) { barContent(false, {}, 0f) }
+                                BarPill(pillHeight, pillGap) { barContent(false, {}, { 0f }) }
                             },
                             content = questionsPane,
                         )
@@ -573,7 +585,9 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 // How far the list has been dragged open — 0 where the peek leaves it, 1 fully expanded
                 // — and how much of its open look it has taken on. The sheet's surface, the bar's
                 // toggle and its arrows all follow the second one, and all of them are done by the time
-                // [SHEET_COVERED_AT] of the drag is behind it.
+                // [SHEET_COVERED_AT] of the drag is behind it. Both change on every frame of a drag, so
+                // they are read where the sheet is laid out and drawn rather than here, which would
+                // compose the sheet and its bar again on every one of those frames.
                 val openProgress by remember(sheetState, restOffset, openOffset) {
                     derivedStateOf {
                         if (!sheetState.hasPartiallyExpandedState || !sheetState.hasExpandedState) {
@@ -583,15 +597,15 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                         }
                     }
                 }
-                val cover = sheetCover(openProgress)
+                val cover = { sheetCover(openProgress) }
 
                 // The shadow ramps from that point to fully expanded instead: the sheet lies flat on
-                // the page while it is still coming up, and starts casting one once it is open.
-                val shadowCover = sheetShadowCover(openProgress)
-
-                // The sheet's own surface, which is drawn behind everything the sheet holds: it wraps
-                // the question list at rest and grows up over the bar's slot until it covers the sheet.
-                val surfaceHeight = sheetSurfaceHeight(cover, geometry.listHeight, barSlotHeight)
+                // the page while it is still coming up, and starts casting one once it is open. The
+                // scaffold takes it as a value, so it is the one part of the drag read here - and only
+                // over the stretch where it moves, since it stays at none until the sheet is covered.
+                val shadowElevation by remember(sheetState, restOffset, openOffset) {
+                    derivedStateOf { sheetShadowElevation(sheetShadowCover(openProgress), QuestionSheetShadow) }
+                }
 
                 // The sheet rests with its top on the line the peek gives it; anything above that
                 // line means the list is on its way open, if only by a hair, and the message leaves.
@@ -614,19 +628,20 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     // bar's slot as the list is dragged open.
                     sheetContainerColor = Color.Transparent,
                     sheetPeekHeight = barSlotHeight + navBarInset,
-                    sheetShadowElevation = sheetShadowElevation(shadowCover, QuestionSheetShadow),
+                    sheetShadowElevation = shadowElevation,
                     sheetDragHandle = null,
                     topBar = topBar,
                     sheetContent = {
                         Box(Modifier.fillMaxWidth()) {
                             // The sheet's own surface, behind everything the sheet holds: it wraps the
                             // question list at rest and grows up over the bar's slot as the list is
-                            // dragged open, covering the sheet by [SHEET_COVERED_AT] of the way.
+                            // dragged open, covering the sheet by [SHEET_COVERED_AT] of the way. Its
+                            // height is read as it is measured, so a drag only lays it out again.
                             Box(
                                 Modifier
                                     .align(Alignment.BottomStart)
                                     .fillMaxWidth()
-                                    .height(surfaceHeight)
+                                    .layoutHeight { sheetSurfaceHeight(cover(), geometry.listHeight, barSlotHeight) }
                                     .clip(RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius))
                                     .background(colors.sheet),
                             )
@@ -745,24 +760,26 @@ private fun elapsedColor(overTime: Boolean): Color = if (overTime) Naj.colors.wr
 /**
  * The clock, in a box as wide as the widest clock of the same shape: the time is drawn over an
  * invisible placeholder of eights, so the pill around it keeps its width as the digits change. The
- * placeholder is hidden from accessibility, which has no use for it.
+ * placeholder is hidden from accessibility, which has no use for it. [elapsed] is read here, where
+ * it is drawn, so the clock ticking redraws the clock and nothing around it.
  */
 @Composable
 private fun ElapsedLabel(
-    elapsed: String,
+    elapsed: () -> String,
     style: TextStyle,
     color: Color,
     maxLines: Int = 1,
 ) {
+    val time = elapsed()
     Box {
         Text(
-            elapsedClockPlaceholder(elapsed),
+            elapsedClockPlaceholder(time),
             style = style,
             color = Color.Transparent,
             maxLines = maxLines,
             modifier = Modifier.clearAndSetSemantics {},
         )
-        Text(elapsed, style = style, color = color, maxLines = maxLines)
+        Text(time, style = style, color = color, maxLines = maxLines)
     }
 }
 
@@ -773,7 +790,7 @@ private fun ElapsedLabel(
 @Composable
 private fun PracticeTopBar(
     testName: String,
-    elapsed: String,
+    elapsed: () -> String,
     overTime: Boolean,
     allAnswered: Boolean,
     checkImmediately: Boolean,
@@ -875,7 +892,7 @@ private fun BarPill(height: Dp, gap: Dp, content: @Composable RowScope.() -> Uni
  * the drag itself, so the count is the line in place by the time the sheet has taken its open look.
  */
 @Composable
-private fun BarTestLine(shut: String, open: String, cover: Float) {
+private fun BarTestLine(shut: String, open: String, cover: () -> Float) {
     val colors = Naj.colors
     Box {
         Text(
@@ -883,14 +900,14 @@ private fun BarTestLine(shut: String, open: String, cover: Float) {
             style = Naj.type.tiny,
             color = colors.roadYellow,
             maxLines = 1,
-            modifier = Modifier.graphicsLayer { alpha = 1f - cover },
+            modifier = Modifier.graphicsLayer { alpha = 1f - cover() },
         )
         Text(
             open,
             style = Naj.type.tiny,
             color = colors.roadYellow,
             maxLines = 1,
-            modifier = Modifier.graphicsLayer { alpha = cover },
+            modifier = Modifier.graphicsLayer { alpha = cover() },
         )
     }
 }
@@ -899,7 +916,7 @@ private fun BarTestLine(shut: String, open: String, cover: Float) {
 private fun RowScope.PracticeBarContent(
     compactHeight: Boolean,
     testName: String,
-    elapsed: String,
+    elapsed: () -> String,
     currentIndex: Int,
     questionCount: Int,
     points: Int,
@@ -908,7 +925,7 @@ private fun RowScope.PracticeBarContent(
     listExpanded: Boolean,
     canFinish: Boolean,
     /** How much of the sheet's open look the bar has taken on: 0 while the list is shut, 1 once it's covered. */
-    cover: Float,
+    cover: () -> Float,
     /** How much of the test is behind the user: the questions answered, and the ones left open. */
     answered: Int,
     skipped: Int,
@@ -981,10 +998,12 @@ private fun RowScope.PracticeBarContent(
     // while the question list covers the questions, so they leave the bar as it opens — gone, not
     // just faded out, since there is nothing left for them to step through.
     if (showArrows) {
-        val arrowsAlpha = 1f - cover
-        if (arrowsAlpha > 0f) {
-            Row(Modifier.graphicsLayer { alpha = arrowsAlpha }) {
-                val usable = arrowsAlpha > 0.5f
+        // Composed again only as the arrows come and go and turn usable, not on every frame of the
+        // drag that fades them.
+        val arrowsShown by remember(cover) { derivedStateOf { cover() < 1f } }
+        val usable by remember(cover) { derivedStateOf { cover() < 0.5f } }
+        if (arrowsShown) {
+            Row(Modifier.graphicsLayer { alpha = 1f - cover() }) {
                 BarIconButton(
                     Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     strings.previousQuestion,
@@ -1039,6 +1058,17 @@ private fun RowScope.PracticeBarContent(
     }
 }
 
+/**
+ * A height read as the layout is measured rather than as it is composed, the way `Modifier.height`
+ * takes it otherwise: one that follows a drag frame by frame then lays the layout out again on each
+ * of them, and composes nothing.
+ */
+private fun Modifier.layoutHeight(height: () -> Dp): Modifier = layout { measurable, constraints ->
+    val heightPx = constraints.constrainHeight(height().roundToPx())
+    val placeable = measurable.measure(constraints.copy(minHeight = heightPx, maxHeight = heightPx))
+    layout(placeable.width, heightPx) { placeable.place(0, 0) }
+}
+
 /** The room Material's own SnackbarHost keeps under the Snackbar it shows. */
 private val SnackbarHostInset = 12.dp
 
@@ -1071,30 +1101,36 @@ private const val SHEET_OPEN_TOLERANCE = 1.5f
  * is heading for, which is what a tap on it does.
  */
 @Composable
-private fun QuestionListToggle(expanded: Boolean, cover: Float, onClick: () -> Unit) {
+private fun QuestionListToggle(expanded: Boolean, cover: () -> Float, onClick: () -> Unit) {
+    // Each icon is composed again only as it comes and goes; the turn and the fade between them are
+    // drawn from [cover] as it changes.
+    val menuShown by remember(cover) { derivedStateOf { cover() < 1f } }
+    val closeShown by remember(cover) { derivedStateOf { cover() > 0f } }
     Box(
         modifier = Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        if (cover < 1f) {
+        if (menuShown) {
             Icon(
                 IconMenu,
                 contentDescription = if (expanded) null else strings.questionList,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp).graphicsLayer {
-                    alpha = 1f - cover
-                    rotationZ = 90f * cover
+                    val covered = cover()
+                    alpha = 1f - covered
+                    rotationZ = 90f * covered
                 },
             )
         }
-        if (cover > 0f) {
+        if (closeShown) {
             Icon(
                 IconClose,
                 contentDescription = if (expanded) strings.closeQuestionList else null,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp).graphicsLayer {
-                    alpha = cover
-                    rotationZ = -90f * (1f - cover)
+                    val covered = cover()
+                    alpha = covered
+                    rotationZ = -90f * (1f - covered)
                 },
             )
         }
@@ -1118,9 +1154,12 @@ private fun QuestionPage(
 ) {
     val revealed = locked
     val wide = LocalWidthClass.current != WidthClass.Compact
+    // Worked out once per question: the page is composed again whenever its answer changes.
+    val options = remember(question) { question.answers.map(::displayText) }
+    val text = remember(question) { displayText(question.text) }
     val answers: @Composable () -> Unit = {
         AnswerCard(
-            options = question.answers.map(::displayText),
+            options = options,
             selectedIndex = selectedIndex,
             correct = question.correct,
             revealed = revealed,
@@ -1133,7 +1172,7 @@ private fun QuestionPage(
         // answers aren't: a tap on one of those picks an answer.
         SelectionContainer {
             Text(
-                displayText(question.text),
+                text,
                 style = if (wide) Naj.type.questionWide else Naj.type.question,
                 color = Naj.colors.ink,
             )
@@ -1232,13 +1271,16 @@ private fun QuestionGrid(
     onSelectQuestion: (Int) -> Unit,
 ) {
     val colors = Naj.colors
-    val grouped: List<Pair<Section, List<Int>>> =
+    // The test's questions don't change while it runs, so they are sorted into sections once rather
+    // than every time an answer or the question being read does.
+    val grouped: List<Pair<Section, List<Int>>> = remember(questions, sections) {
         sections.mapNotNull { section ->
             val indices = questions.withIndex()
                 .filter { it.value.section == section.id }
                 .map { it.index }
             if (indices.isEmpty()) null else section to indices
         }
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         grouped.forEachIndexed { sectionIndex, (section, indices) ->
@@ -1455,7 +1497,7 @@ private fun QuestionListTogglePreview() {
             PreviewRow {
                 listOf(0f, 0.15f, 0.3f, 0.6f, 1f).forEach { cover ->
                     NavyPill(Modifier.width(64.dp), height = 56.dp) {
-                        QuestionListToggle(expanded = cover >= 0.5f, cover = cover, onClick = {})
+                        QuestionListToggle(expanded = cover >= 0.5f, cover = { cover }, onClick = {})
                     }
                 }
             }

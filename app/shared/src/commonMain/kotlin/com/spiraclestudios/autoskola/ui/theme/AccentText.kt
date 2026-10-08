@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.ui.theme
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -59,8 +60,13 @@ fun AccentedText(
     color: Color = Naj.colors.ink,
     textAlign: TextAlign? = null,
 ) {
+    val coral = Naj.colors.coral
+    val accent = Naj.type.accent
+    // The theme's own face rather than the fonts looked up again for every title, and the text built
+    // once for the runs it is given.
+    val text = remember(runs, color, coral, accent) { accentString(runs, color, coral, accent) }
     Text(
-        text = accentString(runs, color, Naj.colors.coral, najFonts().frauncesItalic),
+        text = text,
         style = style.copy(color = color),
         modifier = modifier,
         textAlign = textAlign,

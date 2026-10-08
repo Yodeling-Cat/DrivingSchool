@@ -22,6 +22,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -285,6 +286,24 @@ class PracticeViewModelTest : ViewModelTest() {
         repositories.attempts.discard(attempt.id)
 
         assertEquals(PracticeUiState.Closed, open(attempt).second.value)
+    }
+
+    @Test
+    fun theClockTickingHandsTheScreenTheSameAnswers() = runTest {
+        // The state is rebuilt every second, and a fresh map of the same answers would redraw every
+        // question and the whole question list along with the clock.
+        val attempt = startTest()
+        val (viewModel, state) = open(attempt)
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 0, answerIndex = 1))
+
+        viewModel.withScreen {
+            val before = state.ready.answers
+            // Past the fifth second too, when the time is saved and the attempt is read back.
+            secondsPass(6)
+
+            assertEquals(6L, state.ready.elapsedSeconds)
+            assertSame(before, state.ready.answers)
+        }
     }
 
     @Test

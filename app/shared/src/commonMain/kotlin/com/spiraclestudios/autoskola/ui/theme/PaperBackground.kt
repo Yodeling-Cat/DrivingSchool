@@ -66,14 +66,19 @@ fun paperGlows(colors: NajColors, mintY: Float = 0.9f, mintRadius: Float = 0.4f)
 fun Modifier.paperBackground(glows: List<PaperGlow>, grain: Float = GRAIN_PAGE): Modifier {
     val colors = Naj.colors
     val shader = rememberGrainShader()
-    return this
-        .drawBehind {
-            clipRect {
-                drawRect(colors.paper)
-                glows.forEach { drawGlow(it) }
+    // Remembered, so a screen that composes again - the practice screen does every second its clock
+    // ticks - keeps the same drawing instead of handing over a new one, which repaints the page.
+    val background = remember(colors, glows, grain, shader) {
+        Modifier
+            .drawBehind {
+                clipRect {
+                    drawRect(colors.paper)
+                    glows.forEach { drawGlow(it) }
+                }
             }
-        }
-        .grain(grain, shader)
+            .grain(grain, shader)
+    }
+    return this.then(background)
 }
 
 /** The page without the glows, for screens that sit on plain paper (the question list sheet). */

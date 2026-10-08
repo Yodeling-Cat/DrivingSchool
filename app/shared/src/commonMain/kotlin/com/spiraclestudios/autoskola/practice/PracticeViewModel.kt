@@ -144,6 +144,13 @@ class PracticeViewModel(
     private var answered: Set<Int> = emptySet()
     private var initialPage: Int? = null
 
+    /**
+     * The answers last handed to the screen. The state is rebuilt on every tick of the clock, and an
+     * equal map handed over as a new one would redraw every question with it, so the same map goes
+     * out again until the answers change.
+     */
+    private var shownAnswers: Map<Int, Int> = emptyMap()
+
     private var isForeground = false
     private var isFinished = false
     private var allAnswered = false
@@ -445,6 +452,8 @@ class PracticeViewModel(
             .map { PracticeQuestion(it, banks.imageUri(session.bank, it)) }
             .also { questions = it }
         val initialPage = initialPage ?: attempt.resumeIndex().also { initialPage = it }
+        val answers = attempt.answersByIndex()
+        if (answers != shownAnswers) shownAnswers = answers
         return PracticeUiState.Ready(
             exam = ExamLabel(session.category, session.bank.language),
             kind = attempt.kind,
@@ -452,7 +461,7 @@ class PracticeViewModel(
             sections = session.bank.sections,
             questions = questions,
             checkImmediately = checkImmediately,
-            answers = attempt.answersByIndex(),
+            answers = shownAnswers,
             initialPage = initialPage,
             allAnswered = attempt.isFullyAnswered,
             finished = attempt.isFinished,

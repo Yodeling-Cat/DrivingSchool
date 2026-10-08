@@ -36,6 +36,9 @@ class NajFonts(
 
 /** The design system's type scale: titles, numbers, body copy and the small caps labels. */
 class NajType(fonts: NajFonts) {
+    /** The face an accented run is set in: the one word of a title in coral italic (see `AccentedText`). */
+    val accent: FontFamily = fonts.frauncesItalic
+
     // Titles: Fraunces 800, 22-32, one word set in coral italic by [withAccent].
     val brand = TextStyle(fontFamily = fonts.fraunces, fontSize = 24.sp, letterSpacing = (-0.5).sp)
     val stepTitle = TextStyle(
@@ -121,7 +124,16 @@ fun najFonts(): NajFonts {
     val dmSansMedium = Font(Res.font.dm_sans_medium)
     val dmSansBold = Font(Res.font.dm_sans_bold)
     val dmSansExtraBold = Font(Res.font.dm_sans_extrabold)
-    return remember(fraunces, frauncesItalic, bricolage, bricolageBold, dmSans, dmSansMedium, dmSansBold) {
+    return remember(
+        fraunces,
+        frauncesItalic,
+        bricolage,
+        bricolageBold,
+        dmSans,
+        dmSansMedium,
+        dmSansBold,
+        dmSansExtraBold,
+    ) {
         NajFonts(
             fraunces = FontFamily(fraunces),
             frauncesItalic = FontFamily(frauncesItalic),

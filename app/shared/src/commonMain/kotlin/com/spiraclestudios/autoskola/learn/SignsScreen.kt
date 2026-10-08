@@ -72,6 +72,13 @@ private val SignRowGap = 14.dp
  */
 private val SignTextStart = SignRowPadding + SignImageColumnWidth + SignRowGap
 
+/**
+ * What the catalog's list holds, told apart so that a row scrolled off screen is reused for the next
+ * row and a heading for the next heading, rather than one rebuilt as the other.
+ */
+private const val SIGN_HEADING = "heading"
+private const val SIGN_ROW = "sign"
+
 /** Connects [SignsScreen] to its [SignsViewModel] and to navigation. */
 @Composable
 fun SignsRoute(onBack: () -> Unit, viewModel: SignsViewModel = koinViewModel()) {
@@ -179,7 +186,7 @@ private fun SignList(
         // last sign of the last group still showing any - goes without one.
         val lastGroupShown = groups.indexOfLast { !it.folded && it.signs.isNotEmpty() }
         groups.forEachIndexed { index, group ->
-            stickyHeader(key = "header-$index") {
+            stickyHeader(key = "header-$index", contentType = SIGN_HEADING) {
                 SignGroupHeading(
                     kind = group.kind,
                     group = group.group,
@@ -188,7 +195,11 @@ private fun SignList(
                 )
             }
             if (!group.folded) {
-                itemsIndexed(group.signs, key = { _, sign -> sign.number }) { signIndex, sign ->
+                itemsIndexed(
+                    group.signs,
+                    key = { _, sign -> sign.number },
+                    contentType = { _, _ -> SIGN_ROW },
+                ) { signIndex, sign ->
                     val last = index == lastGroupShown && signIndex == group.signs.lastIndex
                     SignRow(sign, page, divider = !last)
                 }

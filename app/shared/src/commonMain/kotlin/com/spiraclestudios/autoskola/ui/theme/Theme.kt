@@ -14,6 +14,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -47,8 +48,12 @@ object Naj {
 @Composable
 fun NajAutoskolaTheme(content: @Composable () -> Unit) {
     val colors = NajLightColors
-    val fonts = najFonts()
-    val type = NajType(fonts)
+    // Remembered, so the theme recomposing - as the fonts load, or the system's settings change -
+    // hands the screens the same type scale. [LocalNajType] is static: a new one, equal or not,
+    // would compose every screen under it again.
+    val type = najType()
+    val colorScheme = remember(colors) { najColorScheme(colors) }
+    val typography = remember(type) { najTypography(type) }
 
     // The design has no dark variant yet, so the light palette is used on every platform.
     @Suppress("UNUSED_VARIABLE")
@@ -59,8 +64,8 @@ fun NajAutoskolaTheme(content: @Composable () -> Unit) {
         LocalNajType provides type,
     ) {
         MaterialTheme(
-            colorScheme = najColorScheme(colors),
-            typography = najTypography(type),
+            colorScheme = colorScheme,
+            typography = typography,
             content = content,
         )
     }

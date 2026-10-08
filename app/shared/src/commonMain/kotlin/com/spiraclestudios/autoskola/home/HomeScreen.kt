@@ -145,6 +145,12 @@ private val SectionGap = 16.dp
 private val GridTileMinWidth = 180.dp
 private val HeaderTopInset = 52.dp
 
+/**
+ * What a test's tile is in the grid, so a tile scrolled off screen is reused for the next tile rather
+ * than for one of the cards above them.
+ */
+private const val TEST_TILE = "test"
+
 /** The home banner's key in the grid, so the sticky header is the same item from one frame to the next. */
 private const val HOME_BANNER_KEY = "home-banner"
 
@@ -295,7 +301,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
                 modifier = Modifier.padding(start = 4.dp, top = 8.dp),
             )
         }
-        items(tests, key = { it.number }) { test ->
+        items(tests, key = { it.number }, contentType = { TEST_TILE }) { test ->
             TestTileItem(test = test, progress = progress, onEvent = onEvent)
         }
     }
@@ -418,7 +424,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                     horizontalArrangement = Arrangement.spacedBy(WideGridGap),
                     verticalArrangement = Arrangement.spacedBy(WideGridGap),
                 ) {
-                    items(tests, key = { it.number }) { test ->
+                    items(tests, key = { it.number }, contentType = { TEST_TILE }) { test ->
                         TestTileItem(test = test, progress = progress, onEvent = onEvent)
                     }
                 }

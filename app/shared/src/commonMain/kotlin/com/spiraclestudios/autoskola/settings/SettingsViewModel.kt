@@ -17,8 +17,12 @@ import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.ConsentAge
 import com.spiraclestudios.autoskola.data.preferences.Preferences
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumRepository
+import com.spiraclestudios.autoskola.data.premium.PremiumSync
+import com.spiraclestudios.autoskola.data.premium.PurchaseResult
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
+import com.spiraclestudios.autoskola.premium.PremiumFeature
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -71,6 +75,8 @@ data class SettingsUiState(
      * exist for them.
      */
     val adPrivacyOptionsRequired: Boolean = false,
+    /** The "remove ads" row: not drawn, for sale, or bought. */
+    val removeAds: RemoveAdsOffer = RemoveAdsOffer.None,
 ) {
     /**
      * Answers checked as they're picked have to stay on screen, so moving on by itself can only be
@@ -114,6 +120,37 @@ data class SettingsUiState(
     val underConsentAge: Boolean get() = ageBand == AgeBand.Under16
 }
 
+/** What the "remove ads" row shows. */
+sealed interface RemoveAdsOffer {
+
+    /**
+     * No row: the store sells nothing here (iOS, the web, a phone without Play) or did not say what it
+     * costs. A button without a price would be a purchase the user cannot judge.
+     */
+    data object None : RemoveAdsOffer
+
+    /** For sale at [price], the store's own string, with how the last press went. */
+    data class ForSale(val price: String, val phase: PurchasePhase = PurchasePhase.Idle) : RemoveAdsOffer
+
+    /** The ads are off for this user - bought here, restored, or covered by Premium - and the row thanks them. */
+    data object Owned : RemoveAdsOffer
+}
+
+/** How the last press of the "remove ads" button went. */
+enum class PurchasePhase {
+    /** Nothing to report. A sheet the user closed comes back here too: they know they closed it. */
+    Idle,
+
+    /** The store's sheet is open; the button waits. */
+    Buying,
+
+    /** Started and not paid for yet, so the ads stay until the store says it completed. */
+    Pending,
+
+    /** The store refused or could not be reached; the button can be pressed again. */
+    Failed,
+}
+
 sealed interface SettingsUiEvent {
     data class SelectLanguage(val language: AppLanguage) : SettingsUiEvent
     data class SetCheckAnswersImmediately(val enabled: Boolean) : SettingsUiEvent
@@ -143,6 +180,9 @@ sealed interface SettingsUiEvent {
      * the platform, so the press is a side effect the screen performs and this only records it.
      */
     data object DeviceIdentifierCopied : SettingsUiEvent
+
+    /** The user wants the ads gone and the store's purchase sheet opens. */
+    data object BuyRemoveAds : SettingsUiEvent
 }
 
 class SettingsViewModel(
@@ -150,6 +190,8 @@ class SettingsViewModel(
     exams: ExamRepository,
     private val analytics: AnalyticsRepository,
     private val ads: AdRepository,
+    private val premium: PremiumRepository,
+    private val premiumSync: PremiumSync,
 ) : ViewModel() {
 
     /** Read once: on Android the platform call is reflective, and the answer cannot change. */
@@ -161,13 +203,26 @@ class SettingsViewModel(
     /** The band the screen is asking the user to confirm, if it is asking. */
     private val ageConfirmation = MutableStateFlow<AgeBand?>(null)
 
+    /** What the store asks for "remove ads", once it has said; `null` until then and where it sells nothing. */
+    private val removeAdsPrice = MutableStateFlow<String?>(null)
+
+    /** How the last press of the "remove ads" button went. */
+    private val purchasePhase = MutableStateFlow(PurchasePhase.Idle)
+
     val uiState: StateFlow<SettingsUiState> =
         combine(
             preferences.preferences,
             exams.current,
             identifierCopied,
             analytics.deviceIdentifier,
-            combine(ageConfirmation, ads.privacyOptionsRequired, ::Extras),
+            combine(
+                ageConfirmation,
+                ads.privacyOptionsRequired,
+                combine(premium.entitlement, removeAdsPrice, purchasePhase) { _, price, phase ->
+                    removeAds(price, phase)
+                },
+                ::Extras,
+            ),
             ::state,
         )
             .stateIn(
@@ -178,7 +233,11 @@ class SettingsViewModel(
                     CurrentExam.Loading,
                     identifierCopied = false,
                     deviceIdentifier = analytics.deviceIdentifier.value,
-                    extras = Extras(confirmingAge = null, adPrivacyOptionsRequired = ads.privacyOptionsRequired.value),
+                    extras = Extras(
+                        confirmingAge = null,
+                        adPrivacyOptionsRequired = ads.privacyOptionsRequired.value,
+                        removeAds = removeAds(removeAdsPrice.value, purchasePhase.value),
+                    ),
                 ),
             )
 
@@ -187,6 +246,8 @@ class SettingsViewModel(
         // asks for the current one instead of trusting what was read when something else last
         // changed. Reading it starts nothing.
         analytics.refreshDeviceIdentifier()
+        // The price is the store's to say, and it can take a few seconds; the row appears once it has.
+        viewModelScope.launch { removeAdsPrice.value = premiumSync.removeAdsOffer()?.price }
     }
 
     fun onEvent(event: SettingsUiEvent) {
@@ -271,7 +332,32 @@ class SettingsViewModel(
             SettingsUiEvent.OpenAdPrivacyOptions -> viewModelScope.launch { ads.showPrivacyOptions() }
 
             SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
+
+            SettingsUiEvent.BuyRemoveAds -> buyRemoveAds()
         }
+    }
+
+    /**
+     * Opens the store's sheet, once: a second press while it is open starts nothing, and nothing is
+     * offered to a user whose ads are already off.
+     */
+    private fun buyRemoveAds() {
+        if (premium.isUnlocked(PremiumFeature.NoAds) || purchasePhase.value == PurchasePhase.Buying) return
+        purchasePhase.value = PurchasePhase.Buying
+        viewModelScope.launch {
+            purchasePhase.value = when (premiumSync.buyRemoveAds()) {
+                PurchaseResult.Pending -> PurchasePhase.Pending
+                PurchaseResult.Failed -> PurchasePhase.Failed
+                is PurchaseResult.Purchased, PurchaseResult.AlreadyOwned, PurchaseResult.Canceled -> PurchasePhase.Idle
+            }
+        }
+    }
+
+    /** The row from what is owned and what the store asks: owned wins, and no price means no row. */
+    private fun removeAds(price: String?, phase: PurchasePhase): RemoveAdsOffer = when {
+        premium.isUnlocked(PremiumFeature.NoAds) -> RemoveAdsOffer.Owned
+        price != null -> RemoveAdsOffer.ForSale(price, phase)
+        else -> RemoveAdsOffer.None
     }
 
     /**
@@ -332,11 +418,16 @@ class SettingsViewModel(
         deviceIdentifierCopied = identifierCopied,
         confirmingAge = extras.confirmingAge,
         adPrivacyOptionsRequired = extras.adPrivacyOptionsRequired,
+        removeAds = extras.removeAds,
     )
 }
 
 /**
- * The two answers about a dialog and a row that are not preferences, held together so the state is
+ * The answers about a dialog and two rows that are not preferences, held together so the state is
  * built from one value rather than from a flow each.
  */
-private data class Extras(val confirmingAge: AgeBand?, val adPrivacyOptionsRequired: Boolean)
+private data class Extras(
+    val confirmingAge: AgeBand?,
+    val adPrivacyOptionsRequired: Boolean,
+    val removeAds: RemoveAdsOffer,
+)

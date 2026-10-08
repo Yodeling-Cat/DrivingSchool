@@ -62,6 +62,15 @@ class Strings(
     /** The way back into Google's consent form, drawn only where Google shows one. */
     val settingsAdPrivacyOptions: String,
     val settingsAdPrivacyOptionsDescription: String,
+    /** The "remove ads" purchase, drawn only where the store sells it. The price is the store's own string. */
+    val settingsPurchases: String,
+    val settingsRemoveAds: String,
+    val settingsRemoveAdsDescription: String,
+    val settingsRemoveAdsPending: String,
+    val settingsRemoveAdsFailed: String,
+    /** The same row once the ads are off. */
+    val settingsAdsRemoved: String,
+    val settingsAdsRemovedDescription: String,
     val consentParentalConsent: String,
     /** The question behind the one press that unlocks switches: [age] is the band's lower bound, 16 or 18. */
     val settingsAgeConfirmTitle: (age: Int) -> String,
@@ -392,6 +401,13 @@ private val EnglishStrings = Strings(
     settingsAdPrivacyOptions = "Ad privacy choices",
     settingsAdPrivacyOptionsDescription = "Review or change what you agreed to in Google's consent " +
         "form.",
+    settingsPurchases = "Purchases",
+    settingsRemoveAds = "Remove ads",
+    settingsRemoveAdsDescription = "One-time purchase: no more ads in the app.",
+    settingsRemoveAdsPending = "Your payment is pending. The ads go as soon as it completes.",
+    settingsRemoveAdsFailed = "The purchase did not go through. Please try again.",
+    settingsAdsRemoved = "Ads removed",
+    settingsAdsRemovedDescription = "Thank you for supporting the app.",
     consentParentalConsent = "A parent or guardian has agreed to this on my behalf",
     settingsAgeConfirmTitle = { "Have you turned $it?" },
     settingsAgeConfirmMessage = "Answering yes unlocks more of the switches below, so please answer " +
@@ -624,6 +640,13 @@ private val SlovakStrings = Strings(
     settingsAdPrivacyOptions = "Voľby súkromia pri reklamách",
     settingsAdPrivacyOptionsDescription = "Skontrolujte alebo zmeňte, s čím ste súhlasili vo " +
         "formulári súhlasu spoločnosti Google.",
+    settingsPurchases = "Nákupy",
+    settingsRemoveAds = "Odstrániť reklamy",
+    settingsRemoveAdsDescription = "Jednorazový nákup: reklamy sa v aplikácii už nebudú zobrazovať.",
+    settingsRemoveAdsPending = "Platba čaká na dokončenie. Reklamy zmiznú hneď, ako sa dokončí.",
+    settingsRemoveAdsFailed = "Nákup sa nepodaril. Skúste to znova.",
+    settingsAdsRemoved = "Reklamy odstránené",
+    settingsAdsRemovedDescription = "Ďakujeme, že podporujete aplikáciu.",
     consentParentalConsent = "Rodič alebo zákonný zástupca s tým v mojom mene súhlasil",
     settingsAgeConfirmTitle = { "Máte už $it rokov?" },
     settingsAgeConfirmMessage = "Odpoveďou áno sa odomknú ďalšie prepínače nižšie, preto odpovedzte áno " +
@@ -857,6 +880,13 @@ private val HungarianStrings = Strings(
     settingsAdPrivacyOptions = "Hirdetési adatvédelmi beállítások",
     settingsAdPrivacyOptionsDescription = "Tekintse át vagy módosítsa, amibe a Google hozzájárulási " +
         "űrlapján beleegyezett.",
+    settingsPurchases = "Vásárlások",
+    settingsRemoveAds = "Hirdetések eltávolítása",
+    settingsRemoveAdsDescription = "Egyszeri vásárlás: az alkalmazásban többé nem jelennek meg hirdetések.",
+    settingsRemoveAdsPending = "A fizetés függőben van. A hirdetések eltűnnek, amint teljesül.",
+    settingsRemoveAdsFailed = "A vásárlás nem sikerült. Kérjük, próbálja újra.",
+    settingsAdsRemoved = "Hirdetések eltávolítva",
+    settingsAdsRemovedDescription = "Köszönjük, hogy támogatja az alkalmazást.",
     consentParentalConsent = "Szülő vagy gondviselő hozzájárult ehhez Ön helyett",
     settingsAgeConfirmTitle = { "Már betöltötte a $it. életévét?" },
     settingsAgeConfirmMessage = "Ha igennel válaszol, további kapcsolók nyílnak ki lent, ezért csak " +
@@ -1091,6 +1121,13 @@ private val CzechStrings = Strings(
     settingsAdPrivacyOptions = "Možnosti soukromí u reklam",
     settingsAdPrivacyOptionsDescription = "Zkontrolujte nebo změňte, s čím jste souhlasili ve " +
         "formuláři souhlasu společnosti Google.",
+    settingsPurchases = "Nákupy",
+    settingsRemoveAds = "Odstranit reklamy",
+    settingsRemoveAdsDescription = "Jednorázový nákup: reklamy se v aplikaci už nebudou zobrazovat.",
+    settingsRemoveAdsPending = "Platba čeká na dokončení. Reklamy zmizí, jakmile se dokončí.",
+    settingsRemoveAdsFailed = "Nákup se nezdařil. Zkuste to prosím znovu.",
+    settingsAdsRemoved = "Reklamy odstraněny",
+    settingsAdsRemovedDescription = "Děkujeme, že podporujete aplikaci.",
     consentParentalConsent = "Rodič nebo zákonný zástupce s tím za mě souhlasil",
     settingsAgeConfirmTitle = { "Už je vám $it let?" },
     settingsAgeConfirmMessage = "Odpovědí ano se odemknou další přepínače níže, proto odpovězte ano jen " +

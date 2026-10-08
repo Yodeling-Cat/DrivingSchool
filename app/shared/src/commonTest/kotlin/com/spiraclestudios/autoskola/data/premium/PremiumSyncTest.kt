@@ -5,10 +5,14 @@ import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.premium.PremiumFeature
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import com.spiraclestudios.autoskola.premium.PurchaseSource
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -135,6 +139,67 @@ class PremiumSyncTest {
     }
 
     @Test
+    fun buyingRemoveAdsTakesTheAdsAwayAtOnceAndRemembersIt() = runTest {
+        val fixture = Fixture()
+
+        val result = fixture.sync.buyRemoveAds()
+
+        assertEquals(PurchaseResult.Purchased(adsRemoved), result)
+        assertEquals(adsRemoved, fixture.premium.entitlement.value)
+        assertTrue(fixture.premium.isUnlocked(PremiumFeature.NoAds))
+        // Bought now and offline at the next start: still bought.
+        assertEquals(adsRemoved, fixture.restarted().premium.entitlement.value)
+    }
+
+    @Test
+    fun aPurchaseTheUserBacksOutOfChangesNothing() = runTest {
+        for (outcome in listOf(PurchaseResult.Canceled, PurchaseResult.Failed, PurchaseResult.Pending)) {
+            val fixture = Fixture(FakeBillingDataSource(purchase = outcome))
+
+            assertEquals(outcome, fixture.sync.buyRemoveAds())
+
+            // A pending payment has not been paid: the ads go once Play says it completed, at a refresh.
+            assertEquals(PremiumStatus.Free, fixture.premium.entitlement.value, "$outcome")
+            assertEquals(PremiumStatus.Free, fixture.restarted().premium.entitlement.value, "$outcome")
+        }
+    }
+
+    @Test
+    fun buyingWhatTheStoreSaysIsAlreadyOwnedAsksTheStoreWhatIsOwned() = runTest {
+        // Bought on another phone and not yet seen here: Play refuses a second purchase and says so.
+        val billing = FakeBillingDataSource(
+            answer = PurchaseQuery.Answered(adsRemoved),
+            purchase = PurchaseResult.AlreadyOwned,
+        )
+        val fixture = Fixture(billing)
+
+        assertEquals(PurchaseResult.AlreadyOwned, fixture.sync.buyRemoveAds())
+
+        assertEquals(1, billing.queries)
+        assertEquals(adsRemoved, fixture.premium.entitlement.value)
+    }
+
+    @Test
+    fun aPurchaseFinishesEvenWhenWhatStartedItIsGone() = runTest {
+        val fixture = Fixture(FakeBillingDataSource(purchaseDelayMillis = 30_000))
+
+        // The screen that started it is closed while the user is still in Play's sheet: they paid.
+        val buying = launch { fixture.sync.buyRemoveAds() }
+        advanceTimeBy(10_000)
+        buying.cancel()
+        advanceUntilIdle()
+
+        assertEquals(adsRemoved, fixture.premium.entitlement.value)
+    }
+
+    @Test
+    fun thePriceIsTheStoresOwnAndAStoreThatDoesNotAnswerSellsNothing() = runTest {
+        assertEquals(ProductOffer("€0.99"), Fixture().sync.removeAdsOffer())
+        assertNull(Fixture(FakeBillingDataSource(offer = null)).sync.removeAdsOffer())
+        assertNull(Fixture(FakeBillingDataSource(delayMillis = 60_000)).sync.removeAdsOffer())
+    }
+
+    @Test
     fun theTargetsWithNoStoreNeverGrantOrTakeAnything() = runTest {
         val fixture = Fixture(FakeBillingDataSource(PurchaseQuery.Unavailable))
 
@@ -142,5 +207,7 @@ class PremiumSyncTest {
 
         assertEquals(PremiumStatus.Free, fixture.premium.entitlement.value)
         assertEquals(PurchaseQuery.Unavailable, UnavailableBillingDataSource().query())
+        assertNull(UnavailableBillingDataSource().removeAdsOffer())
+        assertEquals(PurchaseResult.Failed, UnavailableBillingDataSource().buyRemoveAds())
     }
 }

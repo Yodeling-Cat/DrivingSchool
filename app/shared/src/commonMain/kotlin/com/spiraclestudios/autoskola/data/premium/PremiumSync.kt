@@ -3,8 +3,10 @@ package com.spiraclestudios.autoskola.data.premium
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import com.spiraclestudios.autoskola.premium.PurchaseSource
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -43,7 +45,8 @@ internal object PremiumCache {
 }
 
 /**
- * Asks the store what the user owns and tells [PremiumRepository], when it has an answer to give.
+ * Asks the store what the user owns and tells [PremiumRepository], when it has an answer to give, and
+ * buys "remove ads" through it.
  *
  * Three rules, each there because the mistake it prevents is a person who paid seeing what they paid
  * to stop:
@@ -66,10 +69,37 @@ class PremiumSync(
 
     suspend fun refresh() = turn.withLock {
         val answer = withTimeoutOrNull(timeoutMillis) { billing.query() } ?: PurchaseQuery.Unavailable
-        if (answer is PurchaseQuery.Answered) {
-            PremiumCache.write(settings, answer.status)
-            premium.update(answer.status)
+        if (answer is PurchaseQuery.Answered) record(answer.status)
+    }
+
+    /** What the store asks for "remove ads", or `null` when it does not answer in time or sells nothing here. */
+    suspend fun removeAdsOffer(): ProductOffer? = withTimeoutOrNull(timeoutMillis) { billing.removeAdsOffer() }
+
+    /**
+     * Buys "remove ads" through the store and, once it is paid for, takes the ads away at once and
+     * caches it, so the purchase does not wait for the next refresh to count.
+     *
+     * Runs to the end even when the caller is canceled - a screen closed while the user is still in
+     * the store's sheet - because the user may be paying, and a purchase that is paid for and not
+     * recorded is exactly the mistake this class is here to prevent. The store's sheet is not inside
+     * the lock, so a refresh on resume (which the sheet closing causes) does not wait on the user.
+     */
+    suspend fun buyRemoveAds(): PurchaseResult = withContext(NonCancellable) {
+        val result = billing.buyRemoveAds()
+        when (result) {
+            is PurchaseResult.Purchased -> turn.withLock { record(result.status) }
+
+            // Owned already, on this account: what it owns is the store's to say.
+            PurchaseResult.AlreadyOwned -> refresh()
+
+            PurchaseResult.Pending, PurchaseResult.Canceled, PurchaseResult.Failed -> Unit
         }
+        result
+    }
+
+    private fun record(status: PremiumStatus) {
+        PremiumCache.write(settings, status)
+        premium.update(status)
     }
 
     companion object {

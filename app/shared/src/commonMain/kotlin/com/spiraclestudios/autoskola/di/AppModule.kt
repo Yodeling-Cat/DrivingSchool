@@ -79,8 +79,8 @@ val appModule = module {
     single { ReviewRepository(get()) }
     single { ExamRepository(get(), get(), get(), get()) }
     // What the user owns. It starts from what was last confirmed (cached in Settings), and `PremiumSync` asks
-    // the store at every launch and resume; see `plans/premium.md`. Android asks Google Play, which is
-    // restore-only for now: it recognizes the old "remove ads" product and sells nothing.
+    // the store at every launch and resume; see `plans/premium.md`. Android asks Google Play, which sells
+    // one thing, the "remove ads" product, from Settings; iOS and the web have no store.
     single<BillingDataSource> { platformBillingDataSource() }
     single { PremiumRepository(PremiumCache.read(get())) }
     single { PremiumSync(get(), get(), get()) }

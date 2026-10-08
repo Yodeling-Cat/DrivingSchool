@@ -5,8 +5,12 @@ import com.spiraclestudios.autoskola.data.ads.AdAudience
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import com.spiraclestudios.autoskola.data.premium.PurchaseResult
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
+import com.spiraclestudios.autoskola.premium.PremiumFeature
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
@@ -25,7 +29,14 @@ class SettingsViewModelTest : ViewModelTest() {
         preferences.setAgeBand(AgeBand.Adult)
     }
     private val viewModel by lazy {
-        SettingsViewModel(repositories.preferences, repositories.exams, repositories.analytics, repositories.ads)
+        SettingsViewModel(
+            repositories.preferences,
+            repositories.exams,
+            repositories.analytics,
+            repositories.ads,
+            repositories.premium,
+            repositories.premiumSync,
+        )
     }
 
     @Test
@@ -434,7 +445,15 @@ class SettingsViewModelTest : ViewModelTest() {
         val fresh = TestRepositories(ageBand = null).apply {
             preferences.select(TestSelection("sk-sk", LicenseCategory.C))
         }
-        val model = SettingsViewModel(fresh.preferences, fresh.exams, fresh.analytics, fresh.ads)
+        val model =
+            SettingsViewModel(
+                fresh.preferences,
+                fresh.exams,
+                fresh.analytics,
+                fresh.ads,
+                fresh.premium,
+                fresh.premiumSync,
+            )
 
         val state = observe(model.uiState)
 
@@ -495,7 +514,15 @@ class SettingsViewModelTest : ViewModelTest() {
             preferences.select(TestSelection("sk-sk", LicenseCategory.C))
             adConsent.privacyOptions(required = true)
         }
-        val model = SettingsViewModel(where.preferences, where.exams, where.analytics, where.ads)
+        val model =
+            SettingsViewModel(
+                where.preferences,
+                where.exams,
+                where.analytics,
+                where.ads,
+                where.premium,
+                where.premiumSync,
+            )
         val shown = observe(model.uiState)
 
         assertTrue(shown.value.adPrivacyOptionsRequired)
@@ -567,5 +594,87 @@ class SettingsViewModelTest : ViewModelTest() {
         assertFalse(state.value.personalizedAdsEnabled)
         assertFalse(repositories.preferences.preferences.value.personalizedAdsEnabled)
         assertEquals(false, repositories.adDataSource.personalizedAds.last())
+    }
+
+    @Test
+    fun removeAdsIsOfferedAtTheStoresOwnPrice() = runTest {
+        val state = observe(viewModel.uiState)
+
+        assertEquals(RemoveAdsOffer.ForSale("€0.99"), state.value.removeAds)
+    }
+
+    @Test
+    fun whereTheStoreSellsNothingThereIsNoRow() = runTest {
+        // The web, iOS, a phone with no Play Store, or a Play that did not answer: no price to show.
+        repositories.billing.offer = null
+        val state = observe(viewModel.uiState)
+
+        assertEquals(RemoveAdsOffer.None, state.value.removeAds)
+    }
+
+    @Test
+    fun buyingRemoveAdsHereTakesTheAdsAwayAndTheRowSaysThankYou() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+
+        assertEquals(RemoveAdsOffer.Owned, state.value.removeAds)
+        assertTrue(repositories.premium.isUnlocked(PremiumFeature.NoAds))
+    }
+
+    @Test
+    fun aBuyerIsNotOfferedItAgain() = runTest {
+        repositories.premium.update(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+        val state = observe(viewModel.uiState)
+
+        assertEquals(RemoveAdsOffer.Owned, state.value.removeAds)
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+        assertEquals(0, repositories.billing.purchases)
+    }
+
+    @Test
+    fun aSecondPressWhileBuyingStartsNoSecondPurchase() = runTest {
+        repositories.billing.purchaseDelayMillis = 30_000
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+
+        assertEquals(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Buying), state.value.removeAds)
+        assertEquals(1, repositories.billing.purchases)
+    }
+
+    @Test
+    fun aPendingPaymentIsSaidSoAndTheAdsStayUntilItCompletes() = runTest {
+        repositories.billing.purchase = PurchaseResult.Pending
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+
+        assertEquals(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Pending), state.value.removeAds)
+        assertFalse(repositories.premium.isUnlocked(PremiumFeature.NoAds))
+    }
+
+    @Test
+    fun aFailedPurchaseIsSaidSoAndCanBeTriedAgain() = runTest {
+        repositories.billing.purchase = PurchaseResult.Failed
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+        assertEquals(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Failed), state.value.removeAds)
+
+        repositories.billing.purchase = PurchaseResult.Purchased(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+        assertEquals(RemoveAdsOffer.Owned, state.value.removeAds)
+    }
+
+    @Test
+    fun backingOutOfTheStoresSheetLeavesTheOfferAsItWas() = runTest {
+        repositories.billing.purchase = PurchaseResult.Canceled
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(SettingsUiEvent.BuyRemoveAds)
+
+        assertEquals(RemoveAdsOffer.ForSale("€0.99"), state.value.removeAds)
     }
 }

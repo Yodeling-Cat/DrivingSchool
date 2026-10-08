@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.PrivacyTip
+import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -166,6 +168,13 @@ fun SettingsScreen(
                         iconBackground = colors.neutralTint,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetAdvanceAfterAnswer(it)) },
                     )
+                }
+
+                // Only where the store sells it and has said what it costs; on iOS and the web there is
+                // nothing here to buy, so there is no section either.
+                if (state.removeAds != RemoveAdsOffer.None) {
+                    SectionLabel(strings.settingsPurchases, Modifier.padding(start = 6.dp))
+                    RemoveAdsRow(state.removeAds, onBuy = { onEvent(SettingsUiEvent.BuyRemoveAds) })
                 }
 
                 SectionLabel(strings.settingsPrivacy, Modifier.padding(start = 6.dp))
@@ -423,6 +432,55 @@ private fun SettingsSwitchRow(
 }
 
 /**
+ * The "remove ads" purchase: what it is, and the store's price on the button that opens the store's
+ * own sheet. Once the ads are off it says so and thanks the user, so a buyer can see that it worked.
+ */
+@Composable
+private fun RemoveAdsRow(offer: RemoveAdsOffer, onBuy: () -> Unit) {
+    val colors = Naj.colors
+    NajCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            if (offer == RemoveAdsOffer.Owned) {
+                SettingsRowIcon(Icons.Outlined.Verified, colors.primaryDeep, colors.mintGlow)
+            } else {
+                SettingsRowIcon(Icons.Outlined.Block, colors.primaryDeep, colors.mintGlow)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (offer == RemoveAdsOffer.Owned) strings.settingsAdsRemoved else strings.settingsRemoveAds,
+                    style = Naj.type.rowTitle,
+                    color = colors.ink,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = when ((offer as? RemoveAdsOffer.ForSale)?.phase) {
+                        null -> strings.settingsAdsRemovedDescription
+                        PurchasePhase.Pending -> strings.settingsRemoveAdsPending
+                        PurchasePhase.Failed -> strings.settingsRemoveAdsFailed
+                        PurchasePhase.Idle, PurchasePhase.Buying -> strings.settingsRemoveAdsDescription
+                    },
+                    style = Naj.type.rowSubtitle,
+                    color = colors.muted,
+                )
+            }
+            if (offer is RemoveAdsOffer.ForSale) {
+                OutlinePill(
+                    text = offer.price,
+                    onClick = onBuy,
+                    // While the store's sheet is open: one press, one sheet.
+                    enabled = offer.phase != PurchasePhase.Buying,
+                    height = 36.dp,
+                )
+            }
+        }
+    }
+}
+
+/**
  * What the statistics and crash reports from this device are filed under, with the press that copies
  * it.
  *
@@ -651,6 +709,56 @@ private fun SettingsIdentifierRowPreview() {
             PreviewLabel("Copied")
             SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = true, onCopy = {})
         }
+    }
+}
+
+/** The purchase row's states: for sale, the sheet open, a pending payment, a failure, and bought. */
+@Preview(widthDp = 400, heightDp = 640)
+@Composable
+private fun RemoveAdsRowPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("For sale")
+            RemoveAdsRow(RemoveAdsOffer.ForSale("€0.99"), onBuy = {})
+            PreviewLabel("The store's sheet is open")
+            RemoveAdsRow(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Buying), onBuy = {})
+            PreviewLabel("Payment pending")
+            RemoveAdsRow(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Pending), onBuy = {})
+            PreviewLabel("Failed")
+            RemoveAdsRow(RemoveAdsOffer.ForSale("€0.99", PurchasePhase.Failed), onBuy = {})
+            PreviewLabel("Bought")
+            RemoveAdsRow(RemoveAdsOffer.Owned, onBuy = {})
+        }
+    }
+}
+
+/** The longest translation of the row, with a price in the format Play gives a Slovak user. */
+@Preview(widthDp = 400, heightDp = 300)
+@Composable
+private fun RemoveAdsRowSlovakPreview() {
+    AppPreview(language = AppLanguage.Slovak) {
+        PreviewBoard {
+            RemoveAdsRow(RemoveAdsOffer.ForSale("0,99 €"), onBuy = {})
+            RemoveAdsRow(RemoveAdsOffer.ForSale("0,99 €", PurchasePhase.Pending), onBuy = {})
+        }
+    }
+}
+
+/** Where the store sells "remove ads", Settings carries it in a section of its own above Privacy. */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun SettingsScreenRemoveAdsPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(removeAds = RemoveAdsOffer.ForSale("€0.99")))
+    }
+}
+
+/** On a tablet or a desktop browser width, the column stays capped and centered. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun SettingsScreenRemoveAdsDesktopPreview() {
+    AppPreview {
+        SettingsAgeBoard(previewPrivacyState.copy(removeAds = RemoveAdsOffer.Owned))
     }
 }
 

@@ -58,6 +58,8 @@ sealed interface ResultsUiState {
          * finished with before the next screen appears rather than over it.
          */
         val leaving: Boolean = false,
+        /** Whether the banner pinned under the results is drawn: until the ads are bought away. */
+        val showAds: Boolean = false,
     ) : ResultsUiState
 }
 
@@ -88,9 +90,14 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
         .map { (it as? CurrentExam.Ready)?.session }
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(ResultsUiState.Loading)
-            combine(session.attempt(attemptId), session.progress, leaving) { attempt, progress, leaving ->
+            combine(
+                session.attempt(attemptId),
+                session.progress,
+                leaving,
+                ads.adsAllowed,
+            ) { attempt, progress, leaving, showAds ->
                 if (attempt?.isFinished == true) {
-                    ready(session, attempt, progress, leaving)
+                    ready(session, attempt, progress, leaving, showAds)
                 } else {
                     ResultsUiState.Closed
                 }
@@ -116,6 +123,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
         attempt: TestAttempt,
         progress: ExamProgress,
         leaving: Boolean,
+        showAds: Boolean,
     ): ResultsUiState.Ready {
         val summary = attempt.summary(session.questionsOf(attempt))
         return ResultsUiState.Ready(
@@ -130,6 +138,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
             hasVerdict = hasVerdict(attempt.kind),
             practiceTestsStarted = progress.practiceTestsStarted,
             leaving = leaving,
+            showAds = showAds,
         )
     }
 }

@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.signs.Sign
 import com.spiraclestudios.autoskola.signs.SignCatalog
@@ -42,7 +43,13 @@ sealed interface SignsUiState {
      * [total] is how many signs the catalog holds altogether, which is what the screen reports
      * while a search is running.
      */
-    data class Ready(val groups: List<SignGroupItem>, val query: String, val total: Int) : SignsUiState {
+    data class Ready(
+        val groups: List<SignGroupItem>,
+        val query: String,
+        val total: Int,
+        /** Whether the banner pinned under the list is drawn: until the ads are bought away. */
+        val showAds: Boolean = false,
+    ) : SignsUiState {
         /** How many signs the list is showing, which is all of them while no search is running. */
         val shown: Int get() = groups.sumOf { it.signs.size }
 
@@ -68,7 +75,7 @@ sealed interface SignsUiEvent {
     data object ToggleAllGroups : SignsUiEvent
 }
 
-class SignsViewModel(private val catalogs: SignCatalogRepository) : ViewModel() {
+class SignsViewModel(private val catalogs: SignCatalogRepository, ads: AdRepository) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
@@ -81,7 +88,12 @@ class SignsViewModel(private val catalogs: SignCatalogRepository) : ViewModel() 
         viewModelScope.launch { catalog.value = catalogs.bundled() }
     }
 
-    val uiState: StateFlow<SignsUiState> = combine(catalog, query, folded) { catalog, query, folded ->
+    val uiState: StateFlow<SignsUiState> = combine(catalog, query, folded, ads.adsAllowed) {
+            catalog,
+            query,
+            folded,
+            showAds,
+        ->
         if (catalog == null) {
             SignsUiState.Loading
         } else {
@@ -89,6 +101,7 @@ class SignsViewModel(private val catalogs: SignCatalogRepository) : ViewModel() 
                 groups = groupsOf(catalog, query).map { it.toItem(catalog, folded) },
                 query = query,
                 total = catalog.signs.size,
+                showAds = showAds,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SignsUiState.Loading)

@@ -57,6 +57,20 @@ class ResultsViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theBannerIsShownUntilTheAdsAreBoughtAway() = runTest {
+        val attempt = startTest()
+        repositories.exams.currentSession().finish(attempt.id)
+        val state = open(attempt)
+
+        assertTrue(assertIs<ResultsUiState.Ready>(state.value).showAds)
+
+        // Bought while the results are on screen: the banner goes at once, not at the next visit.
+        repositories.premium.update(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+
+        assertFalse(assertIs<ResultsUiState.Ready>(state.value).showAds)
+    }
+
+    @Test
     fun aFinishedAttemptCarriesHowLongItTook() = runTest {
         val attempt = startTest()
         val session = repositories.exams.currentSession()

@@ -16,8 +16,14 @@ enum class AdSlot {
     /** Pinned to the bottom of the intersections list. */
     IntersectionsBanner,
 
-    /** Pinned to the bottom of one situation. */
+    /** Pinned to the bottom of the situations screen, under the pager, so it is one ad across every situation. */
     SituationBanner,
+
+    /** Pinned to the bottom of the road signs list. */
+    SignsBanner,
+
+    /** Pinned to the bottom of a test's results. */
+    ResultsBanner,
 
     /** After a test result is dismissed. Never on review. */
     ResultsInterstitial,

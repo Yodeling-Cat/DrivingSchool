@@ -68,10 +68,13 @@ fun AdBanner(state: AdBannerState, modifier: Modifier = Modifier) {
  */
 @Composable
 fun PinnedAdBanner(slot: AdSlot, modifier: Modifier = Modifier, maxWidth: Dp = ContentWidth.Reading) {
+    // Held above the two reasons to step aside, so a bar that hides for the keyboard comes back with
+    // the ad it had rather than asking for another when the keyboard closes.
+    val banner = rememberAdBannerState(slot)
     if (LocalHeightClass.current == HeightClass.Compact) return
     if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) return
     Box(modifier.fillMaxWidth().padding(bottom = LocalNavBarInset.current), contentAlignment = Alignment.TopCenter) {
-        AdBanner(slot, Modifier.widthIn(max = maxWidth).padding(start = 16.dp, end = 16.dp, top = 8.dp))
+        AdBanner(banner, Modifier.widthIn(max = maxWidth).padding(start = 16.dp, end = 16.dp, top = 8.dp))
     }
 }
 

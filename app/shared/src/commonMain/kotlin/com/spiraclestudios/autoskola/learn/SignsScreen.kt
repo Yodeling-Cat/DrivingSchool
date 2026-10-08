@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.ui.AppPreview
@@ -46,6 +47,7 @@ import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
 import com.spiraclestudios.autoskola.ui.NajSearchField
+import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.RoundButton
@@ -109,6 +111,9 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
                                 SignList(state.groups, page, onEvent, Modifier.weight(1f))
                             }
                     }
+                    // Pinned under the list, outside it: there from the first frame, and the same ad
+                    // however far the signs are scrolled.
+                    if (state is SignsUiState.Ready && state.showAds) PinnedAdBanner(AdSlot.SignsBanner)
                 }
             }
         }
@@ -303,6 +308,24 @@ private fun SignsScreenPreview() {
     AppPreview {
         SignsScreen(
             state = SignsUiState.Ready(groups = previewSignGroups, query = "", total = previewSignTotal),
+            onEvent = {},
+            onBack = {},
+        )
+    }
+}
+
+/** Ads on, which pins the banner under the list. A preview has no ad SDK, so the bar is empty. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun SignsScreenBannerPreview() {
+    AppPreview {
+        SignsScreen(
+            state = SignsUiState.Ready(
+                groups = previewSignGroups,
+                query = "",
+                total = previewSignTotal,
+                showAds = true,
+            ),
             onEvent = {},
             onBack = {},
         )

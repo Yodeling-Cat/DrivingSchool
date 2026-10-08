@@ -3,22 +3,31 @@ package com.spiraclestudios.autoskola.learn
 import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.data.signs.testSignCatalog
+import com.spiraclestudios.autoskola.premium.PremiumStatus
+import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.signs.SignCatalog
+import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class SignsViewModelTest : ViewModelTest() {
 
+    private val repositories = TestRepositories()
+
     private fun viewModel(catalog: SignCatalog = testSignCatalog()) =
-        SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource.of(catalog)))
+        SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource.of(catalog)), repositories.ads)
 
     @Test
     fun noBundledCatalogLeavesTheScreenLoading() = runTest {
-        val viewModel = SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource(emptyList(), emptyList())))
+        val viewModel = SignsViewModel(
+            SignCatalogRepository(FakeSignCatalogDataSource(emptyList(), emptyList())),
+            repositories.ads,
+        )
 
         val state = observe(viewModel.uiState)
 
@@ -172,5 +181,16 @@ class SignsViewModelTest : ViewModelTest() {
         val ready = assertIs<SignsUiState.Ready>(state.value)
         assertTrue(ready.groups.all { it.folded })
         assertEquals(2, ready.groups.size)
+    }
+
+    @Test
+    fun theBannerIsShownUntilTheAdsAreBoughtAway() = runTest {
+        val state = observe(viewModel().uiState)
+
+        assertTrue(assertIs<SignsUiState.Ready>(state.value).showAds)
+
+        repositories.premium.update(PremiumStatus.AdsRemoved(PurchaseSource.Play))
+
+        assertFalse(assertIs<SignsUiState.Ready>(state.value).showAds)
     }
 }

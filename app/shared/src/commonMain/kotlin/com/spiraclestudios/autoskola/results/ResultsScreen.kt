@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.TestResult
+import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.attemptName
@@ -58,6 +59,7 @@ import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalWidthClass
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.OutlinePill
+import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.WidthClass
@@ -158,9 +160,10 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
     val twoPane = LocalWidthClass.current == WidthClass.Expanded
     val eyebrow = "${attemptName(state.kind, state.testNumber)} · ${strings.resultsTitle}".uppercase()
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.6f))) {
-        Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.fillMaxSize().safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             Column(
                 modifier = Modifier
+                    .weight(1f)
                     .widthIn(max = if (twoPane) ContentWidth.Wide else ContentWidth.Narrow)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
@@ -201,6 +204,9 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                     }
                 }
             }
+            // Pinned under the page rather than at its end, and as wide as the one-column page even
+            // beside two panes: an adaptive banner across a desktop window is a strip, not a small ad.
+            if (state.showAds) PinnedAdBanner(AdSlot.ResultsBanner, maxWidth = ContentWidth.Narrow)
         }
     }
 }
@@ -622,6 +628,18 @@ private fun ResultsScreenUntimedPreview() {
 private fun ResultsScreenExpandedPreview() {
     AppPreview {
         ResultsScreen(resultsState(), onReview = {}, onDone = {})
+    }
+}
+
+/**
+ * Ads on, which pins the banner under the page. A preview has no ad SDK, so the bar is empty: what this
+ * shows is that the page above it still scrolls and keeps its width.
+ */
+@Preview(widthDp = 400, heightDp = 900)
+@Composable
+private fun ResultsScreenBannerPreview() {
+    AppPreview {
+        ResultsScreen(resultsState().copy(showAds = true), onReview = {}, onDone = {})
     }
 }
 

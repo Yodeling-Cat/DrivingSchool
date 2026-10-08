@@ -5,7 +5,7 @@ import com.spiraclestudios.autoskola.isDebugBuild
 /**
  * Google's demo units, which belong to no account and can be used by anyone.
  *
- * The demo set is one unit per *format*, not one per placement, so three slots share the banner unit
+ * The demo set is one unit per *format*, not one per placement, so five slots share the banner unit
  * and two share the interstitial. That is the whole reason a debug build cannot exercise per-placement
  * reporting, and it is also why no test asserts that these ids are distinct.
  *
@@ -17,6 +17,8 @@ internal val TestAdUnits: Map<AdSlot, String> = mapOf(
     AdSlot.HomeBanner to DEMO_BANNER,
     AdSlot.IntersectionsBanner to DEMO_BANNER,
     AdSlot.SituationBanner to DEMO_BANNER,
+    AdSlot.SignsBanner to DEMO_BANNER,
+    AdSlot.ResultsBanner to DEMO_BANNER,
     AdSlot.ResultsInterstitial to DEMO_INTERSTITIAL,
     AdSlot.TestOfferInterstitial to DEMO_INTERSTITIAL,
 )

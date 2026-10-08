@@ -14,6 +14,8 @@ internal actual val ReleaseAdUnits: Map<AdSlot, String> = mapOf(
     AdSlot.HomeBanner to "ca-app-pub-7362127401681337/8153339602",
     AdSlot.IntersectionsBanner to "ca-app-pub-7362127401681337/9470290702",
     AdSlot.SituationBanner to "ca-app-pub-7362127401681337/1101769537",
+    AdSlot.SignsBanner to "ca-app-pub-7362127401681337/6969208308",
+    AdSlot.ResultsBanner to "ca-app-pub-7362127401681337/1147790003",
     AdSlot.ResultsInterstitial to "ca-app-pub-7362127401681337/2901012923",
     AdSlot.TestOfferInterstitial to "ca-app-pub-7362127401681337/8213972792",
 )

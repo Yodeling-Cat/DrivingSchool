@@ -50,6 +50,7 @@ import com.spiraclestudios.autoskola.practice.attemptName
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.stats.AttemptSummary
 import com.spiraclestudios.autoskola.stats.elapsedMinutes
+import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
@@ -185,6 +186,9 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                             )
                             Counts(state.summary)
                             Actions(onReview, onDone, doneLabel(state))
+                            // Beside the breakdown there is a column of its own for it, under the
+                            // buttons, rather than a bar across the bottom of a wide window.
+                            if (state.showAds) AdBanner(AdSlot.ResultsBanner)
                         }
                         // The breakdown's pane already starts at the page's own padding.
                         Box(Modifier.weight(1f)) { Sections(state.sections, 0.dp) }
@@ -204,9 +208,9 @@ fun ResultsScreen(state: ResultsUiState.Ready, onReview: () -> Unit, onDone: () 
                     }
                 }
             }
-            // Pinned under the page rather than at its end, and as wide as the one-column page even
-            // beside two panes: an adaptive banner across a desktop window is a strip, not a small ad.
-            if (state.showAds) PinnedAdBanner(AdSlot.ResultsBanner, maxWidth = ContentWidth.Narrow)
+            // Pinned under the page rather than at its end, on the one-column page. Two panes have it in
+            // the score's column instead, under the buttons.
+            if (state.showAds && !twoPane) PinnedAdBanner(AdSlot.ResultsBanner, maxWidth = ContentWidth.Narrow)
         }
     }
 }
@@ -638,6 +642,15 @@ private fun ResultsScreenExpandedPreview() {
 @Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun ResultsScreenBannerPreview() {
+    AppPreview {
+        ResultsScreen(resultsState().copy(showAds = true), onReview = {}, onDone = {})
+    }
+}
+
+/** Ads on beside two panes: the banner sits in the score's column, under the buttons. */
+@Preview(widthDp = 1100, heightDp = 900)
+@Composable
+private fun ResultsScreenExpandedBannerPreview() {
     AppPreview {
         ResultsScreen(resultsState().copy(showAds = true), onReview = {}, onDone = {})
     }

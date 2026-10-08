@@ -93,7 +93,7 @@ wsl.exe -d Ubuntu -e bash -lc 'export PATH=$HOME/.local/share/mise/shims:$PATH; 
 
 ## App icon sources
 
-`assets/design/app-icon/` holds the design sources for the launcher icons, one directory per target: the Android adaptive set (including the 512 the Play listing uses), an iOS `AppIcon` set and the web icons. Nothing in the build reads it — each platform has its own copy in its own format, under `app/androidApp/src/main/res/` and `app/iosApp/iosApp/Assets.xcassets/` — so it is not a resource to wire up: it is where an icon change starts.
+`assets/design/app-icon/` holds the design sources for the launcher icons, one directory per target: the Android adaptive set (including the 512 the Play listing uses), an iOS `AppIcon` set and the web icons. Nothing in the build reads it — each platform has its own copy in its own format, under `app/androidApp/src/main/res/`, `app/iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/` and `app/webApp/src/webMain/resources/` (with `manifest.webmanifest`) — so it is not a resource to wire up: it is where an icon change starts. A change is copied across by hand; the iOS copies are flattened to RGB on the way, because App Store Connect rejects an icon with an alpha channel even when every pixel is opaque.
 
 ## Open source libraries
 

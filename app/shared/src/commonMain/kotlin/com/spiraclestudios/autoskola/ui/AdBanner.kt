@@ -1,10 +1,21 @@
 package com.spiraclestudios.autoskola.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 
 /**
@@ -39,6 +50,29 @@ fun AdBanner(slot: AdSlot, modifier: Modifier = Modifier) {
 @Composable
 fun AdBanner(state: AdBannerState, modifier: Modifier = Modifier) {
     PlatformAdBanner(state, modifier)
+}
+
+/**
+ * A banner pinned to the bottom of a screen: below its content, outside whatever scrolls or pages, so
+ * it is on screen from the first frame and stays the same ad while the user scrolls or swipes - a
+ * banner inside a pager would be a new request on every page.
+ *
+ * Capped to [maxWidth] and centered like the content above it, because an adaptive banner as wide as
+ * a desktop window is a strip, not a small ad. It sits above the floating navigation pill where a
+ * screen has one ([LocalNavBarInset]).
+ *
+ * **Not drawn at all on a compact height** - a phone on its side - where a bar under the content would
+ * take a fifth of the little height there is (`plans/ads.md`, "Placements"), **nor while the keyboard
+ * is open**: the bar would ride on top of the keys, which is exactly where the next tap is going, and
+ * an ad placed to catch taps meant for something else is what AdMob's policy forbids.
+ */
+@Composable
+fun PinnedAdBanner(slot: AdSlot, modifier: Modifier = Modifier, maxWidth: Dp = ContentWidth.Reading) {
+    if (LocalHeightClass.current == HeightClass.Compact) return
+    if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) return
+    Box(modifier.fillMaxWidth().padding(bottom = LocalNavBarInset.current), contentAlignment = Alignment.TopCenter) {
+        AdBanner(slot, Modifier.widthIn(max = maxWidth).padding(start = 16.dp, end = 16.dp, top = 8.dp))
+    }
 }
 
 /** The platform's banner for [state]: Google's `AdView` on Android, nothing where there is no SDK. */
@@ -101,5 +135,22 @@ internal class RetainedBanner {
     fun release() {
         loaded?.destroy()
         loaded = null
+    }
+}
+
+// ── Previews ──
+
+/**
+ * Where the pinned banner sits. A preview has no ad SDK, so the bar is drawn empty: what this shows
+ * is that it takes no room on a compact height and is capped and centered on a wide one.
+ */
+@Preview(widthDp = 400, heightDp = 300)
+@Composable
+private fun PinnedAdBannerPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("Pinned under the content (empty: the ad is the SDK's)")
+            PinnedAdBanner(AdSlot.SituationBanner)
+        }
     }
 }

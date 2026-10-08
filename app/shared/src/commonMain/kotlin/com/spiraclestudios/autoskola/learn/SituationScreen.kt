@@ -71,7 +71,6 @@ import com.spiraclestudios.autoskola.practice.ChipState
 import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.SwipePager
 import com.spiraclestudios.autoskola.practice.arrowKeyTarget
-import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ChipRadius
@@ -81,6 +80,7 @@ import com.spiraclestudios.autoskola.ui.FittingText
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
+import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.RoundButton
@@ -232,11 +232,13 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
                     situation = situations[page],
                     answers = state.answers,
                     onEvent = onEvent,
-                    showAds = state.showAds,
                 )
             }
             if (arrowsBeside) besideArrows()
         }
+        // Pinned under the pager rather than on each page: one banner for the whole screen, so moving
+        // to the next situation is the same ad, not a new request on every swipe.
+        if (state.showAds) PinnedAdBanner(AdSlot.SituationBanner)
     }
 }
 
@@ -273,12 +275,7 @@ private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> U
  * the drawing is measured against the page it is on, so an enlarged copy never outgrows the screen.
  */
 @Composable
-private fun SituationPage(
-    situation: SituationItem,
-    answers: Map<Int, Int>,
-    onEvent: (SituationUiEvent) -> Unit,
-    showAds: Boolean,
-) {
+private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEvent: (SituationUiEvent) -> Unit) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val question = situation.questions.getOrNull(tab) ?: situation.questions.firstOrNull() ?: return
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -308,9 +305,6 @@ private fun SituationPage(
                     chosen = answers[question.questionId],
                     onSelect = { chosen -> onEvent(SituationUiEvent.Answer(question.questionId, chosen)) },
                 )
-                // At the end of the page, under the answers: the one part of this screen with
-                // nothing to tap near it, which is the whole reason the placement is allowed here.
-                if (showAds) AdBanner(AdSlot.SituationBanner)
             }
         }
     }

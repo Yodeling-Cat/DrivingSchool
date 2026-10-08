@@ -30,6 +30,10 @@ class NajColors(
     // Navy bars (navigation pill, question bar)
     val navy: Color,
     val navyLight: Color,
+    // Navigation rail (tablets and desktop; the phone's pill stays navy)
+    val rail: Color,
+    val railDivider: Color,
+    val railContent: Color,
     // Status
     val passedOn: Color,
     val passedTop: Color,
@@ -94,6 +98,9 @@ val NajLightColors = NajColors(
     selectedTint = Color(0xFFCFEDE7),
     navy = Color(0xFF0F2A3A),
     navyLight = Color(0xFF163A4F),
+    rail = Color(0xFFCFEDE7),
+    railDivider = Color(0xFFB5DDD5),
+    railContent = Color(0xFF3D5566),
     passedOn = Color(0xFF12703C),
     passedTop = Color(0xFFE4F7EB),
     passedBottom = Color(0xFFC6EBD4),

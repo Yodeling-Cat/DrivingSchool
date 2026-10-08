@@ -106,6 +106,7 @@ class NajType(fonts: NajFonts) {
     val navLabel = TextStyle(fontFamily = fonts.dmSansMedium, fontSize = 12.sp)
     val navLabelActive = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 12.sp)
     val railLabel = TextStyle(fontFamily = fonts.dmSansMedium, fontSize = 11.sp)
+    val railLabelActive = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 11.sp)
 }
 
 @Composable

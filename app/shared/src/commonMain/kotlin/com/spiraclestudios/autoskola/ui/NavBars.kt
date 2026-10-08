@@ -80,7 +80,7 @@ private val PillItemHeight = 56.dp
  * Bottom navigation on phones, navigation rail on tablets and desktop.
  *
  * Phones get the floating navy pill with a yellow pill behind the active tab; wider screens get
- * the navy rail with the same yellow active state, as the design system asks.
+ * the mint rail with the same yellow active state.
  */
 @Composable
 fun NavigationShell(selected: NavTab, onSelect: (NavTab) -> Unit, content: @Composable () -> Unit) {
@@ -144,19 +144,27 @@ private fun NavPill(selected: NavTab, onSelect: (NavTab) -> Unit, modifier: Modi
 }
 
 /**
- * One flat navy, not the design's navyLight-to-navy gradient: over the phone's 72dp pill that
- * gradient passes unnoticed, but stretched down a full-height rail it reads as a light leak over
- * the bar rather than as the bar's own color.
+ * Pale mint rather than the pill's navy: the rail runs up under the status bar, whose text the
+ * system draws dark, and on navy that text could not be read. Mint keeps it legible and still sets
+ * the rail apart from the cream page, with a hairline on the edge that faces the content.
  */
 @Composable
 private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
     val colors = Naj.colors
-    val active = Color.White.copy(alpha = 0.7f)
+    Row(Modifier.fillMaxHeight()) {
+        RailItems(selected, onSelect)
+        Box(Modifier.width(1.dp).fillMaxHeight().background(colors.railDivider))
+    }
+}
+
+@Composable
+private fun RailItems(selected: NavTab, onSelect: (NavTab) -> Unit) {
+    val colors = Naj.colors
     Column(
         modifier = Modifier
             .width(RailWidth)
             .fillMaxHeight()
-            .background(colors.navy)
+            .background(colors.rail)
             .padding(top = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -188,14 +196,14 @@ private fun NavRail(selected: NavTab, onSelect: (NavTab) -> Unit) {
                     Icon(
                         tab.icon,
                         contentDescription = null,
-                        tint = if (isActive) colors.ink else active,
+                        tint = if (isActive) colors.ink else colors.railContent,
                         modifier = Modifier.size(24.dp),
                     )
                 }
                 Text(
                     tab.label(strings),
-                    style = Naj.type.railLabel,
-                    color = if (isActive) colors.roadYellow else active,
+                    style = if (isActive) Naj.type.railLabelActive else Naj.type.railLabel,
+                    color = if (isActive) colors.ink else colors.railContent,
                 )
             }
         }

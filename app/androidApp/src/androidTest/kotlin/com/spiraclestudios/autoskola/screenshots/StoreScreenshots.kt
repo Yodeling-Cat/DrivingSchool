@@ -14,6 +14,7 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.bank.Question
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
+import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
@@ -28,6 +29,7 @@ import com.spiraclestudios.autoskola.navigation.StoredNavigationState
 import com.spiraclestudios.autoskola.onboarding.bankTitle
 import com.spiraclestudios.autoskola.onboarding.displayName
 import com.spiraclestudios.autoskola.provideApplication
+import com.spiraclestudios.autoskola.situations.situations
 import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.stats.score
 import kotlinx.coroutines.flow.filterIsInstance
@@ -93,19 +95,30 @@ class StoreScreenshots {
         for (language in LANGUAGES) {
             val strings = language.strings
             val exam = chooseExam(language)
-            capture(language, "02-signs", exam) {
-                Target("home/learn/signs", waitFor = strings.learnRoadSigns)
-            }
-            capture(language, "03-situation", exam) {
-                Target("home/learn/intersections/situation/1", waitFor = strings.situationName(1))
-            }
-            capture(language, "04-home", exam) { session ->
+            capture(language, "02-home", exam) { session ->
                 seedProgress(session!!)
                 Target("home", waitFor = strings.allTests)
             }
             practice(language, exam)
+            capture(language, "04-situation", exam) { session ->
+                // Its questions answered, and answered right, so the screen shows the marks.
+                val situation = situations(session!!.bank, session.category)[SHOWN_SITUATION - 1]
+                val answers = get<PracticeAnswerRepository>()
+                for (question in situation.questions) {
+                    answers.answer(session.bank.id, session.bank.version, question.id, question.correct)
+                }
+                Target(
+                    "home/learn/intersections/situation/$SHOWN_SITUATION",
+                    waitFor = strings.situationName(SHOWN_SITUATION),
+                )
+            }
+            capture(language, "05-results", exam) { session ->
+                val id = seedProgress(session!!).passed.id
+                // On top of its own test, which is where the app puts it.
+                Target("home/practice/$id/results/$id", waitFor = strings.reviewAnswers)
+            }
             // The list covers most of a phone's screen, which makes it a picture of its own; on a
-            // tablet it is a column beside the question, already in the shot above.
+            // tablet it is a column beside the question, already in the practice screenshot.
             if (!isTablet) {
                 capture(
                     language,
@@ -120,10 +133,8 @@ class StoreScreenshots {
                     Target("home/practice/${progress.underWay.id}", waitFor = progress.resumedOn.prompt())
                 }
             }
-            capture(language, "07-results", exam) { session ->
-                val id = seedProgress(session!!).passed.id
-                // On top of its own test, which is where the app puts it.
-                Target("home/practice/$id/results/$id", waitFor = strings.reviewAnswers)
+            capture(language, "07-signs", exam) {
+                Target("home/learn/signs", waitFor = strings.learnRoadSigns)
             }
         }
     }
@@ -138,7 +149,7 @@ class StoreScreenshots {
         lateinit var progress: Progress
         capture(
             language,
-            "05-practice",
+            "03-practice",
             exam,
             beforeShot = {
                 repeat(ANSWERED_UNDER_WAY + 1 - shown) {
@@ -289,19 +300,23 @@ class StoreScreenshots {
 
     /**
      * A user well into their preparation, and the same one every time: every test up to
-     * [LAST_FINISHED] finished, most passed and the ones in [FAILED_TESTS] failed, and test
-     * [UNDER_WAY_TEST] started and left after [ANSWERED_UNDER_WAY] questions - the one the home
-     * screen offers to resume. It is what makes the home screen look used, and it gives the
+     * [LAST_FINISHED] finished, most passed and [BADLY_FAILED_TEST] and the ones in [FAILED_TESTS]
+     * failed, and test [UNDER_WAY_TEST] started and left after [ANSWERED_UNDER_WAY] questions - the
+     * one the home screen offers to resume. It is what makes the home screen look used, and it gives the
      * practice and results screens an attempt each.
      */
     private suspend fun seedProgress(session: ExamSession): Progress {
         lateinit var passed: TestAttempt
         for (test in session.tests.filter { it.number <= LAST_FINISHED && it.number != UNDER_WAY_TEST }) {
-            val failed = test.number in FAILED_TESTS
+            val failed = test.number in FAILED_TESTS || test.number == BADLY_FAILED_TEST
             val attempt = finish(
                 session,
                 test,
-                wrong = if (failed) 7 else test.number % 4,
+                wrong = when {
+                    test.number == BADLY_FAILED_TEST -> test.wrongToScore(BADLY_FAILED_SCORE)
+                    failed -> 7
+                    else -> test.number % 4
+                },
                 // Somewhere between 18 and 30 minutes, the same for a test every time.
                 elapsedSeconds = 18 * 60L + test.number * 97 % (12 * 60),
                 expectPassed = !failed,
@@ -349,6 +364,21 @@ class StoreScreenshots {
         return answered
     }
 
+    /**
+     * How many wrong answers bring this test down to about [score] points: the dearest questions
+     * first, until no more than [score] is left.
+     */
+    private fun PracticeTest.wrongToScore(score: Int): Int {
+        var left = questions.sumOf { it.points }
+        var wrong = 0
+        for (question in questions.sortedByDescending { it.points }) {
+            if (left <= score) break
+            left -= question.points
+            wrong++
+        }
+        return wrong
+    }
+
     /** Always the same wrong answer: the one after the right one. */
     private val Question.wrongAnswer: Int get() = (correct + 1) % answers.size
 
@@ -372,6 +402,10 @@ class StoreScreenshots {
         /** Of the finished tests, the ones that were failed. Every other one was passed. */
         val FAILED_TESTS = setOf(5, 11, 18, 29)
 
+        /** A test failed by a long way, near the top of the home screen: [BADLY_FAILED_SCORE] points or just under. */
+        const val BADLY_FAILED_TEST = 2
+        const val BADLY_FAILED_SCORE = 45
+
         /** The test that was started and not finished, which the practice screenshots show. */
         const val UNDER_WAY_TEST = 23
 
@@ -383,8 +417,11 @@ class StoreScreenshots {
         const val SHOWN_ON_PHONE = 18
         const val SHOWN_ON_TABLET = 19
 
-        /** The passed test whose results are shown: two wrong answers. */
-        const val RESULTS_TEST = 2
+        /** The passed test whose results are shown: three wrong answers. */
+        const val RESULTS_TEST = 3
+
+        /** The intersection situation shown, counted from 1. */
+        const val SHOWN_SITUATION = 27
 
         /** How much of a text is matched when looking for it on screen. */
         const val PROMPT_LENGTH = 30

@@ -48,12 +48,12 @@ store-screenshots/
   phone/
     sk/
       01-exam-selection.png
-      02-signs.png
-      03-situation.png
-      04-home.png
-      05-practice.png
+      02-home.png
+      03-practice.png
+      04-situation.png
+      05-results.png
       06-practice-questions.png   (phone only)
-      07-results.png
+      07-signs.png
     en/
       …
   tablet/
@@ -71,34 +71,38 @@ for `Pixel_Tablet`.
 | File                          | Screen                                                                  |
 |-------------------------------|-------------------------------------------------------------------------|
 | `01-exam-selection.png`       | The last page of the exam selection, where the license group is picked. |
-| `02-signs.png`                | The road signs.                                                         |
-| `03-situation.png`            | The first intersection situation.                                       |
-| `04-home.png`                 | The home screen, with the test history below.                           |
-| `05-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on the tablet. |
+| `02-home.png`                 | The home screen, with the test history below.                           |
+| `03-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on the tablet. |
+| `04-situation.png`            | Intersection situation 27, with its questions answered correctly.       |
+| `05-results.png`              | The results of test 3: passed, with three wrong answers.                |
 | `06-practice-questions.png`   | Phone only. Test 23 with the question list open.                        |
-| `07-results.png`              | The results of test 2: passed, with two wrong answers.                  |
+| `07-signs.png`                | The road signs.                                                         |
 
 The tablet has no `06-practice-questions.png`. On a tablet the question list is always shown beside
-the question, so `05-practice.png` already shows it.
+the question, so `03-practice.png` already shows it.
 
 ### The test history
 
-The data behind screenshots 04 to 07 is the same in every run:
+The data behind screenshots 02 to 06 is the same in every run:
 
-- Tests 1 to 34 are finished, except test 23. Tests 5, 11, 18 and 29 are failed. All the others are
-  passed, with 0 to 3 wrong answers.
+- Tests 1 to 34 are finished, except test 23.
+- Test 2 is failed with about 45 points: the questions worth the most points are answered wrongly
+  until no more than 45 points are left.
+- Tests 5, 11, 18 and 29 are failed with 7 wrong answers, on the questions worth the most points.
+- All the other finished tests are passed, with 0 to 3 wrong answers on questions worth 1 point.
 - Test 23 is started and not finished. Questions 1 to 19 are answered: questions 4, 9, 13 and 16
   wrongly, all others correctly. The home screen offers this test to resume.
 - A wrong answer is always the answer after the correct one, so the same questions get the same
   answers in every run.
+- In intersection situation 27, every question has the correct answer.
 
 The practice screen opens on question 20, the first question with no answer, as the app does. The test
 then taps the previous-question button until it shows the question for the device. It counts a device
 as a tablet when its smallest width is 600 dp or more, which is the app's own limit.
 
 The constants at the end of `StoreScreenshots.kt` set all of these numbers: `LAST_FINISHED`,
-`FAILED_TESTS`, `UNDER_WAY_TEST`, `ANSWERED_UNDER_WAY`, `WRONG_UNDER_WAY`, `SHOWN_ON_PHONE`,
-`SHOWN_ON_TABLET` and `RESULTS_TEST`.
+`FAILED_TESTS`, `BADLY_FAILED_TEST`, `BADLY_FAILED_SCORE`, `UNDER_WAY_TEST`, `ANSWERED_UNDER_WAY`,
+`WRONG_UNDER_WAY`, `SHOWN_ON_PHONE`, `SHOWN_ON_TABLET`, `RESULTS_TEST` and `SHOWN_SITUATION`.
 
 ### The exam's language
 
@@ -111,7 +115,7 @@ If a language in the list has no Slovak exam in that language, the run stops wit
 app supports the same language for both the app and the exam, adding the language to the list is
 enough.
 
-The road sign catalog exists only in Slovak, so the sign names in `02-signs.png` are in Slovak in
+The road sign catalog exists only in Slovak, so the sign names in `07-signs.png` are in Slovak in
 every language.
 
 ## How it works
@@ -152,7 +156,7 @@ For each screenshot, the test does these steps:
 3. **Skips onboarding.** It marks the documents as accepted and the disclaimer as read. It also
    marks the app as rated, so the rating card does not cover the home screen.
 4. **Writes the data the screen needs** through the app's own repositories: the exam, and the test
-   attempts for screens 04 to 07 (see [The test history](#the-test-history)).
+   attempts and answers for screens 02 to 06 (see [The test history](#the-test-history)).
 5. **Opens the screen from the stored route.** This is how the app reopens after the system kills
    it (`StoredNavigationState`). For example, the signs screen is `home/learn/signs`.
 6. **Waits for the screen.** It waits until a text from that screen is visible, then for the device

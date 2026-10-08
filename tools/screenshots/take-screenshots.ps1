@@ -56,7 +56,10 @@ $adb = Join-Path $sdk "platform-tools/adb.exe"
 $emulator = Join-Path $sdk "emulator/emulator.exe"
 
 # Takes the arguments as one array, so flags like -a and -e reach adb rather than PowerShell.
+# The exit code is what says whether adb failed: it reports progress on stderr (`adb pull` does), which
+# Windows PowerShell turns into an error when the script's output is redirected.
 function Invoke-Adb([string] $Serial, [string[]] $Arguments) {
+    $ErrorActionPreference = "Continue"
     $result = & $adb -s $Serial @Arguments
     if ($LASTEXITCODE -ne 0) { throw "adb $($Arguments -join ' ') failed on $Serial" }
     return $result
@@ -64,6 +67,7 @@ function Invoke-Adb([string] $Serial, [string[]] $Arguments) {
 
 # The serial of the running emulator started from $Avd, or $null.
 function Find-Emulator([string] $Avd) {
+    $ErrorActionPreference = "Continue"
     $serials = & $adb devices | ForEach-Object { if ($_ -match '^(emulator-\d+)\s+device$') { $Matches[1] } }
     foreach ($serial in $serials) {
         $name = & $adb -s $serial emu avd name | Select-Object -First 1
@@ -73,6 +77,7 @@ function Find-Emulator([string] $Avd) {
 }
 
 function Start-Emulator([string] $Avd) {
+    $ErrorActionPreference = "Continue"
     Write-Host "Starting $Avd..."
     Start-Process -FilePath $emulator -ArgumentList "-avd", $Avd, "-no-snapshot-save" -WindowStyle Minimized
     $deadline = (Get-Date).AddMinutes(5)
@@ -116,6 +121,8 @@ function Exit-SteadyScreen([string] $Serial, [hashtable] $Scales) {
 }
 
 function Invoke-Screenshots([string] $Avd, [string] $Folder) {
+    # adb and the emulator write to stderr freely; failures are caught by their output and exit codes.
+    $ErrorActionPreference = "Continue"
     $serial = Find-Emulator $Avd
     $started = $false
     if (-not $serial) {
@@ -137,8 +144,8 @@ function Invoke-Screenshots([string] $Avd, [string] $Folder) {
             throw "The screenshot test failed on $Avd."
         }
         $destination = Join-Path $output $Folder
-        if (Test-Path $destination) { Remove-Item -Recurse -Force $destination }
-        New-Item -ItemType Directory -Force $output | Out-Null
+        if (Test-Path $destination) { Remove-Item -Recurse -Force $destination -ErrorAction Stop }
+        New-Item -ItemType Directory -Force $output -ErrorAction Stop | Out-Null
         Invoke-Adb $serial "pull", $deviceOutput, $destination | Out-Null
         Write-Host "  -> $destination"
     } finally {

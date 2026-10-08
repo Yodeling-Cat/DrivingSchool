@@ -52,10 +52,11 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          # The Xcode build phase shells out to ./gradlew, and Gradle 9.6 with AGP 9.4 wants a
-          # modern JDK — this is the one the build is developed against.
-          java-version: "25"
+          distribution: corretto
+          # The Xcode build phase shells out to ./gradlew, and the Gradle daemon is pinned to
+          # Corretto 21 (gradle/gradle-daemon-jvm.properties). Having it installed here keeps Gradle
+          # from trying to download it.
+          java-version: "21"
 
       - uses: gradle/actions/setup-gradle@v4
 

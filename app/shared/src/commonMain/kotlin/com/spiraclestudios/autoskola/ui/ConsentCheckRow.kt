@@ -26,7 +26,7 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  * behalf of a user under 16.
  *
  * The last one is the reason this is shared rather than written twice. Both places that ask for it —
- * the consent screen and Settings — have to mark it, and the mark is a colour, which reaches nobody
+ * the consent screen and Settings — have to mark it, and the mark is a color, which reaches nobody
  * who cannot see it; the box therefore also carries [errorMessage] as semantics and announces it,
  * because the press that set the mark leaves the focus down on the button that was pressed.
  *
@@ -54,7 +54,9 @@ fun ConsentCheckRow(
             checked = checked,
             // The row owns the press, so the box does not take a second one.
             onCheckedChange = null,
-            modifier = Modifier.semantics {
+            // Without a handler of its own the box drops its 48dp touch area and is drawn 24dp
+            // tall; the padding gives that height back, so its middle meets the first line's.
+            modifier = Modifier.padding(12.dp).semantics {
                 if (error) {
                     // `this.` on purpose: `error` alone would be ambiguous with kotlin.error, which
                     // throws instead.

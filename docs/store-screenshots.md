@@ -16,8 +16,8 @@ On Windows, use the PowerShell version:
 ./tools/screenshots/take-screenshots.ps1
 ```
 
-One run builds the app, takes 12 screenshots on each emulator and pulls them to the computer. When the
-build is already done, this takes about 2 minutes.
+One run builds the app, takes 14 screenshots on the phone and 12 on the tablet, and pulls them to the
+computer. When the build is already done, this takes about 2 minutes.
 
 ### Requirements
 
@@ -52,7 +52,8 @@ store-screenshots/
       03-situation.png
       04-home.png
       05-practice.png
-      06-results.png
+      06-practice-questions.png   (phone only)
+      07-results.png
     en/
       …
   tablet/
@@ -67,20 +68,43 @@ for `Pixel_Tablet`.
 
 ## What is in each screenshot
 
-| File                    | Screen                                                                        |
-|-------------------------|-------------------------------------------------------------------------------|
-| `01-exam-selection.png` | The last page of the exam selection, where the license group is picked.       |
-| `02-signs.png`          | The road signs.                                                               |
-| `03-situation.png`      | The first intersection situation.                                             |
-| `04-home.png`           | The home screen of a user who has passed two tests, failed one and is doing a fourth. |
-| `05-practice.png`       | The fourth test, open on its first question with a picture from question 6 on. |
-| `06-results.png`        | The results of the second test: passed, with two wrong answers.             |
+| File                          | Screen                                                                  |
+|-------------------------------|-------------------------------------------------------------------------|
+| `01-exam-selection.png`       | The last page of the exam selection, where the license group is picked. |
+| `02-signs.png`                | The road signs.                                                         |
+| `03-situation.png`            | The first intersection situation.                                       |
+| `04-home.png`                 | The home screen, with the test history below.                           |
+| `05-practice.png`             | Test 23 with the correct answer picked: question 18 on the phone, question 19 on the tablet. |
+| `06-practice-questions.png`   | Phone only. Test 23 with the question list open.                        |
+| `07-results.png`              | The results of test 2: passed, with two wrong answers.                  |
+
+The tablet has no `06-practice-questions.png`. On a tablet the question list is always shown beside
+the question, so `05-practice.png` already shows it.
+
+### The test history
+
+The data behind screenshots 04 to 07 is the same in every run:
+
+- Tests 1 to 34 are finished, except test 23. Tests 5, 11, 18 and 29 are failed. All the others are
+  passed, with 0 to 3 wrong answers.
+- Test 23 is started and not finished. Questions 1 to 19 are answered: questions 4, 9, 13 and 16
+  wrongly, all others correctly. The home screen offers this test to resume.
+- A wrong answer is always the answer after the correct one, so the same questions get the same
+  answers in every run.
+
+The practice screen opens on question 20, the first question with no answer, as the app does. The test
+then taps the previous-question button until it shows the question for the device. It counts a device
+as a tablet when its smallest width is 600 dp or more, which is the app's own limit.
+
+The constants at the end of `StoreScreenshots.kt` set all of these numbers: `LAST_FINISHED`,
+`FAILED_TESTS`, `UNDER_WAY_TEST`, `ANSWERED_UNDER_WAY`, `WRONG_UNDER_WAY`, `SHOWN_ON_PHONE`,
+`SHOWN_ON_TABLET` and `RESULTS_TEST`.
 
 ### The exam's language
 
 Each language's screenshots use an exam in that same language. The test goes through the exam
 selection the way a user does: it picks Slovakia, then the exam in the screenshot's language. It takes
-`01-exam-selection.png` on the license group page, then picks Car (B). Screenshots 02 to 06 use the
+`01-exam-selection.png` on the license group page, then picks Car (B). Screenshots 02 to 07 use the
 exam that the app saved from that choice, so the app text and the questions are in the same language.
 
 If a language in the list has no Slovak exam in that language, the run stops with an error. When the
@@ -128,7 +152,7 @@ For each screenshot, the test does these steps:
 3. **Skips onboarding.** It marks the documents as accepted and the disclaimer as read. It also
    marks the app as rated, so the rating card does not cover the home screen.
 4. **Writes the data the screen needs** through the app's own repositories: the exam, and the test
-   attempts for screens 04 to 06.
+   attempts for screens 04 to 07 (see [The test history](#the-test-history)).
 5. **Opens the screen from the stored route.** This is how the app reopens after the system kills
    it (`StoredNavigationState`). For example, the signs screen is `home/learn/signs`.
 6. **Waits for the screen.** It waits until a text from that screen is visible, then for the device
@@ -148,9 +172,11 @@ and Android Studio's test runs skip the test. The script runs the class by name 
 
 Add a `capture` call to `takeStoreScreenshots()` in `StoreScreenshots.kt`. Give it:
 
-- a file name with the next number, for example `"07-settings"`;
+- a file name with the next number, for example `"08-settings"`;
 - a `Target` with the route of the screen and a text that is on the screen when it has loaded. Take
-  the text from `language.strings`, so that the wait works in every language.
+  the text from `language.strings`, so that the wait works in every language;
+- if the screen has to change before the screenshot, a `beforeShot` that does it. `tap` taps a text
+  and `tapDescribed` taps an icon button by its description, as the question list screenshot does.
 
 If the screen needs data, write it in the `capture` block through the repositories, as
 `seedProgress` does.
@@ -175,3 +201,5 @@ picks.
 - **`Test … was meant to pass` (or `fail`).** The seeded test results no longer give the result the
   home screen needs, possibly after a new question bank version. Change the number of wrong answers in
   `seedProgress`.
+- **`No "…" button appeared on screen to be tapped`.** The description of an icon button changed in
+  `i18n/Strings.kt`, or the button is not on that layout.

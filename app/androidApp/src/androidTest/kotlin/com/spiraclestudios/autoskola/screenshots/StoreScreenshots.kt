@@ -6,6 +6,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.spiraclestudios.autoskola.MainActivity
@@ -68,6 +69,9 @@ class StoreScreenshots {
     private val context = instrumentation.targetContext
     private val device = UiDevice.getInstance(instrumentation)
 
+    /** The app's own line between a phone and a tablet layout (`ui/Adaptive.kt`). */
+    private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
+
     /** On the device's shared storage, where `adb pull` can reach it without root. */
     private val output = File(context.getExternalFilesDir(null), OUTPUT_DIRECTORY)
 
@@ -99,16 +103,56 @@ class StoreScreenshots {
                 seedProgress(session!!)
                 Target("home", waitFor = strings.allTests)
             }
-            capture(language, "05-practice", exam) { session ->
-                val progress = seedProgress(session!!)
-                val id = progress.underWay.id
-                Target("home/practice/$id", waitFor = progress.nextQuestion.text.lineSequence().first().take(30))
+            practice(language, exam)
+            // The list covers most of a phone's screen, which makes it a picture of its own; on a
+            // tablet it is a column beside the question, already in the shot above.
+            if (!isTablet) {
+                capture(
+                    language,
+                    "06-practice-questions",
+                    exam,
+                    beforeShot = {
+                        tapDescribed(strings.questionList)
+                        await(strings.closeQuestionList, by = By::desc)
+                    },
+                ) { session ->
+                    val progress = seedProgress(session!!)
+                    Target("home/practice/${progress.underWay.id}", waitFor = progress.resumedOn.prompt())
+                }
             }
-            capture(language, "06-results", exam) { session ->
+            capture(language, "07-results", exam) { session ->
                 val id = seedProgress(session!!).passed.id
                 // On top of its own test, which is where the app puts it.
                 Target("home/practice/$id/results/$id", waitFor = strings.reviewAnswers)
             }
+        }
+    }
+
+    /**
+     * The test under way, on question [SHOWN_ON_PHONE] or [SHOWN_ON_TABLET] with its right answer
+     * picked. It opens on the first question with no answer, as the app does, and steps back from
+     * there with the previous-question button.
+     */
+    private fun practice(language: AppLanguage, exam: TestSelection) {
+        val shown = if (isTablet) SHOWN_ON_TABLET else SHOWN_ON_PHONE
+        lateinit var progress: Progress
+        capture(
+            language,
+            "05-practice",
+            exam,
+            beforeShot = {
+                repeat(ANSWERED_UNDER_WAY + 1 - shown) {
+                    tapDescribed(language.strings.previousQuestion)
+                    device.waitForIdle()
+                }
+                // The question and its right answer together: questions about signs share a text.
+                val question = progress.questions[shown - 1]
+                await(question.prompt())
+                await(question.answers[question.correct].take(PROMPT_LENGTH))
+            },
+        ) { session ->
+            progress = seedProgress(session!!)
+            Target("home/practice/${progress.underWay.id}", waitFor = progress.resumedOn.prompt())
         }
     }
 
@@ -206,9 +250,12 @@ class StoreScreenshots {
         }
     }
 
-    /** Waits until [text] is on screen; [what] names the screenshot in the failure. */
-    private fun await(text: String, what: String = "The screen") {
-        val shown = device.wait(Until.hasObject(By.text(containing(text))), LOAD_TIMEOUT_MILLIS)
+    /**
+     * Waits until [text] is on screen - as an element's text, or whatever [by] matches instead, such
+     * as a button's description. [what] names the screenshot in the failure.
+     */
+    private fun await(text: String, what: String = "The screen", by: (Pattern) -> BySelector = By::text) {
+        val shown = device.wait(Until.hasObject(by(containing(text))), LOAD_TIMEOUT_MILLIS)
         check(shown) { "$what: \"$text\" never appeared on screen" }
     }
 
@@ -216,6 +263,13 @@ class StoreScreenshots {
     private fun tap(text: String) {
         val element = device.wait(Until.findObject(By.text(text)), LOAD_TIMEOUT_MILLIS)
             ?: error("\"$text\" never appeared on screen to be tapped")
+        element.click()
+    }
+
+    /** Taps the button described as [description] - an icon has no text - once it appears. */
+    private fun tapDescribed(description: String) {
+        val element = device.wait(Until.findObject(By.desc(description)), LOAD_TIMEOUT_MILLIS)
+            ?: error("No \"$description\" button appeared on screen to be tapped")
         element.click()
     }
 
@@ -228,31 +282,48 @@ class StoreScreenshots {
     }
 
     /** What [seedProgress] leaves behind for the screens to open. */
-    private class Progress(val passed: TestAttempt, val underWay: TestAttempt, val nextQuestion: Question)
-
-    /**
-     * A user some way into their preparation: two tests passed, one failed, and a fourth under way. It
-     * is what makes the home screen look used, and it gives the practice and results screens an
-     * attempt each.
-     */
-    private suspend fun seedProgress(session: ExamSession): Progress {
-        val tests = session.tests
-        finish(session, tests[0], wrong = 0, elapsedSeconds = 21 * 60 + 12, expectPassed = true)
-        val passed = finish(session, tests[1], wrong = 2, elapsedSeconds = 24 * 60 + 35, expectPassed = true)
-        finish(session, tests[2], wrong = 7, elapsedSeconds = 28 * 60 + 3, expectPassed = false)
-
-        val underWay = session.startOrResume(tests[3])
-        val questions = session.questionsOf(underWay)
-        // Stops before a question with a picture, so that is the one the practice screen opens on.
-        val stopAt = questions.indices.firstOrNull { it >= 5 && questions[it].image != null } ?: 5
-        questions.take(stopAt).forEach { session.answer(underWay.id, it, it.correct) }
-        session.updateElapsed(underWay.id, 6 * 60 + 48)
-        return Progress(passed, underWay, questions[stopAt])
+    private class Progress(val passed: TestAttempt, val underWay: TestAttempt, val questions: List<Question>) {
+        /** The question the practice screen opens on: the first one with no answer. */
+        val resumedOn: Question get() = questions[ANSWERED_UNDER_WAY]
     }
 
     /**
-     * Answers all of [test], [wrong] of them wrongly - the ones worth the most points, so a failed
-     * test is certain to fail - and finishes it.
+     * A user well into their preparation, and the same one every time: every test up to
+     * [LAST_FINISHED] finished, most passed and the ones in [FAILED_TESTS] failed, and test
+     * [UNDER_WAY_TEST] started and left after [ANSWERED_UNDER_WAY] questions - the one the home
+     * screen offers to resume. It is what makes the home screen look used, and it gives the
+     * practice and results screens an attempt each.
+     */
+    private suspend fun seedProgress(session: ExamSession): Progress {
+        lateinit var passed: TestAttempt
+        for (test in session.tests.filter { it.number <= LAST_FINISHED && it.number != UNDER_WAY_TEST }) {
+            val failed = test.number in FAILED_TESTS
+            val attempt = finish(
+                session,
+                test,
+                wrong = if (failed) 7 else test.number % 4,
+                // Somewhere between 18 and 30 minutes, the same for a test every time.
+                elapsedSeconds = 18 * 60L + test.number * 97 % (12 * 60),
+                expectPassed = !failed,
+            )
+            if (test.number == RESULTS_TEST) passed = attempt
+        }
+
+        val test = session.tests.first { it.number == UNDER_WAY_TEST }
+        val underWay = session.startOrResume(test)
+        val questions = session.questionsOf(underWay)
+        questions.take(ANSWERED_UNDER_WAY).forEachIndexed { index, question ->
+            val chosen = if (index + 1 in WRONG_UNDER_WAY) question.wrongAnswer else question.correct
+            session.answer(underWay.id, question, chosen)
+        }
+        session.updateElapsed(underWay.id, 9 * 60 + 14)
+        return Progress(passed, underWay, questions)
+    }
+
+    /**
+     * Answers all of [test], [wrong] of them wrongly, and finishes it. The wrong ones are the cheapest
+     * questions in a test meant to pass and the dearest in one meant to fail, so either comes out as
+     * meant.
      */
     private suspend fun finish(
         session: ExamSession,
@@ -263,10 +334,11 @@ class StoreScreenshots {
     ): TestAttempt {
         val attempt = session.startOrResume(test)
         val questions = session.questionsOf(attempt)
-        val wrongIds = questions.sortedByDescending { it.points }.take(wrong).mapTo(mutableSetOf()) { it.id }
+        val byPoints = questions.sortedBy { it.points }
+        val wrongOnes = if (expectPassed) byPoints.take(wrong) else byPoints.takeLast(wrong)
+        val wrongIds = wrongOnes.mapTo(mutableSetOf()) { it.id }
         for (question in questions) {
-            val wrongAnswer = (question.correct + 1) % question.answers.size
-            val chosen = if (question.id in wrongIds) wrongAnswer else question.correct
+            val chosen = if (question.id in wrongIds) question.wrongAnswer else question.correct
             session.answer(attempt.id, question, chosen)
         }
         val answered = session.attempt(attempt.id).first()!!
@@ -276,6 +348,12 @@ class StoreScreenshots {
         session.finish(attempt.id, elapsedSeconds)
         return answered
     }
+
+    /** Always the same wrong answer: the one after the right one. */
+    private val Question.wrongAnswer: Int get() = (correct + 1) % answers.size
+
+    /** The start of the question's text, enough to find it on screen by. */
+    private fun Question.prompt(): String = text.lineSequence().first().take(PROMPT_LENGTH)
 
     private fun containing(text: String): Pattern =
         Pattern.compile(".*" + Pattern.quote(text.trim()) + ".*", Pattern.CASE_INSENSITIVE or Pattern.DOTALL)
@@ -287,6 +365,29 @@ class StoreScreenshots {
         /** The country whose exam the screenshots show, and the license group picked for it. */
         const val COUNTRY = "SK"
         val CATEGORY = LicenseCategory.B
+
+        /** The tests [seedProgress] finishes: all of them up to this one, but for the one under way. */
+        const val LAST_FINISHED = 34
+
+        /** Of the finished tests, the ones that were failed. Every other one was passed. */
+        val FAILED_TESTS = setOf(5, 11, 18, 29)
+
+        /** The test that was started and not finished, which the practice screenshots show. */
+        const val UNDER_WAY_TEST = 23
+
+        /** How many of its questions are answered, and which of them (counted from 1) wrongly. */
+        const val ANSWERED_UNDER_WAY = 19
+        val WRONG_UNDER_WAY = setOf(4, 9, 13, 16)
+
+        /** The question of [UNDER_WAY_TEST] the practice screenshot shows, counted from 1. */
+        const val SHOWN_ON_PHONE = 18
+        const val SHOWN_ON_TABLET = 19
+
+        /** The passed test whose results are shown: two wrong answers. */
+        const val RESULTS_TEST = 2
+
+        /** How much of a text is matched when looking for it on screen. */
+        const val PROMPT_LENGTH = 30
 
         /** Under the app's external files directory; `take-screenshots` pulls it from there. */
         const val OUTPUT_DIRECTORY = "store-screenshots"

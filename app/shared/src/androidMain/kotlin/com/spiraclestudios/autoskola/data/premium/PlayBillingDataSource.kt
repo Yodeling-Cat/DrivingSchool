@@ -25,8 +25,7 @@ import kotlin.coroutines.resume
  * **Every completed purchase is acknowledged**, whichever way it arrives: from the sheet this opened, or
  * found by [query] - a pending payment that completed while the app was closed, or a purchase made
  * outside the app with a promo code. Play refunds a purchase that is not acknowledged within three days,
- * so the user would lose what they paid for without being told. The purchases from the old app were
- * acknowledged long ago, and acknowledging is a no-op Play skips for those.
+ * so the user would lose what they paid for without being told.
  *
  * It cannot be tried from a debug build installed straight onto a phone: Play only knows builds that
  * came through it, so there the question comes back empty and nothing is for sale. It has to be tried
@@ -169,7 +168,7 @@ class PlayBillingDataSource(context: Context) : BillingDataSource {
         return if (bought) PremiumStatus.AdsRemoved(PurchaseSource.Play) else PremiumStatus.Free
     }
 
-    private fun Purchase.isRemoveAds() = PRODUCT_REMOVE_ADS in products
+    private fun Purchase.isRemoveAds() = removesAds(products)
 
     private fun Purchase.isPurchased() = purchaseState == Purchase.PurchaseState.PURCHASED
 

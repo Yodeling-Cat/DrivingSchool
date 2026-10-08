@@ -43,8 +43,8 @@ sealed interface PremiumStatus {
     data class Premium(val source: PurchaseSource) : PremiumStatus
 
     /**
-     * Bought the one-time "remove ads" product that the app sold before Premium existed
-     * (`remove_ads` in Google Play), and nothing else: no ads, and none of what Premium adds.
+     * Bought the one-time "remove ads" product (`remove_all_ads` in Google Play), and nothing else: no
+     * ads, and none of what Premium adds.
      *
      * A status of its own rather than [Premium] because those buyers paid for one thing. Mapping them to
      * [Premium] would hand them every feature Premium unlocks the day one of those features is locked,

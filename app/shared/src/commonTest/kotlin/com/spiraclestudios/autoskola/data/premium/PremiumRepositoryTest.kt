@@ -40,7 +40,7 @@ class PremiumRepositoryTest {
     }
 
     @Test
-    fun theOldRemoveAdsProductUnlocksNoAdsAndNothingElse() {
+    fun theRemoveAdsProductUnlocksNoAdsAndNothingElse() {
         val premium = PremiumRepository(PremiumStatus.AdsRemoved(PurchaseSource.Play))
 
         assertTrue(premium.isUnlocked(PremiumFeature.NoAds))

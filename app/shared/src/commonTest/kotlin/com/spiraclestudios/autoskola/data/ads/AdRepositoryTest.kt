@@ -260,8 +260,8 @@ class AdRepositoryTest {
     }
 
     @Test
-    fun aBuyerOfTheOldRemoveAdsProductIsAskedForNothing() = runTest {
-        // Bought in the app before it had ads of its own: the product says the ads do not come back.
+    fun aBuyerOfRemoveAdsIsAskedForNothing() = runTest {
+        // The product says the ads do not come back.
         val fixture = fixture(premium = PremiumStatus.AdsRemoved(PurchaseSource.Play))
 
         assertFalse(fixture.ads.mayRequestAds())

@@ -3,13 +3,16 @@ package com.spiraclestudios.autoskola.data.premium
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 
 /**
- * The id of the one-time "remove ads" product that Google Play sells for this app, from Settings.
+ * The id of the one-time "remove ads" product that Google Play sells for this app, from Settings. The
+ * id is the store's, so it cannot be renamed here.
  *
- * The old app sold it too, and anyone who bought it then paid for exactly what the product says: the
- * ads do not come back (`plans/premium.md`, "Someone has already bought remove ads"). The id is the
- * store's, so it cannot be renamed here.
+ * The old app sold the same thing as `remove_ads`. It is not recognized: nobody still uses that
+ * purchase (decided 2026-10-08, `plans/premium.md`).
  */
-const val PRODUCT_REMOVE_ADS = "remove_ads"
+const val PRODUCT_REMOVE_ADS = "remove_all_ads"
+
+/** Whether a purchase of [products] takes the ads away. */
+fun removesAds(products: List<String>): Boolean = PRODUCT_REMOVE_ADS in products
 
 /**
  * The store: what the user already owns, and the one thing it sells, "remove ads" ([PRODUCT_REMOVE_ADS]).

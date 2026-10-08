@@ -12,7 +12,17 @@ name: Release
 #   UPLOAD_KEYSTORE_BASE64    upload_key.jks, base64-encoded
 #   UPLOAD_KEYSTORE_PASSWORD  its store password
 #   UPLOAD_KEY_PASSWORD       the key's password, only if it differs from the store password
+#   POSTHOG_CLI_API_KEY       a PostHog personal API key with "error tracking write" and
+#                             "organization read" scopes, for uploading the R8 mapping file
 # The alias is `upload`.
+#
+# Variables (same page, Variables tab):
+#   POSTHOG_CLI_HOST          https://eu.posthog.com
+#   POSTHOG_CLI_PROJECT_ID    the numeric PostHog project id
+#
+# The PostHog Gradle plugin uploads the mapping file during the release build. It is applied only
+# when the credentials are set and posthog-cli is on PATH (see docs/error-reporting.md), so this
+# workflow installs the CLI and passes the credentials in.
 
 on:
   workflow_dispatch:
@@ -48,6 +58,25 @@ jobs:
           yes | "$sdkmanager" --licenses > /dev/null || true
           yes | "$sdkmanager" --install "platforms;android-37.0" "build-tools;37.0.0"
 
+      # Pinned so a release build does not change under us when PostHog publishes a new CLI.
+      - name: Install posthog-cli
+        run: npm install -g @posthog/cli@0.18.10
+
+      - name: Check the PostHog credentials are set
+        env:
+          POSTHOG_CLI_HOST: ${{ vars.POSTHOG_CLI_HOST }}
+          POSTHOG_CLI_PROJECT_ID: ${{ vars.POSTHOG_CLI_PROJECT_ID }}
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+        run: |
+          missing=0
+          for name in POSTHOG_CLI_HOST POSTHOG_CLI_PROJECT_ID POSTHOG_CLI_API_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set, so the mapping file would not reach PostHog."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
       - name: Decode the upload keystore
         env:
           UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
@@ -64,6 +93,9 @@ jobs:
           AUTOSKOLA_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
           AUTOSKOLA_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
           AUTOSKOLA_KEY_ALIAS: upload
+          POSTHOG_CLI_HOST: ${{ vars.POSTHOG_CLI_HOST }}
+          POSTHOG_CLI_PROJECT_ID: ${{ vars.POSTHOG_CLI_PROJECT_ID }}
+          POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
         run: ./gradlew :app:androidApp:bundleRelease :app:androidApp:assembleRelease
 
       - name: Remove the keystore

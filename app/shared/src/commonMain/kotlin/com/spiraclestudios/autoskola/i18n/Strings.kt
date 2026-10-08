@@ -578,9 +578,7 @@ private val EnglishStrings = Strings(
     aboutApp = "About the app",
     aboutVersion = { "Version $it" },
     settingsDeviceIdentifier = "Device identifier",
-    settingsDeviceIdentifierDescription = "What we file this device's usage statistics and crash " +
-        "reports under. It is kept here so you can quote it when you write to us, with the switches " +
-        "on or off.",
+    settingsDeviceIdentifierDescription = "This device's identifier for usage statistics and crash reports.",
     settingsDeviceIdentifierEmpty = "Nothing has been sent from this device, so there is nothing " +
         "filed under an identifier yet. One appears here the first time you turn on usage " +
         "statistics or crash reports.",
@@ -817,9 +815,8 @@ private val SlovakStrings = Strings(
     aboutApp = "O aplikácii",
     aboutVersion = { "Verzia $it" },
     settingsDeviceIdentifier = "Identifikátor zariadenia",
-    settingsDeviceIdentifierDescription = "Pod týmto identifikátorom evidujeme štatistiky používania " +
-        "a hlásenia o zrúteniach z tohto zariadenia. Zostáva tu, aby ste ho mohli uviesť, keď nám " +
-        "napíšete — bez ohľadu na to, či sú prepínače zapnuté.",
+    settingsDeviceIdentifierDescription = "Identifikátor tohto zariadenia pre štatistiky používania " +
+        "a hlásenia o zrúteniach.",
     settingsDeviceIdentifierEmpty = "Z tohto zariadenia zatiaľ nebolo nič odoslané, takže pod žiadnym " +
         "identifikátorom nič neevidujeme. Zobrazí sa tu pri prvom zapnutí štatistík používania " +
         "alebo hlásení o zrúteniach.",
@@ -1059,9 +1056,8 @@ private val HungarianStrings = Strings(
     aboutApp = "Az alkalmazásról",
     aboutVersion = { "$it verzió" },
     settingsDeviceIdentifier = "Eszközazonosító",
-    settingsDeviceIdentifierDescription = "Ez az azonosító alatt tartjuk nyilván az eszköz használati " +
-        "statisztikáit és összeomlás-jelentéseit. Itt marad, hogy megadd, amikor írsz nekünk — akár " +
-        "be vannak kapcsolva a kapcsolók, akár nem.",
+    settingsDeviceIdentifierDescription = "Az eszköz azonosítója a használati statisztikákhoz és az " +
+        "összeomlás-jelentésekhez.",
     settingsDeviceIdentifierEmpty = "Erről az eszközről még nem lett semmi elküldve, így még nincs, " +
         "ami alatt nyilvántartanánk. Az első alkalommal jelenik meg itt, amikor bekapcsolod a " +
         "használati statisztikákat vagy az összeomlás-jelentéseket.",
@@ -1298,9 +1294,8 @@ private val CzechStrings = Strings(
     aboutApp = "O aplikaci",
     aboutVersion = { "Verze $it" },
     settingsDeviceIdentifier = "Identifikátor zařízení",
-    settingsDeviceIdentifierDescription = "Pod tímto identifikátorem evidujeme statistiky používání " +
-        "a hlášení o pádech z tohoto zařízení. Zůstává tu, abyste ho mohli uvést, když nám " +
-        "napíšete — bez ohledu na to, zda jsou přepínače zapnuté.",
+    settingsDeviceIdentifierDescription = "Identifikátor tohoto zařízení pro statistiky používání " +
+        "a hlášení o pádech.",
     settingsDeviceIdentifierEmpty = "Z tohoto zařízení zatím nebylo nic odesláno, takže pod žádným " +
         "identifikátorem nic neevidujeme. Zobrazí se tu při prvním zapnutí statistik používání " +
         "nebo hlášení o pádech.",

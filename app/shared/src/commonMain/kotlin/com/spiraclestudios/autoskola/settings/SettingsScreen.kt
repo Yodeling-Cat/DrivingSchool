@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Info
@@ -51,7 +50,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.spiraclestudios.autoskola.copyToClipboard
 import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.LegalDocument
 import com.spiraclestudios.autoskola.i18n.AppLanguage
@@ -97,10 +95,6 @@ fun SettingsRoute(
         onOpenAbout = onOpenAbout,
         onOpenFeedback = onOpenFeedback,
         onOpenDocument = { openUrl(it.url) },
-        onCopyIdentifier = { identifier ->
-            copyToClipboard(identifier)
-            viewModel.onEvent(SettingsUiEvent.DeviceIdentifierCopied)
-        },
     )
 }
 
@@ -112,7 +106,6 @@ fun SettingsScreen(
     onOpenAbout: () -> Unit,
     onOpenFeedback: () -> Unit,
     onOpenDocument: (LegalDocument) -> Unit,
-    onCopyIdentifier: (String) -> Unit,
 ) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground(paperGlows(colors, mintY = 0.7f))) {
@@ -306,14 +299,10 @@ fun SettingsScreen(
                         leading = { SettingsRowIcon(Icons.Outlined.Info, colors.primaryDeep, colors.mintGlow) },
                         shape = RectangleShape,
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
-                    // Last, and not a link to anywhere: what the app files what it holds about this
-                    // device under, which is the one thing a user cannot read off their own device.
-                    SettingsIdentifierRow(
-                        identifier = state.deviceIdentifier,
-                        copied = state.deviceIdentifierCopied,
-                        onCopy = onCopyIdentifier,
-                    )
+                    // Hidden for now: the feedback screen already puts the identifier in the email it
+                    // writes, which is the one place a user needs it.
+                    // Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    // SettingsIdentifierRow(identifier = state.deviceIdentifier)
                 }
 
                 // The one question this screen asks before it changes something. It writes nothing on
@@ -481,20 +470,14 @@ private fun RemoveAdsRow(offer: RemoveAdsOffer, onBuy: () -> Unit) {
 }
 
 /**
- * What the statistics and crash reports from this device are filed under, with the press that copies
- * it.
- *
- * It is the one piece of what we hold that a user cannot read off their own device, which is what
- * makes it worth a row: quoting the identifier is what lets us find their rows, so the press that
- * puts it on the clipboard is the point of the row. The identifier is drawn in a selection as well,
- * the same way the feedback screen hands over what it would send, so there is a way through on a
- * platform whose clipboard refuses.
+ * What the statistics and crash reports from this device are filed under. The identifier is drawn
+ * in a selection, so it can still be copied by hand.
  *
  * [identifier] is `null` until something has been allowed to leave, and the row then says what would
  * put one there rather than showing an empty value.
  */
 @Composable
-private fun SettingsIdentifierRow(identifier: String?, copied: Boolean, onCopy: (String) -> Unit) {
+private fun SettingsIdentifierRow(identifier: String?) {
     val colors = Naj.colors
     NajCard(shape = RectangleShape) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -515,16 +498,6 @@ private fun SettingsIdentifierRow(identifier: String?, copied: Boolean, onCopy: 
                         },
                         style = Naj.type.rowSubtitle,
                         color = colors.muted,
-                    )
-                }
-                if (identifier != null) {
-                    // The words the feedback screen already uses for the same press: one button, one
-                    // label, kept in one place per language.
-                    OutlinePill(
-                        text = if (copied) strings.feedbackCopied else strings.feedbackCopy,
-                        icon = if (copied) Icons.Filled.Check else Icons.Outlined.ContentCopy,
-                        onClick = { onCopy(identifier) },
-                        height = 36.dp,
                     )
                 }
             }
@@ -558,14 +531,12 @@ private fun SettingsScreenPreview() {
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
-                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
-            onCopyIdentifier = {},
         )
     }
 }
@@ -588,14 +559,12 @@ private fun SettingsScreenCheckingPreview() {
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
-                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
-            onCopyIdentifier = {},
         )
     }
 }
@@ -618,14 +587,12 @@ private fun SettingsScreenNoVersionPreview() {
                 exam = previewExam,
                 appVersion = null,
                 deviceIdentifier = null,
-                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
-            onCopyIdentifier = {},
         )
     }
 }
@@ -651,14 +618,12 @@ private fun SettingsScreenNoExamYetPreview() {
                 exam = null,
                 appVersion = "1.4.2",
                 deviceIdentifier = null,
-                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
-            onCopyIdentifier = {},
         )
     }
 }
@@ -681,14 +646,12 @@ private fun SettingsScreenIdentifierPreview() {
                 exam = previewExam,
                 appVersion = "1.4.2",
                 deviceIdentifier = PREVIEW_IDENTIFIER,
-                deviceIdentifierCopied = false,
             ),
             onEvent = {},
             onChangeExam = {},
             onOpenAbout = {},
             onOpenFeedback = {},
             onOpenDocument = {},
-            onCopyIdentifier = {},
         )
     }
 }
@@ -696,18 +659,16 @@ private fun SettingsScreenIdentifierPreview() {
 /** Shaped like a real one, and long enough that the row has to wrap it rather than cut it short. */
 private const val PREVIEW_IDENTIFIER = "0195f2c4-3b7e-7a41-9c6d-1f0a4e8b7c22"
 
-/** The row's three shapes: nothing yet, an identifier with the press, and the press answered. */
-@Preview(widthDp = 400, heightDp = 460)
+/** The row's two shapes: nothing yet, and an identifier. */
+@Preview(widthDp = 400, heightDp = 320)
 @Composable
 private fun SettingsIdentifierRowPreview() {
     AppPreview {
         PreviewBoard {
             PreviewLabel("Nothing to show yet")
-            SettingsIdentifierRow(identifier = null, copied = false, onCopy = {})
-            PreviewLabel("An identifier to copy")
-            SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = false, onCopy = {})
-            PreviewLabel("Copied")
-            SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER, copied = true, onCopy = {})
+            SettingsIdentifierRow(identifier = null)
+            PreviewLabel("An identifier")
+            SettingsIdentifierRow(identifier = PREVIEW_IDENTIFIER)
         }
     }
 }
@@ -775,7 +736,6 @@ private fun SettingsAgeBoard(state: SettingsUiState) {
         onOpenAbout = {},
         onOpenFeedback = {},
         onOpenDocument = {},
-        onCopyIdentifier = {},
     )
 }
 
@@ -792,7 +752,6 @@ private val previewPrivacyState = SettingsUiState(
     exam = previewExam,
     appVersion = "1.4.2",
     deviceIdentifier = null,
-    deviceIdentifierCopied = false,
 )
 
 /**

@@ -61,8 +61,6 @@ data class SettingsUiState(
      * running, so it is absent rather than stale once the answers behind it are switched off.
      */
     val deviceIdentifier: String?,
-    /** The identifier has been put on the clipboard, which is the only way to know that it was. */
-    val deviceIdentifierCopied: Boolean,
     /**
      * The band the screen is asking the user to confirm, or `null` when it is not asking. It asks
      * before a *higher* band is applied, because one press unlocks switches and the app cannot check
@@ -175,12 +173,6 @@ sealed interface SettingsUiEvent {
     /** The user wants to review what they agreed to in Google's consent form, and the form is shown. */
     data object OpenAdPrivacyOptions : SettingsUiEvent
 
-    /**
-     * The identifier was put on the clipboard, which the screen did itself: the clipboard belongs to
-     * the platform, so the press is a side effect the screen performs and this only records it.
-     */
-    data object DeviceIdentifierCopied : SettingsUiEvent
-
     /** The user wants the ads gone and the store's purchase sheet opens. */
     data object BuyRemoveAds : SettingsUiEvent
 }
@@ -197,9 +189,6 @@ class SettingsViewModel(
     /** Read once: on Android the platform call is reflective, and the answer cannot change. */
     private val version = appVersion()
 
-    /** Whether the identifier has been copied. Nothing but the user's press changes it. */
-    private val identifierCopied = MutableStateFlow(false)
-
     /** The band the screen is asking the user to confirm, if it is asking. */
     private val ageConfirmation = MutableStateFlow<AgeBand?>(null)
 
@@ -213,7 +202,6 @@ class SettingsViewModel(
         combine(
             preferences.preferences,
             exams.current,
-            identifierCopied,
             analytics.deviceIdentifier,
             combine(
                 ageConfirmation,
@@ -231,7 +219,6 @@ class SettingsViewModel(
                 state(
                     preferences.preferences.value,
                     CurrentExam.Loading,
-                    identifierCopied = false,
                     deviceIdentifier = analytics.deviceIdentifier.value,
                     extras = Extras(
                         confirmingAge = null,
@@ -331,8 +318,6 @@ class SettingsViewModel(
 
             SettingsUiEvent.OpenAdPrivacyOptions -> viewModelScope.launch { ads.showPrivacyOptions() }
 
-            SettingsUiEvent.DeviceIdentifierCopied -> identifierCopied.value = true
-
             SettingsUiEvent.BuyRemoveAds -> buyRemoveAds()
         }
     }
@@ -400,7 +385,6 @@ class SettingsViewModel(
     private fun state(
         preferences: Preferences,
         exam: CurrentExam,
-        identifierCopied: Boolean,
         deviceIdentifier: String?,
         extras: Extras,
     ) = SettingsUiState(
@@ -415,7 +399,6 @@ class SettingsViewModel(
         exam = (exam as? CurrentExam.Ready)?.session?.let { ExamLabel(it.category, it.bank.language) },
         appVersion = version,
         deviceIdentifier = deviceIdentifier,
-        deviceIdentifierCopied = identifierCopied,
         confirmingAge = extras.confirmingAge,
         adPrivacyOptionsRequired = extras.adPrivacyOptionsRequired,
         removeAds = extras.removeAds,

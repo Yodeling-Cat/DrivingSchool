@@ -240,19 +240,6 @@ class SettingsViewModelTest : ViewModelTest() {
         assertEquals("ident-9", state.value.deviceIdentifier)
     }
 
-    @Test
-    fun copyingTheIdentifierIsRecordedSoTheRowCanSaySo() = runTest {
-        // The clipboard belongs to the platform: the press is the screen's own side effect, and this
-        // flag is the only part of it that exists here.
-        val state = observe(viewModel.uiState)
-
-        assertFalse(state.value.deviceIdentifierCopied)
-
-        viewModel.onEvent(SettingsUiEvent.DeviceIdentifierCopied)
-
-        assertTrue(state.value.deviceIdentifierCopied)
-    }
-
     // ── The age question ──
     //
     // The one thing on this screen a user changes because they changed: somebody answers at 15 and is

@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.stats
 
 import com.spiraclestudios.autoskola.TestResult
+import com.spiraclestudios.autoskola.bank.PassMark
 import com.spiraclestudios.autoskola.bank.Question
 
 /** Recorded answers keyed by the question's position in the attempt (position → answer index). */
@@ -21,12 +22,16 @@ private fun TestAttempt.asked(questions: List<Question>): List<Question> {
     return questions.filter { it.id in ids }
 }
 
-/** Points for correct answers out of the points of all [questions] in the attempt. */
-fun TestAttempt.score(questions: List<Question>): TestResult {
+/**
+ * Points for correct answers out of the points of all [questions] in the attempt, graded against
+ * [passMark], the pass mark of the bank the questions are from.
+ */
+fun TestAttempt.score(questions: List<Question>, passMark: PassMark): TestResult {
     val asked = asked(questions)
     return TestResult(
         score = asked.sumOf { if (answerFor(it.id)?.correct == true) it.points else 0 },
         maxScore = asked.sumOf { it.points },
+        passMark = passMark,
     )
 }
 
@@ -58,14 +63,14 @@ data class SectionSummary(
     val maxScore: Int,
 )
 
-/** Counts right, wrong and missing answers to [questions], overall and per section. */
-fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
+/** Counts right, wrong and missing answers to [questions], overall and per section, graded against [passMark]. */
+fun TestAttempt.summary(questions: List<Question>, passMark: PassMark): AttemptSummary {
     val asked = asked(questions)
     fun isCorrect(question: Question) = answerFor(question.id)?.correct == true
     val answered = asked.count { answerFor(it.id) != null }
     val correct = asked.count(::isCorrect)
     return AttemptSummary(
-        result = score(questions),
+        result = score(questions, passMark),
         correct = correct,
         wrong = answered - correct,
         unanswered = asked.size - answered,

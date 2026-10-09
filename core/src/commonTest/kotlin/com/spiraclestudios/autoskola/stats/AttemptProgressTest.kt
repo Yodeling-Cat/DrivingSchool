@@ -2,6 +2,7 @@ package com.spiraclestudios.autoskola.stats
 
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.bank.PassMark
 import com.spiraclestudios.autoskola.bank.Question
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -61,12 +62,23 @@ class AttemptProgressTest {
     @Test
     fun scoreCountsPointsOfCorrectAnswersAgainstAllQuestions() {
         // Correct on 10 (3 points) and 30 (1 point), wrong on 20, nothing else missing.
-        assertEquals(TestResult(score = 4, maxScore = 6), attempt(10 to 0, 20 to 1, 30 to 0).score(questions))
+        val result = attempt(10 to 0, 20 to 1, 30 to 0).score(questions, PassMark.Slovak)
+
+        assertEquals(TestResult(score = 4, maxScore = 6), result)
+    }
+
+    @Test
+    fun theScoreIsGradedAgainstTheBanksPassMark() {
+        val czech = PassMark(points = 43, outOf = 50)
+
+        val result = attempt(10 to 0, 20 to 1, 30 to 0).score(questions, czech)
+
+        assertEquals(TestResult(score = 4, maxScore = 6, passMark = czech), result)
     }
 
     @Test
     fun unansweredQuestionsScoreNothing() {
-        assertEquals(TestResult(score = 0, maxScore = 6), attempt().score(questions))
+        assertEquals(TestResult(score = 0, maxScore = 6), attempt().score(questions, PassMark.Slovak))
     }
 
     @Test
@@ -78,7 +90,7 @@ class AttemptProgressTest {
 
     @Test
     fun summaryCountsCorrectWrongAndUnansweredQuestions() {
-        val summary = attempt(10 to 0, 30 to 1).summary(questions)
+        val summary = attempt(10 to 0, 30 to 1).summary(questions, PassMark.Slovak)
 
         assertEquals(TestResult(score = 3, maxScore = 6), summary.result)
         assertEquals(1, summary.correct)
@@ -88,7 +100,7 @@ class AttemptProgressTest {
 
     @Test
     fun summaryBreaksResultsDownBySectionInQuestionOrder() {
-        val summary = attempt(10 to 0, 20 to 0, 30 to 1).summary(questions)
+        val summary = attempt(10 to 0, 20 to 0, 30 to 1).summary(questions, PassMark.Slovak)
 
         assertEquals(
             listOf(

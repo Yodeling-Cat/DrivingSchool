@@ -118,7 +118,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
         leaving: Boolean,
         showAds: Boolean,
     ): ResultsUiState.Ready {
-        val summary = attempt.summary(session.questionsOf(attempt))
+        val summary = attempt.summary(session.questionsOf(attempt), session.bank.passMark)
         return ResultsUiState.Ready(
             exam = ExamLabel(session.category, session.bank.language),
             kind = attempt.kind,

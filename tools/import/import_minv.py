@@ -36,6 +36,8 @@ PDF_URLS = {
 }
 
 GROUPS = ["A", "B", "BE", "C", "CE", "D", "DE", "T"]
+#: The exam is passed with 90 of its 100 points (vyhláška 9/2009 Z. z., as amended by 273/2022 Z. z.).
+PASS_MARK = {"points": 90, "outOf": 100}
 # Order of the language arrays inside data5.js (see runTest() in test_mini.js).
 LANGUAGES = ["sk", "en", "hu"]
 # Order the PDFs are matched in: Slovak is the reference, so it overrides Hungarian.
@@ -175,6 +177,7 @@ def bank_document(lang, bank, groups_by_id, version):
         "imageDir": IMAGES_OUT.name,
         "sections": bank["sections"],
         "questions": questions,
+        "passMark": PASS_MARK,
     }
 
 

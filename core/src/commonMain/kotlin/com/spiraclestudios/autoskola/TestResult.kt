@@ -1,16 +1,15 @@
 package com.spiraclestudios.autoskola
 
+import com.spiraclestudios.autoskola.bank.PassMark
 import kotlinx.serialization.Serializable
 
-/** Outcome of a single practice-test attempt. */
+/**
+ * Outcome of a single practice-test attempt, graded against the [passMark] of the bank it was taken
+ * from. A result saved before results kept their pass mark reads as Slovak, which it was.
+ */
 @Serializable
-data class TestResult(val score: Int, val maxScore: Int) {
-    /** The official exam requires at least 90 of 100 points. */
-    val passed: Boolean get() = maxScore > 0 && score * 100 >= maxScore * PASS_PERCENT
+data class TestResult(val score: Int, val maxScore: Int, val passMark: PassMark = PassMark.Slovak) {
+    val passed: Boolean get() = passMark.isMetBy(score, maxScore)
 
     val percent: Int get() = if (maxScore == 0) 0 else score * 100 / maxScore
-
-    companion object {
-        const val PASS_PERCENT = 90
-    }
 }

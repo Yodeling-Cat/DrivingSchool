@@ -354,7 +354,7 @@ class PracticeViewModel(
      */
     private suspend fun recordCompleted(session: ExamSession, elapsedSeconds: Long) {
         val attempt = session.attempt(attemptId).first() ?: return
-        val summary = attempt.summary(session.questionsOf(attempt))
+        val summary = attempt.summary(session.questionsOf(attempt), session.bank.passMark)
         analytics.capture(
             AnalyticsEvent.TestCompleted,
             testCompletedProperties(

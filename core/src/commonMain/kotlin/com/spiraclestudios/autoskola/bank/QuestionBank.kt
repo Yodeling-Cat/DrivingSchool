@@ -21,6 +21,8 @@ data class QuestionBank(
     val imageDir: String,
     val sections: List<Section>,
     val questions: List<Question>,
+    /** What its exam takes to pass. A bank file that names none is a Slovak one. */
+    val passMark: PassMark = PassMark.Slovak,
 ) {
     fun section(id: Int): Section? = sections.firstOrNull { it.id == id }
 

@@ -268,7 +268,7 @@ private fun ResultCard(
     val colors = Naj.colors
     val shader = rememberGrainShader()
     val shape = RoundedCornerShape(LicenseRadius)
-    val passPercent = TestResult.PASS_PERCENT
+    val passPercent = result.passMark.percent
     val stampColor = if (result.passed) colors.passedOn else colors.wrongOn
     Box(
         modifier = modifier

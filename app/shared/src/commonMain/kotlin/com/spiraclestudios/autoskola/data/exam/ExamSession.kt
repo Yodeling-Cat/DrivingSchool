@@ -219,7 +219,7 @@ class ExamSession(
     /** Finishes the attempt, scoring the answers that were recorded. */
     suspend fun finish(attemptId: String, elapsedSeconds: Long? = null) {
         val attempt = openAttempt(attemptId).first() ?: return
-        attempts.finish(attemptId, attempt.score(questionsOf(attempt)), elapsedSeconds)
+        attempts.finish(attemptId, attempt.score(questionsOf(attempt), bank.passMark), elapsedSeconds)
     }
 
     suspend fun discard(attemptId: String) = attempts.discard(attemptId)

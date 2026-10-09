@@ -42,6 +42,9 @@ COUNTRY = "CZ"
 LANGUAGE = "cs"
 #: The groups the site has a practice exam for, in the app's order.
 GROUPS = ["A", "B", "BE", "C", "CE", "D", "DE"]
+#: The exam is passed with 43 of its 50 points. The site says so on its home page; its data does
+#: not carry it.
+PASS_MARK = {"points": 43, "outOf": 50}
 
 #: How many practice exams are drawn per group to learn the group's pool. The topics that draw 3
 #: questions an exam need this many: with 300, a group's handful of excluded situations went
@@ -276,6 +279,7 @@ def bank_document(questions, sections, groups_by_id, version):
             for q in sorted(questions, key=lambda q: (q["section"], q["id"]))
             if groups_by_id.get(q["id"])
         ],
+        "passMark": PASS_MARK,
     }
 
 

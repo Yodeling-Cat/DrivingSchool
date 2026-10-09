@@ -9,12 +9,12 @@ from importer_common import BANKS, IMAGES, read_json
 #: else, in every bank (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
 SITUATIONS_SECTION = 4
 
-#: What each country's exam looks like: its license groups, its total points, how many answers a
-#: question offers (the Czech bank has yes-or-no questions), and the folder its situation drawings
-#: are kept in, when it keeps them in one (the Czech pictures are named by question).
+#: What each country's exam looks like: its license groups, how many answers a question offers
+#: (the Czech bank has yes-or-no questions), and the folder its situation drawings are kept in, when
+#: it keeps them in one (the Czech pictures are named by question).
 EXAMS = {
-    "SK": {"groups": import_minv.GROUPS, "points": 100, "answers": {3}, "situation_dir": "obr3/ds/"},
-    "CZ": {"groups": import_md_cz.GROUPS, "points": 50, "answers": {2, 3}, "situation_dir": None},
+    "SK": {"groups": import_minv.GROUPS, "answers": {3}, "situation_dir": "obr3/ds/"},
+    "CZ": {"groups": import_md_cz.GROUPS, "answers": {2, 3}, "situation_dir": None},
 }
 
 
@@ -64,10 +64,11 @@ class BankOutputTest(unittest.TestCase):
                     available = sum(1 for q in bank["questions"] if q["section"] == section["id"] and group in q["groups"])
                     self.assertGreaterEqual(available, section["questionsPerTest"], (name, group, section["id"]))
 
-    def test_exam_is_worth_its_countrys_points(self):
+    def test_an_exam_is_worth_the_points_its_pass_mark_is_out_of(self):
         for name, bank in self.banks.items():
             total = sum(s["questionsPerTest"] * s["points"] for s in bank["sections"])
-            self.assertEqual(EXAMS[bank["country"]]["points"], total, name)
+            self.assertEqual(bank["passMark"]["outOf"], total, name)
+            self.assertLess(bank["passMark"]["points"], total, name)
 
     def test_every_referenced_image_is_bundled(self):
         for name, bank in self.banks.items():

@@ -326,6 +326,7 @@ class BankDocumentTest(unittest.TestCase):
             {k: document[k] for k in ("id", "version", "country", "language", "imageDir")},
         )
         self.assertEqual(sections, document["sections"])
+        self.assertEqual({"points": 43, "outOf": 50}, document["passMark"])
         # Sorted by section, then id.
         self.assertEqual([180, 1469, 1863], [q["id"] for q in document["questions"]])
         self.assertEqual([["A", "B"], ["A"], ["C"]], [q["groups"] for q in document["questions"]])

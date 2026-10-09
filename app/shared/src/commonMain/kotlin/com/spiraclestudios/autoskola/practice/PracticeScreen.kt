@@ -506,7 +506,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
             // The bar is the bottom sheet a phone shows, over the questions alone: the list has a
             // panel of its own here, and the sheet's width is the question column's, so it lines up
             // with the question and the answers instead of running on under the list. It is pinned
-            // — nothing drags or expands it — and its shadow is what separates it from the page.
+            // — nothing drags or expands it — and the bar's own shadow is what separates it from the
+            // page, which the sheet's shape leaves whole.
             Column(
                 Modifier
                     .fillMaxSize()
@@ -528,6 +529,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                             sheetPeekHeight = barSlotHeight + navBarInset,
                             // The reading column's width: what holds the question and its answers.
                             sheetMaxWidth = QuestionColumnWidth,
+                            sheetShape = UnclippedSheetShape,
                             sheetShadowElevation = 0.dp,
                             sheetDragHandle = null,
                             sheetSwipeEnabled = false,
@@ -593,14 +595,6 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 }
                 val cover = { sheetCover(openProgress) }
 
-                // The shadow ramps from that point to fully expanded instead: the sheet lies flat on
-                // the page while it is still coming up, and starts casting one once it is open. The
-                // scaffold takes it as a value, so it is the one part of the drag read here - and only
-                // over the stretch where it moves, since it stays at none until the sheet is covered.
-                val shadowElevation by remember(sheetState, restOffset, openOffset) {
-                    derivedStateOf { sheetShadowElevation(sheetShadowCover(openProgress), QuestionSheetShadow) }
-                }
-
                 // The sheet rests with its top on the line the peek gives it; anything above that
                 // line means the list is on its way open, if only by a hair, and the message leaves.
                 val messageHidden by remember(sheetState, restOffset) {
@@ -622,7 +616,9 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     // bar's slot as the list is dragged open.
                     sheetContainerColor = Color.Transparent,
                     sheetPeekHeight = barSlotHeight + navBarInset,
-                    sheetShadowElevation = shadowElevation,
+                    // The sheet's surface below casts its shadow, so nothing here cuts one off.
+                    sheetShape = UnclippedSheetShape,
+                    sheetShadowElevation = 0.dp,
                     sheetDragHandle = null,
                     topBar = topBar,
                     sheetContent = {
@@ -631,12 +627,23 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                             // question list at rest and grows up over the bar's slot as the list is
                             // dragged open, covering the sheet by [SHEET_COVERED_AT] of the way. Its
                             // height is read as it is measured, so a drag only lays it out again.
+                            // Its shadow ramps from that point to fully expanded instead: the sheet
+                            // lies flat on the page while it is still coming up, and starts casting
+                            // one once it is open. It is read as the surface is drawn, so a drag only
+                            // draws it again.
                             Box(
                                 Modifier
                                     .align(Alignment.BottomStart)
                                     .fillMaxWidth()
                                     .layoutHeight { sheetSurfaceHeight(cover(), geometry.listHeight, barSlotHeight) }
-                                    .clip(RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius))
+                                    .graphicsLayer {
+                                        shadowElevation = sheetShadowElevation(
+                                            sheetShadowCover(openProgress),
+                                            QuestionSheetShadow,
+                                        ).toPx()
+                                        shape = RoundedCornerShape(topStart = SheetRadius, topEnd = SheetRadius)
+                                        clip = true
+                                    }
                                     .background(colors.sheet),
                             )
                             Column(Modifier.fillMaxWidth()) {

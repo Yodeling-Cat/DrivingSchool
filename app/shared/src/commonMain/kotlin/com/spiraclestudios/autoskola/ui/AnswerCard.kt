@@ -127,7 +127,7 @@ private fun AnswerRow(
 // ── Previews ──
 
 /** The states an answer can be in, on a question the driver has and hasn't answered. */
-@Preview(widthDp = 400, heightDp = 720)
+@Preview(widthDp = 400, heightDp = 900)
 @Composable
 private fun AnswerCardPreview() {
     AppPreview {
@@ -141,6 +141,8 @@ private fun AnswerCardPreview() {
             AnswerCard(options, selectedIndex = 1, correct = 2, revealed = true, onSelect = {})
             PreviewLabel("checked and locked, right")
             AnswerCard(options, selectedIndex = 2, correct = 2, revealed = true, onSelect = null)
+            PreviewLabel("a yes-or-no question, as the Czech bank asks: two answers")
+            AnswerCard(listOf("Ano.", "Ne."), selectedIndex = 1, correct = 0, revealed = true, onSelect = {})
         }
     }
 }

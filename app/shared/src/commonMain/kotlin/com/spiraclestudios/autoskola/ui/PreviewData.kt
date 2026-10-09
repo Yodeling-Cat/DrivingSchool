@@ -224,7 +224,13 @@ internal fun previewBanks() = listOf(
     previewBankInfo("sk-sk", "SK", "sk"),
     previewBankInfo("sk-hu", "SK", "hu"),
     previewBankInfo("sk-en", "SK", "en"),
+    previewCzechBankInfo(),
 )
+
+/** The Czech exam's entry: no tractor group, which the Czech ministry has no practice exam for. */
+internal fun previewCzechBankInfo() = previewBankInfo("cz-cs", "CZ", "cs").let { info ->
+    info.copy(questionCounts = info.questionCounts - LicenseCategory.T)
+}
 
 /** One entry of `banks/index.json`, with every category this fixture's exam has questions for. */
 internal fun previewBankInfo(id: String, country: String = "SK", language: String = "sk") = QuestionBankInfo(

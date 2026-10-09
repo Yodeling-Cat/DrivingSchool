@@ -33,6 +33,16 @@ private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
         DE to "Autobus s prívesom",
         T to "Traktor",
     ),
+    "cs" to mapOf(
+        A to "Motorka",
+        B to "Auto",
+        BE to "Auto s přívěsem",
+        C to "Náklaďák",
+        CE to "Náklaďák s přívěsem",
+        D to "Autobus",
+        DE to "Autobus s přívěsem",
+        T to "Traktor",
+    ),
     "hu" to mapOf(
         A to "Motorkerékpár",
         B to "Autó",
@@ -57,6 +67,7 @@ private val categoryNames: Map<String, Map<LicenseCategory, String>> = mapOf(
 
 private val bankTitles = mapOf(
     "sk" to "Vodičský preukaz · Slovensky",
+    "cs" to "Řidičský průkaz · Česky",
     "hu" to "Vezetői engedély · Magyarul",
     "en" to "Driver's license · English",
 )

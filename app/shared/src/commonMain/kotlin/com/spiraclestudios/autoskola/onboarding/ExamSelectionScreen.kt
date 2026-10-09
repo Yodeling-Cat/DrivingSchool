@@ -57,6 +57,7 @@ import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.previewBankInfo
 import com.spiraclestudios.autoskola.ui.previewBanks
+import com.spiraclestudios.autoskola.ui.previewCzechBankInfo
 import com.spiraclestudios.autoskola.ui.theme.AccentedText
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.accentWord
@@ -417,6 +418,19 @@ private fun ExamSelectionCategoryStepPreview() {
     AppPreview {
         ExamSelectionScreen(
             state = selectionState(ExamSelectionStep.ChooseCategory(previewBankInfo("sk-sk"))),
+            onEvent = {},
+            onBack = null,
+        )
+    }
+}
+
+/** The Czech exam's groups, named in Czech as its bank is written. */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionCzechCategoryStepPreview() {
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseCategory(previewCzechBankInfo())),
             onEvent = {},
             onBack = null,
         )

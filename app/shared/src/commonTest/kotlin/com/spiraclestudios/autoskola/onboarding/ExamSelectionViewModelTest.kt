@@ -126,6 +126,24 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun aCountryWithOneLanguageSkipsTheLanguageStep() = runTest {
+        // Czechia's test is in Czech alone: there is no language to choose between.
+        val czCs = QuestionBankInfo("cz-cs", 1, "CZ", "cs", mapOf(LicenseCategory.B to 8))
+        val viewModel = ExamSelectionViewModel(
+            preferences,
+            QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn, czCs), emptyList())),
+            analytics,
+        )
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
+        assertEquals(ExamSelectionStep.ChooseCategory(czCs), state.value.step)
+
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertEquals(ExamSelectionStep.ChooseCountry, state.value.step)
+    }
+
+    @Test
     fun stepBackRetracesTheWizard() = runTest {
         val state = observe(viewModel.uiState)
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))

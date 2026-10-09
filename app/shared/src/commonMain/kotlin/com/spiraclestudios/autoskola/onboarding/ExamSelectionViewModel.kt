@@ -24,7 +24,10 @@ private val KNOWN_COUNTRIES = listOf("SK", "CZ")
 /** One country to choose from, shown even before it has a question bank (grayed out). */
 data class CountryOption(val country: String, val available: Boolean)
 
-/** The exam-selection wizard has three steps, each narrowing the choice made in the last one. */
+/**
+ * The exam-selection wizard has three steps, each narrowing the choice made in the last one. A country
+ * whose test is in one language alone skips the language step.
+ */
 sealed interface ExamSelectionStep {
     data object ChooseCountry : ExamSelectionStep
     data class ChooseBankLanguage(val country: String, val banks: List<QuestionBankInfo>) : ExamSelectionStep
@@ -93,9 +96,14 @@ class ExamSelectionViewModel(
             }
 
             is ExamSelectionUiEvent.ChooseCountry -> {
-                val banksForCountry = banksState.value.orEmpty().filter { it.country == event.country }
-                if (banksForCountry.isNotEmpty()) {
-                    step.value = ExamSelectionStep.ChooseBankLanguage(event.country, banksForCountry)
+                val banksForCountry = banksOf(event.country)
+                step.value = when (banksForCountry.size) {
+                    0 -> return
+
+                    // A test in one language alone leaves no language to choose.
+                    1 -> ExamSelectionStep.ChooseCategory(banksForCountry.single())
+
+                    else -> ExamSelectionStep.ChooseBankLanguage(event.country, banksForCountry)
                 }
             }
 
@@ -118,12 +126,18 @@ class ExamSelectionViewModel(
         }
     }
 
+    private fun banksOf(country: String) = banksState.value.orEmpty().filter { it.country == country }
+
     private fun stepBack(current: ExamSelectionStep): ExamSelectionStep = when (current) {
-        is ExamSelectionStep.ChooseCategory ->
-            ExamSelectionStep.ChooseBankLanguage(
-                current.bank.country,
-                banksState.value.orEmpty().filter { it.country == current.bank.country },
-            )
+        is ExamSelectionStep.ChooseCategory -> {
+            val banksForCountry = banksOf(current.bank.country)
+            // Back past a language step that was skipped, as there was only one language.
+            if (banksForCountry.size > 1) {
+                ExamSelectionStep.ChooseBankLanguage(current.bank.country, banksForCountry)
+            } else {
+                ExamSelectionStep.ChooseCountry
+            }
+        }
 
         is ExamSelectionStep.ChooseBankLanguage -> ExamSelectionStep.ChooseCountry
 

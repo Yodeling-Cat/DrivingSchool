@@ -86,8 +86,8 @@ fun ExamSelectionRoute(
 }
 
 /**
- * A three-step wizard for the exam to prepare for: country, then the language to take it in,
- * then the license category. [onBack] is `null` during onboarding, where a choice is required.
+ * A three-step wizard for the exam to prepare for: country, then the language to take it in (when
+ * there is more than one), then the license category. [onBack] is `null` during onboarding, where a choice is required.
  * Its back button and the system's walk the same steps, and both only leave the screen from the
  * first one.
  */

@@ -34,7 +34,7 @@ class RetainedBannerTest {
     }
 
     @Test
-    fun theWidthIsRememberedSoTheSlotKeepsItsSizeWhenItComesBack() {
+    fun theWidthItWasAskedForIsRemembered() {
         val retained = RetainedBanner()
         assertEquals(0, retained.widthDp)
 
@@ -101,6 +101,66 @@ class RetainedBannerTest {
         // The old banner's late answer is about a banner that is gone.
         retained.loaded(narrow)
         assertEquals(false, retained.showsAd)
+    }
+
+    @Test
+    fun aBannerTakesNoRoomUntilItsAdArrives() {
+        val retained = RetainedBanner()
+
+        val banner = retained.at(360, load)
+        // Asked for and still loading: most placements have nothing to show yet, so they take no room.
+        assertEquals(false, retained.takesSpace)
+
+        retained.loaded(banner)
+        assertEquals(true, retained.takesSpace)
+    }
+
+    @Test
+    fun aBannerThatHoldsItsSpaceKeepsItOpenWhileItLoads() {
+        val retained = RetainedBanner(holdsSpaceWhileLoading = true)
+
+        retained.at(360, load)
+
+        // Its room is held, so the ad arriving moves nothing.
+        assertEquals(true, retained.takesSpace)
+    }
+
+    @Test
+    fun aBannerThatGetsNoAdGivesItsSpaceBack() {
+        val retained = RetainedBanner(holdsSpaceWhileLoading = true)
+        val banner = retained.at(360, load)
+
+        retained.failed(banner)
+
+        // No fill, or no network: a gap no ad will fill reads as a broken screen.
+        assertEquals(false, retained.takesSpace)
+    }
+
+    @Test
+    fun aRefreshThatFailsKeepsTheAdOnScreenAndItsSpace() {
+        val retained = RetainedBanner(holdsSpaceWhileLoading = true)
+        val banner = retained.at(360, load)
+        retained.loaded(banner)
+
+        // The SDK leaves the last ad standing when a refresh comes back empty.
+        retained.failed(banner)
+
+        assertEquals(true, retained.showsAd)
+        assertEquals(true, retained.takesSpace)
+    }
+
+    @Test
+    fun aNewWidthAsksAgainAfterNoAdCame() {
+        val retained = RetainedBanner(holdsSpaceWhileLoading = true)
+        val narrow = retained.at(360, load)
+        retained.failed(narrow)
+
+        retained.at(700, load)
+
+        assertEquals(true, retained.takesSpace)
+        // The old banner's late answer is about a banner that is gone.
+        retained.failed(narrow)
+        assertEquals(true, retained.takesSpace)
     }
 
     @Test

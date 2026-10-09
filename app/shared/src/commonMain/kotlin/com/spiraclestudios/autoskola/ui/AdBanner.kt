@@ -34,7 +34,9 @@ import com.spiraclestudios.autoskola.data.ads.AdSlot
  *
  * The size is the request's, not the unit's: the implementation asks for an anchored adaptive banner
  * as wide as the space the placement has been given, which is why a banner belongs in a slot rather
- * than beside something with its own width.
+ * than beside something with its own width. The slot takes no room until the ad has arrived, unless
+ * its state was remembered to hold it ([rememberAdBannerState]). Where there is no unit it takes no
+ * room at all.
  *
  * **In a lazy list, use the other overload** with a state remembered outside the list.
  */
@@ -90,17 +92,24 @@ internal expect fun PlatformAdBanner(state: AdBannerState, modifier: Modifier)
  * when it is remembered outside a lazy list - and destroyed when that leaves.
  */
 @Stable
-class AdBannerState internal constructor(val slot: AdSlot) {
-    internal val banner = RetainedBanner()
+class AdBannerState internal constructor(val slot: AdSlot, holdsSpaceWhileLoading: Boolean) {
+    internal val banner = RetainedBanner(holdsSpaceWhileLoading)
 
     /** Whether an ad is in the banner right now, rather than an empty slot still loading. */
     val showsAd: Boolean get() = banner.showsAd
 }
 
-/** Remembers [slot]'s banner here, and destroys it when this leaves the composition. */
+/**
+ * Remembers [slot]'s banner here, and destroys it when this leaves the composition.
+ *
+ * [holdsSpaceWhileLoading] makes the slot the ad's height from its first frame, so the ad arriving
+ * moves nothing below it; it gives the room back if no ad comes. Only the home screen's banner does
+ * this, because it sits above the tests and would otherwise push the whole grid down as it loads.
+ * Everywhere else a banner takes no room until its ad is there.
+ */
 @Composable
-fun rememberAdBannerState(slot: AdSlot): AdBannerState {
-    val state = remember(slot) { AdBannerState(slot) }
+fun rememberAdBannerState(slot: AdSlot, holdsSpaceWhileLoading: Boolean = false): AdBannerState {
+    val state = remember(slot, holdsSpaceWhileLoading) { AdBannerState(slot, holdsSpaceWhileLoading) }
     DisposableEffect(state) { onDispose { state.banner.release() } }
     return state
 }
@@ -117,7 +126,7 @@ internal interface LoadedBanner {
  * A banner refreshes itself on the interval set in AdMob; a new request every time it comes back on
  * screen would only add requests, lowering the fill rate and showing nothing while it loads.
  */
-internal class RetainedBanner {
+internal class RetainedBanner(private val holdsSpaceWhileLoading: Boolean = false) {
     private var loaded: LoadedBanner? = null
 
     /**
@@ -128,10 +137,19 @@ internal class RetainedBanner {
     var showsAd: Boolean by mutableStateOf(false)
         private set
 
+    /** Whether the last request came back with no ad and nothing is showing. State, like [showsAd]. */
+    private var noAd: Boolean by mutableStateOf(false)
+
     /**
-     * The width the banner was last asked for, in dp, or 0 before it was. A placement that comes back
-     * starts at this width, so its slot keeps its size instead of collapsing until it is measured.
+     * Whether the placement takes the banner's room: once it shows an ad, and - for a banner that
+     * [holdsSpaceWhileLoading] - while it is loading too, until the request comes back with nothing.
+     * The room is known before the ad is, because an anchored adaptive banner's height follows from its
+     * width alone; holding it means the ad arriving moves nothing, and giving it back means a gap no ad
+     * will fill is not left on screen.
      */
+    val takesSpace: Boolean get() = showsAd || (holdsSpaceWhileLoading && !noAd)
+
+    /** The width the banner was last asked for, in dp, or 0 before it was. */
     var widthDp: Int = 0
         private set
 
@@ -143,6 +161,7 @@ internal class RetainedBanner {
         loaded?.let { if (widthDp == this.widthDp) return it }
         release()
         showsAd = false
+        noAd = false
         return load(widthDp).also {
             loaded = it
             this.widthDp = widthDp
@@ -155,6 +174,14 @@ internal class RetainedBanner {
      */
     fun loaded(banner: LoadedBanner) {
         if (banner === loaded) showsAd = true
+    }
+
+    /**
+     * The platform's word that [banner]'s request came back with no ad. The room is given back only when
+     * nothing is showing: a refresh that fails leaves the last ad on screen, and it keeps its place.
+     */
+    fun failed(banner: LoadedBanner) {
+        if (banner === loaded && !showsAd) noAd = true
     }
 
     /** Destroys the banner, if there is one; the next [at] asks again. */

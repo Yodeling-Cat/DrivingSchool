@@ -229,7 +229,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
     }
     // Out here, not in the grid's item: the grid drops the item when it is scrolled off screen, and
     // the banner would go with it - a new request, an empty gap and a jump every time it came back.
-    val banner = rememberAdBannerState(AdSlot.HomeBanner)
+    val banner = rememberAdBannerState(AdSlot.HomeBanner, holdsSpaceWhileLoading = true)
     val grid = rememberLazyGridState()
     // Stuck once the grid has scrolled past the banner's own place, so the tests are passing under it.
     val bannerStuck by remember {
@@ -325,7 +325,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
     val height = LocalHeightClass.current
     // Remembered here rather than where the banner is drawn: it moves between two places in the band,
     // and a banner remembered at one of them would be a new ad request every time it moved.
-    val banner = rememberAdBannerState(AdSlot.HomeBanner)
+    val banner = rememberAdBannerState(AdSlot.HomeBanner, holdsSpaceWhileLoading = true)
     // What decides between the two places: how tall the band's window is, where the banner ends in the
     // band's content, and how much room the mistakes card takes. See [bannerFitsUnderMistakes].
     var viewportPx by remember { mutableIntStateOf(0) }

@@ -207,7 +207,7 @@ def write_banks(banks, groups_by_id, version):
 def sync_images(new_images, refresh):
     """Downloads the images the new banks need, and deletes the files no bundled bank references."""
     to_download = [image for image in sorted(new_images) if refresh or not (IMAGES_OUT / image).exists()]
-    bundled = bank_images(BANKS_OUT)
+    bundled = bank_images(BANKS_OUT, IMAGES_OUT.name)
     log(f"Fetching images: {len(bundled)} referenced, {len(to_download)} to download")
     for image in to_download:
         download(IMAGE_URL + image, IMAGES_OUT / image, refresh, quiet=True)

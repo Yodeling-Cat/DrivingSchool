@@ -1,18 +1,26 @@
 """Checks the committed importer output that ships in the app. Run after every import."""
 import unittest
 
+import import_md_cz
 import import_minv
 from importer_common import read_json
 
 BANKS = import_minv.BANKS_OUT
 IMAGES = import_minv.RESOURCES / "images"
 
-#: The bank's topic of situations at intersections. The app reads its intersections material out of
+#: The Slovak banks' topic of situations at intersections. The app reads its intersections material out of
 #: it and nothing else (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
 SITUATIONS_SECTION = 4
 
-#: Where the bank keeps its drawings of those situations.
+#: Where the Slovak banks keep their drawings of those situations.
 SITUATION_DIR = "obr3/ds/"
+
+#: What each country's exam looks like: its license groups, its total points and how many answers
+#: a question offers (the Czech bank has yes-or-no questions).
+EXAMS = {
+    "SK": {"groups": import_minv.GROUPS, "points": 100, "answers": {3}},
+    "CZ": {"groups": import_md_cz.GROUPS, "points": 50, "answers": {2, 3}},
+}
 
 
 class BankOutputTest(unittest.TestCase):
@@ -41,29 +49,30 @@ class BankOutputTest(unittest.TestCase):
             sections = {s["id"]: s for s in bank["sections"]}
             ids = [q["id"] for q in bank["questions"]]
             self.assertEqual(len(ids), len(set(ids)), f"{name}: duplicate question ids")
+            exam = EXAMS[bank["country"]]
             for q in bank["questions"]:
                 where = f"{name} question {q['id']}"
-                self.assertEqual(3, len(q["answers"]), where)
+                self.assertIn(len(q["answers"]), exam["answers"], where)
                 self.assertTrue(all(a.strip() for a in q["answers"]), where)
-                self.assertIn(q["correct"], range(3), where)
+                self.assertIn(q["correct"], range(len(q["answers"])), where)
                 self.assertTrue(q["text"].strip(), where)
                 self.assertIn(q["section"], sections, where)
                 self.assertEqual(sections[q["section"]]["points"], q["points"], where)
                 self.assertTrue(q["groups"], where)
-                self.assertTrue(set(q["groups"]) <= set(import_minv.GROUPS), where)
+                self.assertTrue(set(q["groups"]) <= set(exam["groups"]), where)
 
     def test_a_full_exam_fits_in_every_group(self):
         # Every group needs enough questions per section for at least one complete test.
         for name, bank in self.banks.items():
-            for group in import_minv.GROUPS:
+            for group in EXAMS[bank["country"]]["groups"]:
                 for section in bank["sections"]:
                     available = sum(1 for q in bank["questions"] if q["section"] == section["id"] and group in q["groups"])
                     self.assertGreaterEqual(available, section["questionsPerTest"], (name, group, section["id"]))
 
-    def test_exam_is_worth_100_points(self):
+    def test_exam_is_worth_its_countrys_points(self):
         for name, bank in self.banks.items():
             total = sum(s["questionsPerTest"] * s["points"] for s in bank["sections"])
-            self.assertEqual(100, total, name)
+            self.assertEqual(EXAMS[bank["country"]]["points"], total, name)
 
     def test_every_referenced_image_is_bundled(self):
         for name, bank in self.banks.items():
@@ -76,6 +85,8 @@ class BankOutputTest(unittest.TestCase):
         # has to be the situations one: every question of it is about a drawing, and every drawing
         # of the situations folder is asked there rather than in some other topic.
         for name, bank in self.banks.items():
+            if bank["country"] != "SK":
+                continue
             situations = [q for q in bank["questions"] if q["section"] == SITUATIONS_SECTION]
             self.assertTrue(situations, f"{name}: no situations topic")
             for q in situations:

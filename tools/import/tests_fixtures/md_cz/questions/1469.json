@@ -1,0 +1,39 @@
+{
+  "id": 1469,
+  "questionCode": "RP0604258",
+  "questionTemplateId": 1,
+  "noteDisplayTypeCode": "XNA",
+  "questionFrameDisplayTypeCode": "XNA",
+  "answerTextDisplayTypeCode": "ALWAYS",
+  "questionTextDisplayTypeCode": "XNA",
+  "questionText": "Na pozemní komunikaci objíždí vozidlo překážku. Musí jeho řidič dávat znamení o změně směru své jízdy?",
+  "explanationNote": null,
+  "maxNoOfDisplays": -1,
+  "maxPostDisplayTime": -1,
+  "basketScopeId": 9,
+  "basketScopeOrder": 0,
+  "pointsCount": 2,
+  "validFrom": "2006-04-27T00:00:00",
+  "validTo": "2099-12-31T00:00:00",
+  "answersOrder": "0000",
+  "questionAnswers": [
+    {
+      "answerId": 14348,
+      "multilingualAnswerTexts": {
+        "cs": "Ano."
+      },
+      "mediaContent": null,
+      "sortOrder": 1
+    },
+    {
+      "answerId": 14349,
+      "multilingualAnswerTexts": {
+        "cs": "Ne."
+      },
+      "mediaContent": null,
+      "sortOrder": 2
+    }
+  ],
+  "correctAnswerId": 14348,
+  "mediaContent": null
+}

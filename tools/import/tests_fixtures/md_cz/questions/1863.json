@@ -1,0 +1,53 @@
+{
+  "id": 1863,
+  "questionCode": "RP1401117",
+  "questionTemplateId": 2,
+  "noteDisplayTypeCode": "XNA",
+  "questionFrameDisplayTypeCode": "XNA",
+  "answerTextDisplayTypeCode": "ALWAYS",
+  "questionTextDisplayTypeCode": "XNA",
+  "questionText": "Tato dopravní značka:",
+  "explanationNote": null,
+  "maxNoOfDisplays": -1,
+  "maxPostDisplayTime": -1,
+  "basketScopeId": 11,
+  "basketScopeOrder": 0,
+  "pointsCount": 1,
+  "validFrom": "2014-01-01T00:00:00",
+  "validTo": "2099-12-31T00:00:00",
+  "answersOrder": "0000",
+  "questionAnswers": [
+    {
+      "answerId": 26139,
+      "multilingualAnswerTexts": {
+        "cs": "Upozorňuje zejména na místo, kde tramvaj křižuje směr jízdy ostatních vozidel."
+      },
+      "mediaContent": null,
+      "sortOrder": 1
+    },
+    {
+      "answerId": 26140,
+      "multilingualAnswerTexts": {
+        "cs": "Upozorňuje na železniční přejezd bez závor."
+      },
+      "mediaContent": null,
+      "sortOrder": 2
+    },
+    {
+      "answerId": 26141,
+      "multilingualAnswerTexts": {
+        "cs": "Upozorňuje na místo, kde má řidič povinnost dát přednost v jízdě tramvaji, a to zejména mimo křižovatku"
+      },
+      "mediaContent": null,
+      "sortOrder": 3
+    }
+  ],
+  "correctAnswerId": 26139,
+  "mediaContent": {
+    "mediaUrl": "/binary_content_storage/Q_W_1863.jpg",
+    "mediaDataHash": "ac57564bb1c8be9fd0b38bae1717a4d193f672ead572f8a71fabf368f5cef5ab",
+    "mediaFormatCode": "image_jpg",
+    "isFullScreen": false,
+    "printMediaName": "Q_W_1863.jpg"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "id": 180,
+  "questionCode": "RP1401114",
+  "questionTemplateId": 1,
+  "noteDisplayTypeCode": "XNA",
+  "questionFrameDisplayTypeCode": "XNA",
+  "answerTextDisplayTypeCode": "ALWAYS",
+  "questionTextDisplayTypeCode": "XNA",
+  "questionText": "Nemotorové vozidlo je: ",
+  "explanationNote": null,
+  "maxNoOfDisplays": -1,
+  "maxPostDisplayTime": -1,
+  "basketScopeId": 9,
+  "basketScopeOrder": 0,
+  "pointsCount": 2,
+  "validFrom": "2014-01-01T00:00:00",
+  "validTo": "2099-12-31T00:00:00",
+  "answersOrder": "0000",
+  "questionAnswers": [
+    {
+      "answerId": 30578,
+      "multilingualAnswerTexts": {
+        "cs": "Přípojné vozidlo a vozidlo pohybující se pomocí lidské nebo zvířecí síly, například jízdní kolo, ruční vozík nebo potahové vozidlo."
+      },
+      "mediaContent": null,
+      "sortOrder": 1
+    },
+    {
+      "answerId": 30579,
+      "multilingualAnswerTexts": {
+        "cs": "Každé vozidlo poháněné jiným než spalovacím motorem, například elektromobil."
+      },
+      "mediaContent": null,
+      "sortOrder": 2
+    },
+    {
+      "answerId": 30580,
+      "multilingualAnswerTexts": {
+        "cs": "Kolejové vozidlo, které se účastní provozu na pozemních komunikacích."
+      },
+      "mediaContent": null,
+      "sortOrder": 3
+    }
+  ],
+  "correctAnswerId": 30578,
+  "mediaContent": null
+}

@@ -30,15 +30,15 @@ def read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def bank_images(banks_dir, image_dir=None):
-    """Every image the bundled Slovak banks reference, from banks in [image_dir] if one is given.
+def bank_images(banks_dir, image_dir):
+    """Every image the bundled banks whose pictures are in [image_dir] reference.
 
     Older versions stay bundled, so their images count too.
     """
     images = set()
-    for path in banks_dir.glob("sk-*-v*.json"):
+    for path in banks_dir.glob("*-v*.json"):
         bank = read_json(path)
-        if image_dir is not None and bank["imageDir"] != image_dir:
+        if bank["imageDir"] != image_dir:
             continue
         images.update(q["image"] for q in bank["questions"] if q["image"])
     return images

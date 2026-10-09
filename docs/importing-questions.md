@@ -16,9 +16,15 @@ On Windows PowerShell:
 .\tools\import\import.ps1
 ```
 
+That imports both countries. To import one, name it first: `import.sh sk …` runs the Slovak bank
+and the sign catalog (`import_minv.py`, `import_znacky.py`), `import.sh cz …` the Czech bank
+(`import_md_cz.py`). Name the country whenever you pass `--version`, so that a new version of one
+bank does not version the other.
+
 Options:
-- `--refresh`: download the sources and images again, even if they are cached. Use this when updating to new data from minv.sk.
+- `--refresh`: download the sources and images again, even if they are cached. Use this when updating to new data from the ministry.
 - `--version N`: the bank version to write. It defaults to 1. See "Updating to new data" below.
+- `--exams N` (Czech only): how many practice exams to draw per license group. It defaults to 300. See "The Czech bank" below.
 - `--help`: show usage.
 
 Downloads are cached in `tools/import/cache/`, which is gitignored. Without `--refresh`, the importer only processes the cached files.
@@ -31,7 +37,8 @@ The output goes to `app/shared/src/commonMain/composeResources/files/`, and it i
 |---|---|
 | `banks/index.json` | The latest version of every bank, with its question count per license group. The exam-selection screen reads this. |
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
-| `images/minv-sk/...` | The images the questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
+| `images/minv-sk/...` | The images the Slovak questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
+| `images/md-cz/...` | The pictures the Czech questions reference, named as on etesty.md.gov.cz. JPEGs are recompressed; see below. |
 | `signs/index.json` | The latest version of every sign catalog, with its sign count. |
 | `signs/<id>-v<version>.json` | One version of one sign catalog, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalog` in `:core`. |
 
@@ -54,6 +61,28 @@ catalog entries it read, how many images found an entry, and every image that fo
 importers are independent: the sign catalog only needs the images, so it runs after the banks.
 Both are run by `import.sh`, and both can be run on their own.
 
+## The Czech bank
+
+`import_md_cz.py` writes `banks/cz-cs-v<version>.json` from etesty.md.gov.cz (see
+[data-sources.md](data-sources.md#czechia-ministry-of-transport-etestymdgovcz)):
+
+1. **Download** the page of the complete question set, which lists every question id, and each
+   question from the site's JSON API.
+2. **Draw practice exams**, 300 per license group by default. They give the exam's layout (its
+   topics, how many questions each draws and the points), and, since the ministry publishes no
+   groups, which questions each group can be asked: a topic whose draws reach every question goes to
+   the group whole, a topic whose draws keep to part of it gives the group that part. Only what each
+   exam drew is cached, in `cache/md-cz/exams/<group>/`. Drawing them takes about an hour, so it is
+   done once and cached like everything else.
+3. **Convert** each question. Answers follow the site's order. A looping video is replaced by the
+   still the paper test prints. Questions with picture answers, and the dynamic videos that have to
+   be watched, are left out.
+4. **Write** the bank and its index entry, then the pictures: every JPEG is written again at
+   quality 80 when that makes it smaller.
+
+The importer prints the topics each group draws only part of, and how many questions it left out and
+why. Compare them with the tables in `data-sources.md`.
+
 ## Updating to new data
 
 There are two kinds of update:
@@ -62,18 +91,18 @@ There are two kinds of update:
 
 Steps:
 
-1. Run `./tools/import/import.sh --refresh`, adding `--version N` for a new question set.
+1. Run `./tools/import/import.sh <sk|cz> --refresh`, adding `--version N` for a new question set.
 2. Check the output for unmatched questions or big changes in the counts.
    Then run `./tools/import/test.sh`. `test_bank_output.py` fails if a question is malformed, an image is missing, or a group can no longer fill a full exam; `test_znacky_output.py` fails if a sign has no meaning or no bundled picture, and when the number of signs changes — re-importing the
    regulation is what moves it, so update the count there when it does.
-3. If the PDF links changed (they are `subor=<id>` links on <https://www.minv.sk/?elektronicke-testy>), update `PDF_URLS` in `import_minv.py`.
+3. If the Slovak PDF links changed (they are `subor=<id>` links on <https://www.minv.sk/?elektronicke-testy>), update `PDF_URLS` in `import_minv.py`.
 4. Build and try the app. Test numbers are generated from the bank, so changing a bank's questions reshuffles its practice tests. This is another reason to put a new question set in a new version.
 5. Update "Last imported" and the counts in `data-sources.md`, then commit the regenerated resources.
 
 ## Adding a new source
 
-For example, the Czech tests:
-1. Write a new `import_<source>.py` next to `import_minv.py`.
+As was done for the Czech tests (`import_md_cz.py`):
+1. Write a new `import_<source>.py` next to `import_minv.py`, and run it from `import.sh` and `import.ps1`.
 2. It must write versioned banks in the same JSON format (see `QuestionBank.kt`), add its entries to `banks/index.json` without removing other countries' entries, and put its images in its own `images/<source>/` directory, referenced by the bank's `imageDir`.
 3. Add the country name in `onboarding/ExamLabels.kt`, plus labels for any new language.
 4. Document the source in `data-sources.md`.

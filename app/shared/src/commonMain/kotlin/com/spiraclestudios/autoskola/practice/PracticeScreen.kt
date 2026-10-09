@@ -70,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -82,6 +83,7 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -91,6 +93,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -877,25 +880,40 @@ private fun BarPill(height: Dp, gap: Dp, content: @Composable RowScope.() -> Uni
  * The bar's second line, which turns over as the question list opens: what the question is worth while
  * the list is shut, and how much of the test is behind the user once it's open. The two cross-fade with
  * the drag itself, so the count is the line in place by the time the sheet has taken its open look.
+ * The line is as wide as the text that is showing — not the longer of the two, which would leave the
+ * clock behind it in landscape stranded past the end of the points — and what of the other text runs
+ * past that is cut off. The width is read from [cover] as the line is measured, so a drag only lays
+ * it out again.
  */
 @Composable
 private fun BarTestLine(shut: String, open: String, cover: () -> Float) {
     val colors = Naj.colors
-    Box {
-        Text(
-            shut,
-            style = Naj.type.tiny,
-            color = colors.roadYellow,
-            maxLines = 1,
-            modifier = Modifier.graphicsLayer { alpha = 1f - cover() },
-        )
-        Text(
-            open,
-            style = Naj.type.tiny,
-            color = colors.roadYellow,
-            maxLines = 1,
-            modifier = Modifier.graphicsLayer { alpha = cover() },
-        )
+    Layout(
+        modifier = Modifier.clipToBounds(),
+        content = {
+            Text(
+                shut,
+                style = Naj.type.tiny,
+                color = colors.roadYellow,
+                maxLines = 1,
+                modifier = Modifier.graphicsLayer { alpha = 1f - cover() },
+            )
+            Text(
+                open,
+                style = Naj.type.tiny,
+                color = colors.roadYellow,
+                maxLines = 1,
+                modifier = Modifier.graphicsLayer { alpha = cover() },
+            )
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0)
+        val (shutText, openText) = measurables.map { it.measure(loose) }
+        val width = constraints.constrainWidth(barTestLineWidth(shutText.width, openText.width, cover()))
+        layout(width, maxOf(shutText.height, openText.height)) {
+            shutText.place(0, 0)
+            openText.place(0, 0)
+        }
     }
 }
 

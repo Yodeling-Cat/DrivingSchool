@@ -45,4 +45,17 @@ class PracticeBarTextTest {
             assertFalse(line.contains('\\'), line)
         }
     }
+
+    @Test
+    fun theClockFollowsTheLineThatIsShowingRatherThanTheLongerOne() {
+        // "Worth 1 point · " is shut, "0 answered · 40 skipped · " is open: shut, the clock sits right
+        // behind the points, not where the longer count that is hidden would end.
+        assertEquals(90, barTestLineWidth(shut = 90, open = 160, cover = 0f))
+        assertEquals(160, barTestLineWidth(shut = 90, open = 160, cover = 1f))
+    }
+
+    @Test
+    fun theClockSlidesAlongAsTheTwoLinesCrossFade() {
+        assertEquals(125, barTestLineWidth(shut = 90, open = 160, cover = 0.5f))
+    }
 }

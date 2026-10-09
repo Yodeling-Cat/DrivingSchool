@@ -46,5 +46,20 @@
       "DE": 889,
       "T": 833
     }
+  },
+  {
+    "id": "cz-cs",
+    "version": 1,
+    "country": "CZ",
+    "language": "cs",
+    "questionCounts": {
+      "A": 899,
+      "B": 911,
+      "BE": 898,
+      "C": 945,
+      "CE": 886,
+      "D": 912,
+      "DE": 886
+    }
   }
 ]

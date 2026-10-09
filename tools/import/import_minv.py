@@ -19,11 +19,13 @@ import unicodedata
 from pathlib import Path
 
 import minv_pdf
-from importer_common import RESOURCES, ROOT, bank_images, download, log, write_index
+from importer_common import (
+    BANKS, IMAGES, ROOT, bank_images, clean, download, log, remove_stale_images, write_bank, write_index,
+)
 
 CACHE = Path(__file__).resolve().parent / "cache" / "minv-sk"
-BANKS_OUT = RESOURCES / "banks"
-IMAGES_OUT = RESOURCES / "images/minv-sk"
+BANKS_OUT = BANKS
+IMAGES_OUT = IMAGES / "minv-sk"
 
 BASE_URL = "https://www.minv.sk/egovinet02/PCPZobrazFile?fileName="
 DATA_URL = BASE_URL + "pcpfiles/data5.js"
@@ -42,10 +44,6 @@ PDF_MATCH_ORDER = ["hu", "sk"]
 
 def norm(text):
     return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", text).lower())
-
-
-def clean(text):
-    return re.sub(r"\s+", " ", text).strip()
 
 
 def section_starts(test):
@@ -185,20 +183,16 @@ def write_banks(banks, groups_by_id, version):
 
     Returns the images the newly written banks reference.
     """
-    BANKS_OUT.mkdir(parents=True, exist_ok=True)
     manifest, images = [], set()
     for lang in LANGUAGES:
         bank = banks[lang]
         document = bank_document(lang, bank, groups_by_id, version)
-        (BANKS_OUT / f"{document['id']}-v{version}.json").write_text(
-            json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        entry = write_bank(document, GROUPS)
         questions = document["questions"]
         images.update(q["image"] for q in questions if q["image"])
-        counts = {group: sum(1 for q in questions if group in q["groups"]) for group in GROUPS}
-        manifest.append({"id": document["id"], "version": version, "country": "SK", "language": lang,
-                         "questionCounts": counts})
+        manifest.append(entry)
         log(f"  {document['id']}: {len(questions)} questions "
-            f"({len(bank['questions']) - len(questions)} without groups dropped), {counts}")
+            f"({len(bank['questions']) - len(questions)} without groups dropped), {entry['questionCounts']}")
     # Keep other importers' banks in the shared index.
     write_index(BANKS_OUT / "index.json", manifest, "SK")
     return images
@@ -211,12 +205,7 @@ def sync_images(new_images, refresh):
     log(f"Fetching images: {len(bundled)} referenced, {len(to_download)} to download")
     for image in to_download:
         download(IMAGE_URL + image, IMAGES_OUT / image, refresh, quiet=True)
-    stale = [p for p in IMAGES_OUT.rglob("*")
-             if p.is_file() and p.relative_to(IMAGES_OUT).as_posix() not in bundled]
-    for path in stale:
-        path.unlink()
-    if stale:
-        log(f"  removed {len(stale)} images no longer referenced")
+    remove_stale_images(IMAGES_OUT.name)
 
 
 def main():

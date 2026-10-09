@@ -3,23 +3,18 @@ import unittest
 
 import import_md_cz
 import import_minv
-from importer_common import read_json
+from importer_common import BANKS, IMAGES, read_json
 
-BANKS = import_minv.BANKS_OUT
-IMAGES = import_minv.RESOURCES / "images"
-
-#: The Slovak banks' topic of situations at intersections. The app reads its intersections material out of
-#: it and nothing else (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
+#: The topic of traffic situations. The app reads its intersections material out of it and nothing
+#: else, in every bank (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
 SITUATIONS_SECTION = 4
 
-#: Where the Slovak banks keep their drawings of those situations.
-SITUATION_DIR = "obr3/ds/"
-
-#: What each country's exam looks like: its license groups, its total points and how many answers
-#: a question offers (the Czech bank has yes-or-no questions).
+#: What each country's exam looks like: its license groups, its total points, how many answers a
+#: question offers (the Czech bank has yes-or-no questions), and the folder its situation drawings
+#: are kept in, when it keeps them in one (the Czech pictures are named by question).
 EXAMS = {
-    "SK": {"groups": import_minv.GROUPS, "points": 100, "answers": {3}},
-    "CZ": {"groups": import_md_cz.GROUPS, "points": 50, "answers": {2, 3}},
+    "SK": {"groups": import_minv.GROUPS, "points": 100, "answers": {3}, "situation_dir": "obr3/ds/"},
+    "CZ": {"groups": import_md_cz.GROUPS, "points": 50, "answers": {2, 3}, "situation_dir": None},
 }
 
 
@@ -82,17 +77,16 @@ class BankOutputTest(unittest.TestCase):
 
     def test_the_situations_the_app_reads_are_the_topic_of_that_name(self):
         # The app builds its intersections material from one topic and nothing else, so the topic
-        # has to be the situations one: every question of it is about a drawing, and every drawing
-        # of the situations folder is asked there rather than in some other topic.
+        # has to be the situations one: every question of it is about a picture, and every drawing
+        # of a situations folder is asked there rather than in some other topic.
         for name, bank in self.banks.items():
-            if bank["country"] != "SK":
-                continue
             situations = [q for q in bank["questions"] if q["section"] == SITUATIONS_SECTION]
             self.assertTrue(situations, f"{name}: no situations topic")
             for q in situations:
-                self.assertTrue(q["image"], f"{name} question {q['id']}: in the situations topic with no drawing")
+                self.assertTrue(q["image"], f"{name} question {q['id']}: in the situations topic with no picture")
+            situation_dir = EXAMS[bank["country"]]["situation_dir"]
             for q in bank["questions"]:
-                if q["image"] and SITUATION_DIR in f"{q['image']}/":
+                if situation_dir and q["image"] and situation_dir in f"{q['image']}/":
                     self.assertEqual(
                         SITUATIONS_SECTION,
                         q["section"],

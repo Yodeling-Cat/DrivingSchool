@@ -24,11 +24,12 @@ from pathlib import Path
 
 import pymupdf
 
-from importer_common import RESOURCES, bank_images, download, log, read_json, write_index
+from importer_common import (
+    BANKS, IMAGES, clean, download, log, read_json, remove_stale_images, write_bank, write_index,
+)
 
 CACHE = Path(__file__).resolve().parent / "cache" / "md-cz"
-BANKS_OUT = RESOURCES / "banks"
-IMAGES_OUT = RESOURCES / "images/md-cz"
+IMAGES_OUT = IMAGES / "md-cz"
 
 BASE_URL = "https://etesty.md.gov.cz"
 #: The practice area that holds every question ("Soubor všech otázek").
@@ -63,10 +64,6 @@ MAX_WIDTH = 1280
 #: The share of see-through pixels up to which a picture counts as a photo with clipped corners,
 #: and is bundled as a JPEG on white. Every transparent PNG on the site is one, at 1.5% or less.
 MAX_SEE_THROUGH = 0.02
-
-
-def clean(text):
-    return re.sub(r"\s+", " ", text).strip()
 
 
 def parse_question_ids(html):
@@ -130,17 +127,12 @@ def trim_exam(exam):
     }
 
 
-def exam_draws(exam):
-    """The ids one exam drew, by the site's topic id."""
-    return {scope["basketScopeId"]: [q["id"] for q in scope["questions"]] for scope in exam["basketScopes"]}
-
-
 def draws_by_scope(exams):
     """Every id [exams] drew, by the site's topic id, as often as it was drawn."""
     result = {}
     for exam in exams:
-        for scope, ids in exam_draws(exam).items():
-            result.setdefault(scope, []).extend(ids)
+        for scope in exam["basketScopes"]:
+            result.setdefault(scope["basketScopeId"], []).extend(q["id"] for q in scope["questions"])
     return result
 
 
@@ -161,21 +153,21 @@ def draws_whole_pool(pool_size, draws):
     return poisson_tail(expected, missed) >= SPLIT_CHANCE
 
 
-def assign_groups(pools, draws, groups):
-    """Maps question id -> the groups whose exams can ask it.
+def assign_groups(pools, draws):
+    """Maps question id -> the groups whose exams can ask it, in the order of [draws].
 
     [pools] is every question of the complete set by the site's topic id, and [draws] each group's
     draws by topic id. Also returns the topics a group draws only part of, as
     (group, topic id) -> the number of questions in that part.
     """
     result, parts = {}, {}
-    for group in groups:
-        for scope, ids in draws.get(group, {}).items():
+    for group, by_scope in draws.items():
+        for scope, ids in by_scope.items():
             unknown = set(ids) - pools.get(scope, set())
             if unknown:
                 raise ValueError(f"the {group} exams drew {sorted(unknown)}, which topic {scope} of the complete set lacks")
         for scope, pool in pools.items():
-            drawn = draws.get(group, {}).get(scope, [])
+            drawn = by_scope.get(scope, [])
             if not drawn:
                 continue
             if draws_whole_pool(len(pool), drawn):
@@ -213,10 +205,8 @@ def skip_reason(raw):
 
 
 def parse_question(raw, section_of_scope):
-    """One question from the API, in the shape the bank file uses, or None when it is left out
-    (see skip_reason)."""
-    if skip_reason(raw) is not None:
-        return None
+    """One question from the API, in the shape the bank file uses. Only for a question that
+    skip_reason lets in."""
     if raw["basketScopeId"] not in section_of_scope:
         raise ValueError(f"question {raw['id']} is in topic {raw['basketScopeId']}, which the exam does not have")
     answers = sorted(raw["questionAnswers"], key=lambda answer: answer["sortOrder"])
@@ -235,11 +225,10 @@ def parse_question(raw, section_of_scope):
     }
 
 
-def flatten_on_white(pixmap):
-    """[pixmap] without its alpha channel: a pixel less than half opaque turns white, the others
+def flatten_on_white(pixmap, alpha):
+    """[pixmap] without its [alpha] channel: a pixel less than half opaque turns white, the others
     keep their color. Only used on photos with a few see-through pixels at their corners."""
     rgb = bytearray(pymupdf.Pixmap(pixmap, 0).samples)
-    alpha = pixmap.samples[pixmap.n - 1::pixmap.n]
     for index, value in enumerate(alpha):
         if value < 128:
             rgb[index * 3:index * 3 + 3] = b"\xff\xff\xff"
@@ -262,7 +251,7 @@ def compress(name, data):
         alpha = pixmap.samples[pixmap.n - 1::pixmap.n]
         if sum(1 for value in alpha if value < 255) > MAX_SEE_THROUGH * len(alpha):
             return name, data
-        pixmap = flatten_on_white(pixmap)
+        pixmap = flatten_on_white(pixmap, alpha)
     if pixmap.n != 3:
         return name, data
     while pixmap.width > MAX_WIDTH:
@@ -287,17 +276,6 @@ def bank_document(questions, sections, groups_by_id, version):
             for q in sorted(questions, key=lambda q: (q["section"], q["id"]))
             if groups_by_id.get(q["id"])
         ],
-    }
-
-
-def index_entry(document):
-    questions = document["questions"]
-    return {
-        "id": document["id"],
-        "version": document["version"],
-        "country": document["country"],
-        "language": document["language"],
-        "questionCounts": {group: sum(1 for q in questions if group in q["groups"]) for group in GROUPS},
     }
 
 
@@ -338,32 +316,23 @@ def build_bank(raw_questions, exams, version):
     pools = {}
     for raw in raw_questions:
         pools.setdefault(raw["basketScopeId"], set()).add(raw["id"])
-    groups_by_id, parts = assign_groups(pools, {g: draws_by_scope(e) for g, e in exams.items()}, GROUPS)
+    groups_by_id, parts = assign_groups(pools, {g: draws_by_scope(e) for g, e in exams.items()})
     for (group, scope), size in sorted(parts.items(), key=lambda p: (p[0][1], GROUPS.index(p[0][0]))):
         log(f"  topic {section_of_scope[scope]}: {group} draws {size} of its {len(pools[scope])} questions")
     questions, skipped = [], {}
     for raw in raw_questions:
-        question = parse_question(raw, section_of_scope)
-        if question is None:
-            skipped.setdefault(skip_reason(raw), []).append(raw["id"])
+        reason = skip_reason(raw)
+        if reason is None:
+            questions.append(parse_question(raw, section_of_scope))
         else:
-            questions.append(question)
+            skipped.setdefault(reason, []).append(raw["id"])
     for reason, ids in sorted(skipped.items()):
         log(f"  left out {len(ids)} questions with {reason}")
-    unused = [q["id"] for q in questions if not groups_by_id.get(q["id"])]
+    document = bank_document(questions, sections, groups_by_id, version)
+    unused = sorted({q["id"] for q in questions} - {q["id"] for q in document["questions"]})
     if unused:
         log(f"  left out {len(unused)} questions no group's exams drew: {unused}")
-    return bank_document(questions, sections, groups_by_id, version)
-
-
-def write_bank(document):
-    BANKS_OUT.mkdir(parents=True, exist_ok=True)
-    (BANKS_OUT / f"{document['id']}-v{document['version']}.json").write_text(
-        json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    entry = index_entry(document)
-    log(f"  {document['id']}: {len(document['questions'])} questions, {entry['questionCounts']}")
-    # Keep other importers' banks in the shared index.
-    write_index(BANKS_OUT / "index.json", [entry], COUNTRY)
+    return document
 
 
 def write_images(document, refresh):
@@ -383,18 +352,6 @@ def write_images(document, refresh):
             q["image"] = bundled_as[q["image"]]
 
 
-def remove_stale_images():
-    """Deletes the pictures no bundled bank references. Older versions stay bundled, so their
-    pictures stay too."""
-    bundled = bank_images(BANKS_OUT, IMAGES_OUT.name)
-    stale = [p for p in IMAGES_OUT.rglob("*")
-             if p.is_file() and p.relative_to(IMAGES_OUT).as_posix() not in bundled]
-    for path in stale:
-        path.unlink()
-    if stale:
-        log(f"  removed {len(stale)} images no longer referenced")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="re-download sources and images even if cached")
@@ -410,8 +367,11 @@ def main():
     log("Parsing")
     document = build_bank(raw_questions, exams, args.version)
     write_images(document, args.refresh)
-    write_bank(document)
-    remove_stale_images()
+    entry = write_bank(document, GROUPS)
+    log(f"  {document['id']}: {len(document['questions'])} questions, {entry['questionCounts']}")
+    # Keep other importers' banks in the shared index.
+    write_index(BANKS / "index.json", [entry], COUNTRY)
+    remove_stale_images(IMAGES_OUT.name)
     log("Done")
 
 

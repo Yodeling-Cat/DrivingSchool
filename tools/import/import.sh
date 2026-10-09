@@ -13,10 +13,10 @@ if [ ! -d .venv ]; then
 fi
 if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=.venv/Scripts/python; fi
 "$PY" -m pip install -q -r requirements.txt
-if [ "$COUNTRY" != cz ]; then
+if [ "$COUNTRY" = all ] || [ "$COUNTRY" = sk ]; then
   PYTHONIOENCODING=utf-8 "$PY" import_minv.py "$@"
   PYTHONIOENCODING=utf-8 "$PY" import_znacky.py "$@"
 fi
-if [ "$COUNTRY" != sk ]; then
+if [ "$COUNTRY" = all ] || [ "$COUNTRY" = cz ]; then
   PYTHONIOENCODING=utf-8 "$PY" import_md_cz.py "$@"
 fi

@@ -1,6 +1,5 @@
 """Unit tests for the etesty.md.gov.cz importer. Offline: they only use the fixtures in
 tests_fixtures/md_cz/, which are trimmed copies of what the site serves."""
-import json
 import math
 import random
 import unittest
@@ -9,12 +8,13 @@ from pathlib import Path
 import pymupdf
 
 import import_md_cz
+from importer_common import index_entry, read_json
 
 FIXTURES = Path(__file__).resolve().parent / "tests_fixtures" / "md_cz"
 
 
 def raw_question(qid):
-    return json.loads((FIXTURES / "questions" / f"{qid}.json").read_text(encoding="utf-8"))
+    return read_json(FIXTURES / "questions" / f"{qid}.json")
 
 
 def sample_test():
@@ -123,14 +123,6 @@ class ParseQuestionTest(unittest.TestCase):
         self.assertEqual(["Ano.", "Ne."], q["answers"])
         self.assertEqual(0, q["correct"])
 
-    def test_a_question_whose_answers_are_pictures_is_left_out(self):
-        self.assertIsNone(self.parse(raw_question(1408)))
-
-    def test_a_question_that_has_to_be_watched_to_the_end_is_left_out(self):
-        # The new traffic-situation videos are played once, and their still shows the road before
-        # anything happens, so the paper test's still cannot stand in for them.
-        self.assertIsNone(self.parse(raw_question(105487)))
-
     def test_a_question_from_a_topic_the_exam_does_not_have_fails_loudly(self):
         raw = raw_question(180)
         raw["basketScopeId"] = 42
@@ -146,24 +138,11 @@ class ParseQuestionTest(unittest.TestCase):
             self.parse(raw)
 
 
-class MediaTest(unittest.TestCase):
-    def test_a_video_is_replaced_by_its_still(self):
-        media = raw_question(1022)["mediaContent"]
-
-        self.assertEqual("/binary_content_storage/Q_P_1022.jpg", import_md_cz.media_path(media))
-
-    def test_a_picture_is_taken_as_shown_on_the_web(self):
-        media = raw_question(1863)["mediaContent"]
-
-        self.assertEqual("/binary_content_storage/Q_W_1863.jpg", import_md_cz.media_path(media))
-
-    def test_no_media_is_no_path(self):
-        self.assertIsNone(import_md_cz.media_path(None))
-
-
 class SkipReasonTest(unittest.TestCase):
     def test_names_why_a_question_cannot_be_imported(self):
         self.assertEqual("picture answers", import_md_cz.skip_reason(raw_question(1408)))
+        # The new traffic-situation videos are played once, and their still shows the road before
+        # anything happens, so the paper test's still cannot stand in for them.
         self.assertEqual("video to watch", import_md_cz.skip_reason(raw_question(105487)))
         self.assertIsNone(import_md_cz.skip_reason(raw_question(1022)))
         self.assertIsNone(import_md_cz.skip_reason(raw_question(180)))
@@ -245,7 +224,6 @@ class ExamDrawsTest(unittest.TestCase):
         exam = import_md_cz.trim_exam(sample_test())
 
         self.assertEqual("B", exam["testType"])
-        self.assertEqual({9: [1468, 1566], 11: [1863], 12: [2300]}, import_md_cz.exam_draws(exam))
         # A trimmed exam still gives the layout.
         self.assertEqual(import_md_cz.exam_sections(sample_test()), import_md_cz.exam_sections(exam))
 
@@ -279,22 +257,23 @@ class WholePoolTest(unittest.TestCase):
 class AssignGroupsTest(unittest.TestCase):
     POOLS = {9: set(range(1, 41)), 10: set(range(101, 161))}
 
-    def exams(self, scope_pools, count=200, seed=1):
-        """[count] exams that draw 4 questions from each topic's pool in [scope_pools]."""
+    @staticmethod
+    def draws(scope_pools, count=200, seed=1):
+        """What [count] exams draw that take 4 questions from each topic's pool in [scope_pools]."""
         rng = random.Random(seed)
-        return [{scope: rng.sample(sorted(pool), 4) for scope, pool in scope_pools.items()} for _ in range(count)]
-
-    def draws(self, exams):
-        result = {}
-        for exam in exams:
-            for scope, ids in exam.items():
-                result.setdefault(scope, []).extend(ids)
-        return result
+        exams = [
+            {"basketScopes": [
+                {"basketScopeId": scope, "questions": [{"id": qid} for qid in rng.sample(sorted(pool), 4)]}
+                for scope, pool in scope_pools.items()
+            ]}
+            for _ in range(count)
+        ]
+        return import_md_cz.draws_by_scope(exams)
 
     def test_a_topic_every_group_draws_from_whole_goes_to_every_group(self):
-        draws = {group: self.draws(self.exams(self.POOLS, seed=n)) for n, group in enumerate(["A", "B"])}
+        draws = {group: self.draws(self.POOLS, seed=n) for n, group in enumerate(["A", "B"])}
 
-        groups, parts = import_md_cz.assign_groups(self.POOLS, draws, ["A", "B"])
+        groups, parts = import_md_cz.assign_groups(self.POOLS, draws)
 
         self.assertEqual(["A", "B"], groups[1])
         self.assertEqual(["A", "B"], groups[160])
@@ -303,11 +282,11 @@ class AssignGroupsTest(unittest.TestCase):
     def test_a_topic_a_group_draws_only_part_of_gives_that_group_only_that_part(self):
         motorcycles, cars = set(range(101, 131)), set(range(131, 161))
         draws = {
-            "A": self.draws(self.exams({9: self.POOLS[9], 10: motorcycles}, seed=1)),
-            "B": self.draws(self.exams({9: self.POOLS[9], 10: cars}, seed=2)),
+            "A": self.draws({9: self.POOLS[9], 10: motorcycles}, seed=1),
+            "B": self.draws({9: self.POOLS[9], 10: cars}, seed=2),
         }
 
-        groups, parts = import_md_cz.assign_groups(self.POOLS, draws, ["A", "B"])
+        groups, parts = import_md_cz.assign_groups(self.POOLS, draws)
 
         self.assertEqual(["A"], groups[101])
         self.assertEqual(["B"], groups[160])
@@ -316,11 +295,11 @@ class AssignGroupsTest(unittest.TestCase):
 
     def test_a_question_no_group_drew_from_a_split_topic_has_no_group(self):
         draws = {
-            "A": self.draws(self.exams({9: self.POOLS[9], 10: set(range(101, 131))}, seed=1)),
-            "B": self.draws(self.exams({9: self.POOLS[9], 10: set(range(131, 151))}, seed=2)),
+            "A": self.draws({9: self.POOLS[9], 10: set(range(101, 131))}, seed=1),
+            "B": self.draws({9: self.POOLS[9], 10: set(range(131, 151))}, seed=2),
         }
 
-        groups, _ = import_md_cz.assign_groups(self.POOLS, draws, ["A", "B"])
+        groups, _ = import_md_cz.assign_groups(self.POOLS, draws)
 
         self.assertNotIn(155, groups)
 
@@ -328,7 +307,7 @@ class AssignGroupsTest(unittest.TestCase):
         draws = {"A": {9: [1, 2, 999]}}
 
         with self.assertRaises(ValueError):
-            import_md_cz.assign_groups(self.POOLS, draws, ["A"])
+            import_md_cz.assign_groups(self.POOLS, draws)
 
 
 class BankDocumentTest(unittest.TestCase):
@@ -362,7 +341,7 @@ class BankDocumentTest(unittest.TestCase):
         sections, _ = import_md_cz.exam_sections(sample_test())
         document = import_md_cz.bank_document(self.questions(), sections, {180: ["A", "B"], 1863: ["B"], 1469: ["A"]}, version=1)
 
-        entry = import_md_cz.index_entry(document)
+        entry = index_entry(document, import_md_cz.GROUPS)
 
         self.assertEqual(
             {"id": "cz-cs", "version": 1, "country": "CZ", "language": "cs",

@@ -13,11 +13,11 @@ try {
     if (-not (Test-Path .venv)) { python -m venv .venv }
     & .venv\Scripts\python -m pip install -q -r requirements.txt
     $env:PYTHONIOENCODING = 'utf-8'
-    if ($country -ne 'cz') {
+    if ($country -eq 'all' -or $country -eq 'sk') {
         & .venv\Scripts\python import_minv.py @rest
         & .venv\Scripts\python import_znacky.py @rest
     }
-    if ($country -ne 'sk') {
+    if ($country -eq 'all' -or $country -eq 'cz') {
         & .venv\Scripts\python import_md_cz.py @rest
     }
 } finally {

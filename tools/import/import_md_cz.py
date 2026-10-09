@@ -42,11 +42,11 @@ LANGUAGE = "cs"
 #: The groups the site has a practice exam for, in the app's order.
 GROUPS = ["A", "B", "BE", "C", "CE", "D", "DE"]
 
-#: How many practice exams are drawn per group to learn the group's pool. 300 exams draw each
-#: topic's questions so often that a question of a group's pool is all but never missed: the
-#: smallest group-specific pool seen, about 60 questions drawn 4 to an exam, misses one with a
-#: chance of about 1 in 10,000.
-EXAMS_PER_GROUP = 300
+#: How many practice exams are drawn per group to learn the group's pool. The topics that draw 3
+#: questions an exam need this many: with 300, a group's handful of excluded situations went
+#: unnoticed. At 600, the weakest case, group A's 141 situations drawn 1,800 times, misses one
+#: of them with a chance of about 1 in 2,500.
+EXAMS_PER_GROUP = 600
 
 #: How unlikely a group's misses must be, were it drawing from the whole topic, before the topic
 #: counts as split for that group.
@@ -55,6 +55,14 @@ SPLIT_CHANCE = 1e-6
 #: A JPEG is written again at this quality when that makes it smaller. The site's photos are
 #: saved for print, at about 470 KB each; at this quality they look the same at a third of that.
 JPEG_QUALITY = 80
+
+#: The widest a picture is bundled. The app never shows one wider, and a few of the site's are
+#: over 2,000 pixels.
+MAX_WIDTH = 1280
+
+#: The share of see-through pixels up to which a picture counts as a photo with clipped corners,
+#: and is bundled as a JPEG on white. Every transparent PNG on the site is one, at 1.5% or less.
+MAX_SEE_THROUGH = 0.02
 
 
 def clean(text):
@@ -227,15 +235,42 @@ def parse_question(raw, section_of_scope):
     }
 
 
+def flatten_on_white(pixmap):
+    """[pixmap] without its alpha channel: a pixel less than half opaque turns white, the others
+    keep their color. Only used on photos with a few see-through pixels at their corners."""
+    rgb = bytearray(pymupdf.Pixmap(pixmap, 0).samples)
+    alpha = pixmap.samples[pixmap.n - 1::pixmap.n]
+    for index, value in enumerate(alpha):
+        if value < 128:
+            rgb[index * 3:index * 3 + 3] = b"\xff\xff\xff"
+    return pymupdf.Pixmap(pymupdf.csRGB, pixmap.width, pixmap.height, bytes(rgb), False)
+
+
 def compress(name, data):
-    """[data] of the image [name], written again as a lighter JPEG when it is one and that helps."""
-    if not name.lower().endswith((".jpg", ".jpeg")):
-        return data
+    """The name and the bytes to bundle the picture [name], whose file is [data], under.
+
+    A photo is bundled as a JPEG at JPEG_QUALITY and at most MAX_WIDTH wide, when that makes it
+    smaller: the site saves its JPEGs for print, and many photos as PNGs. A PNG has to halve to be
+    turned into a JPEG, because line art is smaller and sharper as a PNG. A photo whose corners are
+    see-through is put on white; a picture that is really transparent, and a GIF, is kept as it is.
+    """
+    stem, extension = name.rsplit(".", 1)
+    if extension.lower() not in ("jpg", "jpeg", "png"):
+        return name, data
     pixmap = pymupdf.Pixmap(data)
-    if pixmap.alpha or pixmap.n != 3:
-        return data
-    smaller = pixmap.tobytes("jpg", jpg_quality=JPEG_QUALITY)
-    return smaller if len(smaller) < len(data) else data
+    if pixmap.alpha:
+        alpha = pixmap.samples[pixmap.n - 1::pixmap.n]
+        if sum(1 for value in alpha if value < 255) > MAX_SEE_THROUGH * len(alpha):
+            return name, data
+        pixmap = flatten_on_white(pixmap)
+    if pixmap.n != 3:
+        return name, data
+    while pixmap.width > MAX_WIDTH:
+        pixmap.shrink(1)
+    jpeg = pixmap.tobytes("jpg", jpg_quality=JPEG_QUALITY)
+    if extension.lower() == "png":
+        return (f"{stem}.jpg", jpeg) if len(jpeg) < len(data) / 2 else (name, data)
+    return (name, jpeg) if len(jpeg) < len(data) else (name, data)
 
 
 def bank_document(questions, sections, groups_by_id, version):
@@ -331,15 +366,26 @@ def write_bank(document):
     write_index(BANKS_OUT / "index.json", [entry], COUNTRY)
 
 
-def sync_images(document, refresh):
-    """Writes the pictures the new bank needs, and deletes the files no bundled bank references."""
-    new_images = {q["image"] for q in document["questions"] if q["image"]}
-    to_write = sorted(image for image in new_images if refresh or not (IMAGES_OUT / image).exists())
-    log(f"Fetching images: {len(new_images)} referenced, {len(to_write)} to write")
+def write_images(document, refresh):
+    """Writes the pictures [document] references, and points its questions at the names they were
+    written under (a photo saved as a PNG is bundled as a JPEG)."""
+    images = sorted({q["image"] for q in document["questions"] if q["image"]})
+    log(f"Writing images: {len(images)} referenced")
     IMAGES_OUT.mkdir(parents=True, exist_ok=True)
-    for image in to_write:
+    bundled_as = {}
+    for image in images:
         source = download(f"{BASE_URL}/binary_content_storage/{image}", CACHE / "media" / image, refresh, quiet=True)
-        (IMAGES_OUT / image).write_bytes(compress(image, source.read_bytes()))
+        name, data = compress(image, source.read_bytes())
+        (IMAGES_OUT / name).write_bytes(data)
+        bundled_as[image] = name
+    for q in document["questions"]:
+        if q["image"]:
+            q["image"] = bundled_as[q["image"]]
+
+
+def remove_stale_images():
+    """Deletes the pictures no bundled bank references. Older versions stay bundled, so their
+    pictures stay too."""
     bundled = bank_images(BANKS_OUT, IMAGES_OUT.name)
     stale = [p for p in IMAGES_OUT.rglob("*")
              if p.is_file() and p.relative_to(IMAGES_OUT).as_posix() not in bundled]
@@ -363,8 +409,9 @@ def main():
 
     log("Parsing")
     document = build_bank(raw_questions, exams, args.version)
+    write_images(document, args.refresh)
     write_bank(document)
-    sync_images(document, args.refresh)
+    remove_stale_images()
     log("Done")
 
 

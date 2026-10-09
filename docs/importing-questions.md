@@ -24,7 +24,7 @@ bank does not version the other.
 Options:
 - `--refresh`: download the sources and images again, even if they are cached. Use this when updating to new data from the ministry.
 - `--version N`: the bank version to write. It defaults to 1. See "Updating to new data" below.
-- `--exams N` (Czech only): how many practice exams to draw per license group. It defaults to 300. See "The Czech bank" below.
+- `--exams N` (Czech only): how many practice exams to draw per license group. It defaults to 600. See "The Czech bank" below.
 - `--help`: show usage.
 
 Downloads are cached in `tools/import/cache/`, which is gitignored. Without `--refresh`, the importer only processes the cached files.
@@ -38,7 +38,7 @@ The output goes to `app/shared/src/commonMain/composeResources/files/`, and it i
 | `banks/index.json` | The latest version of every bank, with its question count per license group. The exam-selection screen reads this. |
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
 | `images/minv-sk/...` | The images the Slovak questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
-| `images/md-cz/...` | The pictures the Czech questions reference, named as on etesty.md.gov.cz. JPEGs are recompressed; see below. |
+| `images/md-cz/...` | The pictures the Czech questions reference, named as on etesty.md.gov.cz. Photos are bundled as lighter JPEGs; see below. |
 | `signs/index.json` | The latest version of every sign catalog, with its sign count. |
 | `signs/<id>-v<version>.json` | One version of one sign catalog, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalog` in `:core`. |
 
@@ -68,17 +68,20 @@ Both are run by `import.sh`, and both can be run on their own.
 
 1. **Download** the page of the complete question set, which lists every question id, and each
    question from the site's JSON API.
-2. **Draw practice exams**, 300 per license group by default. They give the exam's layout (its
+2. **Draw practice exams**, 600 per license group by default. They give the exam's layout (its
    topics, how many questions each draws and the points), and, since the ministry publishes no
    groups, which questions each group can be asked: a topic whose draws reach every question goes to
    the group whole, a topic whose draws keep to part of it gives the group that part. Only what each
-   exam drew is cached, in `cache/md-cz/exams/<group>/`. Drawing them takes about an hour, so it is
+   exam drew is cached, in `cache/md-cz/exams/<group>/`. Drawing them takes about two hours, so it is
    done once and cached like everything else.
 3. **Convert** each question. Answers follow the site's order. A looping video is replaced by the
    still the paper test prints. Questions with picture answers, and the dynamic videos that have to
    be watched, are left out.
-4. **Write** the bank and its index entry, then the pictures: every JPEG is written again at
-   quality 80 when that makes it smaller.
+4. **Write** the pictures, then the bank and its index entry. The site saves its photos for print,
+   and many as PNGs, which would make the Czech pictures 58 MB. So a photo is bundled as a JPEG at
+   quality 80 and at most 1,280 pixels wide (a PNG photo is renamed `.jpg`), a photo with a few
+   see-through corner pixels is put on white first, and line art, real transparency and GIFs stay as
+   they are. That makes them about 25 MB.
 
 The importer prints the topics each group draws only part of, and how many questions it left out and
 why. Compare them with the tables in `data-sources.md`.

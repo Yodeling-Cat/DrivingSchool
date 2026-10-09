@@ -171,28 +171,73 @@ class SkipReasonTest(unittest.TestCase):
 
 class CompressTest(unittest.TestCase):
     @staticmethod
-    def jpeg(quality):
-        # Noise, like a photo's detail, so the quality a JPEG is saved at changes its size.
-        noise = random.Random(1).randbytes(64 * 64 * 3)
-        return pymupdf.Pixmap(pymupdf.csRGB, 64, 64, noise, False).tobytes("jpg", jpg_quality=quality)
+    def photo(width=64, height=64, alpha=False):
+        """Noise, like a photo's detail, so the quality a JPEG is saved at changes its size."""
+        noise = random.Random(1).randbytes(width * height * (4 if alpha else 3))
+        return pymupdf.Pixmap(pymupdf.csRGB, width, height, noise, alpha)
+
+    @staticmethod
+    def drawing():
+        """Two flat colors, like line art, which PNG keeps smaller than JPEG."""
+        pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 64, 64), False)
+        pixmap.set_rect(pixmap.irect, (255, 255, 255))
+        pixmap.set_rect(pymupdf.IRect(0, 0, 32, 64), (200, 0, 0))
+        return pixmap
 
     def test_a_heavy_jpeg_is_recompressed(self):
-        heavy = self.jpeg(100)
+        heavy = self.photo().tobytes("jpg", jpg_quality=100)
 
-        smaller = import_md_cz.compress("x.jpg", heavy)
+        name, smaller = import_md_cz.compress("x.jpg", heavy)
 
+        self.assertEqual("x.jpg", name)
         self.assertLess(len(smaller), len(heavy))
         self.assertEqual((64, 64), (pymupdf.Pixmap(smaller).width, pymupdf.Pixmap(smaller).height))
 
     def test_a_jpeg_that_would_not_shrink_is_kept(self):
-        light = self.jpeg(10)
+        light = self.photo().tobytes("jpg", jpg_quality=10)
 
-        self.assertIs(light, import_md_cz.compress("x.jpg", light))
+        self.assertEqual(("x.jpg", light), import_md_cz.compress("x.jpg", light))
 
-    def test_other_formats_are_kept_as_they_are(self):
+    def test_a_photo_saved_as_png_becomes_a_jpeg(self):
+        png = self.photo().tobytes("png")
+
+        name, data = import_md_cz.compress("Q_W_1.png", png)
+
+        self.assertEqual("Q_W_1.jpg", name)
+        self.assertTrue(data.startswith(b"\xff\xd8"))
+        self.assertLess(len(data), len(png) / 2)
+
+    def test_a_drawing_saved_as_png_stays_a_png(self):
+        png = self.drawing().tobytes("png")
+
+        self.assertEqual(("x.png", png), import_md_cz.compress("x.png", png))
+
+    def test_a_photo_with_see_through_corners_becomes_a_jpeg(self):
+        pixmap = self.photo(width=100, height=100, alpha=True)
+        pixmap.set_alpha(bytes([0]) + bytes([255]) * (100 * 100 - 1))
+        png = pixmap.tobytes("png")
+
+        name, data = import_md_cz.compress("x.png", png)
+
+        self.assertEqual("x.jpg", name)
+        self.assertTrue(data.startswith(b"\xff\xd8"))
+
+    def test_a_png_with_transparency_stays_a_png(self):
+        png = self.photo(alpha=True).tobytes("png")
+
+        self.assertEqual(("x.png", png), import_md_cz.compress("x.png", png))
+
+    def test_a_picture_wider_than_the_app_shows_is_scaled_down(self):
+        wide = self.photo(width=2600, height=100).tobytes("jpg", jpg_quality=100)
+
+        _, data = import_md_cz.compress("x.jpg", wide)
+
+        self.assertLessEqual(pymupdf.Pixmap(data).width, import_md_cz.MAX_WIDTH)
+
+    def test_a_gif_is_kept_as_it_is(self):
         gif = b"GIF89a not really"
 
-        self.assertIs(gif, import_md_cz.compress("x.gif", gif))
+        self.assertEqual(("x.gif", gif), import_md_cz.compress("x.gif", gif))
 
 
 class ExamDrawsTest(unittest.TestCase):

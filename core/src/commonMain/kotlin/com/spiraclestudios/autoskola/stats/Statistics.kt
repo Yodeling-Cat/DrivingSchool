@@ -45,8 +45,11 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
      * only a numbered practice test. A repeat of the questions the user got wrong is left where it
      * was, so the home screen doesn't offer to continue a drill they walked away from.
      */
-    val resumable: TestAttempt? =
-        attempts.filter { it.isOpen && it.kind == AttemptKind.PracticeTest }.maxByOrNull { it.updatedAt }
+    val resumable: TestAttempt? get() = openAttempts(AttemptKind.PracticeTest).firstOrNull()
+
+    /** Numbers of the practice tests with an attempt that is neither finished nor discarded. */
+    val inProgressTests: Set<Int>
+        get() = openAttempts(AttemptKind.PracticeTest).mapNotNullTo(mutableSetOf()) { it.testNumber }
 
     /** Questions whose most recent final answer was wrong, most recently missed first. */
     val mistakes: List<Int> =
@@ -55,8 +58,11 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
     val questionsAnswered: Int get() = questions.size
 
     fun openAttemptFor(testNumber: Int): TestAttempt? =
-        attempts.filter { it.isOpen && it.kind == AttemptKind.PracticeTest && it.testNumber == testNumber }
-            .maxByOrNull { it.updatedAt }
+        openAttempts(AttemptKind.PracticeTest).firstOrNull { it.testNumber == testNumber }
+
+    /** Attempts of [kind] that are neither finished nor discarded, the most recently touched first. */
+    fun openAttempts(kind: AttemptKind): List<TestAttempt> =
+        attempts.filter { it.isOpen && it.kind == kind }.sortedByDescending { it.updatedAt }
 
     companion object {
         /**

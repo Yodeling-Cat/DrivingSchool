@@ -1,7 +1,6 @@
 package com.spiraclestudios.autoskola.data.analytics
 
 import com.spiraclestudios.autoskola.i18n.AppLanguage
-import com.spiraclestudios.autoskola.results.hasVerdict
 import com.spiraclestudios.autoskola.stats.AttemptKind
 
 // The properties the events carry are built here rather than at each call site, so the shapes are
@@ -48,7 +47,7 @@ internal fun testStartedProperties(kind: AttemptKind, resumed: Boolean): Map<Str
  *
  * `passed` says how a kind that has a verdict went against the pass mark, and is left out
  * altogether for one that doesn't: a situations drill is neither passed nor failed, and sending
- * `false` would read in the dashboard as a drill that always fails (see [hasVerdict]).
+ * `false` would read in the dashboard as a drill that always fails (see [AttemptKind.hasVerdict]).
  */
 internal fun testCompletedProperties(
     kind: AttemptKind,
@@ -59,7 +58,7 @@ internal fun testCompletedProperties(
     put("kind", kind.wireName())
     put("duration_seconds", durationSeconds)
     put("wrong_count", wrongCount)
-    if (hasVerdict(kind)) put("passed", passed)
+    if (kind.hasVerdict) put("passed", passed)
 }
 
 /** The properties `test_abandoned` carries: what was left, with how much done in how long. */

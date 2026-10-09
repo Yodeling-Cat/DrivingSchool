@@ -1,11 +1,11 @@
 package com.spiraclestudios.autoskola.data.answers
 
 import com.russhwolf.settings.Settings
+import com.spiraclestudios.autoskola.LenientJson
 import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
 
 /**
  * Keeps the answers as one JSON document per bank version in [Settings], read once when the app
@@ -30,7 +30,7 @@ class SettingsPracticeAnswerDataSource(private val settings: Settings) : Practic
     ) {
         val key = answersKey(bankId, bankVersion)
         val updated = (stored.value[key] ?: PracticeAnswers()).withAnswer(questionId, chosen)
-        settings.putString(key, AnswersJson.encodeToString(PracticeAnswers.serializer(), updated))
+        settings.putString(key, LenientJson.encodeToString(PracticeAnswers.serializer(), updated))
         stored.value = stored.value + (key to updated)
     }
 
@@ -45,14 +45,12 @@ class SettingsPracticeAnswerDataSource(private val settings: Settings) : Practic
         settings.keys.filter { it.startsWith(KEY_PREFIX) }.associateWith { key ->
             // A document that can't be read is answers we don't have, not a reason to fail the app.
             settings.getStringOrNull(key)
-                ?.let { runCatching { AnswersJson.decodeFromString(PracticeAnswers.serializer(), it) }.getOrNull() }
+                ?.let { runCatching { LenientJson.decodeFromString(PracticeAnswers.serializer(), it) }.getOrNull() }
                 ?: PracticeAnswers()
         }
 
     private companion object {
         const val KEY_PREFIX = "answers_"
-
-        val AnswersJson = Json { ignoreUnknownKeys = true }
 
         fun answersKey(bankId: String, bankVersion: Int) = "$KEY_PREFIX$bankId-v$bankVersion"
     }

@@ -41,12 +41,6 @@ sealed interface ResultsUiState {
         /** How long the test ran. Zero on attempts made before the app timed tests. */
         val elapsedSeconds: Long,
         /**
-         * Whether the card says how the attempt went, as passing or failing: a test is measured
-         * against the pass mark, while a situations drill was never being passed or failed, so its
-         * card has no stamp, no pass mark and no time to show.
-         */
-        val hasVerdict: Boolean,
-        /**
          * Practice tests started, which is not drawn: it is what the closing ad is measured in,
          * `plans/ads.md`'s rule being that the ad yields when the user\'s next tap would be gated.
          * It is here rather than recomputed on the way out so that leaving costs no work.
@@ -60,7 +54,14 @@ sealed interface ResultsUiState {
         val leaving: Boolean = false,
         /** Whether the banner pinned under the results is drawn: until the ads are bought away. */
         val showAds: Boolean = false,
-    ) : ResultsUiState
+    ) : ResultsUiState {
+        /**
+         * Whether the card says how the attempt went, as passing or failing: a test is measured
+         * against the pass mark, while a situations drill was never being passed or failed, so its
+         * card has no stamp, no pass mark and no time to show.
+         */
+        val hasVerdict: Boolean get() = kind.hasVerdict
+    }
 }
 
 sealed interface ResultsUiEvent {
@@ -72,12 +73,6 @@ sealed interface ResultsUiEvent {
      */
     data object Done : ResultsUiEvent
 }
-
-/**
- * Whether an attempt of [kind] is given a verdict. A test is passed or failed against the pass mark;
- * a situations drill is a run through the reading material, which is only reported on.
- */
-internal fun hasVerdict(kind: AttemptKind): Boolean = kind != AttemptKind.Situations
 
 /** Shows how a finished attempt went. Only reads, apart from the one thing leaving does. */
 class ResultsViewModel(private val attemptId: String, exams: ExamRepository, private val ads: AdRepository) :
@@ -135,7 +130,6 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
                 ResultSection(session.bank.section(it.section)?.title.orEmpty(), it)
             },
             elapsedSeconds = attempt.elapsedSeconds,
-            hasVerdict = hasVerdict(attempt.kind),
             practiceTestsStarted = progress.practiceTestsStarted,
             leaving = leaving,
             showAds = showAds,

@@ -110,6 +110,24 @@ class StatisticsTest {
     }
 
     @Test
+    fun openAttemptsOfAKindAreTheOpenOnesMostRecentFirst() {
+        val stats = Statistics.of(
+            listOf(
+                attempt("old-drill", testNumber = null, kind = AttemptKind.Situations, startedAt = 1),
+                attempt("new-drill", testNumber = null, kind = AttemptKind.Situations, startedAt = 5),
+                attempt("done-drill", testNumber = null, kind = AttemptKind.Situations, finishedAt = 9),
+                attempt("test-1", testNumber = 1, startedAt = 3),
+                attempt("test-2", testNumber = 2, startedAt = 4, discardedAt = 6),
+                attempt("test-4", testNumber = 4, startedAt = 2),
+            ),
+            checkImmediately = false,
+        )
+
+        assertEquals(listOf("new-drill", "old-drill"), stats.openAttempts(AttemptKind.Situations).map { it.id })
+        assertEquals(setOf(1, 4), stats.inProgressTests)
+    }
+
+    @Test
     fun aMistakesTestIsNotOfferedToContinue() {
         val stats = Statistics.of(
             listOf(

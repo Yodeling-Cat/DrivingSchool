@@ -28,7 +28,7 @@ const val SITUATIONS_SECTION = 4
  */
 fun situations(bank: QuestionBank, category: LicenseCategory): List<Situation> {
     val asked = bank.questions.filter {
-        it.section == SITUATIONS_SECTION && category in it.groups && it.answers.size > 1 && it.image != null
+        it.section == SITUATIONS_SECTION && it.isAskedIn(category) && it.image != null
     }
     return asked.groupBy { it.image!! }.map { (image, questions) -> Situation(image, questions) }
 }

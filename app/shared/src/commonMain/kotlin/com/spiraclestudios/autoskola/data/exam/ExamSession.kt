@@ -86,7 +86,7 @@ class ExamSession(
 
     /** Ids of the questions that can appear in this exam's tests. */
     val pool: Set<Int> =
-        bank.questions.filter { category in it.groups && it.answers.size > 1 }.mapTo(mutableSetOf()) { it.id }
+        bank.questions.filter { it.isAskedIn(category) }.mapTo(mutableSetOf()) { it.id }
 
     /**
      * Statistics for this exam, recomputed also when the user's setting changes: answers that are
@@ -108,9 +108,7 @@ class ExamSession(
     val progress: Flow<ExamProgress> = statistics.map { stats ->
         ExamProgress(
             results = stats.latestResults,
-            inProgress = stats.attempts
-                .filter { it.isOpen && it.kind == AttemptKind.PracticeTest }
-                .mapNotNullTo(mutableSetOf()) { it.testNumber },
+            inProgress = stats.inProgressTests,
             resumable = stats.resumable,
             mistakeCount = stats.mistakes.count { it in pool },
             questionsAnswered = stats.questions.keys.count { it in pool },
@@ -183,9 +181,8 @@ class ExamSession(
      * continue. A driver gets one drill at a time: walking away from one and asking to drill again
      * is offered the same drill back rather than starting a second.
      */
-    suspend fun openSituationsAttempt(): TestAttempt? = statistics.first().attempts
-        .filter { it.isOpen && it.kind == AttemptKind.Situations }
-        .maxByOrNull { it.updatedAt }
+    suspend fun openSituationsAttempt(): TestAttempt? =
+        statistics.first().openAttempts(AttemptKind.Situations).firstOrNull()
 
     /** Starts a fresh run through [questions], throwing away the drill that's under way. */
     suspend fun restartSituations(questions: List<Question>): TestAttempt? {
@@ -202,9 +199,7 @@ class ExamSession(
      * answers (see PracticeViewModel.recordSituationAnswer).
      */
     suspend fun discardSituationsDrill() {
-        statistics.first().attempts
-            .filter { it.isOpen && it.kind == AttemptKind.Situations }
-            .forEach { attempts.discard(it.id) }
+        statistics.first().openAttempts(AttemptKind.Situations).forEach { attempts.discard(it.id) }
     }
 
     /** Records the answer, locked while the user's settings check answers as they are picked. */

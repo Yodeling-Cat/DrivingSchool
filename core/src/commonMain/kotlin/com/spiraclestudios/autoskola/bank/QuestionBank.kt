@@ -1,7 +1,7 @@
 package com.spiraclestudios.autoskola.bank
 
+import com.spiraclestudios.autoskola.LenientJson
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /**
  * One country's official question bank in one language, as written by `tools/import`.
@@ -25,7 +25,7 @@ data class QuestionBank(
     fun section(id: Int): Section? = sections.firstOrNull { it.id == id }
 
     companion object {
-        fun decode(json: String): QuestionBank = BankJson.decodeFromString(serializer(), json)
+        fun decode(json: String): QuestionBank = LenientJson.decodeFromString(serializer(), json)
     }
 }
 
@@ -50,7 +50,14 @@ data class Question(
     /** Path relative to the bank's image directory, or `null` for text-only questions. */
     val image: String? = null,
     val groups: List<LicenseCategory>,
-)
+) {
+    /**
+     * Whether the exam for [category] can ask this question: the question is in that exam's
+     * groups, and it has something to choose between. Every test, drill and count of the exam's
+     * pool is drawn from the questions this holds for.
+     */
+    fun isAskedIn(category: LicenseCategory): Boolean = category in groups && answers.size > 1
+}
 
 /** Entry of `banks/index.json`: what a bank contains without loading the whole bank. */
 @Serializable
@@ -69,8 +76,6 @@ data class QuestionBankInfo(
 ) {
     companion object {
         fun decodeList(json: String): List<QuestionBankInfo> =
-            BankJson.decodeFromString(kotlinx.serialization.builtins.ListSerializer(serializer()), json)
+            LenientJson.decodeFromString(kotlinx.serialization.builtins.ListSerializer(serializer()), json)
     }
 }
-
-private val BankJson = Json { ignoreUnknownKeys = true }

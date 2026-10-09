@@ -16,7 +16,7 @@ data class PracticeTest(val number: Int, val questions: List<Question>)
 fun QuestionBank.practiceTests(category: LicenseCategory): List<PracticeTest> {
     val pools = sections.map { section ->
         val pool = questions
-            .filter { it.section == section.id && category in it.groups && it.answers.size > 1 }
+            .filter { it.section == section.id && it.isAskedIn(category) }
             .shuffled(Random(stableSeed("$id/${category.name}/${section.id}")))
         section to pool
     }.filter { (_, pool) -> pool.isNotEmpty() }

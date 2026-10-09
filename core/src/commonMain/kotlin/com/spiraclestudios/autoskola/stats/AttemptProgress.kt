@@ -15,9 +15,15 @@ fun TestAttempt.resumeIndex(): Int {
     return if (firstOpen >= 0) firstOpen else questionIds.lastIndex.coerceAtLeast(0)
 }
 
+/** The [questions] that were asked in the attempt. */
+private fun TestAttempt.asked(questions: List<Question>): List<Question> {
+    val ids = questionIds.toSet()
+    return questions.filter { it.id in ids }
+}
+
 /** Points for correct answers out of the points of all [questions] in the attempt. */
 fun TestAttempt.score(questions: List<Question>): TestResult {
-    val asked = questions.filter { it.id in questionIds }
+    val asked = asked(questions)
     return TestResult(
         score = asked.sumOf { if (answerFor(it.id)?.correct == true) it.points else 0 },
         maxScore = asked.sumOf { it.points },
@@ -54,7 +60,7 @@ data class SectionSummary(
 
 /** Counts right, wrong and missing answers to [questions], overall and per section. */
 fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
-    val asked = questions.filter { it.id in questionIds }
+    val asked = asked(questions)
     fun isCorrect(question: Question) = answerFor(question.id)?.correct == true
     val answered = asked.count { answerFor(it.id) != null }
     val correct = asked.count(::isCorrect)
@@ -81,16 +87,3 @@ fun TestAttempt.summary(questions: List<Question>): AttemptSummary {
  * no time at all rather than as a minus.
  */
 fun elapsedMinutes(totalSeconds: Long): Int = (totalSeconds.coerceAtLeast(0) / 60).toInt()
-
-/** Formats [totalSeconds] as mm:ss (or h:mm:ss when an hour or more). */
-fun formatElapsedTime(totalSeconds: Long): String {
-    val seconds = totalSeconds.coerceAtLeast(0)
-    val h = seconds / 3600
-    val m = (seconds % 3600) / 60
-    val s = seconds % 60
-    return if (h > 0) {
-        "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
-    } else {
-        "${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
-    }
-}

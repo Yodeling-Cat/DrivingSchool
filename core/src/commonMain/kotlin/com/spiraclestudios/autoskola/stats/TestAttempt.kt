@@ -1,9 +1,9 @@
 package com.spiraclestudios.autoskola.stats
 
+import com.spiraclestudios.autoskola.LenientJson
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /** What kind of test an attempt was. */
 @Serializable
@@ -16,6 +16,20 @@ enum class AttemptKind {
 
     /** A run through the situations at intersections, from the learning material. */
     Situations,
+    ;
+
+    /**
+     * Whether an attempt of this kind is given a verdict. A test is passed or failed against the
+     * pass mark; a situations drill is a run through the reading material, which is only reported on.
+     */
+    val hasVerdict: Boolean get() = this != Situations
+
+    /**
+     * Whether an attempt of this kind is given the official time. A test is; a situations drill is
+     * reading practice with no exam behind it, so its clock only counts how long the driver has been
+     * at it.
+     */
+    val isTimed: Boolean get() = this != Situations
 }
 
 /**
@@ -49,7 +63,12 @@ data class TestAttempt(
     val isFinished: Boolean get() = finishedAt != null
     val isOpen: Boolean get() = finishedAt == null && discardedAt == null
 
-    fun answerFor(questionId: Int): AnswerRecord? = answers.firstOrNull { it.questionId == questionId }
+    /** [answers] by question id, built the first time one is looked up. */
+    private val answersById: Map<Int, AnswerRecord> by lazy {
+        buildMap { answers.forEach { if (it.questionId !in this) put(it.questionId, it) } }
+    }
+
+    fun answerFor(questionId: Int): AnswerRecord? = answersById[questionId]
 
     /**
      * Answers that are final, and so count towards statistics: all answers of a finished attempt,
@@ -62,13 +81,13 @@ data class TestAttempt(
     fun finalAnswers(checkImmediately: Boolean): List<AnswerRecord> =
         if (isFinished || checkImmediately) answers else emptyList()
 
-    fun encode(): String = AttemptJson.encodeToString(serializer(), this)
+    fun encode(): String = LenientJson.encodeToString(serializer(), this)
 
     companion object {
         /** Official allotted duration for an exam is 30 minutes (1,800 seconds). */
         const val OFFICIAL_DURATION_SECONDS = 30 * 60L
 
-        fun decode(json: String): TestAttempt = AttemptJson.decodeFromString(serializer(), json)
+        fun decode(json: String): TestAttempt = LenientJson.decodeFromString(serializer(), json)
     }
 }
 
@@ -80,5 +99,3 @@ data class AnswerRecord(
     val correct: Boolean,
     val answeredAt: Long,
 )
-
-private val AttemptJson = Json { ignoreUnknownKeys = true }

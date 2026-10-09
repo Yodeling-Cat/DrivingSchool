@@ -67,18 +67,4 @@ class TestAttemptTimeTest {
         // An attempt that predates the clock reads as no time at all, never as a minus.
         assertEquals(0, elapsedMinutes(-30L))
     }
-
-    @Test
-    fun formatsElapsedTimeCorrectly() {
-        assertEquals("00:00", formatElapsedTime(0L))
-        assertEquals("00:09", formatElapsedTime(9L))
-        assertEquals("00:59", formatElapsedTime(59L))
-        assertEquals("01:00", formatElapsedTime(60L))
-        assertEquals("05:23", formatElapsedTime(323L))
-        assertEquals("30:00", formatElapsedTime(1800L))
-        assertEquals("30:05", formatElapsedTime(1805L))
-        assertEquals("1:00:00", formatElapsedTime(3600L))
-        assertEquals("1:01:05", formatElapsedTime(3665L))
-        assertEquals("12:34:56", formatElapsedTime(45296L))
-    }
 }

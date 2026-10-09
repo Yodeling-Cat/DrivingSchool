@@ -1,8 +1,8 @@
 package com.spiraclestudios.autoskola.signs
 
+import com.spiraclestudios.autoskola.LenientJson
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 
 /**
  * One sign of the road-sign catalog: what it is called, what it means, and the picture of it.
@@ -44,7 +44,7 @@ data class SignCatalog(
     val signs: List<Sign>,
 ) {
     companion object {
-        fun decode(json: String): SignCatalog = SignJson.decodeFromString(serializer(), json)
+        fun decode(json: String): SignCatalog = LenientJson.decodeFromString(serializer(), json)
     }
 }
 
@@ -59,8 +59,6 @@ data class SignCatalogInfo(
 ) {
     companion object {
         fun decodeList(json: String): List<SignCatalogInfo> =
-            SignJson.decodeFromString(ListSerializer(serializer()), json)
+            LenientJson.decodeFromString(ListSerializer(serializer()), json)
     }
 }
-
-private val SignJson = Json { ignoreUnknownKeys = true }

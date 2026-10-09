@@ -226,9 +226,7 @@ class PracticeViewModel(
 
     private fun onAttemptLoaded(attempt: TestAttempt) {
         kind = attempt.kind
-        // An exam test is given the official thirty minutes; a situations drill is reading practice
-        // with no exam behind it, so its clock only counts how long the driver has been at it.
-        timeLimitSeconds = if (attempt.kind == AttemptKind.Situations) null else allottedTimeSeconds
+        timeLimitSeconds = if (attempt.kind.isTimed) allottedTimeSeconds else null
         if (elapsedSeconds.value == null) {
             val initial = attempt.elapsedSeconds
             elapsedSeconds.value = initial

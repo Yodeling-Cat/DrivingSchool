@@ -578,7 +578,6 @@ private fun resultsState(
         ResultSection(previewSections[index].title, section)
     },
     elapsedSeconds = elapsedSeconds,
-    hasVerdict = hasVerdict,
 )
 
 /** A passed test on a phone: the poster, the three counts, the actions and the breakdown. */

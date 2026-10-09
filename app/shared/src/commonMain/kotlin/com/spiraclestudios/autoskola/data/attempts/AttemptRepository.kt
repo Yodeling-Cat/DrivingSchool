@@ -76,18 +76,23 @@ class AttemptRepository(
      * [locked] question keeps the answer it already has: an answer that was checked as it was
      * picked is final. Whether answers are checked immediately is the user's setting, so the
      * caller passes it in rather than the attempt remembering it.
+     *
+     * [elapsedSeconds], when given, is saved in the same write: how long the test has run as the
+     * answer was given, whether or not the answer itself was taken.
      */
     suspend fun answer(
         attemptId: String,
         question: Question,
         chosen: Int,
         locked: Boolean,
+        elapsedSeconds: Long? = null,
     ) = update(attemptId) { attempt ->
         if (!attempt.isOpen) return@update attempt
-        if (locked && attempt.answerFor(question.id) != null) return@update attempt
+        val timed = elapsedSeconds?.let { attempt.copy(elapsedSeconds = it) } ?: attempt
+        if (locked && attempt.answerFor(question.id) != null) return@update timed
         val at = now()
         val record = AnswerRecord(question.id, chosen, correct = chosen == question.correct, answeredAt = at)
-        attempt.copy(
+        timed.copy(
             answers = attempt.answers.filter { it.questionId != question.id } + record,
             updatedAt = at,
         )

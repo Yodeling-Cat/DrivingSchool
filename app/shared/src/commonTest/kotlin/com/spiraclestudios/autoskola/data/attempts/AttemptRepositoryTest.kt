@@ -132,4 +132,19 @@ class AttemptRepositoryTest {
         repository.updateElapsed(attempt.id, 99L)
         assertEquals(60L, repository.get(attempt.id)!!.elapsedSeconds)
     }
+
+    @Test
+    fun anAnswerSavesTheElapsedTimeWithItEvenWhenTheAnswerIsLocked() = runTest {
+        val repository = repository()
+        val attempt = repository.startTest()
+
+        repository.answer(attempt.id, questions[0], chosen = 1, locked = true, elapsedSeconds = 30L)
+        assertEquals(30L, repository.get(attempt.id)!!.elapsedSeconds)
+
+        // A locked question keeps its answer, but the clock still moves on.
+        repository.answer(attempt.id, questions[0], chosen = 2, locked = true, elapsedSeconds = 40L)
+        val saved = repository.get(attempt.id)!!
+        assertEquals(1, saved.answerFor(questions[0].id)?.chosen)
+        assertEquals(40L, saved.elapsedSeconds)
+    }
 }

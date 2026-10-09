@@ -13,6 +13,7 @@ import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.preferences.AgeBand
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.take
@@ -21,6 +22,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotSame
+import kotlin.test.assertSame
 
 class ExamRepositoryTest {
 
@@ -52,6 +55,28 @@ class ExamRepositoryTest {
         val ready = assertIs<CurrentExam.Ready>(states.last())
         assertEquals("sk-sk", ready.session.bank.id)
         assertEquals(LicenseCategory.C, ready.session.category)
+    }
+
+    @Test
+    fun everyReaderOfTheSameSelectionSharesOneSession() = runTest {
+        preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+
+        val first = repository.session.filterNotNull().first()
+        val second = repository.session.filterNotNull().first()
+
+        assertSame(first, second)
+    }
+
+    @Test
+    fun anotherGroupIsAnotherSession() = runTest {
+        preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        val car = repository.session.filterNotNull().first()
+
+        preferences.select(TestSelection("sk-sk", LicenseCategory.C))
+        val truck = repository.session.filterNotNull().first()
+
+        assertNotSame(car, truck)
+        assertEquals(LicenseCategory.C, truck.category)
     }
 
     @Test

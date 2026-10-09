@@ -9,22 +9,30 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Reads the banks and images that `tools/import` writes into the app's Compose resources. */
-@OptIn(ExperimentalResourceApi::class)
 class ResourceQuestionBankDataSource : QuestionBankDataSource {
 
     override suspend fun readIndex(): List<QuestionBankInfo> =
-        decode("files/banks/index.json", QuestionBankInfo::decodeList)
+        readResource("files/banks/index.json", QuestionBankInfo::decodeList)
 
     override suspend fun readBank(id: String, version: Int): QuestionBank? =
-        readOrNull { decode("files/banks/$id-v$version.json", QuestionBank::decode) }
+        readOrNull { readResource("files/banks/$id-v$version.json", QuestionBank::decode) }
 
-    override fun imageUri(imageDir: String, path: String): String = Res.getUri("files/images/$imageDir/$path")
-
-    private suspend fun <T> decode(path: String, parse: (String) -> T): T {
-        val json = Res.readBytes(path).decodeToString()
-        return withContext(Dispatchers.Default) { parse(json) }
-    }
+    override fun imageUri(imageDir: String, path: String): String = bundledImageUri(imageDir, path)
 }
+
+/**
+ * Reads the bundled resource at [path] as text and turns it into a value with [parse], which runs
+ * off the main thread: a whole bank is a lot of JSON.
+ */
+@OptIn(ExperimentalResourceApi::class)
+internal suspend fun <T> readResource(path: String, parse: (String) -> T): T {
+    val json = Res.readBytes(path).decodeToString()
+    return withContext(Dispatchers.Default) { parse(json) }
+}
+
+/** The URI of a bundled image: [path] inside the image directory [imageDir] that the importer wrote. */
+@OptIn(ExperimentalResourceApi::class)
+internal fun bundledImageUri(imageDir: String, path: String): String = Res.getUri("files/images/$imageDir/$path")
 
 /**
  * Runs [read] and answers `null` when it fails, which is how a bank version that isn't bundled (or

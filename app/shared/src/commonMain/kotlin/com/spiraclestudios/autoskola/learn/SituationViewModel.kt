@@ -6,7 +6,6 @@ import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
-import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.practice.ChipState
@@ -79,8 +78,7 @@ class SituationViewModel(
     private val ads: AdRepository,
 ) : ViewModel() {
 
-    private val session: StateFlow<ExamSession?> = exams.current
-        .map { (it as? CurrentExam.Ready)?.session }
+    private val session: StateFlow<ExamSession?> = exams.session
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** What the driver has answered while reading, which marks the situations they are done with. */

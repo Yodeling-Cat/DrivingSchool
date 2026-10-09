@@ -101,8 +101,7 @@ class AnalyticsRepository(private val analytics: AnalyticsDataSource, private va
         if (live != null && live != preferences.preferences.value.deviceIdentifier) {
             preferences.setDeviceIdentifier(live)
         }
-        val current = live ?: preferences.preferences.value.deviceIdentifier
-        if (identifier.value != current) identifier.value = current
+        identifier.value = live ?: preferences.preferences.value.deviceIdentifier
     }
 
     private data class Consent(val crashReporting: Boolean, val analytics: Boolean)

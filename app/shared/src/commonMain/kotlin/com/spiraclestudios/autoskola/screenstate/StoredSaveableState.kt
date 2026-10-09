@@ -8,6 +8,8 @@ import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,8 +60,11 @@ internal class StoredSaveableState(
      */
     private val writes = CoroutineScope(SupervisorJob() + writer)
 
+    /** What the storage held, as it was written. */
+    private val storedText: String? = storage.read()
+
     /** What the storage held, kept here as the screens take it up. */
-    private val stored: Map<String, List<Any?>> = storage.read()
+    private val stored: Map<String, List<Any?>> = storedText?.let(ScreenStateText::read).orEmpty()
 
     /** What the storage is fed from. It takes anything: [ScreenStateText] leaves out the rest. */
     private val saved: SaveableStateRegistry = SaveableStateRegistry(restoredValues = stored, canBeSaved = { true })
@@ -70,7 +75,7 @@ internal class StoredSaveableState(
      * are asked (Navigation 3's screens do), so the values compare unequal from one moment to the
      * next while the state they describe is the same - and the state would be written every time.
      */
-    private var written: String = ScreenStateText.write(stored)
+    private var written: String? = storedText
 
     override fun canBeSaved(value: Any): Boolean = ScreenStateText.holds(value) || (platform?.canBeSaved(value) ?: true)
 
@@ -104,7 +109,7 @@ internal class StoredSaveableState(
         val text = ScreenStateText.write(state)
         if (text == written) return
         written = text
-        storage.write(state)
+        storage.write(text)
     }
 
     /** A value kept in two places at once, let go of in both. */
@@ -132,10 +137,15 @@ fun ProvideStoredScreenState(storage: ScreenStateStorage, content: @Composable (
     val platform = LocalSaveableStateRegistry.current
     val state = remember(storage) { StoredSaveableState(storage, platform, ScreenStateWriter) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { state.save() }
-    LaunchedEffect(state) {
-        while (true) {
-            delay(WRITE_DELAY_MILLIS)
-            state.save()
+    // Only while the app is in front: once it has left, the save on the way out has the last word,
+    // and asking the screens twice a second for state that is not changing is work for nothing.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(state, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                delay(WRITE_DELAY_MILLIS)
+                state.save()
+            }
         }
     }
     CompositionLocalProvider(LocalSaveableStateRegistry provides state, content = content)

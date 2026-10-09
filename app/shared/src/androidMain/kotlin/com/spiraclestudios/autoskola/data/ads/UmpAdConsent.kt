@@ -6,7 +6,7 @@ import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
-import com.spiraclestudios.autoskola.currentActivity
+import com.spiraclestudios.autoskola.awaitFrontActivity
 import com.spiraclestudios.autoskola.isDebugBuild
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,13 +95,7 @@ class UmpAdConsent(private val context: Context) : AdConsent {
      * can be before the first activity has resumed. Ten seconds is long enough for a slow start and
      * short enough that a form with nowhere to show does not hold the ads back forever.
      */
-    private suspend fun frontActivity(): Activity? {
-        repeat(FRONT_ACTIVITY_ATTEMPTS) {
-            currentActivity()?.let { return it }
-            delay(FRONT_ACTIVITY_WAIT_MILLIS)
-        }
-        return null
-    }
+    private suspend fun frontActivity(): Activity? = awaitFrontActivity(FRONT_ACTIVITY_WAIT_MILLIS)
 
     /**
      * What makes a debug build testable, and nothing in a release one. The known devices are
@@ -120,8 +114,7 @@ class UmpAdConsent(private val context: Context) : AdConsent {
     }
 
     private companion object {
-        const val FRONT_ACTIVITY_ATTEMPTS = 50
-        const val FRONT_ACTIVITY_WAIT_MILLIS = 200L
+        const val FRONT_ACTIVITY_WAIT_MILLIS = 10_000L
 
         /** See the class comment. Leave `false` in anything that is committed. */
         const val FORCE_EEA_FOR_TESTING = false

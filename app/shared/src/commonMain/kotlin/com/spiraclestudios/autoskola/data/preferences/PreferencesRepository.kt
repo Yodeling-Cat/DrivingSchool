@@ -121,14 +121,10 @@ class PreferencesRepository(private val settings: Settings) {
      * it is the only thing that lets the user ask us about what was already filed under it, and the
      * one thing they cannot find anywhere else.
      */
-    fun setDeviceIdentifier(identifier: String?) {
-        // A null clears it, which nothing in the app does yet: a reset replaces the identifier rather
-        // than removing the record of it, and an identifier that was never created is simply absent.
-        if (identifier == null) {
-            settings.remove(KEY_DEVICE_IDENTIFIER)
-        } else {
-            settings.putString(KEY_DEVICE_IDENTIFIER, identifier)
-        }
+    fun setDeviceIdentifier(identifier: String) {
+        // Nothing clears it: a reset replaces the identifier rather than removing the record of it,
+        // and an identifier that was never created is simply absent.
+        settings.putString(KEY_DEVICE_IDENTIFIER, identifier)
         state.update { it.copy(deviceIdentifier = identifier) }
     }
 

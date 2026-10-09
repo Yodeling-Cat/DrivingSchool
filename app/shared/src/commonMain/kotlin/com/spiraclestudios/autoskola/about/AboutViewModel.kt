@@ -6,6 +6,7 @@ import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
 import com.spiraclestudios.autoskola.appVersion
 import com.spiraclestudios.autoskola.data.banks.readOrNull
+import com.spiraclestudios.autoskola.data.banks.readResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,10 +31,10 @@ data class AboutUiState(
     val loading: Boolean,
 ) {
     /** The libraries the search is showing - all of them until something is searched for. */
-    val shown: List<Library> get() = librariesMatching(all, query)
+    val shown: List<Library> = librariesMatching(all, query)
 
     /** A search that found nothing, which is not the same as a build that carries no libraries. */
-    val nothingFound: Boolean get() = !loading && query.isNotBlank() && shown.isEmpty()
+    val nothingFound: Boolean = !loading && query.isNotBlank() && shown.isEmpty()
 }
 
 sealed interface AboutUiEvent {
@@ -89,8 +90,5 @@ class AboutViewModel(private val readLibraries: suspend () -> List<Library> = ::
 }
 
 /** Reads the list the Gradle plugin exported into the app's own resources. */
-@OptIn(ExperimentalResourceApi::class)
-private suspend fun bundledLibraries(): List<Library> {
-    val json = Res.readBytes(LIBRARIES_RESOURCE).decodeToString()
-    return withContext(Dispatchers.Default) { Libs.Builder().withJson(json).build().libraries }
-}
+private suspend fun bundledLibraries(): List<Library> =
+    readResource(LIBRARIES_RESOURCE) { Libs.Builder().withJson(it).build().libraries }

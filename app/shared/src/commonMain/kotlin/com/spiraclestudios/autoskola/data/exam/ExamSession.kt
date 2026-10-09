@@ -202,9 +202,16 @@ class ExamSession(
         statistics.first().openAttempts(AttemptKind.Situations).forEach { attempts.discard(it.id) }
     }
 
-    /** Records the answer, locked while the user's settings check answers as they are picked. */
-    suspend fun answer(attemptId: String, question: Question, chosen: Int) =
-        attempts.answer(attemptId, question, chosen, locked = checkAnswersImmediately)
+    /**
+     * Records the answer, locked while the user's settings check answers as they are picked, and
+     * [elapsedSeconds] with it when given.
+     */
+    suspend fun answer(
+        attemptId: String,
+        question: Question,
+        chosen: Int,
+        elapsedSeconds: Long? = null,
+    ) = attempts.answer(attemptId, question, chosen, locked = checkAnswersImmediately, elapsedSeconds)
 
     suspend fun updateElapsed(attemptId: String, elapsedSeconds: Long) =
         attempts.updateElapsed(attemptId, elapsedSeconds)

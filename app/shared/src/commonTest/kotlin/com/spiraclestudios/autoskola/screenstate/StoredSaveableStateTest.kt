@@ -126,7 +126,10 @@ class StoredSaveableStateTest {
         state.registerProvider("platform saved state") { Any() }
         state.save()
 
-        assertEquals(mapOf("pager" to listOf(listOf(11, 0f, 40))), StoredScreenState(settings).read())
+        assertEquals(
+            mapOf("pager" to listOf(listOf(11, 0f, 40))),
+            ScreenStateText.read(StoredScreenState(settings).read()!!),
+        )
     }
 
     @Test
@@ -178,16 +181,18 @@ class StoredSaveableStateTest {
 
 /** A storage that remembers what it was given, and how often it was written. */
 private class RecordingStorage(initial: Map<String, List<Any?>> = emptyMap()) : ScreenStateStorage {
-    var state: Map<String, List<Any?>> = initial
-        private set
+    private var text: String? = initial.takeIf { it.isNotEmpty() }?.let(ScreenStateText::write)
+
+    /** What was stored, read back the way the app reads it. */
+    val state: Map<String, List<Any?>> get() = text?.let(ScreenStateText::read).orEmpty()
 
     var writes = 0
         private set
 
-    override fun read(): Map<String, List<Any?>> = state
+    override fun read(): String? = text
 
-    override fun write(state: Map<String, List<Any?>>) {
-        this.state = state
+    override fun write(text: String) {
+        this.text = text
         writes++
     }
 }

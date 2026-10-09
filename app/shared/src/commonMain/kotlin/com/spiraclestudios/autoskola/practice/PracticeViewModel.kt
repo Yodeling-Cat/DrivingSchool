@@ -10,7 +10,6 @@ import com.spiraclestudios.autoskola.data.analytics.testAbandonedProperties
 import com.spiraclestudios.autoskola.data.analytics.testCompletedProperties
 import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
-import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.preferences.PreferencesRepository
@@ -133,8 +132,7 @@ class PracticeViewModel(
     private val random: Random = Random.Default,
 ) : ViewModel() {
 
-    private val session: StateFlow<ExamSession?> = exams.current
-        .map { (it as? CurrentExam.Ready)?.session }
+    private val session: StateFlow<ExamSession?> = exams.session
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Set when the attempt first loads; the question order and start page don't change after that. */
@@ -289,11 +287,10 @@ class PracticeViewModel(
                 val question = questions?.getOrNull(event.questionIndex)?.question ?: return
                 val nextPage = nextPageAfter(event.questionIndex)
                 viewModelScope.launch {
-                    session.answer(attemptId, question, event.answerIndex)
-                    recordSituationAnswer(session, question, event.answerIndex)
                     // The saved attempt comes back through the flow, which re-reads whether every
                     // question is answered and stops the clock on the answer that completes it.
-                    elapsedSeconds.value?.let { session.updateElapsed(attemptId, it) }
+                    session.answer(attemptId, question, event.answerIndex, elapsedSeconds.value)
+                    recordSituationAnswer(session, question, event.answerIndex)
                     // Move on only once the answer is saved, so no question is passed over unseen -
                     // and a moment later, so the pick is seen registering on the question it was
                     // given on before the next one slides in.

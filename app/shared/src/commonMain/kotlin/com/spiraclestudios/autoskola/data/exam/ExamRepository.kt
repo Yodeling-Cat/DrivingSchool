@@ -1,5 +1,7 @@
 package com.spiraclestudios.autoskola.data.exam
 
+import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.bank.QuestionBank
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.bankMissingProperties
@@ -36,6 +38,13 @@ class ExamRepository(
      */
     private var reportedMissing: TestSelection? = null
 
+    /**
+     * The session last handed out. [current] is cold, so every screen that reads it resolves the
+     * selection again; handing them the same session for the same bank and group spares each one
+     * splitting the bank into tests again.
+     */
+    private var lastSession: ExamSession? = null
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val current: Flow<CurrentExam> = preferences.preferences
         .map { it.selection }
@@ -54,8 +63,15 @@ class ExamRepository(
             }
             // A bank that resolves is the end of the occurrence: a later loss of it is a new one.
             reportedMissing = null
-            emit(CurrentExam.Ready(ExamSession(bank, selection.category, attempts, preferences)))
+            emit(CurrentExam.Ready(sessionFor(bank, selection.category)))
         }
+
+    /** The selected exam's session once it has loaded, and `null` while there is none. */
+    val session: Flow<ExamSession?> = current.map { (it as? CurrentExam.Ready)?.session }
+
+    private fun sessionFor(bank: QuestionBank, category: LicenseCategory): ExamSession =
+        lastSession?.takeIf { it.bank === bank && it.category == category }
+            ?: ExamSession(bank, category, attempts, preferences).also { lastSession = it }
 
     /** Reports the selected bank being gone, once per selection that is found missing. */
     private fun reportMissing(selection: TestSelection) {

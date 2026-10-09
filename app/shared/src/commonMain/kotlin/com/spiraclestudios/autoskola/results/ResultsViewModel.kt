@@ -3,7 +3,6 @@ package com.spiraclestudios.autoskola.results
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.data.ads.AdRepository
-import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
@@ -81,8 +80,7 @@ class ResultsViewModel(private val attemptId: String, exams: ExamRepository, pri
     private val leaving = MutableStateFlow(false)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<ResultsUiState> = exams.current
-        .map { (it as? CurrentExam.Ready)?.session }
+    val uiState: StateFlow<ResultsUiState> = exams.session
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(ResultsUiState.Loading)
             combine(

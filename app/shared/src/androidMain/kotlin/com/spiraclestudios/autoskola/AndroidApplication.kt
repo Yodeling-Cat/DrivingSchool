@@ -3,6 +3,10 @@ package com.spiraclestudios.autoskola
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import java.lang.ref.WeakReference
 
 private var installedApplication: Application? = null
@@ -17,7 +21,7 @@ private var tracksActivities = false
  * of its own, so one is followed here. Weakly, because holding an activity means holding a whole
  * screen: this reference must never be what keeps a finished one alive.
  */
-private var installedActivity: WeakReference<Activity>? = null
+private val installedActivity = MutableStateFlow<WeakReference<Activity>?>(null)
 
 /**
  * Hands the shared module the application, and is called from the Android entry point before the
@@ -48,7 +52,15 @@ fun applicationContext(): Application? = installedApplication
  * What shows a fullscreen ad, which is why it exists, and `null` is a state the caller has to answer
  * for: an ad cannot be shown from nowhere, so nothing is shown rather than something failing.
  */
-fun currentActivity(): Activity? = installedActivity?.get()
+fun currentActivity(): Activity? = installedActivity.value?.get()
+
+/**
+ * The activity in front, waiting up to [timeoutMillis] for one to resume, or `null` if none does.
+ * For what is asked for as the app starts, which can be before the first activity has resumed.
+ */
+suspend fun awaitFrontActivity(timeoutMillis: Long): Activity? = withTimeoutOrNull(timeoutMillis) {
+    installedActivity.mapNotNull { it?.get() }.first()
+}
 
 /**
  * Follows the activity in front.
@@ -59,17 +71,15 @@ fun currentActivity(): Activity? = installedActivity?.get()
 private object FrontActivity : Application.ActivityLifecycleCallbacks {
 
     override fun onActivityResumed(activity: Activity) {
-        installedActivity = WeakReference(activity)
+        installedActivity.value = WeakReference(activity)
     }
 
     override fun onActivityPaused(activity: Activity) {
         // Only if it is still the one being held: a new activity may have been resumed already.
-        if (installedActivity?.get() === activity) installedActivity = null
+        if (installedActivity.value?.get() === activity) installedActivity.value = null
     }
 
-    override fun onActivityDestroyed(activity: Activity) {
-        if (installedActivity?.get() === activity) installedActivity = null
-    }
+    override fun onActivityDestroyed(activity: Activity) = onActivityPaused(activity)
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 

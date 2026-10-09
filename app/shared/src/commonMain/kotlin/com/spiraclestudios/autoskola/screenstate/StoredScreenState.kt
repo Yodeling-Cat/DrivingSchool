@@ -10,11 +10,10 @@ import com.russhwolf.settings.Settings
  */
 class StoredScreenState(private val settings: Settings) : ScreenStateStorage {
 
-    override fun read(): Map<String, List<Any?>> =
-        settings.getStringOrNull(KEY_STATE)?.let(ScreenStateText::read).orEmpty()
+    override fun read(): String? = settings.getStringOrNull(KEY_STATE)
 
-    override fun write(state: Map<String, List<Any?>>) {
-        settings.putString(KEY_STATE, ScreenStateText.write(state))
+    override fun write(text: String) {
+        settings.putString(KEY_STATE, text)
     }
 
     private companion object {

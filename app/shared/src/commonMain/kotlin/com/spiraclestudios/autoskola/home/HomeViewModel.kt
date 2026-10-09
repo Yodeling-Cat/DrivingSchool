@@ -9,7 +9,6 @@ import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
 import com.spiraclestudios.autoskola.data.analytics.testStartedProperties
-import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamProgress
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
@@ -173,8 +172,7 @@ class HomeViewModel(
     private val random: Random = Random.Default,
 ) : ViewModel() {
 
-    private val session: StateFlow<ExamSession?> = exams.current
-        .map { (it as? CurrentExam.Ready)?.session }
+    private val session: StateFlow<ExamSession?> = exams.session
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val openAttemptId = MutableStateFlow<String?>(null)

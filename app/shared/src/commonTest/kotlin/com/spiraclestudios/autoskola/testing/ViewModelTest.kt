@@ -14,7 +14,6 @@ import com.spiraclestudios.autoskola.data.attempts.SettingsAttemptDataSource
 import com.spiraclestudios.autoskola.data.banks.FakeQuestionBankDataSource
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.banks.testBank
-import com.spiraclestudios.autoskola.data.exam.CurrentExam
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
 import com.spiraclestudios.autoskola.data.preferences.AgeBand
@@ -27,7 +26,7 @@ import com.spiraclestudios.autoskola.data.review.ReviewRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -104,4 +103,4 @@ class TestRepositories(bank: QuestionBank = testBank(), ageBand: AgeBand? = AgeB
 }
 
 /** The session of the selected exam, once it has loaded. */
-suspend fun ExamRepository.currentSession(): ExamSession = current.filterIsInstance<CurrentExam.Ready>().first().session
+suspend fun ExamRepository.currentSession(): ExamSession = session.filterNotNull().first()

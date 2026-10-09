@@ -51,7 +51,7 @@ enum class LearnSection(val icon: ImageVector, val title: (Strings) -> String, v
  * Learning material: the subjects the app teaches, each opening its own screen. The screen decides
  * nothing itself — it reports which subject was picked, and the navigation callback opens it.
  *
- * The hub scrolls: the three cards are taller than a phone held sideways, where the navigation bar
+ * The hub scrolls: the cards are taller than a phone held sideways, where the navigation bar
  * takes its share of the little height there is.
  */
 @Composable
@@ -70,9 +70,12 @@ fun LearnScreen(onOpenSection: (LearnSection) -> Unit) {
             ) {
                 Text(strings.learnTitle, style = Naj.type.screenTitle, color = colors.ink)
                 Spacer(Modifier.height(4.dp))
-                LearnSection.entries.forEach { section ->
-                    LearnSectionCard(section, onClick = { onOpenSection(section) })
-                }
+                LearnSection.entries
+                    // Legislation isn't ready yet: drop this filter to bring its card back.
+                    .filter { it != LearnSection.Legislation }
+                    .forEach { section ->
+                        LearnSectionCard(section, onClick = { onOpenSection(section) })
+                    }
             }
         }
     }
@@ -135,7 +138,7 @@ private fun LearnScreenSlovakPreview() {
 }
 
 /**
- * A phone held sideways, which is the case the hub scrolls for: the three cards are taller than the
+ * A phone held sideways, which is the case the hub scrolls for: the cards are taller than the
  * height there is, so the last one is reached by scrolling rather than not at all.
  */
 @Preview(widthDp = 800, heightDp = 420)

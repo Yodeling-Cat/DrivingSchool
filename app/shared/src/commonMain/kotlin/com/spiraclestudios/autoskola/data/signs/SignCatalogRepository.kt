@@ -23,11 +23,11 @@ class SignCatalogRepository(private val dataSource: SignCatalogDataSource) {
     }
 
     /**
-     * The catalog the app offers today. Only one country's catalog is bundled, so this is the
-     * one listed in the index; when a second country arrives, this picks by the exam the user is
-     * preparing for instead.
+     * The latest catalog of [country]'s road signs, or `null` when none is bundled. Every country's
+     * signs are its own, so a driver is only ever shown the ones of the exam they are taking.
      */
-    suspend fun bundled(): SignCatalog? = index().firstOrNull()?.let { catalog(it.id, it.version) }
+    suspend fun forCountry(country: String): SignCatalog? =
+        index().firstOrNull { it.country == country }?.let { catalog(it.id, it.version) }
 
     /**
      * A specific version. As with the question banks, only catalogs that were read successfully

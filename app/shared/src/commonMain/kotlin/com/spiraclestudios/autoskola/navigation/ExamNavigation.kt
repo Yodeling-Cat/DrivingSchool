@@ -32,7 +32,7 @@ import com.spiraclestudios.autoskola.feedback.FeedbackRoute
 import com.spiraclestudios.autoskola.home.HomeRoute
 import com.spiraclestudios.autoskola.learn.IntersectionsRoute
 import com.spiraclestudios.autoskola.learn.LearnPlaceholderScreen
-import com.spiraclestudios.autoskola.learn.LearnScreen
+import com.spiraclestudios.autoskola.learn.LearnRoute
 import com.spiraclestudios.autoskola.learn.LearnSection
 import com.spiraclestudios.autoskola.learn.SignsRoute
 import com.spiraclestudios.autoskola.learn.SituationRoute
@@ -211,7 +211,7 @@ fun ExamNavigation() {
             }
             entry<LearnKey>(metadata = tabMetadata) {
                 NavigationShell(NavTab.Learn, selectTab) {
-                    LearnScreen(onOpenSection = { section -> backStack.add(section.key()) })
+                    LearnRoute(onOpenSection = { section -> backStack.add(section.key()) })
                 }
             }
             entry<SignsKey> { SignsRoute(onBack = pop) }

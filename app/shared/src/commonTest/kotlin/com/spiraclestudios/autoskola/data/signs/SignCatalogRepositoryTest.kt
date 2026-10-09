@@ -35,10 +35,25 @@ class SignCatalogRepositoryTest {
     }
 
     @Test
-    fun theBundledCatalogIsTheOneTheIndexLists() = runTest {
+    fun aCountrysCatalogIsTheOneTheIndexListsForIt() = runTest {
+        val czech = testSignCatalog(id = "cz", country = "CZ")
+        val slovak = testSignCatalog()
+        val repository = SignCatalogRepository(
+            FakeSignCatalogDataSource(
+                index = listOf(testSignCatalogInfo(czech), testSignCatalogInfo(slovak)),
+                catalogs = listOf(czech, slovak),
+            ),
+        )
+
+        assertEquals("sk", repository.forCountry("SK")?.id)
+        assertEquals("cz", repository.forCountry("CZ")?.id)
+    }
+
+    @Test
+    fun aCountryWithNoCatalogHasNone() = runTest {
         val repository = SignCatalogRepository(FakeSignCatalogDataSource.of(testSignCatalog()))
 
-        assertEquals("sk", repository.bundled()?.id)
+        assertNull(repository.forCountry("CZ"))
     }
 
     @Test

@@ -19,6 +19,7 @@ import com.spiraclestudios.autoskola.data.signs.testSignCatalog
 import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
+import com.spiraclestudios.autoskola.learn.LearnViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
 import com.spiraclestudios.autoskola.learn.SituationViewModel
 import com.spiraclestudios.autoskola.onboarding.ConsentViewModel
@@ -56,6 +57,7 @@ class AppModuleTest : ViewModelTest() {
         koin.get<ConsentViewModel>()
         koin.get<ExamSelectionViewModel>()
         koin.get<HomeViewModel>()
+        koin.get<LearnViewModel>()
         koin.get<SignsViewModel>()
         koin.get<IntersectionsViewModel>()
         koin.get<SituationViewModel> { parametersOf(1) }

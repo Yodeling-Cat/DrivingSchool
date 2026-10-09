@@ -1,8 +1,12 @@
 package com.spiraclestudios.autoskola.learn
 
+import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.data.banks.testBank
+import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.data.signs.FakeSignCatalogDataSource
 import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.data.signs.testSignCatalog
+import com.spiraclestudios.autoskola.data.signs.testSignCatalogInfo
 import com.spiraclestudios.autoskola.premium.PremiumStatus
 import com.spiraclestudios.autoskola.premium.PurchaseSource
 import com.spiraclestudios.autoskola.signs.SignCatalog
@@ -19,19 +23,42 @@ class SignsViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
 
-    private fun viewModel(catalog: SignCatalog = testSignCatalog()) =
-        SignsViewModel(SignCatalogRepository(FakeSignCatalogDataSource.of(catalog)), repositories.ads)
+    /** The signs of the exam [repositories] has selected, the Slovak group B one unless a test says otherwise. */
+    private fun viewModel(
+        catalogs: FakeSignCatalogDataSource = FakeSignCatalogDataSource.of(testSignCatalog()),
+        repositories: TestRepositories = this.repositories,
+        bankId: String = "sk-sk",
+    ): SignsViewModel {
+        repositories.preferences.select(TestSelection(bankId, LicenseCategory.B))
+        return SignsViewModel(SignCatalogRepository(catalogs), repositories.exams, repositories.ads)
+    }
+
+    private fun viewModel(catalog: SignCatalog) = viewModel(FakeSignCatalogDataSource.of(catalog))
 
     @Test
-    fun noBundledCatalogLeavesTheScreenLoading() = runTest {
-        val viewModel = SignsViewModel(
-            SignCatalogRepository(FakeSignCatalogDataSource(emptyList(), emptyList())),
-            repositories.ads,
-        )
+    fun aCountryWithoutACatalogLeavesTheScreenLoading() = runTest {
+        // The Learn hub offers no road signs for such an exam, so the screen is only reached by
+        // coming back to it after changing the exam.
+        val czech = TestRepositories(testBank(id = "cz-cs").copy(country = "CZ", language = "cs"))
 
-        val state = observe(viewModel.uiState)
+        val state = observe(viewModel(repositories = czech, bankId = "cz-cs").uiState)
 
         assertEquals(SignsUiState.Loading, state.value)
+    }
+
+    @Test
+    fun theSignsAreTheCatalogOfTheExamsCountry() = runTest {
+        val czech = testSignCatalog(id = "cz", country = "CZ")
+        val slovak = testSignCatalog()
+        val catalogs = FakeSignCatalogDataSource(
+            index = listOf(testSignCatalogInfo(czech), testSignCatalogInfo(slovak)),
+            catalogs = listOf(czech, slovak),
+        )
+
+        val state = observe(viewModel(catalogs).uiState)
+
+        assertIs<SignsUiState.Ready>(state.value)
+        assertEquals(listOf("sk-v1"), catalogs.catalogReads)
     }
 
     @Test

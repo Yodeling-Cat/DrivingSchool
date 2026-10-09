@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.Strings
 import com.spiraclestudios.autoskola.i18n.strings
@@ -39,6 +41,7 @@ import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.paperBackground
+import org.koin.compose.viewmodel.koinViewModel
 
 /** The subjects the learning material is made of, in the order the hub offers them. */
 enum class LearnSection(val icon: ImageVector, val title: (Strings) -> String, val subtitle: (Strings) -> String) {
@@ -47,15 +50,23 @@ enum class LearnSection(val icon: ImageVector, val title: (Strings) -> String, v
     Legislation(Icons.AutoMirrored.Filled.List, { it.learnLegislation }, { it.learnLegislationSubtitle }),
 }
 
+/** Connects [LearnScreen] to its [LearnViewModel] and to navigation. */
+@Composable
+fun LearnRoute(onOpenSection: (LearnSection) -> Unit, viewModel: LearnViewModel = koinViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LearnScreen(state, onOpenSection)
+}
+
 /**
- * Learning material: the subjects the app teaches, each opening its own screen. The screen decides
- * nothing itself — it reports which subject was picked, and the navigation callback opens it.
+ * Learning material: the subjects the app teaches for the exam being taken, each opening its own
+ * screen. The screen decides nothing itself — it draws the subjects [state] offers, reports which
+ * one was picked, and the navigation callback opens it. While they load, only the title is drawn.
  *
  * The hub scrolls: the cards are taller than a phone held sideways, where the navigation bar
  * takes its share of the little height there is.
  */
 @Composable
-fun LearnScreen(onOpenSection: (LearnSection) -> Unit) {
+fun LearnScreen(state: LearnUiState, onOpenSection: (LearnSection) -> Unit) {
     val colors = Naj.colors
     Box(Modifier.fillMaxSize().paperBackground()) {
         Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
@@ -70,12 +81,11 @@ fun LearnScreen(onOpenSection: (LearnSection) -> Unit) {
             ) {
                 Text(strings.learnTitle, style = Naj.type.screenTitle, color = colors.ink)
                 Spacer(Modifier.height(4.dp))
-                LearnSection.entries
-                    // Legislation isn't ready yet: drop this filter to bring its card back.
-                    .filter { it != LearnSection.Legislation }
-                    .forEach { section ->
+                if (state is LearnUiState.Ready) {
+                    state.sections.forEach { section ->
                         LearnSectionCard(section, onClick = { onOpenSection(section) })
                     }
+                }
             }
         }
     }
@@ -116,25 +126,42 @@ private fun LearnSectionCard(section: LearnSection, onClick: () -> Unit) {
 
 // ── Previews ──
 
+/** What the hub offers for a Slovak exam: the road signs and the intersections. */
+private val previewLearnState = LearnUiState.Ready(learnSections(hasRoadSigns = true))
+
 /** The hub on a phone. */
 @Preview(widthDp = 400, heightDp = 700)
 @Composable
 private fun LearnScreenPreview() {
-    AppPreview { LearnScreen(onOpenSection = {}) }
+    AppPreview { LearnScreen(previewLearnState, onOpenSection = {}) }
+}
+
+/** An exam whose country the app has no road signs for, such as the Czech one: they are left out. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun LearnScreenNoRoadSignsPreview() {
+    AppPreview { LearnScreen(LearnUiState.Ready(learnSections(hasRoadSigns = false)), onOpenSection = {}) }
+}
+
+/** While the exam loads: the title alone, with no cards to tap yet. */
+@Preview(widthDp = 400, heightDp = 700)
+@Composable
+private fun LearnScreenLoadingPreview() {
+    AppPreview { LearnScreen(LearnUiState.Loading, onOpenSection = {}) }
 }
 
 /** The hub on a tablet: the column is capped rather than stretched across the screen. */
 @Preview(widthDp = 900, heightDp = 600)
 @Composable
 private fun LearnScreenWidePreview() {
-    AppPreview { LearnScreen(onOpenSection = {}) }
+    AppPreview { LearnScreen(previewLearnState, onOpenSection = {}) }
 }
 
 /** The subjects in Slovak, whose names are longer than the English ones. */
 @Preview(widthDp = 400, heightDp = 700)
 @Composable
 private fun LearnScreenSlovakPreview() {
-    AppPreview(language = AppLanguage.Slovak) { LearnScreen(onOpenSection = {}) }
+    AppPreview(language = AppLanguage.Slovak) { LearnScreen(previewLearnState, onOpenSection = {}) }
 }
 
 /**
@@ -144,5 +171,5 @@ private fun LearnScreenSlovakPreview() {
 @Preview(widthDp = 800, heightDp = 420)
 @Composable
 private fun LearnScreenLandscapePreview() {
-    AppPreview { LearnScreen(onOpenSection = {}) }
+    AppPreview { LearnScreen(previewLearnState, onOpenSection = {}) }
 }

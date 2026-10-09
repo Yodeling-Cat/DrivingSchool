@@ -38,6 +38,7 @@ import com.spiraclestudios.autoskola.feedback.FeedbackViewModel
 import com.spiraclestudios.autoskola.home.HomeViewModel
 import com.spiraclestudios.autoskola.isDebugBuild
 import com.spiraclestudios.autoskola.learn.IntersectionsViewModel
+import com.spiraclestudios.autoskola.learn.LearnViewModel
 import com.spiraclestudios.autoskola.learn.SignsViewModel
 import com.spiraclestudios.autoskola.learn.SituationViewModel
 import com.spiraclestudios.autoskola.navigation.navigationState
@@ -102,6 +103,7 @@ val appModule = module {
     viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get(), get(), get(), get()) }
+    viewModelOf(::LearnViewModel)
     viewModelOf(::SignsViewModel)
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }

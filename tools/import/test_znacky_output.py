@@ -1,9 +1,9 @@
 """Checks the committed sign catalog that ships in the app. Run after every import."""
 import collections
-import json
 import unittest
 
 import import_znacky
+from importer_common import read_json
 
 SIGNS = import_znacky.SIGNS_OUT
 IMAGES = import_znacky.RESOURCES / "images"
@@ -13,14 +13,10 @@ IMAGES = import_znacky.RESOURCES / "images"
 SIGN_COUNT = 120
 
 
-def load(path):
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 class SignCatalogOutputTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.catalog = load(SIGNS / "sk-v1.json")
+        cls.catalog = read_json(SIGNS / "sk-v1.json")
         cls.signs = cls.catalog["signs"]
 
     def test_lists_every_sign_of_the_current_import(self):
@@ -104,7 +100,7 @@ class SignCatalogOutputTest(unittest.TestCase):
         self.assertEqual("Čierna šípka", last["name"])
 
     def test_the_index_lists_the_catalog_and_its_count(self):
-        index = load(SIGNS / "index.json")
+        index = read_json(SIGNS / "index.json")
         entry = next(c for c in index if c["id"] == self.catalog["id"])
 
         self.assertEqual(self.catalog["version"], entry["version"])

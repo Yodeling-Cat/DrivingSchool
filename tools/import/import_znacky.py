@@ -14,16 +14,13 @@ Run `python tools/import/import_znacky.py --help`.
 import argparse
 import json
 import re
-import sys
-import urllib.request
 from dataclasses import asdict
 from pathlib import Path
 
 import znacky_pdf
+from importer_common import RESOURCES, ROOT, bank_images, download, log, write_index
 
-ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path(__file__).resolve().parent / "cache" / "znacky"
-RESOURCES = ROOT / "app/shared/src/commonMain/composeResources/files"
 SIGNS_OUT = RESOURCES / "signs"
 BANKS = RESOURCES / "banks"
 IMAGES = RESOURCES / "images"
@@ -41,30 +38,9 @@ VARIANT = re.compile(r"^(\d{2,3})-\d$")
 RANGE = re.compile(r"^\d{3}-\d{3}$")
 
 
-def log(*args):
-    print(*args, file=sys.stderr)
-
-
-def download(url, target, refresh):
-    if target.exists() and not refresh:
-        return target
-    log(f"  downloading {url}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(url, headers={"User-Agent": "NajAutoskola-importer"})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        target.write_bytes(response.read())
-    return target
-
-
 def bundled_images():
     """The images the app ships, as (path under the image directory), taken from the banks."""
-    images = set()
-    for path in sorted(BANKS.glob("sk-*-v*.json")):
-        bank = json.loads(path.read_text(encoding="utf-8"))
-        if bank["imageDir"] != IMAGE_DIR:
-            continue
-        images.update(q["image"] for q in bank["questions"] if q["image"])
-    return sorted(images)
+    return sorted(bank_images(BANKS, image_dir=IMAGE_DIR))
 
 
 def match(signs, images):
@@ -111,11 +87,8 @@ def document(signs_with_images, version):
     }
 
 
-def write_index(signs, version):
+def write_sign_index(signs, version):
     """Writes `signs/index.json`, keeping other countries' catalogs in it."""
-    path = SIGNS_OUT / "index.json"
-    others = [c for c in json.loads(path.read_text(encoding="utf-8")) if c["country"] != COUNTRY] \
-        if path.exists() else []
     entry = {
         "id": LANGUAGE,
         "version": version,
@@ -123,8 +96,7 @@ def write_index(signs, version):
         "language": LANGUAGE,
         "signCount": len(signs),
     }
-    path.write_text(json.dumps(others + [entry], ensure_ascii=False, indent=2), encoding="utf-8")
-    return path
+    return write_index(SIGNS_OUT / "index.json", [entry], COUNTRY)
 
 
 def main():
@@ -134,7 +106,7 @@ def main():
     args = parser.parse_args()
 
     log("Fetching the regulation")
-    pdf = download(PDF_URL, CACHE / "vyhlaska-30-2020.pdf", args.refresh)
+    pdf = download(PDF_URL, CACHE / "vyhlaska-30-2020.pdf", args.refresh, timeout=120)
 
     log("Parsing the sign catalog")
     all_signs = znacky_pdf.parse(pdf)
@@ -155,7 +127,7 @@ def main():
         json.dumps(document(matched, args.version), ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    log(f"Wrote {target.relative_to(ROOT)} and {write_index(matched, args.version).relative_to(ROOT)}")
+    log(f"Wrote {target.relative_to(ROOT)} and {write_sign_index(matched, args.version).relative_to(ROOT)}")
     for sign in matched[:5]:
         log(f"  {sign['number']} {sign['name']}: {sign['description'][:60]}")
 

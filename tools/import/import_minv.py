@@ -15,16 +15,13 @@ import collections
 import difflib
 import json
 import re
-import sys
 import unicodedata
-import urllib.request
 from pathlib import Path
 
 import minv_pdf
+from importer_common import RESOURCES, ROOT, bank_images, download, log, write_index
 
-ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path(__file__).resolve().parent / "cache" / "minv-sk"
-RESOURCES = ROOT / "app/shared/src/commonMain/composeResources/files"
 BANKS_OUT = RESOURCES / "banks"
 IMAGES_OUT = RESOURCES / "images/minv-sk"
 
@@ -41,22 +38,6 @@ GROUPS = ["A", "B", "BE", "C", "CE", "D", "DE", "T"]
 LANGUAGES = ["sk", "en", "hu"]
 # Order the PDFs are matched in: Slovak is the reference, so it overrides Hungarian.
 PDF_MATCH_ORDER = ["hu", "sk"]
-
-
-def log(*args):
-    print(*args, file=sys.stderr)
-
-
-def download(url, target, refresh, quiet=False):
-    if target.exists() and not refresh:
-        return target
-    if not quiet:
-        log(f"  downloading {url}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(url, headers={"User-Agent": "NajAutoskola-importer"})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        target.write_bytes(response.read())
-    return target
 
 
 def norm(text):
@@ -219,26 +200,14 @@ def write_banks(banks, groups_by_id, version):
         log(f"  {document['id']}: {len(questions)} questions "
             f"({len(bank['questions']) - len(questions)} without groups dropped), {counts}")
     # Keep other importers' banks in the shared index.
-    index_path = BANKS_OUT / "index.json"
-    others = [b for b in json.loads(index_path.read_text(encoding="utf-8")) if b["country"] != "SK"] \
-        if index_path.exists() else []
-    index_path.write_text(json.dumps(others + manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    return images
-
-
-def bundled_images():
-    """Every image the bundled banks reference. Older versions stay bundled, so theirs count too."""
-    images = set()
-    for path in BANKS_OUT.glob("sk-*-v*.json"):
-        bank = json.loads(path.read_text(encoding="utf-8"))
-        images.update(q["image"] for q in bank["questions"] if q["image"])
+    write_index(BANKS_OUT / "index.json", manifest, "SK")
     return images
 
 
 def sync_images(new_images, refresh):
     """Downloads the images the new banks need, and deletes the files no bundled bank references."""
     to_download = [image for image in sorted(new_images) if refresh or not (IMAGES_OUT / image).exists()]
-    bundled = bundled_images()
+    bundled = bank_images(BANKS_OUT)
     log(f"Fetching images: {len(bundled)} referenced, {len(to_download)} to download")
     for image in to_download:
         download(IMAGE_URL + image, IMAGES_OUT / image, refresh, quiet=True)

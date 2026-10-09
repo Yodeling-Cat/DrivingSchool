@@ -1,8 +1,8 @@
 """Checks the committed importer output that ships in the app. Run after every import."""
-import json
 import unittest
 
 import import_minv
+from importer_common import read_json
 
 BANKS = import_minv.BANKS_OUT
 IMAGES = import_minv.RESOURCES / "images"
@@ -15,15 +15,11 @@ SITUATIONS_SECTION = 4
 SITUATION_DIR = "obr3/ds/"
 
 
-def load(path):
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 class BankOutputTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.index = load(BANKS / "index.json")
-        cls.banks = {path.stem: load(path) for path in BANKS.glob("*-v*.json")}
+        cls.index = read_json(BANKS / "index.json")
+        cls.banks = {path.stem: read_json(path) for path in BANKS.glob("*-v*.json")}
 
     def test_every_index_entry_has_its_bank_file(self):
         for entry in self.index:

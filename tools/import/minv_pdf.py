@@ -18,7 +18,7 @@ class PdfQuestion:
 
 
 def _clean(text):
-    return re.sub(r"\s+", " ", (text or "").replace("\n", " ")).strip()
+    return re.sub(r"\s+", " ", text or "").strip()
 
 
 def _groups(text):

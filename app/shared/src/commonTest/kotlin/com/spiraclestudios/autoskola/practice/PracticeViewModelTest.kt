@@ -40,22 +40,10 @@ class PracticeViewModelTest : ViewModelTest() {
         return session.startOrResume(session.tests.first())
     }
 
-    private fun TestScope.open(attempt: TestAttempt): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
-        val viewModel = PracticeViewModel(
-            attempt.id,
-            repositories.exams,
-            repositories.banks,
-            repositories.preferences,
-            repositories.answers,
-            repositories.analytics,
-        )
-        return viewModel to observe(viewModel.uiState)
-    }
-
-    /** The practice screen over an attempt started by [repositories], which is how a drill is run. */
+    /** The practice screen over an attempt started by [repositories]; a drill brings its own. */
     private fun TestScope.open(
         attempt: TestAttempt,
-        repositories: TestRepositories,
+        repositories: TestRepositories = this@PracticeViewModelTest.repositories,
     ): Pair<PracticeViewModel, StateFlow<PracticeUiState>> {
         val viewModel = PracticeViewModel(
             attempt.id,

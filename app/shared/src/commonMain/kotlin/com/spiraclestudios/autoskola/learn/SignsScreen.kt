@@ -41,11 +41,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BackHeader
 import com.spiraclestudios.autoskola.ui.CardDivider
+import com.spiraclestudios.autoskola.ui.ContentLoading
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.EmptyMessage
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.NajSearchField
 import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
@@ -109,11 +112,11 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
                     )
                     Spacer(Modifier.height(8.dp))
                     when (state) {
-                        SignsUiState.Loading -> SignsLoading(Modifier.weight(1f))
+                        SignsUiState.Loading -> ContentLoading(Modifier.weight(1f))
 
                         is SignsUiState.Ready ->
                             if (state.groups.isEmpty()) {
-                                SignListEmpty(Modifier.weight(1f))
+                                EmptyMessage(strings.signsNothingFound, Modifier.weight(1f))
                             } else {
                                 SignList(state.groups, page, onEvent, Modifier.weight(1f))
                             }
@@ -134,37 +137,26 @@ fun SignsScreen(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: ()
  */
 @Composable
 private fun SignsHeader(state: SignsUiState, onEvent: (SignsUiEvent) -> Unit, onBack: () -> Unit) {
-    val colors = Naj.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
-        Column(Modifier.weight(1f)) {
-            Text(strings.learnRoadSigns, style = Naj.type.screenTitle, color = colors.ink)
-            (state as? SignsUiState.Ready)?.let { ready ->
-                Text(
-                    text = if (ready.query.isBlank()) {
-                        strings.signsCount(ready.total)
-                    } else {
-                        strings.signsMatches(ready.shown, ready.total)
-                    },
-                    style = Naj.type.secondary,
-                    color = colors.muted,
+    val ready = state as? SignsUiState.Ready
+    BackHeader(
+        title = strings.learnRoadSigns,
+        onBack = onBack,
+        subtitle = ready?.let {
+            if (it.query.isBlank()) strings.signsCount(it.total) else strings.signsMatches(it.shown, it.total)
+        },
+        // Nothing to fold while a search has left no groups, so the button goes with them.
+        trailing = if (ready != null && ready.groups.isNotEmpty()) {
+            {
+                RoundButton(
+                    icon = if (ready.allExpanded) Icons.Filled.UnfoldLess else Icons.Filled.UnfoldMore,
+                    contentDescription = if (ready.allExpanded) strings.signsCollapseAll else strings.signsExpandAll,
+                    onClick = { onEvent(SignsUiEvent.ToggleAllGroups) },
                 )
             }
-        }
-        // Nothing to fold while a search has left no groups, so the button goes with them.
-        val ready = state as? SignsUiState.Ready
-        if (ready != null && ready.groups.isNotEmpty()) {
-            RoundButton(
-                icon = if (ready.allExpanded) Icons.Filled.UnfoldLess else Icons.Filled.UnfoldMore,
-                contentDescription = if (ready.allExpanded) strings.signsCollapseAll else strings.signsExpandAll,
-                onClick = { onEvent(SignsUiEvent.ToggleAllGroups) },
-            )
-        }
-    }
+        } else {
+            null
+        },
+    )
 }
 
 /**
@@ -289,21 +281,6 @@ private fun SignRow(
             }
         }
         if (divider) CardDivider(startInset = SignTextStart)
-    }
-}
-
-@Composable
-private fun SignListEmpty(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.TopCenter) {
-        Text(strings.signsNothingFound, style = Naj.type.body, color = Naj.colors.muted)
-    }
-}
-
-/** Nothing to list until the catalog has been read. */
-@Composable
-private fun SignsLoading(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Naj.colors.primaryDeep)
     }
 }
 

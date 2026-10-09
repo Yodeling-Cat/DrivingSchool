@@ -68,7 +68,6 @@ import com.spiraclestudios.autoskola.bank.PracticeTest
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.onboarding.ExamLabel
-import com.spiraclestudios.autoskola.practice.IconClose
 import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AdBannerState
 import com.spiraclestudios.autoskola.ui.AdGateDialog
@@ -78,6 +77,7 @@ import com.spiraclestudios.autoskola.ui.CardRadius
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.DashedCircleIcon
 import com.spiraclestudios.autoskola.ui.EyebrowLabel
+import com.spiraclestudios.autoskola.ui.IconClose
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.LicenseRadius
 import com.spiraclestudios.autoskola.ui.LoadingScreen
@@ -92,6 +92,7 @@ import com.spiraclestudios.autoskola.ui.PillHeight
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PrimaryPill
+import com.spiraclestudios.autoskola.ui.ProgressBar
 import com.spiraclestudios.autoskola.ui.RedoTestDialog
 import com.spiraclestudios.autoskola.ui.ResumeDialog
 import com.spiraclestudios.autoskola.ui.ScreenHeader
@@ -102,6 +103,7 @@ import com.spiraclestudios.autoskola.ui.WidthClass
 import com.spiraclestudios.autoskola.ui.drawLicenseGlow
 import com.spiraclestudios.autoskola.ui.drawLicenseWaves
 import com.spiraclestudios.autoskola.ui.fullWidthItem
+import com.spiraclestudios.autoskola.ui.inkShadow
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewExamLong
 import com.spiraclestudios.autoskola.ui.previewPassedPrompt
@@ -520,12 +522,7 @@ private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modif
         modifier = modifier
             .fillMaxWidth()
             .height(LicenseCardHeight)
-            .shadow(
-                elevation = 24.dp,
-                shape = shape,
-                ambientColor = colors.ink.copy(alpha = 0.55f),
-                spotColor = colors.ink.copy(alpha = 0.55f),
-            )
+            .inkShadow(24.dp, shape, colors.ink, 0.55f)
             .clip(shape)
             .background(Brush.linearGradient(colors.licenseGradient)),
     ) {
@@ -551,8 +548,8 @@ private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modif
             ProgressBar(
                 fraction = if (totalTests == 0) 0f else finished.toFloat() / totalTests,
                 height = 8.dp,
-                trackColor = colors.inkAt(0.16f),
-                fillColor = colors.ink,
+                track = colors.inkAt(0.16f),
+                fill = colors.ink,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.weight(1f))
@@ -674,8 +671,8 @@ private fun ResumeCard(
                     ProgressBar(
                         fraction = if (test.total == 0) 0f else test.answered.toFloat() / test.total,
                         height = 5.dp,
-                        trackColor = colors.inkAt(0.15f),
-                        fillColor = colors.ink,
+                        track = colors.inkAt(0.15f),
+                        fill = colors.ink,
                         modifier = Modifier
                             .width(with(LocalDensity.current) { summaryWidth.toDp() })
                             .padding(top = 8.dp),
@@ -902,12 +899,7 @@ private fun TestTileItem(
         status = status,
         statusLabel = label,
         onClick = { onEvent(HomeUiEvent.StartTest(test.number)) },
-        modifier = modifier.shadow(
-            elevation = 6.dp,
-            shape = RoundedCornerShape(TileRadius),
-            ambientColor = colors.ink.copy(alpha = 0.25f),
-            spotColor = colors.ink.copy(alpha = 0.25f),
-        ),
+        modifier = modifier.inkShadow(6.dp, RoundedCornerShape(TileRadius), colors.ink, 0.25f),
     )
 }
 
@@ -945,27 +937,6 @@ private fun AdGatePromptDialog(testNumber: Int, onEvent: (HomeUiEvent) -> Unit) 
         onWatchAd = { onEvent(HomeUiEvent.WatchAd) },
         onDismiss = { onEvent(HomeUiEvent.DismissAdGate) },
     )
-}
-
-/** A rounded bar with [fraction] of it filled. */
-@Composable
-private fun ProgressBar(
-    fraction: Float,
-    height: Dp,
-    trackColor: Color,
-    fillColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(height / 2)
-    Box(modifier.height(height).clip(shape).background(trackColor)) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .clip(shape)
-                .background(fillColor),
-        )
-    }
 }
 
 /** The hairline of white along the top of a colored card, which the design draws as an inset. */

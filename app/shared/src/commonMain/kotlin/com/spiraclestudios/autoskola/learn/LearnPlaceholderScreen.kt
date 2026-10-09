@@ -22,13 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -75,7 +76,7 @@ fun LearnPlaceholderScreen(section: LearnSection, onBack: () -> Unit) {
                     ) {
                         IconTile(
                             size = 46.dp,
-                            background = Brush.linearGradient(listOf(colors.mintGlow, colors.mintGlow)),
+                            background = SolidColor(colors.mintGlow),
                         ) {
                             Icon(
                                 section.icon,

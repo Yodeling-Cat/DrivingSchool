@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,7 +88,7 @@ private fun LearnSectionCard(section: LearnSection, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            IconTile(size = 46.dp, background = Brush.linearGradient(listOf(colors.mintGlow, colors.mintGlow))) {
+            IconTile(size = 46.dp, background = SolidColor(colors.mintGlow)) {
                 Icon(
                     section.icon,
                     contentDescription = null,

@@ -51,6 +51,7 @@ import com.spiraclestudios.autoskola.ui.LocalHeightClass
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.NajSwitch
 import com.spiraclestudios.autoskola.ui.OutlinePill
+import com.spiraclestudios.autoskola.ui.PrimaryButtonHeight
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.ScreenHeader
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -261,8 +262,8 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                     }
                 } else {
                     Column(buttons, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AcceptAllButton(state, onEvent, Modifier.fillMaxWidth(), height = 56.dp)
-                        AcceptChosenButton(state, onEvent, Modifier.fillMaxWidth(), height = 56.dp)
+                        AcceptAllButton(state, onEvent, Modifier.fillMaxWidth(), height = PrimaryButtonHeight)
+                        AcceptChosenButton(state, onEvent, Modifier.fillMaxWidth(), height = PrimaryButtonHeight)
                     }
                 }
             }

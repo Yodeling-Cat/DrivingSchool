@@ -41,14 +41,17 @@ import com.spiraclestudios.autoskola.copyToClipboard
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.openEmail
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BackHeader
+import com.spiraclestudios.autoskola.ui.ChoicePill
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
+import com.spiraclestudios.autoskola.ui.PrimaryButtonHeight
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -142,7 +145,7 @@ fun FeedbackScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    FeedbackHeader(onBack)
+                    BackHeader(title = strings.feedbackTitle, onBack = onBack)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -206,19 +209,6 @@ fun FeedbackScreen(
     }
 }
 
-/** Back, and what the screen is for. */
-@Composable
-private fun FeedbackHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
-        Text(strings.feedbackTitle, style = Naj.type.screenTitle, color = Naj.colors.ink)
-    }
-}
-
 /**
  * The two things a user can write to us about: what the app did, or what we hold about them.
  *
@@ -236,10 +226,18 @@ private fun KindPicker(kind: FeedbackKind, hasIdentifier: Boolean, onEvent: (Fee
     val colors = Naj.colors
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            KindPill(strings.feedbackKindFeedback, kind == FeedbackKind.Feedback) {
+            ChoicePill(
+                strings.feedbackKindFeedback,
+                selected = kind == FeedbackKind.Feedback,
+                height = 36.dp,
+            ) {
                 onEvent(FeedbackUiEvent.SetKind(FeedbackKind.Feedback))
             }
-            KindPill(strings.feedbackKindPrivacyRequest, kind == FeedbackKind.PrivacyRequest) {
+            ChoicePill(
+                strings.feedbackKindPrivacyRequest,
+                selected = kind == FeedbackKind.PrivacyRequest,
+                height = 36.dp,
+            ) {
                 onEvent(FeedbackUiEvent.SetKind(FeedbackKind.PrivacyRequest))
             }
         }
@@ -254,16 +252,6 @@ private fun KindPicker(kind: FeedbackKind, hasIdentifier: Boolean, onEvent: (Fee
                 color = colors.muted,
             )
         }
-    }
-}
-
-/** One of the two kinds: the chosen one filled, the other only outlined. */
-@Composable
-private fun KindPill(text: String, selected: Boolean, onClick: () -> Unit) {
-    if (selected) {
-        PrimaryPill(text = text, onClick = onClick, height = 36.dp)
-    } else {
-        OutlinePill(text = text, onClick = onClick, height = 36.dp)
     }
 }
 
@@ -386,7 +374,7 @@ private fun SendButton(
         PrimaryPill(
             text = strings.feedbackSend,
             onClick = onSend,
-            height = 56.dp,
+            height = PrimaryButtonHeight,
             fillWidth = true,
         )
         if (noEmailApp) {

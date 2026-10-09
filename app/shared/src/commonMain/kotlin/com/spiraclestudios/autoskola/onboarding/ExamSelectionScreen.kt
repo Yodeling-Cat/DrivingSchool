@@ -47,10 +47,11 @@ import com.spiraclestudios.autoskola.bank.LicenseCategory
 import com.spiraclestudios.autoskola.bank.QuestionBankInfo
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.settings.LanguageMenu
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.IconTile
 import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.RoundButton
@@ -296,7 +297,7 @@ private fun LanguageStep(banks: List<QuestionBankInfo>, onEvent: (ExamSelectionU
         Spacer(Modifier.height(32.dp))
         NajCard {
             banks.forEachIndexed { index, bank ->
-                if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Naj.colors.divider))
+                if (index > 0) CardDivider()
                 GroupedRow(
                     title = bankTitle(bank.language),
                     onClick = { onEvent(ExamSelectionUiEvent.ChooseBank(bank)) },
@@ -327,7 +328,7 @@ private fun CategoryStep(bank: QuestionBankInfo, onEvent: (ExamSelectionUiEvent)
             LicenseCategory.entries
                 .filter { (bank.questionCounts[it] ?: 0) > 0 }
                 .forEachIndexed { index, category ->
-                    if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Naj.colors.divider))
+                    if (index > 0) CardDivider()
                     CategoryRow(
                         label = category.displayName(bank.language),
                         category = category,

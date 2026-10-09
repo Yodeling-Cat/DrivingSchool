@@ -107,19 +107,28 @@ import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.BarIconButton
+import com.spiraclestudios.autoskola.ui.CardDivider
+import com.spiraclestudios.autoskola.ui.ConfirmDialog
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
 import com.spiraclestudios.autoskola.ui.HeightClass
+import com.spiraclestudios.autoskola.ui.IconArrowBack
+import com.spiraclestudios.autoskola.ui.IconClose
+import com.spiraclestudios.autoskola.ui.IconMenu
+import com.spiraclestudios.autoskola.ui.IconMoreVert
 import com.spiraclestudios.autoskola.ui.ImageSideBySideMaxHeight
 import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalHeightClass
 import com.spiraclestudios.autoskola.ui.LocalWidthClass
+import com.spiraclestudios.autoskola.ui.NajDropdownMenu
+import com.spiraclestudios.autoskola.ui.NajMenuItem
 import com.spiraclestudios.autoskola.ui.NavyPill
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PreviewRow
+import com.spiraclestudios.autoskola.ui.ProgressBar
 import com.spiraclestudios.autoskola.ui.QuestionChip
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.WhitePill
@@ -845,36 +854,27 @@ private fun PracticeTopBar(
 private fun QuestionProgress(answered: Int, questionCount: Int) {
     val colors = Naj.colors
     val fraction = answeredFraction(answered, questionCount)
-    Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.inkAt(0.1f))) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction)
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(Brush.horizontalGradient(colors.primaryGradient)),
-        )
-    }
+    ProgressBar(
+        fraction = fraction,
+        height = 6.dp,
+        track = colors.inkAt(0.1f),
+        fill = Brush.horizontalGradient(colors.primaryGradient),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /** Asks whether to leave an unfinished test, whose answers would be lost. */
 @Composable
 private fun LeaveTestDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
+    ConfirmDialog(
+        title = strings.leaveTestTitle,
+        message = strings.leaveTestMessage,
+        confirmLabel = strings.leaveTest,
+        onConfirm = onConfirm,
+        destructive = true,
+        dismissLabel = strings.keepTesting,
+        onDismiss = onDismiss,
         onDismissRequest = onDismiss,
-        containerColor = Naj.colors.card,
-        shape = RoundedCornerShape(22.dp),
-        title = { Text(strings.leaveTestTitle, style = Naj.type.cardTitle, color = Naj.colors.ink) },
-        text = { Text(strings.leaveTestMessage, style = Naj.type.option, color = Naj.colors.muted) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(strings.leaveTest, style = Naj.type.button, color = Naj.colors.wrongOn)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(strings.keepTesting, style = Naj.type.button, color = Naj.colors.primaryDeep)
-            }
-        },
     )
 }
 
@@ -1023,14 +1023,9 @@ private fun RowScope.PracticeBarContent(
     if (canFinish) {
         Box {
             BarIconButton(IconMoreVert, strings.moreOptions, onClick = { showOverflowMenu = true })
-            DropdownMenu(
-                expanded = showOverflowMenu,
-                onDismissRequest = { showOverflowMenu = false },
-                shape = RoundedCornerShape(18.dp),
-                containerColor = colors.card,
-            ) {
-                DropdownMenuItem(
-                    text = { Text(strings.finishTest, style = Naj.type.cardTitle, color = colors.ink) },
+            NajDropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                NajMenuItem(
+                    strings.finishTest,
                     onClick = {
                         showOverflowMenu = false
                         onFinish()
@@ -1038,15 +1033,15 @@ private fun RowScope.PracticeBarContent(
                 )
                 val debugAnswers = onDebugAnswers
                 if (debugAnswers != null) {
-                    DropdownMenuItem(
-                        text = { Text(strings.answerAllRandomly, style = Naj.type.cardTitle, color = colors.ink) },
+                    NajMenuItem(
+                        strings.answerAllRandomly,
                         onClick = {
                             showOverflowMenu = false
                             debugAnswers(PracticeUiEvent.AnswerAllRandomly)
                         },
                     )
-                    DropdownMenuItem(
-                        text = { Text(strings.answerAllCorrectly, style = Naj.type.cardTitle, color = colors.ink) },
+                    NajMenuItem(
+                        strings.answerAllCorrectly,
                         onClick = {
                             showOverflowMenu = false
                             debugAnswers(PracticeUiEvent.AnswerAllCorrectly)
@@ -1285,7 +1280,7 @@ private fun QuestionGrid(
     Column(modifier = Modifier.fillMaxWidth()) {
         grouped.forEachIndexed { sectionIndex, (section, indices) ->
             if (sectionIndex > 0) {
-                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                CardDivider()
             }
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
                 // The section, and how much of it the user has answered. The count is measured first and

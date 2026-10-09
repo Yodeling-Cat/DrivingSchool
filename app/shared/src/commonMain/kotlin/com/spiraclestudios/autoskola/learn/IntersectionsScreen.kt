@@ -44,15 +44,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
-import com.spiraclestudios.autoskola.practice.IconMoreVert
 import com.spiraclestudios.autoskola.ui.AdBanner
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BackHeader
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ConfirmDialog
+import com.spiraclestudios.autoskola.ui.ContentLoading
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.EmptyMessage
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
+import com.spiraclestudios.autoskola.ui.IconArrowBack
+import com.spiraclestudios.autoskola.ui.IconMoreVert
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
+import com.spiraclestudios.autoskola.ui.NajDropdownMenu
+import com.spiraclestudios.autoskola.ui.NajMenuItem
 import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
@@ -124,11 +129,11 @@ fun IntersectionsScreen(
                         Spacer(Modifier.height(12.dp))
                     }
                     when (state) {
-                        IntersectionsUiState.Loading -> SituationsLoading(Modifier.weight(1f))
+                        IntersectionsUiState.Loading -> ContentLoading(Modifier.weight(1f))
 
                         is IntersectionsUiState.Ready ->
                             if (state.situations.isEmpty()) {
-                                SituationsEmpty(Modifier.weight(1f))
+                                EmptyMessage(strings.situationsNothingFound, Modifier.weight(1f))
                             } else {
                                 SituationList(
                                     situations = state.situations,
@@ -184,29 +189,20 @@ fun IntersectionsScreen(
 /** Back, what the material is, how much of it there is, and what can be done with the answers. */
 @Composable
 private fun SituationsHeader(state: IntersectionsUiState, onBack: () -> Unit, onResetAnswers: () -> Unit) {
-    val colors = Naj.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
-        Column(Modifier.weight(1f)) {
-            Text(strings.learnIntersections, style = Naj.type.screenTitle, color = colors.ink)
-            (state as? IntersectionsUiState.Ready)?.takeIf { it.situations.isNotEmpty() }?.let { ready ->
-                Text(
-                    text = strings.situationsCount(ready.situations.size) +
-                        " · " + strings.situationQuestions(ready.questionCount),
-                    style = Naj.type.secondary,
-                    color = colors.muted,
-                )
-            }
-        }
+    val ready = (state as? IntersectionsUiState.Ready)?.takeIf { it.situations.isNotEmpty() }
+    BackHeader(
+        title = strings.learnIntersections,
+        onBack = onBack,
+        subtitle = ready?.let {
+            strings.situationsCount(it.situations.size) + " · " + strings.situationQuestions(it.questionCount)
+        },
         // An exam whose bank asks about no situations has no answers to clear, so it has no menu.
-        if (state is IntersectionsUiState.Ready && state.situations.isNotEmpty()) {
-            SituationsOverflowMenu(onResetAnswers)
-        }
-    }
+        trailing = if (ready != null) {
+            { SituationsOverflowMenu(onResetAnswers) }
+        } else {
+            null
+        },
+    )
 }
 
 /** The header's overflow: one action, and the answers it clears are asked about before they go. */
@@ -219,16 +215,9 @@ private fun SituationsOverflowMenu(onResetAnswers: () -> Unit) {
             contentDescription = strings.moreOptions,
             onClick = { expanded = true },
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(18.dp),
-            containerColor = Naj.colors.card,
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Text(strings.situationsResetAnswers, style = Naj.type.cardTitle, color = Naj.colors.ink)
-                },
+        NajDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            NajMenuItem(
+                strings.situationsResetAnswers,
                 onClick = {
                     expanded = false
                     onResetAnswers()
@@ -301,22 +290,6 @@ private fun SituationRow(situation: SituationItem, page: DpSize, onClick: () -> 
             contentDescription = null,
             tint = colors.primaryDeep,
         )
-    }
-}
-
-/** An exam whose bank holds no situations, which the bundled banks all do. */
-@Composable
-private fun SituationsEmpty(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.TopCenter) {
-        Text(strings.situationsNothingFound, style = Naj.type.body, color = Naj.colors.muted)
-    }
-}
-
-/** Nothing to list until the exam and its bank have been read. */
-@Composable
-private fun SituationsLoading(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Naj.colors.primaryDeep)
     }
 }
 

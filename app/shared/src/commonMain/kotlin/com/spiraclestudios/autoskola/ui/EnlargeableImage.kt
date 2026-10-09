@@ -38,7 +38,6 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconClose
 import com.spiraclestudios.autoskola.ui.theme.Naj
 
 /**

@@ -39,6 +39,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.PrimaryPill
 import com.spiraclestudios.autoskola.ui.ScreenHeader
+import com.spiraclestudios.autoskola.ui.inkShadow
 import com.spiraclestudios.autoskola.ui.theme.AccentedText
 import com.spiraclestudios.autoskola.ui.theme.GRAIN_CARD
 import com.spiraclestudios.autoskola.ui.theme.Naj
@@ -123,12 +124,7 @@ private fun PlatformBadge() {
     Box(
         modifier = Modifier
             .size(96.dp)
-            .shadow(
-                elevation = 18.dp,
-                shape = RoundedCornerShape(32.dp),
-                ambientColor = colors.ink.copy(alpha = 0.5f),
-                spotColor = colors.ink.copy(alpha = 0.5f),
-            )
+            .inkShadow(18.dp, RoundedCornerShape(32.dp), colors.ink, 0.5f)
             .clip(RoundedCornerShape(32.dp))
             .background(Brush.linearGradient(colors.licenseGradient))
             .grain(GRAIN_CARD, shader),

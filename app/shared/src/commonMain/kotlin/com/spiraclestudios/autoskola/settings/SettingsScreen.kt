@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -58,6 +59,7 @@ import com.spiraclestudios.autoskola.onboarding.LicenseIcon
 import com.spiraclestudios.autoskola.openUrl
 import com.spiraclestudios.autoskola.ui.AgeAnswerRow
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.CardRadius
 import com.spiraclestudios.autoskola.ui.ConfirmDialog
 import com.spiraclestudios.autoskola.ui.ContentWidth
@@ -150,7 +152,7 @@ fun SettingsScreen(
                         iconBackground = colors.mintGlow,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetCheckAnswersImmediately(it)) },
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsSwitchRow(
                         title = strings.settingsAdvanceAfterAnswer,
                         description = strings.settingsAdvanceAfterAnswerDescription,
@@ -183,7 +185,7 @@ fun SettingsScreen(
                         // laid on top of it. The card clips its top corners to its own curve.
                         shape = RectangleShape,
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsNavRow(
                         title = strings.legalTermsOfUse,
                         onClick = { onOpenDocument(LegalDocument.TermsOfUse) },
@@ -199,7 +201,7 @@ fun SettingsScreen(
                     // is locked in once it has been given, and for everyone else it does not exist.
                     // Withdrawing it would lock the switches from a screen with no way to unlock them.
                     if (state.canCorrectAge) {
-                        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                        CardDivider()
                         AgeAnswerRow(
                             answer = state.ageBand,
                             onAnswer = { onEvent(SettingsUiEvent.SetAgeBand(it)) },
@@ -218,7 +220,7 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsSwitchRow(
                         title = strings.consentCrashReportingTitle,
                         description = strings.consentCrashReportingDescription,
@@ -229,7 +231,7 @@ fun SettingsScreen(
                         iconBackground = colors.mintGlow,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetCrashReporting(it)) },
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsSwitchRow(
                         title = strings.consentAnalyticsTitle,
                         description = strings.consentAnalyticsDescription,
@@ -240,7 +242,7 @@ fun SettingsScreen(
                         iconBackground = colors.mintGlow,
                         onCheckedChange = { onEvent(SettingsUiEvent.SetAnalytics(it)) },
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsSwitchRow(
                         title = strings.consentPersonalizedAdsTitle,
                         // Locked under 18, with the reason where the description would be: no parent or
@@ -263,7 +265,7 @@ fun SettingsScreen(
                     // exists only where the form does. It opens the form rather than answering anything
                     // here: what the user agreed to there is Google's record, not one of the app's.
                     if (state.adPrivacyOptionsRequired) {
-                        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                        CardDivider()
                         SettingsNavRow(
                             title = strings.settingsAdPrivacyOptions,
                             subtitle = strings.settingsAdPrivacyOptionsDescription,
@@ -288,7 +290,7 @@ fun SettingsScreen(
                         // laid on top of it, the same as the privacy rows above.
                         shape = RectangleShape,
                     )
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                     SettingsNavRow(
                         title = strings.aboutApp,
                         // Its subtitle, because the version is part of what this entry is rather than a
@@ -301,7 +303,7 @@ fun SettingsScreen(
                     )
                     // Hidden for now: the feedback screen already puts the identifier in the email it
                     // writes, which is the one place a user needs it.
-                    // Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    // CardDivider()
                     // SettingsIdentifierRow(identifier = state.deviceIdentifier)
                 }
 
@@ -373,7 +375,7 @@ private fun SettingsNavRow(
 /** The square mark a setting leads with, on the color the setting is about. */
 @Composable
 private fun SettingsRowIcon(icon: ImageVector, tint: Color, background: Color) {
-    IconTile(size = 40.dp, background = Brush.linearGradient(listOf(background, background))) {
+    IconTile(size = 40.dp, background = SolidColor(background)) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
     }
 }

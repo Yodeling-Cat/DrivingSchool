@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -42,12 +43,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconClose
-import com.spiraclestudios.autoskola.ui.theme.GRAIN_CARD
 import com.spiraclestudios.autoskola.ui.theme.Naj
 import com.spiraclestudios.autoskola.ui.theme.NajColors
-import com.spiraclestudios.autoskola.ui.theme.grain
-import com.spiraclestudios.autoskola.ui.theme.rememberGrainShader
 
 // ── Shapes and measurements from the design system's "Shape and space" block ──
 
@@ -59,40 +56,20 @@ val PillHeight = 52.dp
 val PrimaryButtonHeight = 56.dp
 val PagePadding = 16.dp
 
-/**
- * The white card every list and panel sits on: rounded, borderless, floating on a soft shadow.
- *
- * [tint] paints a gradient behind the content instead of plain white (the row that is selected,
- * the resume card's yellow).
- */
+/** The white card every list and panel sits on: rounded, borderless, floating on a soft shadow. */
 @Composable
 fun NajCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(CardRadius),
-    tint: List<Color>? = null,
-    grain: Float = 0f,
     shadow: Float = 0.35f,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val colors = Naj.colors
-    val shader = rememberGrainShader()
-    val shadowModifier = Modifier.shadow(
-        elevation = 10.dp,
-        shape = shape,
-        ambientColor = colors.ink.copy(alpha = shadow),
-        spotColor = colors.ink.copy(alpha = shadow),
-    )
     Column(
         modifier = modifier
-            .then(shadowModifier)
+            .inkShadow(10.dp, shape, Naj.colors.ink, shadow)
             .clip(shape)
-            .background(
-                tint?.let {
-                    Brush.linearGradient(it)
-                } ?: Brush.linearGradient(listOf(colors.card, colors.card)),
-            )
-            .then(if (grain > 0f) Modifier.grain(grain, shader) else Modifier)
+            .background(Naj.colors.card)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(onClick = onClick)
@@ -103,6 +80,20 @@ fun NajCard(
     ) {
         content()
     }
+}
+
+/**
+ * The soft shadow in the [ink]'s own color that cards and pills float on, [alpha] being how dark it
+ * is where it is darkest.
+ */
+fun Modifier.inkShadow(
+    elevation: Dp,
+    shape: Shape,
+    ink: Color,
+    alpha: Float,
+): Modifier {
+    val color = ink.copy(alpha = alpha)
+    return shadow(elevation = elevation, shape = shape, ambientColor = color, spotColor = color)
 }
 
 /**
@@ -235,7 +226,7 @@ fun PrimaryPill(
                 if (enabled) {
                     Brush.verticalGradient(colors.primaryGradient)
                 } else {
-                    Brush.verticalGradient(listOf(colors.notStartedDot, colors.notStartedDot))
+                    SolidColor(colors.notStartedDot)
                 },
             )
             .clickable(enabled = enabled, onClick = onClick)
@@ -255,6 +246,22 @@ fun PrimaryPill(
     }
 }
 
+/** A choice among a few: the chosen one is a [PrimaryPill], the others are [OutlinePill]s. */
+@Composable
+fun ChoicePill(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    height: Dp = 40.dp,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        PrimaryPill(text = text, onClick = onClick, modifier = modifier, height = height)
+    } else {
+        OutlinePill(text = text, onClick = onClick, modifier = modifier, height = height)
+    }
+}
+
 /**
  * The floating pill a screen's bar sits in: the navy navigation bar and the question bar.
  * [content] lays out the items inside it.
@@ -271,12 +278,7 @@ fun NavyPill(
     Row(
         modifier = modifier
             .height(height)
-            .shadow(
-                elevation = 16.dp,
-                shape = shape,
-                ambientColor = colors.ink.copy(alpha = 0.7f),
-                spotColor = colors.ink.copy(alpha = 0.7f),
-            )
+            .inkShadow(16.dp, shape, colors.ink, 0.7f)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(colors.navyLight, colors.navy)))
             .padding(horizontal = 8.dp),
@@ -493,10 +495,10 @@ fun NajSwitch(
             .height(32.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(
-                when {
-                    !enabled -> Brush.linearGradient(listOf(colors.trackOff, colors.trackOff))
-                    checked -> Brush.verticalGradient(colors.primaryGradient)
-                    else -> Brush.linearGradient(listOf(colors.trackOff, colors.trackOff))
+                if (enabled && checked) {
+                    Brush.verticalGradient(colors.primaryGradient)
+                } else {
+                    SolidColor(colors.trackOff)
                 },
             )
             .then(
@@ -549,24 +551,15 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun NajCardPreview() {
     AppPreview {
-        val colors = Naj.colors
         PreviewBoard {
-            PreviewLabel("PLAIN, TINTED, TAPPABLE")
+            PreviewLabel("PLAIN, TAPPABLE")
             NajCard(Modifier.fillMaxWidth()) {
                 CardRow("White card", "The default everywhere")
                 CardDivider()
-                CardRow("Grain", "A card that carries its own texture")
+                CardRow("Second row", "Rows are stacked with a hairline")
             }
-            NajCard(
-                Modifier.fillMaxWidth(),
-                tint = listOf(colors.resumeTop, colors.resumeBottom),
-                grain = GRAIN_CARD,
-                onClick = {},
-            ) {
-                CardRow("Tinted", "The yellow resume card")
-            }
-            NajCard(Modifier.fillMaxWidth(), tint = listOf(colors.mistakesTop, colors.mistakesBottom)) {
-                CardRow("Tinted again", "Any two colors make the gradient")
+            NajCard(Modifier.fillMaxWidth(), onClick = {}) {
+                CardRow("Tappable", "The whole card answers a press")
             }
         }
     }
@@ -579,6 +572,20 @@ private fun CardRow(title: String, subtitle: String) {
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text(title, style = Naj.type.rowTitle, color = colors.ink)
         Text(subtitle, style = Naj.type.rowSubtitle, color = colors.muted)
+    }
+}
+
+@Preview(widthDp = 360, heightDp = 160)
+@Composable
+private fun ChoicePillPreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("CHOSEN AND NOT")
+            PreviewRow {
+                ChoicePill(strings.feedbackKindFeedback, selected = true, onClick = {})
+                ChoicePill(strings.feedbackKindPrivacyRequest, selected = false, onClick = {})
+            }
+        }
     }
 }
 
@@ -662,7 +669,7 @@ private fun IconTilePreview() {
                 IconTile(background = Brush.linearGradient(listOf(colors.mistakesTop, colors.mistakesBottom))) {
                     Text("4", style = Naj.type.badgeNumber, color = Color.White)
                 }
-                IconTile(size = 40.dp, background = Brush.linearGradient(listOf(colors.mintGlow, colors.mintGlow))) {
+                IconTile(size = 40.dp, background = SolidColor(colors.mintGlow)) {
                     Icon(Icons.Filled.Check, null, tint = colors.primaryDeep, modifier = Modifier.size(22.dp))
                 }
             }

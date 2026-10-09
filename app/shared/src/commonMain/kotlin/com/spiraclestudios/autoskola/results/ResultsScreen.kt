@@ -45,7 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.attemptName
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.stats.AttemptSummary
@@ -55,6 +54,7 @@ import com.spiraclestudios.autoskola.ui.AppPreview
 import com.spiraclestudios.autoskola.ui.CardDivider
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EyebrowLabel
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.LicenseRadius
 import com.spiraclestudios.autoskola.ui.LoadingScreen
 import com.spiraclestudios.autoskola.ui.LocalWidthClass
@@ -62,10 +62,12 @@ import com.spiraclestudios.autoskola.ui.NajCard
 import com.spiraclestudios.autoskola.ui.OutlinePill
 import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PrimaryPill
+import com.spiraclestudios.autoskola.ui.ProgressBar
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.WidthClass
 import com.spiraclestudios.autoskola.ui.drawLicenseGlow
 import com.spiraclestudios.autoskola.ui.drawLicenseWaves
+import com.spiraclestudios.autoskola.ui.inkShadow
 import com.spiraclestudios.autoskola.ui.previewExam
 import com.spiraclestudios.autoskola.ui.previewSections
 import com.spiraclestudios.autoskola.ui.previewSummary
@@ -272,12 +274,7 @@ private fun ResultCard(
         modifier = modifier
             .fillMaxWidth()
             // As tall as what it draws: the poster is a backdrop, not a frame with a size of its own.
-            .shadow(
-                elevation = 24.dp,
-                shape = shape,
-                ambientColor = colors.ink.copy(alpha = 0.55f),
-                spotColor = colors.ink.copy(alpha = 0.55f),
-            )
+            .inkShadow(24.dp, shape, colors.ink, 0.55f)
             .clip(shape),
     ) {
         // The poster: ramp, waves and highlight, with the grain over them but under the text.
@@ -473,12 +470,7 @@ private fun CountTile(
     val shape = RoundedCornerShape(CountRadius)
     Column(
         modifier = modifier
-            .shadow(
-                elevation = 6.dp,
-                shape = shape,
-                ambientColor = colors.ink.copy(alpha = 0.35f),
-                spotColor = colors.ink.copy(alpha = 0.35f),
-            )
+            .inkShadow(6.dp, shape, colors.ink, 0.35f)
             .clip(shape)
             .cssGradient(tint, 150f)
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -551,9 +543,7 @@ private fun SectionRow(section: ResultSection) {
             Text("${summary.correct} / ${summary.total}", style = Naj.type.sectionScore, color = on)
         }
         Spacer(Modifier.height(8.dp))
-        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.divider)) {
-            Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(fill))
-        }
+        ProgressBar(progress, 6.dp, track = colors.divider, fill = fill, modifier = Modifier.fillMaxWidth())
     }
 }
 

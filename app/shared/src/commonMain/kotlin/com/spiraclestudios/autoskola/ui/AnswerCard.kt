@@ -51,7 +51,7 @@ internal fun AnswerCard(
         Column(Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, option ->
                 if (index > 0) {
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(colors.divider))
+                    CardDivider()
                 }
                 AnswerRow(
                     letter = ('A' + index).toString(),

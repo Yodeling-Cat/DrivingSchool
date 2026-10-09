@@ -1,4 +1,4 @@
-package com.spiraclestudios.autoskola.practice
+package com.spiraclestudios.autoskola.ui
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -10,10 +10,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.spiraclestudios.autoskola.ui.AppPreview
-import com.spiraclestudios.autoskola.ui.PreviewBoard
-import com.spiraclestudios.autoskola.ui.PreviewLabel
-import com.spiraclestudios.autoskola.ui.PreviewRow
 import com.spiraclestudios.autoskola.ui.theme.Naj
 
 internal val IconArrowBack: ImageVector = ImageVector.Builder(
@@ -137,10 +133,10 @@ internal val IconClose: ImageVector = ImageVector.Builder(
 
 // ── Previews ──
 
-/** The icons the practice screen draws itself, at the size the bars give them. */
+/** The icons the app draws itself, at the size the bars give them. */
 @Preview(widthDp = 360, heightDp = 160)
 @Composable
-private fun PracticeIconsPreview() {
+private fun AppIconsPreview() {
     AppPreview {
         PreviewBoard {
             PreviewLabel("ARROW BACK, MENU, MORE, DROP DOWN, CLOSE")

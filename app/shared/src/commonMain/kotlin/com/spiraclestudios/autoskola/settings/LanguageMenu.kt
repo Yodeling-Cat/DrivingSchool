@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.NajDropdownMenu
+import com.spiraclestudios.autoskola.ui.NajMenuItem
 import com.spiraclestudios.autoskola.ui.PickerPill
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
@@ -34,22 +36,11 @@ fun LanguageMenu(current: AppLanguage, onSelect: (AppLanguage) -> Unit, modifier
             contentDescription = strings.settingsLanguage,
             onClick = { expanded = true },
         )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(18.dp),
-            containerColor = Naj.colors.card,
-        ) {
+        NajDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             AppLanguage.entries.forEach { language ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            language.nativeName,
-                            style = Naj.type.cardTitle,
-                            fontWeight = if (language == current) FontWeight.Bold else FontWeight.Normal,
-                            color = Naj.colors.ink,
-                        )
-                    },
+                NajMenuItem(
+                    language.nativeName,
+                    fontWeight = if (language == current) FontWeight.Bold else FontWeight.Normal,
                     onClick = {
                         expanded = false
                         onSelect(language)

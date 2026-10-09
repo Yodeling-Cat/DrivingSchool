@@ -28,9 +28,12 @@ import com.mikepenz.aboutlibraries.ui.compose.variant.LibrariesVariant
 import com.mikepenz.aboutlibraries.ui.compose.variant.LibraryActionMode
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BackHeader
+import com.spiraclestudios.autoskola.ui.ContentLoading
 import com.spiraclestudios.autoskola.ui.ContentWidth
+import com.spiraclestudios.autoskola.ui.EmptyMessage
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.NajSearchField
 import com.spiraclestudios.autoskola.ui.PreviewBoard
@@ -72,7 +75,7 @@ fun AboutScreen(state: AboutUiState, onEvent: (AboutUiEvent) -> Unit, onBack: ()
                 when {
                     // The list is a file in the app, so this is a blink rather than a wait - but a
                     // blink of an empty list would read as an app built from nothing.
-                    state.loading -> AboutLoading(Modifier.weight(1f))
+                    state.loading -> ContentLoading(Modifier.weight(1f))
 
                     else -> LibraryList(state, Modifier.weight(1f))
                 }
@@ -84,20 +87,11 @@ fun AboutScreen(state: AboutUiState, onEvent: (AboutUiEvent) -> Unit, onBack: ()
 /** Back, the screen's name, and the build the user is running where the platform names one. */
 @Composable
 private fun AboutHeader(state: AboutUiState, onBack: () -> Unit) {
-    val colors = Naj.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onBack)
-        Column(Modifier.weight(1f)) {
-            Text(strings.aboutTitle, style = Naj.type.screenTitle, color = colors.ink)
-            state.version?.let { version ->
-                Text(strings.aboutVersion(version), style = Naj.type.secondary, color = colors.muted)
-            }
-        }
-    }
+    BackHeader(
+        title = strings.aboutTitle,
+        onBack = onBack,
+        subtitle = state.version?.let { strings.aboutVersion(it) },
+    )
 }
 
 /**
@@ -119,7 +113,7 @@ private fun LibraryList(state: AboutUiState, modifier: Modifier = Modifier) {
             item { AboutIntro() }
             // A search that found nothing leaves the page as it is and says so where the rows
             // would have been, so what the app is and what it is built from stay readable.
-            if (state.nothingFound) item { AboutNothingFound() }
+            if (state.nothingFound) item { EmptyMessage(strings.aboutLibrariesNothingFound) }
         },
     )
 }
@@ -141,25 +135,6 @@ private fun AboutIntro(modifier: Modifier = Modifier) {
         Text(strings.aboutLibraries, style = Naj.type.sectionHeading, color = colors.ink)
         Spacer(Modifier.height(8.dp))
         Text(strings.aboutLibrariesIntro, style = Naj.type.rowSubtitle, color = colors.muted)
-    }
-}
-
-/** Nothing is listed until the generated file has been read. */
-@Composable
-private fun AboutLoading(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Naj.colors.primaryDeep)
-    }
-}
-
-/** A search that found nothing, which is not the same as a build that carries no libraries. */
-@Composable
-private fun AboutNothingFound(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(strings.aboutLibrariesNothingFound, style = Naj.type.body, color = Naj.colors.muted)
     }
 }
 

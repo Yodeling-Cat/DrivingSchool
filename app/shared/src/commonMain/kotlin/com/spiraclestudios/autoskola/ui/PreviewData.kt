@@ -35,9 +35,6 @@ import com.spiraclestudios.autoskola.stats.SectionSummary
 /** The exam every preview is taken in: the Slovak car license, shown in the English UI. */
 internal val previewExam = ExamLabel(LicenseCategory.B, "sk")
 
-/** The exam label of the English question bank, for the previews that show a bank's own name. */
-internal val previewExamHungarian = ExamLabel(LicenseCategory.B, "hu")
-
 /**
  * The truck-and-trailer exam in Hungarian, which names its category with the longest label the app
  * can show: the exam pill of a preview taken in it has to give way in the middle.

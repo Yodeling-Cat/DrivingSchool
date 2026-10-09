@@ -61,7 +61,7 @@ fun AgeAnswerRow(
             // The chosen one is the filled pill, so the answer reads at a glance; the others stay
             // pressable, because changing an answer has to be as easy as giving one.
             options.forEach { band ->
-                AgePill(text = band.label(), chosen = answer == band) { onAnswer(band) }
+                ChoicePill(text = band.label(), selected = answer == band) { onAnswer(band) }
             }
         }
     }
@@ -74,18 +74,6 @@ private fun AgeBand.label(): String = when (this) {
     AgeBand.From16To17 -> strings.consentAgeTeen
     AgeBand.Adult -> strings.consentAgeAdult
 }
-
-/** One of the answers. Filled when chosen, outlined when not, and never disabled. */
-@Composable
-private fun AgePill(text: String, chosen: Boolean, onClick: () -> Unit) {
-    if (chosen) {
-        PrimaryPill(text = text, onClick = onClick, height = AnswerPillHeight)
-    } else {
-        OutlinePill(text = text, onClick = onClick, height = AnswerPillHeight)
-    }
-}
-
-private val AnswerPillHeight = 40.dp
 
 // ── Previews ──
 

@@ -68,15 +68,17 @@ import com.spiraclestudios.autoskola.data.ads.AdSlot
 import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.ChipState
-import com.spiraclestudios.autoskola.practice.IconArrowBack
 import com.spiraclestudios.autoskola.practice.SwipePager
 import com.spiraclestudios.autoskola.practice.arrowKeyTarget
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
+import com.spiraclestudios.autoskola.ui.BackHeader
 import com.spiraclestudios.autoskola.ui.ChipRadius
+import com.spiraclestudios.autoskola.ui.ContentLoading
 import com.spiraclestudios.autoskola.ui.ContentWidth
 import com.spiraclestudios.autoskola.ui.EnlargeableImage
 import com.spiraclestudios.autoskola.ui.FittingText
+import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
@@ -138,7 +140,7 @@ fun SituationScreen(state: SituationUiState, onEvent: (SituationUiEvent) -> Unit
                 SituationUiState.Loading, SituationUiState.Closed -> Column(Modifier.fillMaxSize()) {
                     SituationHeader(strings.learnIntersections, null, onClose)
                     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        if (state is SituationUiState.Loading) SituationLoading()
+                        if (state is SituationUiState.Loading) ContentLoading()
                     }
                 }
 
@@ -245,24 +247,13 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
 /** Back, what the situation being read is called, and how much is asked about it. */
 @Composable
 private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> Unit) {
-    val colors = Naj.colors
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Row(
-            modifier = Modifier
-                .widthIn(max = ContentWidth.Reading)
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            RoundButton(icon = IconArrowBack, contentDescription = strings.back, onClick = onClose)
-            Column(Modifier.weight(1f)) {
-                Text(title, style = Naj.type.screenTitle, color = colors.ink)
-                questionCount?.let {
-                    Text(strings.situationQuestions(it), style = Naj.type.secondary, color = colors.muted)
-                }
-            }
-        }
+        BackHeader(
+            title = title,
+            onBack = onClose,
+            modifier = Modifier.widthIn(max = ContentWidth.Reading),
+            subtitle = questionCount?.let { strings.situationQuestions(it) },
+        )
     }
 }
 
@@ -464,14 +455,6 @@ private fun SituationQuestionBlock(
             revealed = chosen != null,
             onSelect = onSelect,
         )
-    }
-}
-
-/** Nothing to show until the exam and its bank have been read. */
-@Composable
-private fun SituationLoading(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Naj.colors.primaryDeep)
     }
 }
 

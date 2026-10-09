@@ -570,7 +570,7 @@ private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modif
 @Composable
 private fun HeroRow(finished: Int, total: Int) {
     val colors = Naj.colors
-    val caption = strings.testsFinishedLabel
+    val caption = strings.testsFinishedLabel(finished)
 
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(

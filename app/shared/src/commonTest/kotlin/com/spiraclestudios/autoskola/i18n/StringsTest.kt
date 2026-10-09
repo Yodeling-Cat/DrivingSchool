@@ -100,6 +100,23 @@ class StringsTest {
     }
 
     @Test
+    fun finishedTestsLabelAgreesWithTheCount() {
+        val en = AppLanguage.English.strings.testsFinishedLabel
+        assertEquals(listOf("test finished", "tests finished", "tests finished"), listOf(1, 2, 0).map(en))
+        val sk = AppLanguage.Slovak.strings.testsFinishedLabel
+        assertEquals(
+            listOf("dokončený test", "dokončené testy", "dokončených testov", "dokončených testov"),
+            listOf(1, 3, 5, 0).map(sk),
+        )
+        val cs = AppLanguage.Czech.strings.testsFinishedLabel
+        assertEquals(
+            listOf("dokončený test", "dokončené testy", "dokončených testů", "dokončených testů"),
+            listOf(1, 3, 5, 0).map(cs),
+        )
+        assertEquals("befejezett teszt", AppLanguage.Hungarian.strings.testsFinishedLabel(7))
+    }
+
+    @Test
     fun appNameIsTranslated() {
         assertEquals("Naj Autoškola", AppLanguage.Slovak.strings.appName)
         assertEquals("Naj Autoškola", AppLanguage.English.strings.appName)

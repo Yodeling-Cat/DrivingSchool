@@ -166,8 +166,8 @@ class Strings(
     val answeredWrongly: String,
     // Home
     val change: String,
-    /** The words beside the count of finished tests, e.g. "tests finished". */
-    val testsFinishedLabel: String,
+    /** The words beside the count of finished tests, agreeing with it, e.g. "tests finished". */
+    val testsFinishedLabel: (count: Int) -> String,
 
     /** The label over the progress card, e.g. "driver in training". */
     val progressEyebrow: String,
@@ -477,7 +477,7 @@ private val EnglishStrings = Strings(
     answeredCorrectly = "Answered correctly",
     answeredWrongly = "Answered wrongly",
     change = "Change",
-    testsFinishedLabel = "tests finished",
+    testsFinishedLabel = { if (it == 1) "test finished" else "tests finished" },
     progressEyebrow = "Driver in training",
     progressEyebrowPassed = "Expert driver",
     passed = "Passed",
@@ -712,7 +712,7 @@ private val SlovakStrings = Strings(
     answeredCorrectly = "Zodpovedané správne",
     answeredWrongly = "Zodpovedané nesprávne",
     change = "Zmeniť",
-    testsFinishedLabel = "dokončené testy",
+    testsFinishedLabel = { westSlavicPlural(it, "dokončený test", "dokončené testy", "dokončených testov") },
     progressEyebrow = "Vodič v príprave",
     progressEyebrowPassed = "Skúsený vodič",
     passed = "Úspešné",
@@ -950,7 +950,7 @@ private val HungarianStrings = Strings(
     answeredCorrectly = "Helyesen megválaszolva",
     answeredWrongly = "Helytelenül megválaszolva",
     change = "Módosítás",
-    testsFinishedLabel = "befejezett teszt",
+    testsFinishedLabel = { "befejezett teszt" },
     progressEyebrow = "Tanuló vezető",
     progressEyebrowPassed = "Tapasztalt vezető",
     passed = "Sikeres",
@@ -1187,7 +1187,7 @@ private val CzechStrings = Strings(
     answeredCorrectly = "Zodpovězeno správně",
     answeredWrongly = "Zodpovězeno nesprávně",
     change = "Změnit",
-    testsFinishedLabel = "dokončené testy",
+    testsFinishedLabel = { westSlavicPlural(it, "dokončený test", "dokončené testy", "dokončených testů") },
     progressEyebrow = "Řidič v přípravě",
     progressEyebrowPassed = "Zkušený řidič",
     passed = "Úspěšné",

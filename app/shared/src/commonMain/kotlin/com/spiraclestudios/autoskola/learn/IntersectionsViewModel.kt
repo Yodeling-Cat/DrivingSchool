@@ -13,6 +13,7 @@ import com.spiraclestudios.autoskola.data.answers.PracticeAnswerRepository
 import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.exam.ExamSession
+import com.spiraclestudios.autoskola.situations.Situation
 import com.spiraclestudios.autoskola.situations.isSolvedBy
 import com.spiraclestudios.autoskola.situations.situations
 import com.spiraclestudios.autoskola.stats.AttemptKind
@@ -136,13 +137,15 @@ class IntersectionsViewModel(
 
     private val prompts = combine(openAttemptId, drillPrompt, resetPrompt, ::Prompts)
 
+    private val items = SituationItems(banks)
+
     val uiState: StateFlow<IntersectionsUiState> =
         combine(session, given, prompts, ads.adsAllowed) { session, given, prompts, showAds ->
             if (session == null) {
                 IntersectionsUiState.Loading
             } else {
                 IntersectionsUiState.Ready(
-                    situations = situationItems(session, banks, given),
+                    situations = items.of(session, given),
                     openAttemptId = prompts.openAttemptId,
                     drillPrompt = prompts.drill,
                     resetPrompt = prompts.reset,
@@ -239,22 +242,47 @@ class IntersectionsViewModel(
 }
 
 /**
- * The situations of [session] as the screens draw them, numbered from one and in the bank's order.
+ * The situations of an exam as the screens draw them, numbered from one and in the bank's order.
  * The numbering is the material's own, so the situation the list calls third is the one the detail
- * screen calls third. [answers] are what the driver has answered while reading, which is what says
- * whether a situation has been worked out in full.
+ * screen calls third. The answers given while reading are what says whether a situation has been
+ * worked out in full.
+ *
+ * Built once per session: only whether a situation is solved follows the answers, and the list and
+ * every item that did not change are handed back as the same instances, so a screen redraws only the
+ * situation an answer changed (see AGENTS.md, "Compose performance").
  */
-internal fun situationItems(
-    session: ExamSession,
-    banks: QuestionBankRepository,
-    answers: PracticeAnswers = PracticeAnswers(),
-): List<SituationItem> = situations(session.bank, session.category).mapIndexed { index, situation ->
-    SituationItem(
-        number = index + 1,
-        imageUri = banks.imageUri(session.bank, situation.image),
-        questions = situation.questions.map { it.toSituationQuestion() },
-        solved = situation.isSolvedBy(answers),
-    )
+internal class SituationItems(private val banks: QuestionBankRepository) {
+    private var session: ExamSession? = null
+    private var situations: List<Situation> = emptyList()
+    private var items: List<SituationItem> = emptyList()
+
+    fun of(session: ExamSession, answers: PracticeAnswers = PracticeAnswers()): List<SituationItem> {
+        if (session !== this.session) {
+            this.session = session
+            situations = situations(session.bank, session.category)
+            items = situations.mapIndexed { index, situation ->
+                SituationItem(
+                    number = index + 1,
+                    imageUri = banks.imageUri(session.bank, situation.image),
+                    questions = situation.questions.map { it.toSituationQuestion() },
+                    solved = situation.isSolvedBy(answers),
+                )
+            }
+            return items
+        }
+        var changed = false
+        val updated = items.mapIndexed { index, item ->
+            val solved = situations[index].isSolvedBy(answers)
+            if (solved == item.solved) {
+                item
+            } else {
+                changed = true
+                item.copy(solved = solved)
+            }
+        }
+        if (changed) items = updated
+        return items
+    }
 }
 
 private fun Question.toSituationQuestion() = SituationQuestion(

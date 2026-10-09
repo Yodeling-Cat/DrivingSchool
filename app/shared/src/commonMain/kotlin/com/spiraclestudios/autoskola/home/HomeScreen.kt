@@ -304,7 +304,12 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
             )
         }
         items(tests, key = { it.number }, contentType = { TEST_TILE }) { test ->
-            TestTileItem(test = test, progress = progress, onEvent = onEvent)
+            TestTileItem(
+                test = test,
+                result = progress.results[test.number],
+                inProgress = test.number in progress.inProgress,
+                onEvent = onEvent,
+            )
         }
     }
 }
@@ -427,7 +432,12 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
                     verticalArrangement = Arrangement.spacedBy(WideGridGap),
                 ) {
                     items(tests, key = { it.number }, contentType = { TEST_TILE }) { test ->
-                        TestTileItem(test = test, progress = progress, onEvent = onEvent)
+                        TestTileItem(
+                            test = test,
+                            result = progress.results[test.number],
+                            inProgress = test.number in progress.inProgress,
+                            onEvent = onEvent,
+                        )
                     }
                 }
             }
@@ -510,8 +520,6 @@ private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modif
     val shape = RoundedCornerShape(LicenseRadius)
     val results = progress.results
     val finished = results.size
-    val passed = results.values.count { it.passed }
-    val average = if (results.isEmpty()) null else results.values.sumOf { it.percent } / results.size
     // Passed, the card names the stage they have reached rather than what they are preparing for.
     val stage = when (trainingStage(results, totalTests)) {
         TrainingStage.InTraining -> strings.progressEyebrow
@@ -553,7 +561,7 @@ private fun LicenseCard(totalTests: Int, progress: HomeProgress, modifier: Modif
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.weight(1f))
-            StatsRow(finished = finished, passed = passed, average = average)
+            StatsRow(finished = finished, passed = progress.passedTests, average = progress.averagePercent)
         }
     }
 }
@@ -878,14 +886,14 @@ private fun RateCard(
 @Composable
 private fun TestTileItem(
     test: PracticeTest,
-    progress: HomeProgress,
+    result: TestResult?,
+    inProgress: Boolean,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = Naj.colors
-    val result = progress.results[test.number]
     val status = when {
-        test.number in progress.inProgress -> TestStatus.InProgress
+        inProgress -> TestStatus.InProgress
         result == null -> TestStatus.NotStarted
         result.passed -> TestStatus.Passed
         else -> TestStatus.Failed

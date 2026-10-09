@@ -21,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class HomeViewModelTest : ViewModelTest() {
@@ -243,6 +244,22 @@ class HomeViewModelTest : ViewModelTest() {
             ResumePrompt(started, testNumber = 1, answered = 0, total = 3),
             state.ready.resumePrompt,
         )
+    }
+
+    @Test
+    fun aPromptComingAndGoingKeepsTheProgressInstance() = runTest {
+        // The tiles and the license card take the progress; a new but equal one would redraw them
+        // every time a dialog opens or closes.
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        viewModel.onEvent(HomeUiEvent.AttemptOpened)
+        val before = state.ready.progress
+
+        viewModel.onEvent(HomeUiEvent.StartTest(testNumber = 1))
+        assertNotNull(state.ready.resumePrompt)
+        viewModel.onEvent(HomeUiEvent.DismissResumePrompt)
+
+        assertSame(before, state.ready.progress)
     }
 
     @Test

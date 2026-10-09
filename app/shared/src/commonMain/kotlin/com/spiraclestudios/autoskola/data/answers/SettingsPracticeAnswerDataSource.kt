@@ -5,6 +5,7 @@ import com.spiraclestudios.autoskola.LenientJson
 import com.spiraclestudios.autoskola.answers.PracticeAnswers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
@@ -20,7 +21,7 @@ class SettingsPracticeAnswerDataSource(private val settings: Settings) : Practic
     private val stored = MutableStateFlow(read())
 
     override fun answers(bankId: String, bankVersion: Int): Flow<PracticeAnswers> =
-        stored.map { it[answersKey(bankId, bankVersion)] ?: PracticeAnswers() }
+        stored.map { it[answersKey(bankId, bankVersion)] ?: PracticeAnswers() }.distinctUntilChanged()
 
     override suspend fun answer(
         bankId: String,

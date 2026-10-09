@@ -81,6 +81,8 @@ class SituationViewModel(
     private val session: StateFlow<ExamSession?> = exams.session
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    private val items = SituationItems(banks)
+
     /** What the driver has answered while reading, which marks the situations they are done with. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val given: Flow<PracticeAnswers> = session.filterNotNull()
@@ -90,7 +92,7 @@ class SituationViewModel(
         if (session == null) {
             SituationUiState.Loading
         } else {
-            val situations = situationItems(session, banks, given)
+            val situations = items.of(session, given)
             // A situation the material doesn't have any more - a route restored from before the bank
             // changed - closes the screen rather than opening another one.
             situations.getOrNull(number - 1)?.let {

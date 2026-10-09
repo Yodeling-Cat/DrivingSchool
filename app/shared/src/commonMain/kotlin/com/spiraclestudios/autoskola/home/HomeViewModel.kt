@@ -72,7 +72,13 @@ data class HomeProgress(
      * driver who walks away from one went through it just the same.
      */
     val practiceTestsStarted: Int,
-)
+) {
+    /** How many of the tests with a result passed it. */
+    val passedTests: Int = results.values.count { it.passed }
+
+    /** The average score of the tests with a result, in percent, or `null` while none has one. */
+    val averagePercent: Int? = if (results.isEmpty()) null else results.values.sumOf { it.percent } / results.size
+}
 
 /**
  * The card asking the user to rate the app in the store it names. Which store that is, and whether
@@ -189,7 +195,9 @@ class HomeViewModel(
         .flatMapLatest { session ->
             if (session == null) return@flatMapLatest flowOf(HomeUiState.Loading)
             combine(
-                session.progress,
+                // Mapped on its own, so the progress keeps its instance while only a prompt, the
+                // rating card or the ads change, and the tiles drawn from it are left alone.
+                session.progress.map { it.toHomeProgress() },
                 prompts,
                 review.request,
                 ads.adsAllowed,
@@ -201,7 +209,7 @@ class HomeViewModel(
                 HomeUiState.Ready(
                     exam = ExamLabel(session.category, session.bank.language),
                     tests = session.tests,
-                    progress = progress.toHomeProgress(),
+                    progress = progress,
                     hasNotPassedTests = notPassedTests(session.tests, progress.results).isNotEmpty(),
                     rateCard = store
                         ?.takeIf { request.isDue(progress.finishedTests, allPassed) }
@@ -266,12 +274,8 @@ class HomeViewModel(
             }
 
             HomeUiEvent.StartOver -> resumePrompt.value?.let { prompt ->
-                val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 resumePrompt.value = null
-                gate(shown?.progress, test.number) {
-                    openAttemptId.value = session.restart(test).id
-                    started(AttemptKind.PracticeTest, resumed = false)
-                }
+                restart(session, prompt.testNumber, shown?.progress)
             }
 
             HomeUiEvent.DismissResumePrompt -> resumePrompt.value = null
@@ -280,12 +284,8 @@ class HomeViewModel(
             // does it: a fresh attempt from the beginning, with nothing of the old one in it. It is
             // that attempt's score that takes the place of the pass the test already has.
             HomeUiEvent.RedoTest -> passedPrompt.value?.let { prompt ->
-                val test = session.tests.firstOrNull { it.number == prompt.testNumber } ?: return
                 passedPrompt.value = null
-                gate(shown?.progress, test.number) {
-                    openAttemptId.value = session.restart(test).id
-                    started(AttemptKind.PracticeTest, resumed = false)
-                }
+                restart(session, prompt.testNumber, shown?.progress)
             }
 
             HomeUiEvent.DismissPassedPrompt -> passedPrompt.value = null
@@ -348,6 +348,15 @@ class HomeViewModel(
             gated.value = GatedStart(progress.practiceTestsStarted, testNumber, start)
         } else {
             viewModelScope.launch { start() }
+        }
+    }
+
+    /** Starts test [testNumber] from the beginning, through the gate, throwing away what it had. */
+    private fun restart(session: ExamSession, testNumber: Int, progress: HomeProgress?) {
+        val test = session.tests.firstOrNull { it.number == testNumber } ?: return
+        gate(progress, test.number) {
+            openAttemptId.value = session.restart(test).id
+            started(AttemptKind.PracticeTest, resumed = false)
         }
     }
 

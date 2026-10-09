@@ -296,10 +296,9 @@ class ConsentViewModel(
      */
     private fun ageAllowsAnswering(): Boolean {
         val asked = age.value
-        val answered = asked.ageBand != null
-        val guardianAgreed = answered && (asked.ageBand != AgeBand.Under16 || asked.parentalConsent)
-        age.value = asked.copy(parentalError = !guardianAgreed)
-        return answered && guardianAgreed
+        val allowed = ConsentAge.mayAnswerSwitches(asked.ageBand, asked.parentalConsent)
+        age.value = asked.copy(parentalError = !allowed)
+        return allowed
     }
 
     /**

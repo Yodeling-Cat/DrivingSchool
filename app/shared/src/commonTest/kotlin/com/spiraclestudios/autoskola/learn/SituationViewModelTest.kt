@@ -14,6 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class SituationViewModelTest : ViewModelTest() {
@@ -117,6 +118,23 @@ class SituationViewModelTest : ViewModelTest() {
         viewModel.onEvent(SituationUiEvent.Answer(questionId = 1813, chosen = 1))
 
         assertEquals(mapOf(1813 to 1), assertIs<SituationUiState.Ready>(state.value).answers)
+    }
+
+    @Test
+    fun anAnswerRebuildsOnlyTheSituationItSolves() = runTest {
+        // The pager draws every situation from the list; rebuilding them all on each answer would
+        // redraw every page for a mark that changed on one.
+        val viewModel = viewModel(number = 1)
+        val state = observe(viewModel.uiState)
+        val before = assertIs<SituationUiState.Ready>(state.value).situations
+
+        viewModel.onEvent(SituationUiEvent.Answer(questionId = 1813, chosen = 0))
+        assertSame(before, assertIs<SituationUiState.Ready>(state.value).situations)
+
+        viewModel.onEvent(SituationUiEvent.Answer(questionId = 1815, chosen = 0))
+        val after = assertIs<SituationUiState.Ready>(state.value).situations
+        assertSame(before[0], after[0])
+        assertTrue(after[1].solved)
     }
 
     @Test

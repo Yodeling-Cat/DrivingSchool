@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 /**
  * What the user is writing about, which decides what the mail is called and whether the identifier
@@ -105,46 +106,29 @@ class FeedbackViewModel(
     private val emailApp: Boolean = hasEmailApp(),
 ) : ViewModel() {
 
-    private val message = MutableStateFlow("")
-    private val includeDeviceInfo = MutableStateFlow(false)
-    private val messageMissing = MutableStateFlow(false)
-    private val noEmailApp = MutableStateFlow(false)
-    private val copied = MutableStateFlow(false)
-    private val kind = MutableStateFlow(FeedbackKind.Feedback)
+    /** Everything the screen holds that is its own; only the identifier comes from elsewhere. */
+    private val local = MutableStateFlow(
+        FeedbackUiState(
+            message = "",
+            includeDeviceInfo = false,
+            device = device,
+            appVersion = version,
+            hasEmailApp = emailApp,
+            kind = FeedbackKind.Feedback,
+            deviceIdentifier = null,
+            messageMissing = false,
+            noEmailApp = false,
+            copied = false,
+        ),
+    )
 
     val uiState: StateFlow<FeedbackUiState> =
-        combine(
-            combine(message, includeDeviceInfo, messageMissing, noEmailApp, copied, ::Draft),
-            combine(kind, analytics.deviceIdentifier, ::Request),
-        ) { draft, request ->
-            FeedbackUiState(
-                message = draft.message,
-                includeDeviceInfo = draft.includeDeviceInfo,
-                device = device,
-                appVersion = version,
-                hasEmailApp = emailApp,
-                kind = request.kind,
-                deviceIdentifier = request.identifier,
-                messageMissing = draft.messageMissing,
-                noEmailApp = draft.noEmailApp,
-                copied = draft.copied,
+        combine(local, analytics.deviceIdentifier) { state, identifier -> state.copy(deviceIdentifier = identifier) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                local.value.copy(deviceIdentifier = analytics.deviceIdentifier.value),
             )
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            FeedbackUiState(
-                message = "",
-                includeDeviceInfo = false,
-                device = device,
-                appVersion = version,
-                hasEmailApp = emailApp,
-                kind = FeedbackKind.Feedback,
-                deviceIdentifier = analytics.deviceIdentifier.value,
-                messageMissing = false,
-                noEmailApp = false,
-                copied = false,
-            ),
-        )
 
     init {
         // The identifier is there only while the SDK is running and has one to report, so the screen
@@ -156,41 +140,22 @@ class FeedbackViewModel(
     fun onEvent(event: FeedbackUiEvent) {
         when (event) {
             // Writing is the correction the complaint asked for, so it is what takes it away.
-            is FeedbackUiEvent.Write -> {
-                message.value = event.text
-                messageMissing.value = false
-            }
+            is FeedbackUiEvent.Write -> local.update { it.copy(message = event.text, messageMissing = false) }
 
             // What was copied is no longer what is shown, so the copy is forgotten with it.
-            is FeedbackUiEvent.IncludeDeviceInfo -> {
-                includeDeviceInfo.value = event.included
-                copied.value = false
+            is FeedbackUiEvent.IncludeDeviceInfo -> local.update {
+                it.copy(includeDeviceInfo = event.included, copied = false)
             }
 
             // A different kind of message is a different mail, and the copy that was made was of the
             // one that is no longer being written.
-            is FeedbackUiEvent.SetKind -> {
-                kind.value = event.kind
-                copied.value = false
-            }
+            is FeedbackUiEvent.SetKind -> local.update { it.copy(kind = event.kind, copied = false) }
 
-            FeedbackUiEvent.MessageMissing -> messageMissing.value = true
+            FeedbackUiEvent.MessageMissing -> local.update { it.copy(messageMissing = true) }
 
-            FeedbackUiEvent.NoEmailApp -> noEmailApp.value = true
+            FeedbackUiEvent.NoEmailApp -> local.update { it.copy(noEmailApp = true) }
 
-            FeedbackUiEvent.Copied -> copied.value = true
+            FeedbackUiEvent.Copied -> local.update { it.copy(copied = true) }
         }
     }
 }
-
-/** The part of the screen the user is typing into and answering. */
-private data class Draft(
-    val message: String,
-    val includeDeviceInfo: Boolean,
-    val messageMissing: Boolean,
-    val noEmailApp: Boolean,
-    val copied: Boolean,
-)
-
-/** What is being written, and the identifier that only a request about data carries. */
-private data class Request(val kind: FeedbackKind, val identifier: String?)

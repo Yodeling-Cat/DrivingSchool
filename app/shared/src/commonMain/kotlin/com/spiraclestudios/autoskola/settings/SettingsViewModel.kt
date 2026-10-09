@@ -252,26 +252,22 @@ class SettingsViewModel(
                 // The row is drawn locked where the age answer does not allow it; refused here too, so
                 // the rule holds whichever screen is driving this and whatever else changes.
                 if (!canAnswerSwitches()) return
-                if (preferences.preferences.value.crashReportingEnabled != event.enabled) {
-                    // Recorded before the write, so the answer the gate reads is the one that was
-                    // in force when the user changed it - the event is the record of the change.
-                    analytics.capture(
-                        AnalyticsEvent.ConsentChanged,
-                        consentChangedProperties(CONSENT_SWITCH_CRASH_REPORTING, event.enabled),
-                    )
-                }
+                recordConsentChange(
+                    CONSENT_SWITCH_CRASH_REPORTING,
+                    preferences.preferences.value.crashReportingEnabled,
+                    event.enabled,
+                )
                 preferences.setCrashReportingEnabled(event.enabled)
                 analytics.syncConsent()
             }
 
             is SettingsUiEvent.SetAnalytics -> {
                 if (!canAnswerSwitches()) return
-                if (preferences.preferences.value.analyticsEnabled != event.enabled) {
-                    analytics.capture(
-                        AnalyticsEvent.ConsentChanged,
-                        consentChangedProperties(CONSENT_SWITCH_ANALYTICS, event.enabled),
-                    )
-                }
+                recordConsentChange(
+                    CONSENT_SWITCH_ANALYTICS,
+                    preferences.preferences.value.analyticsEnabled,
+                    event.enabled,
+                )
                 preferences.setAnalyticsEnabled(event.enabled)
                 analytics.syncConsent()
             }
@@ -279,12 +275,11 @@ class SettingsViewModel(
             is SettingsUiEvent.SetPersonalizedAds -> {
                 // Refused for anyone under 18 even with the other two unlocked: no agreement opens it.
                 if (!canPersonalizeAds()) return
-                if (preferences.preferences.value.personalizedAdsEnabled != event.enabled) {
-                    analytics.capture(
-                        AnalyticsEvent.ConsentChanged,
-                        consentChangedProperties(CONSENT_SWITCH_PERSONALIZED_ADS, event.enabled),
-                    )
-                }
+                recordConsentChange(
+                    CONSENT_SWITCH_PERSONALIZED_ADS,
+                    preferences.preferences.value.personalizedAdsEnabled,
+                    event.enabled,
+                )
                 preferences.setPersonalizedAdsEnabled(event.enabled)
                 // No syncConsent after this one: the answer is not something PostHog is told about. The
                 // ad SDK is, and at once - a banner that is loaded next should already ask for the kind
@@ -292,19 +287,13 @@ class SettingsViewModel(
                 ads.pushConsent()
             }
 
+            // A higher band unlocks switches in one press and the app has no way to check the answer,
+            // so it asks first, and nothing is written while the question is on screen. The same
+            // band changes nothing, a lower one is refused (the row does not offer it either; this is
+            // the rule), and an unanswered question cannot be reached from here.
             is SettingsUiEvent.SetAgeBand -> {
-                val current = preferences.preferences.value.ageBand
-                when {
-                    // Nothing to change, and nothing to ask: the same band, or a question that has not
-                    // been answered, which the consent screen makes sure cannot be reached from here.
-                    current == null || event.band == current -> Unit
-
-                    // A higher band unlocks switches in one press and the app has no way to check the
-                    // answer, so it asks first. Nothing is written while the question is on screen.
-                    current.rises(event.band) -> ageConfirmation.value = event.band
-
-                    // A lower band is refused. The row does not offer it either; this is the rule.
-                    else -> Unit
+                if (preferences.preferences.value.ageBand?.rises(event.band) == true) {
+                    ageConfirmation.value = event.band
                 }
             }
 
@@ -369,6 +358,15 @@ class SettingsViewModel(
     private fun syncGates() {
         analytics.syncConsent()
         ads.pushConsent()
+    }
+
+    /**
+     * Records a consent switch going from [was] to [now], if it changes. Before the write, so the
+     * answer the gate reads is the one that was in force when the user changed it - the event is the
+     * record of the change.
+     */
+    private fun recordConsentChange(switch: String, was: Boolean, now: Boolean) {
+        if (was != now) analytics.capture(AnalyticsEvent.ConsentChanged, consentChangedProperties(switch, now))
     }
 
     /**

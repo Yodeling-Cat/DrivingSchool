@@ -149,6 +149,9 @@ class PracticeViewModel(
      */
     private var shownAnswers: Map<Int, Int> = emptyMap()
 
+    /** The attempt [shownAnswers] was read from: a tick of the clock hands over the same one again. */
+    private var shownAttempt: TestAttempt? = null
+
     private var isForeground = false
     private var isFinished = false
     private var allAnswered = false
@@ -447,8 +450,11 @@ class PracticeViewModel(
             .map { PracticeQuestion(it, banks.imageUri(session.bank, it)) }
             .also { questions = it }
         val initialPage = initialPage ?: attempt.resumeIndex().also { initialPage = it }
-        val answers = attempt.answersByIndex()
-        if (answers != shownAnswers) shownAnswers = answers
+        if (attempt !== shownAttempt) {
+            shownAttempt = attempt
+            val answers = attempt.answersByIndex()
+            if (answers != shownAnswers) shownAnswers = answers
+        }
         return PracticeUiState.Ready(
             exam = ExamLabel(session.category, session.bank.language),
             kind = attempt.kind,

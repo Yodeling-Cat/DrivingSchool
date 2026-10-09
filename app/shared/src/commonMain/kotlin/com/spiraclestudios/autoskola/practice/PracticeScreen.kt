@@ -56,7 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -250,12 +250,15 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     val (answered, skipped) = answeredAndSkipped(selectedAnswers, questions.size)
     val pagerState = rememberPagerState(initialPage = state.initialPage, pageCount = { questions.size })
     val currentIndex = pagerState.currentPage
-    val sheetState = rememberStandardBottomSheetState(skipHiddenState = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.PartiallyExpanded,
+        enabledValues = setOf(SheetValue.PartiallyExpanded, SheetValue.Expanded),
+    )
     // The same bar on a tall window, where the list has a panel of its own: nothing expands or
     // drags this sheet, it's the bar with a shadow under it.
-    val pinnedSheetState = rememberStandardBottomSheetState(
+    val pinnedSheetState = rememberBottomSheetState(
         initialValue = SheetValue.PartiallyExpanded,
-        skipHiddenState = true,
+        enabledValues = setOf(SheetValue.PartiallyExpanded, SheetValue.Expanded),
         confirmValueChange = { it == SheetValue.PartiallyExpanded },
     )
     val scope = rememberCoroutineScope()

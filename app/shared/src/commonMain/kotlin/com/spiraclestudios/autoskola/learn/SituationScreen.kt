@@ -69,6 +69,7 @@ import com.spiraclestudios.autoskola.i18n.AppLanguage
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.ChipState
 import com.spiraclestudios.autoskola.practice.SwipePager
+import com.spiraclestudios.autoskola.practice.arrowKeyPaging
 import com.spiraclestudios.autoskola.practice.arrowKeyTarget
 import com.spiraclestudios.autoskola.ui.AnswerCard
 import com.spiraclestudios.autoskola.ui.AppPreview
@@ -82,6 +83,7 @@ import com.spiraclestudios.autoskola.ui.IconArrowBack
 import com.spiraclestudios.autoskola.ui.LocalNavBarInset
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
+import com.spiraclestudios.autoskola.ui.PagerSideArrows
 import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
@@ -176,48 +178,14 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
         scope.launch { pagerState.animateScrollToPage(index.coerceIn(0, situations.lastIndex)) }
     }
 
-    // Arrow keys step through the situations on a desktop keyboard, the way the arrows beside the
-    // page do. The page takes the focus on the way in, so the keys work without having to click
-    // first; a child that takes focus by being clicked still hands its key events up to here,
-    // because they are asked for as preview events.
+    // Arrow keys step through the situations, the way the arrows beside the page do.
     val pageFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { pageFocus.requestFocus() }
-
-    /** The arrows beside the page, for a window wide enough to hold them. */
-    val besideArrows: @Composable BoxScope.() -> Unit = {
-        PageArrow(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            description = strings.previousSituation,
-            enabled = current > 0,
-            onClick = { goTo(current - 1) },
-            modifier = Modifier.align(Alignment.CenterStart).width(gutter).fillMaxHeight(),
-        )
-        PageArrow(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            description = strings.nextSituation,
-            enabled = current < situations.lastIndex,
-            onClick = { goTo(current + 1) },
-            modifier = Modifier.align(Alignment.CenterEnd).width(gutter).fillMaxHeight(),
-        )
-    }
 
     Column(
         Modifier
             .fillMaxWidth()
-            .focusRequester(pageFocus)
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                // A modified arrow key belongs to the platform, not to the situations.
-                val plainKeyDown = event.type == KeyEventType.KeyDown &&
-                    !event.isCtrlPressed &&
-                    !event.isAltPressed &&
-                    !event.isMetaPressed
-                if (!plainKeyDown) return@onPreviewKeyEvent false
-                val target = arrowKeyTarget(event.key, current, situations.size)
-                    ?: return@onPreviewKeyEvent false
-                goTo(target)
-                true
-            },
+            .arrowKeyPaging(pageFocus, current, situations.size, ::goTo),
     ) {
         SituationHeader(
             title = strings.situationName(current + 1),
@@ -236,7 +204,16 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
                     onEvent = onEvent,
                 )
             }
-            if (arrowsBeside) besideArrows()
+            if (arrowsBeside) {
+                PagerSideArrows(
+                    gutter = gutter,
+                    currentPage = current,
+                    pageCount = situations.size,
+                    previousDescription = strings.previousSituation,
+                    nextDescription = strings.nextSituation,
+                    goTo = ::goTo,
+                )
+            }
         }
         // Pinned under the pager rather than on each page: one banner for the whole screen, so moving
         // to the next situation is the same ad, not a new request on every swipe.
@@ -285,7 +262,6 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                 EnlargeableImage(uri = situation.imageUri, page = pageSize)
                 if (situation.questions.size > 1) {
                     SituationTabs(
-                        count = situation.questions.size,
                         selected = situation.questions.indexOf(question),
                         states = questionStates(situation.questions, answers),
                         onSelect = { tab = it },
@@ -317,7 +293,6 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
  */
 @Composable
 private fun SituationTabs(
-    count: Int,
     selected: Int,
     /** How each question stands, by the position its tab is drawn at. */
     states: List<ChipState>,
@@ -326,6 +301,7 @@ private fun SituationTabs(
 ) {
     val colors = Naj.colors
     val shape = RoundedCornerShape(ChipRadius)
+    val count = states.size
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -597,7 +573,6 @@ private fun SituationTabsPreview() {
         PreviewBoard {
             PreviewLabel("the first tab read, and every way a question can stand")
             SituationTabs(
-                count = 4,
                 selected = 0,
                 states = listOf(
                     ChipState.Correct,
@@ -610,7 +585,6 @@ private fun SituationTabsPreview() {
             )
             PreviewLabel("the last tab read, answered wrongly")
             SituationTabs(
-                count = 2,
                 selected = 1,
                 states = listOf(ChipState.Correct, ChipState.Incorrect),
                 onSelect = {},
@@ -626,7 +600,6 @@ private fun SituationTabsPreview() {
 private fun SituationTabsNarrowPreview() {
     AppPreview {
         SituationTabs(
-            count = 4,
             selected = 2,
             states = listOf(ChipState.Correct, ChipState.Unanswered, ChipState.Incorrect, ChipState.Unanswered),
             onSelect = {},

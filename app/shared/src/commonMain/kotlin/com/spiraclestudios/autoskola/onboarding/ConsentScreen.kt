@@ -257,13 +257,23 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
                 // have nothing left to be drawn in. `PracticeScreen` slims its bars the same way.
                 if (compactHeight) {
                     Row(buttons, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        AcceptAllButton(state, onEvent, Modifier.weight(1f), height = 48.dp)
-                        AcceptChosenButton(state, onEvent, Modifier.weight(1f), height = 48.dp)
+                        AcceptAllButton(state.ageAnswered, onEvent, Modifier.weight(1f), height = 48.dp)
+                        AcceptChosenButton(state.ageAnswered, onEvent, Modifier.weight(1f), height = 48.dp)
                     }
                 } else {
                     Column(buttons, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AcceptAllButton(state, onEvent, Modifier.fillMaxWidth(), height = PrimaryButtonHeight)
-                        AcceptChosenButton(state, onEvent, Modifier.fillMaxWidth(), height = PrimaryButtonHeight)
+                        AcceptAllButton(
+                            state.ageAnswered,
+                            onEvent,
+                            Modifier.fillMaxWidth(),
+                            height = PrimaryButtonHeight,
+                        )
+                        AcceptChosenButton(
+                            state.ageAnswered,
+                            onEvent,
+                            Modifier.fillMaxWidth(),
+                            height = PrimaryButtonHeight,
+                        )
                     }
                 }
             }
@@ -274,7 +284,7 @@ fun ConsentScreen(state: ConsentUiState, onEvent: (ConsentUiEvent) -> Unit, onOp
 /** "Accept all", waiting like its twin for the age question to be answered. */
 @Composable
 private fun AcceptAllButton(
-    state: ConsentUiState,
+    ageAnswered: Boolean,
     onEvent: (ConsentUiEvent) -> Unit,
     modifier: Modifier,
     height: Dp,
@@ -285,7 +295,7 @@ private fun AcceptAllButton(
         // It waits for the age question. Nothing under it is answerable before that, so the button
         // cannot mean anything yet — and a button drawn dead says so without a word, which is what the
         // mark it replaces was for.
-        enabled = state.ageAnswered,
+        enabled = ageAnswered,
         height = height,
         modifier = modifier,
         fillWidth = true,
@@ -295,7 +305,7 @@ private fun AcceptAllButton(
 /** And "accept the chosen", which commits only what the switches say. */
 @Composable
 private fun AcceptChosenButton(
-    state: ConsentUiState,
+    ageAnswered: Boolean,
     onEvent: (ConsentUiEvent) -> Unit,
     modifier: Modifier,
     height: Dp,
@@ -303,7 +313,7 @@ private fun AcceptChosenButton(
     OutlinePill(
         text = strings.consentAcceptChosen,
         onClick = { onEvent(ConsentUiEvent.AcceptChosen) },
-        enabled = state.ageAnswered,
+        enabled = ageAnswered,
         height = height,
         modifier = modifier,
     )

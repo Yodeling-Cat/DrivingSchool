@@ -271,7 +271,7 @@ private fun ColumnHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit,
         }
         fullWidthItem {
             ActionRow(
-                tests = tests,
+                hasTests = tests.isNotEmpty(),
                 notPassedEnabled = state.hasNotPassedTests,
                 onEvent = onEvent,
             )
@@ -376,7 +376,7 @@ private fun ExpandedHome(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Uni
             Spacer(Modifier.height(28.dp))
             Column(verticalArrangement = Arrangement.spacedBy(BandGap)) {
                 ActionRow(
-                    tests = tests,
+                    hasTests = tests.isNotEmpty(),
                     notPassedEnabled = state.hasNotPassedTests,
                     onEvent = onEvent,
                     stacked = true,
@@ -743,7 +743,7 @@ private fun ContinuePill() {
  */
 @Composable
 private fun ActionRow(
-    tests: List<PracticeTest>,
+    hasTests: Boolean,
     notPassedEnabled: Boolean,
     onEvent: (HomeUiEvent) -> Unit,
     modifier: Modifier = Modifier,
@@ -757,7 +757,7 @@ private fun ActionRow(
             onClick = { onEvent(HomeUiEvent.StartRandomTest(notPassed = false)) },
             modifier = pillModifier,
             icon = Icons.Filled.Shuffle,
-            enabled = tests.isNotEmpty(),
+            enabled = hasTests,
         )
     }
     val notPassed = @Composable { pillModifier: Modifier ->

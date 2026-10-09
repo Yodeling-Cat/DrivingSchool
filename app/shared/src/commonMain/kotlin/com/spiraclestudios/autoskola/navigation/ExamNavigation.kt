@@ -180,7 +180,7 @@ fun ExamNavigation() {
     val pop: () -> Unit = { backStack.removeLastOrNull() }
     val selectTab: (NavTab) -> Unit = { tab ->
         // A tab other than Tests sits on top of it, so back from the tab returns to the tests.
-        while (backStack.size > 1) backStack.removeLastOrNull()
+        backStack.popToRoot()
         when (tab) {
             NavTab.Tests -> Unit
             NavTab.Learn -> backStack.add(LearnKey)

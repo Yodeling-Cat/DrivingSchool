@@ -3,7 +3,12 @@ package com.spiraclestudios.autoskola.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -15,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.spiraclestudios.autoskola.ui.theme.Naj
 
@@ -54,6 +60,36 @@ fun PageArrow(
     }
 }
 
+/**
+ * The two [PageArrow]s beside a pager, one in each [gutter] at the sides of the box they are drawn
+ * over: back to the page before [currentPage] and on to the one after it, each dead where there is
+ * no page that way.
+ */
+@Composable
+fun BoxScope.PagerSideArrows(
+    gutter: Dp,
+    currentPage: Int,
+    pageCount: Int,
+    previousDescription: String,
+    nextDescription: String,
+    goTo: (Int) -> Unit,
+) {
+    PageArrow(
+        icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+        description = previousDescription,
+        enabled = currentPage > 0,
+        onClick = { goTo(currentPage - 1) },
+        modifier = Modifier.align(Alignment.CenterStart).width(gutter).fillMaxHeight(),
+    )
+    PageArrow(
+        icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        description = nextDescription,
+        enabled = currentPage < pageCount - 1,
+        onClick = { goTo(currentPage + 1) },
+        modifier = Modifier.align(Alignment.CenterEnd).width(gutter).fillMaxHeight(),
+    )
+}
+
 // ── Previews ──
 
 /** Both arrows, live and at the ends of a list, where one of them is dead. */
@@ -72,6 +108,24 @@ private fun PageArrowPreview() {
                 PageArrow(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous", enabled = false, onClick = {})
                 PageArrow(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next", enabled = true, onClick = {})
             }
+        }
+    }
+}
+
+/** The arrows beside a pager on its first page, where only the one forward is live. */
+@Preview(widthDp = 600, heightDp = 200)
+@Composable
+private fun PagerSideArrowsPreview() {
+    AppPreview {
+        Box(Modifier.fillMaxWidth().height(160.dp)) {
+            PagerSideArrows(
+                gutter = PageArrowSize,
+                currentPage = 0,
+                pageCount = 3,
+                previousDescription = "Previous",
+                nextDescription = "Next",
+                goTo = {},
+            )
         }
     }
 }

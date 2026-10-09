@@ -125,6 +125,7 @@ import com.spiraclestudios.autoskola.ui.NajMenuItem
 import com.spiraclestudios.autoskola.ui.NavyPill
 import com.spiraclestudios.autoskola.ui.PageArrow
 import com.spiraclestudios.autoskola.ui.PageArrowSize
+import com.spiraclestudios.autoskola.ui.PagerSideArrows
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PreviewRow
@@ -342,7 +343,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
     // what is left over there.
     val openTopRoom = if (compactHeight) navBarInset else appBarHeight
     val sideInsets =
-        WindowInsetsSides.Horizontal + if (compactHeight) WindowInsetsSides.Top else WindowInsetsSides.Horizontal
+        if (compactHeight) WindowInsetsSides.Horizontal + WindowInsetsSides.Top else WindowInsetsSides.Horizontal
 
     // The sheet's top edge, less the room Material's host keeps under its Snackbar: the message then
     // sits just clear of the sheet's top instead of floating over the questions.
@@ -431,19 +432,13 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
 
     /** The arrows for a page wide enough to hold them beside the question. */
     val besideArrows: @Composable BoxScope.() -> Unit = {
-        PageArrow(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            description = strings.previousQuestion,
-            enabled = currentIndex > 0,
-            onClick = { goTo(currentIndex - 1) },
-            modifier = Modifier.align(Alignment.CenterStart).width(gutter).fillMaxHeight(),
-        )
-        PageArrow(
-            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            description = strings.nextQuestion,
-            enabled = currentIndex < questions.size - 1,
-            onClick = { goTo(currentIndex + 1) },
-            modifier = Modifier.align(Alignment.CenterEnd).width(gutter).fillMaxHeight(),
+        PagerSideArrows(
+            gutter = gutter,
+            currentPage = currentIndex,
+            pageCount = questions.size,
+            previousDescription = strings.previousQuestion,
+            nextDescription = strings.nextQuestion,
+            goTo = ::goTo,
         )
     }
 
@@ -502,20 +497,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
         Modifier
             .fillMaxSize()
             .paperBackground(paperGlows(colors, mintY = 0.7f))
-            .focusRequester(pageFocus)
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                // A modified arrow key belongs to the platform, not to the questions.
-                val plainKeyDown = event.type == KeyEventType.KeyDown &&
-                    !event.isCtrlPressed &&
-                    !event.isAltPressed &&
-                    !event.isMetaPressed
-                if (!plainKeyDown) return@onPreviewKeyEvent false
-                val target = arrowKeyTarget(event.key, currentIndex, questions.size)
-                    ?: return@onPreviewKeyEvent false
-                goTo(target)
-                true
-            },
+            .arrowKeyPaging(pageFocus, currentIndex, questions.size, ::goTo),
     ) {
         if (showPanel) {
             // The bar is the bottom sheet a phone shows, over the questions alone: the list has a
@@ -773,22 +755,17 @@ private fun elapsedColor(overTime: Boolean): Color = if (overTime) Naj.colors.wr
  * it is drawn, so the clock ticking redraws the clock and nothing around it.
  */
 @Composable
-private fun ElapsedLabel(
-    elapsed: () -> String,
-    style: TextStyle,
-    color: Color,
-    maxLines: Int = 1,
-) {
+private fun ElapsedLabel(elapsed: () -> String, style: TextStyle, color: Color) {
     val time = elapsed()
     Box {
         Text(
             elapsedClockPlaceholder(time),
             style = style,
             color = Color.Transparent,
-            maxLines = maxLines,
+            maxLines = 1,
             modifier = Modifier.clearAndSetSemantics {},
         )
-        Text(time, style = style, color = color, maxLines = maxLines)
+        Text(time, style = style, color = color, maxLines = 1)
     }
 }
 
@@ -987,7 +964,6 @@ private fun RowScope.PracticeBarContent(
                     elapsed,
                     style = Naj.type.tiny,
                     color = if (overTime) colors.wrongBottom else colors.roadYellow,
-                    maxLines = 1,
                 )
             }
         } else {

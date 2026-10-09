@@ -5,7 +5,7 @@ Where the app's question banks and images come from, what each source contains, 
 | Country | Status | Languages | Source |
 |---|---|---|---|
 | Slovakia | In the app | Slovak, English, Hungarian | Ministry of Interior (minv.sk) |
-| Czechia | Imported, not in the app yet | Czech | Ministry of Transport (etesty.md.gov.cz) |
+| Czechia | In the app, on the `czech-importer` branch | Czech | Ministry of Transport (etesty.md.gov.cz) |
 
 ## Slovakia: Ministry of Interior (minv.sk)
 
@@ -136,10 +136,8 @@ it already ships. The pictures themselves come from minv.sk and fall under the d
 
 ## Czechia: Ministry of Transport (etesty.md.gov.cz)
 
-Last imported: **2026-10-09**, by `tools/import/import_md_cz.py`. The importer is on the
-`czech-importer` branch, and its output is not committed yet: the app offers Czechia as soon as
-`banks/index.json` lists a Czech bank, and it cannot grade the Czech exam yet
-([plans/czech-tests.md](../plans/czech-tests.md)).
+Last imported: **2026-10-09**, by `tools/import/import_md_cz.py`. The bank and the app's support for
+it are on the `czech-importer` branch ([plans/czech-tests.md](../plans/czech-tests.md)).
 
 The theory exam is set by vyhláška 167/2002 Sb. (as amended by 298/2006 Sb.), and the ministry
 publishes every exam question in the Věstník dopravy. Its eTesty site states the format:

@@ -3,7 +3,6 @@ package com.spiraclestudios.autoskola.learn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.data.ads.AdRepository
-import com.spiraclestudios.autoskola.data.exam.ExamRepository
 import com.spiraclestudios.autoskola.data.signs.SignCatalogRepository
 import com.spiraclestudios.autoskola.signs.Sign
 import com.spiraclestudios.autoskola.signs.SignCatalog
@@ -14,10 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /** One sign as the list draws it: the catalog's text, and the picture's URI. */
 data class SignItem(
@@ -78,20 +75,19 @@ sealed interface SignsUiEvent {
     data object ToggleAllGroups : SignsUiEvent
 }
 
-class SignsViewModel(private val catalogs: SignCatalogRepository, exams: ExamRepository, ads: AdRepository) :
-    ViewModel() {
+class SignsViewModel(private val catalogs: SignCatalogRepository, ads: AdRepository) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
     /**
-     * The road signs of the country whose exam the driver is taking. A country with no catalog
-     * leaves the screen loading: the Learn hub does not offer its signs at all.
+     * The road signs the app bundles. An app with no catalog leaves the screen loading: the Learn
+     * hub does not offer road signs there at all.
      */
-    private val catalog = exams.session.filterNotNull()
-        .map { it.bank.country }
-        .distinctUntilChanged()
-        .map { catalogs.forCountry(it) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val catalog = MutableStateFlow<SignCatalog?>(null)
+
+    init {
+        viewModelScope.launch { catalog.value = catalogs.bundled() }
+    }
 
     /** The headings the reader has folded, which a search clears: its results open every group. */
     private val folded = MutableStateFlow(emptySet<GroupKey>())

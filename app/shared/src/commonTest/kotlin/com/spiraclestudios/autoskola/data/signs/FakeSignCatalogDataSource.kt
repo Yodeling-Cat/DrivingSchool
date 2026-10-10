@@ -37,10 +37,10 @@ fun testSignCatalogInfo(catalog: SignCatalog) = SignCatalogInfo(
 )
 
 /** Three signs: two of them warning signs under one heading, the third a road marking. */
-fun testSignCatalog(id: String = "sk", version: Int = 1, country: String = "SK") = SignCatalog(
+fun testSignCatalog(id: String = "sk", version: Int = 1) = SignCatalog(
     id = id,
     version = version,
-    country = country,
+    country = "SK",
     language = "sk",
     imageDir = "minv-sk",
     source = "Vyhláška MV SR č. 30/2020 Z. z., príloha č. 1",

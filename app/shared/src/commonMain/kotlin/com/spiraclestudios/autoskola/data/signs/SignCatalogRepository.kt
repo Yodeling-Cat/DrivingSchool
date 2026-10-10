@@ -22,12 +22,15 @@ class SignCatalogRepository(private val dataSource: SignCatalogDataSource) {
         return catalog(id, info.version)
     }
 
+    /** Whether the app bundles a road-sign catalog. Asks the index alone, not the catalog. */
+    suspend fun hasBundled(): Boolean = index().isNotEmpty()
+
     /**
-     * The latest catalog of [country]'s road signs, or `null` when none is bundled. Every country's
-     * signs are its own, so a driver is only ever shown the ones of the exam they are taking.
+     * The road-sign catalog the app bundles, or `null` when it has none. An app bundles its own
+     * country's content and no other's (see AGENTS.md, "Countries"), so this is the catalog of the
+     * country whose exam the driver takes.
      */
-    suspend fun forCountry(country: String): SignCatalog? =
-        index().firstOrNull { it.country == country }?.let { catalog(it.id, it.version) }
+    suspend fun bundled(): SignCatalog? = index().firstOrNull()?.let { catalog(it.id, it.version) }
 
     /**
      * A specific version. As with the question banks, only catalogs that were read successfully

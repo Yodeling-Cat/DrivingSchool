@@ -197,8 +197,7 @@ def write_banks(banks, groups_by_id, version):
         manifest.append(entry)
         log(f"  {document['id']}: {len(questions)} questions "
             f"({len(bank['questions']) - len(questions)} without groups dropped), {entry['questionCounts']}")
-    # Keep other importers' banks in the shared index.
-    write_index(BANKS_OUT / "index.json", manifest, "SK")
+    write_index(BANKS_OUT / "index.json", manifest)
     return images
 
 

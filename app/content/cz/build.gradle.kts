@@ -26,7 +26,7 @@ kotlin {
     }
 
     android {
-        namespace = "com.spiraclestudios.autoskola.content.cz"
+        namespace = "com.spiraclestudios.autoskola.content.${project.name}"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -48,5 +48,5 @@ kotlin {
 }
 
 compose.resources {
-    packageOfResClass = "com.spiraclestudios.autoskola.content.cz"
+    packageOfResClass = "com.spiraclestudios.autoskola.content.${project.name}"
 }

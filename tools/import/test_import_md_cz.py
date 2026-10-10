@@ -8,7 +8,7 @@ from pathlib import Path
 import pymupdf
 
 import import_md_cz
-from importer_common import index_entry, read_json
+from importer_common import index_entry, media_files, read_json
 
 FIXTURES = Path(__file__).resolve().parent / "tests_fixtures" / "md_cz"
 
@@ -169,7 +169,7 @@ class MediaFilesTest(unittest.TestCase):
 
     def test_lists_every_file_a_question_is_shown_with(self):
         def files(qid):
-            return import_md_cz.media_files(import_md_cz.parse_question(raw_question(qid), self.SECTION_OF_SCOPE))
+            return media_files(import_md_cz.parse_question(raw_question(qid), self.SECTION_OF_SCOPE))
 
         self.assertEqual([], files(180))
         self.assertEqual(["Q_W_1863.jpg"], files(1863))

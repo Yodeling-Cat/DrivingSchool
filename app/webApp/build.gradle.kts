@@ -11,7 +11,6 @@ plugins {
  * one country, as each Android flavor is (see AGENTS.md, "Countries").
  */
 val country = providers.gradleProperty("country").getOrElse("sk")
-require(country in setOf("sk", "cz")) { "country must be sk or cz, not $country" }
 
 kotlin {
     js {

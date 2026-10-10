@@ -45,23 +45,24 @@ def clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def media_files(question):
+    """Every file [question] is shown with: its picture, its video and its answers' pictures."""
+    files = [question["image"]] if question["image"] else []
+    if question.get("video"):
+        files.append(question["video"]["file"])
+    return files + (question.get("answerImages") or [])
+
+
 def bank_images(banks_dir, image_dir):
-    """Every file in [image_dir] that the bundled banks whose media is there reference: pictures,
-    videos and the pictures that answers are.
+    """Every file in [image_dir] that the bundled banks whose media is there reference.
 
     Older versions stay bundled, so their files count too.
     """
     images = set()
     for path in banks_dir.glob("*-v*.json"):
         bank = read_json(path)
-        if bank["imageDir"] != image_dir:
-            continue
-        for q in bank["questions"]:
-            if q["image"]:
-                images.add(q["image"])
-            if q.get("video"):
-                images.add(q["video"]["file"])
-            images.update(q.get("answerImages") or [])
+        if bank["imageDir"] == image_dir:
+            images.update(name for q in bank["questions"] for name in media_files(q))
     return images
 
 
@@ -98,8 +99,8 @@ def remove_stale_images(files_dir, image_dir):
         log(f"  removed {len(stale)} images no longer referenced")
 
 
-def write_index(path, entries, country):
-    """Writes the index at [path] with [entries] for [country], keeping the other countries' entries."""
-    others = [e for e in read_json(path) if e["country"] != country] if path.exists() else []
-    path.write_text(json.dumps(others + entries, ensure_ascii=False, indent=2), encoding="utf-8")
+def write_index(path, entries):
+    """Writes the index at [path] with [entries]. Each country's content module has an index of its
+    own, so it lists that country's entries and no other's."""
+    path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
     return path

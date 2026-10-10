@@ -98,7 +98,7 @@ def write_sign_index(signs, version):
         "language": LANGUAGE,
         "signCount": len(signs),
     }
-    return write_index(SIGNS_OUT / "index.json", [entry], COUNTRY)
+    return write_index(SIGNS_OUT / "index.json", [entry])
 
 
 def main():

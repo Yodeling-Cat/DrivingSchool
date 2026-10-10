@@ -27,7 +27,7 @@ from pathlib import Path
 import pymupdf
 
 from importer_common import (
-    clean, content_files, download, log, read_json, remove_stale_images, write_bank, write_index,
+    clean, content_files, download, log, media_files, read_json, remove_stale_images, write_bank, write_index,
 )
 
 CACHE = Path(__file__).resolve().parent / "cache" / "md-cz"
@@ -237,14 +237,6 @@ def parse_question(raw, section_of_scope):
     return question
 
 
-def media_files(question):
-    """Every file [question] is shown with: its picture, its video and its answers' pictures."""
-    files = [question["image"]] if question["image"] else []
-    if "video" in question:
-        files.append(question["video"]["file"])
-    return files + question.get("answerImages", [])
-
-
 def encode_video_args(source, target):
     """The ffmpeg command that makes a situation to watch small enough to bundle: VIDEO_HEIGHT
     tall, H.264 that every platform's player reads, no sound, and the index at the start of the file
@@ -412,8 +404,7 @@ def main():
     write_media(document, args.refresh)
     entry = write_bank(document, GROUPS, BANKS_OUT)
     log(f"  {document['id']}: {len(document['questions'])} questions, {entry['questionCounts']}")
-    # Keep other importers' banks in the shared index.
-    write_index(BANKS_OUT / "index.json", [entry], COUNTRY)
+    write_index(BANKS_OUT / "index.json", [entry])
     remove_stale_images(FILES_OUT, IMAGES_OUT.name)
     log("Done")
 

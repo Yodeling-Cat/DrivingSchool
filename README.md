@@ -79,8 +79,14 @@ We prefer strict TDD, and write the tests first.
 
 ## Data and license
 
+The source code is source-available under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md). You may read, study and change it, and use it
+for any noncommercial purpose. Commercial use, including publishing the app or a derivative of it
+with ads or paid features, is not permitted.
+
+The license covers only the code in this repository. It does not cover the question banks,
+pictures, videos or road-sign catalog, which are not ours to license.
+
 The question texts, answers and images are published by the Ministry of Interior of the Slovak
 Republic. The road-sign catalog comes from regulation 30/2020 Z. z. This project is not affiliated
 with either. Terms of use for the data are described in [docs/data-sources.md](docs/data-sources.md).
-
-This repository has no open-source license. All rights reserved.

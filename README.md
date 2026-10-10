@@ -87,6 +87,8 @@ with ads or paid features, is not permitted.
 The license covers only the code in this repository. It does not cover the question banks,
 pictures, videos or road-sign catalog, which are not ours to license.
 
-The question texts, answers and images are published by the Ministry of Interior of the Slovak
-Republic. The road-sign catalog comes from regulation 30/2020 Z. z. This project is not affiliated
-with either. Terms of use for the data are described in [docs/data-sources.md](docs/data-sources.md).
+The Slovak question texts, answers and images are published by the Ministry of Interior of the
+Slovak Republic. The road-sign catalog comes from regulation 30/2020 Z. z. The Czech question texts,
+answers, pictures and videos are published by the Ministry of Transport of the Czech Republic, and
+some of the Czech pictures belong to Asociace autoškol ČR. This project is not affiliated with any
+of them. Terms of use for the data are described in [docs/data-sources.md](docs/data-sources.md).

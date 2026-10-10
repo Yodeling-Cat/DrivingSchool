@@ -1,4 +1,4 @@
-# NajAutoskola
+# Naj Autoškola
 
 A driving-theory exam trainer for Android, iOS and the web, built with **Kotlin Multiplatform** and
 **Compose Multiplatform**.
@@ -47,37 +47,7 @@ completion even when the screen that started them is gone.
 | Ads and billing | Google AdMob, Google Play Billing |
 | Server | Ktor 3 on Netty |
 
-## Getting started
-
-### Run the apps
-
-| Target | Command |
-|---|---|
-| Android (Slovak / Czech) | `./gradlew :app:androidApp:assembleSkDebug` / `assembleCzDebug` |
-| Web (Wasm) | `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`, with `-Pcountry=cz` for the Czech app |
-| Web (JS, for older browsers) | `./gradlew :app:webApp:jsBrowserDevelopmentRun` |
-| Server | `./gradlew :server:run` |
-| iOS | Open [`app/iosApp`](app/iosApp) in Xcode and run. |
-
-On Windows, use `gradlew.bat`. Each country is its own app with only its own questions, pictures and
-videos (see [docs/countries.md](docs/countries.md)).
-
-### Testing
-
-We prefer strict TDD, and write the tests first.
-
-```bash
-./gradlew :core:jvmTest                     # Domain logic
-./gradlew :app:shared:testAndroidHostTest   # ViewModels, repositories, persistence
-./gradlew :app:shared:iosSimulatorArm64Test # Shared code on iOS
-./gradlew :app:shared:wasmJsTest            # Shared code on Wasm
-./gradlew :app:shared:jsTest                # Shared code on JS
-./gradlew :server:test                      # Server
-./tools/import/test.sh                      # Importer, with offline fixtures
-./gradlew ktlintCheck                       # Code style
-```
-
-## Data and license
+## License and data
 
 The source code is source-available under the
 [PolyForm Noncommercial License 1.0.0](LICENSE.md). You may read, study and change it, and use it

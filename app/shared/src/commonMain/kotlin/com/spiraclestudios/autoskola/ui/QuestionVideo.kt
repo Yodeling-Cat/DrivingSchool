@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,8 +24,13 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
+import com.spiraclestudios.autoskola.bank.Question
+import com.spiraclestudios.autoskola.bank.QuestionBank
+import com.spiraclestudios.autoskola.data.banks.QuestionBankRepository
 import com.spiraclestudios.autoskola.i18n.strings
 
 /** A video a question is about, as the screens draw it. */
@@ -35,6 +41,31 @@ data class VideoItem(
     val loops: Boolean,
 )
 
+/** [question]'s video as the screens draw it, or `null` when it has none. */
+internal fun QuestionBankRepository.videoItem(bank: QuestionBank, question: Question): VideoItem? =
+    question.video?.let { VideoItem(uri = imageUri(bank, it.file), loops = it.loops) }
+
+/**
+ * A question's picture, or the video it is about in place of it, which is how the practice and
+ * situation screens draw what a question shows. [active] says whether its page is the one on
+ * screen: a pager composes the pages beside it ahead of time, and a video there must not play.
+ */
+@Composable
+internal fun QuestionMedia(
+    video: VideoItem?,
+    imageUri: String?,
+    page: DpSize,
+    active: Boolean,
+    modifier: Modifier = Modifier,
+    maxHeight: Dp = ImageMaxHeight,
+    onImageError: () -> Unit = {},
+) {
+    when {
+        video != null -> QuestionVideo(video, stillUri = imageUri, active = active, modifier = modifier)
+        imageUri != null -> EnlargeableImage(imageUri, page, modifier, maxHeight = maxHeight, onError = onImageError)
+    }
+}
+
 /**
  * The video a question is about, in place of its picture.
  *
@@ -43,14 +74,26 @@ data class VideoItem(
  * asked to, and then offers to play again: it is the whole of what the question is about, so it
  * starts when the driver is ready rather than while they are still reading.
  *
+ * Only while [active] does anything play: a page a pager has composed beside the one on screen
+ * shows the still, and a situation to watch that is swiped away stops, to be played again when
+ * the driver comes back to it.
+ *
  * A video plays without sound, and in a preview not at all: a preview has no player, so it shows the
  * still.
  */
 @Composable
-internal fun QuestionVideo(video: VideoItem, stillUri: String?, modifier: Modifier = Modifier) {
+internal fun QuestionVideo(
+    video: VideoItem,
+    stillUri: String?,
+    active: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val preview = LocalInspectionMode.current
     var playing by rememberSaveable(video.uri) { mutableStateOf(video.loops) }
     var watched by rememberSaveable(video.uri) { mutableStateOf(false) }
+    LaunchedEffect(active) {
+        if (!active && !video.loops) playing = false
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -62,7 +105,7 @@ internal fun QuestionVideo(video: VideoItem, stillUri: String?, modifier: Modifi
         // Under the player too: it covers the still once its first frame is drawn, and until then
         // the still is what the driver sees rather than a black box.
         stillUri?.let { Still(it) }
-        if (playing && !preview) {
+        if (playing && active && !preview) {
             VideoSurface(
                 uri = video.uri,
                 loops = video.loops,
@@ -128,6 +171,24 @@ private fun QuestionVideoPreview() {
             QuestionVideo(
                 VideoItem(uri = "preview://md-cz/situation.mp4", loops = false),
                 stillUri = "preview://md-cz/situation.png",
+                active = true,
+            )
+        }
+    }
+}
+
+/** A question with no video: its picture, as the bank's other questions show it. */
+@Preview(widthDp = 400, heightDp = 300)
+@Composable
+private fun QuestionMediaPicturePreview() {
+    AppPreview {
+        PreviewBoard {
+            PreviewLabel("a question with a picture and no video")
+            QuestionMedia(
+                video = null,
+                imageUri = "preview://minv-sk/obr3/dz/140.jpg",
+                page = DpSize(400.dp, 300.dp),
+                active = true,
             )
         }
     }

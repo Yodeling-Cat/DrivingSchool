@@ -134,7 +134,7 @@ import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PreviewRow
 import com.spiraclestudios.autoskola.ui.ProgressBar
 import com.spiraclestudios.autoskola.ui.QuestionChip
-import com.spiraclestudios.autoskola.ui.QuestionVideo
+import com.spiraclestudios.autoskola.ui.QuestionMedia
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.VideoItem
 import com.spiraclestudios.autoskola.ui.WhitePill
@@ -463,6 +463,7 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                 ) { page ->
                     QuestionPage(
                         question = questions[page],
+                        active = page == pagerState.settledPage,
                         imageUri = practiceQuestions[page].imageUri,
                         video = practiceQuestions[page].video,
                         answerImageUris = practiceQuestions[page].answerImageUris,
@@ -1143,6 +1144,8 @@ private fun QuestionListToggle(expanded: Boolean, cover: () -> Float, onClick: (
 @Composable
 private fun QuestionPage(
     question: Question,
+    /** Whether this is the page on screen, rather than one the pager has composed beside it. */
+    active: Boolean,
     imageUri: String?,
     /** Drawn in place of the picture, which is then its still. */
     video: VideoItem?,
@@ -1216,16 +1219,14 @@ private fun QuestionPage(
                         Spacer(Modifier.height(16.dp))
                     }
                     Box(Modifier.weight(2f)) {
-                        if (video != null) {
-                            QuestionVideo(video, stillUri = imageUri)
-                        } else {
-                            EnlargeableImage(
-                                uri = imageUri,
-                                page = page,
-                                maxHeight = ImageSideBySideMaxHeight,
-                                onError = onImageError,
-                            )
-                        }
+                        QuestionMedia(
+                            video = video,
+                            imageUri = imageUri,
+                            page = page,
+                            active = active,
+                            maxHeight = ImageSideBySideMaxHeight,
+                            onImageError = onImageError,
+                        )
                     }
                 }
             } else {
@@ -1236,13 +1237,7 @@ private fun QuestionPage(
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomRoom),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    if (video != null) {
-                        QuestionVideo(video, stillUri = imageUri)
-                    } else {
-                        imageUri?.let { uri ->
-                            EnlargeableImage(uri = uri, page = page, onError = onImageError)
-                        }
-                    }
+                    QuestionMedia(video, imageUri, page, active, onImageError = onImageError)
                     questionText()
                     if (skipped) SkippedNotice()
                     answers()

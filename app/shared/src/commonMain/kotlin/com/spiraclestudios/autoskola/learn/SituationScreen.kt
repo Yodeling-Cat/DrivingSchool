@@ -87,7 +87,7 @@ import com.spiraclestudios.autoskola.ui.PagerSideArrows
 import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
-import com.spiraclestudios.autoskola.ui.QuestionVideo
+import com.spiraclestudios.autoskola.ui.QuestionMedia
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.contentGutter
 import com.spiraclestudios.autoskola.ui.previewSituations
@@ -201,6 +201,7 @@ private fun Situations(state: SituationUiState.Ready, onEvent: (SituationUiEvent
             ) { page ->
                 SituationPage(
                     situation = situations[page],
+                    active = page == pagerState.settledPage,
                     answers = state.answers,
                     onEvent = onEvent,
                 )
@@ -244,7 +245,13 @@ private fun SituationHeader(title: String, questionCount: Int?, onClose: () -> U
  * the drawing is measured against the page it is on, so an enlarged copy never outgrows the screen.
  */
 @Composable
-private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEvent: (SituationUiEvent) -> Unit) {
+private fun SituationPage(
+    situation: SituationItem,
+    /** Whether this is the page on screen, rather than one the pager has composed beside it. */
+    active: Boolean,
+    answers: Map<Int, Int>,
+    onEvent: (SituationUiEvent) -> Unit,
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val question = situation.questions.getOrNull(tab) ?: situation.questions.firstOrNull() ?: return
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -260,12 +267,7 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                     .padding(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalNavBarInset.current),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                val video = situation.video
-                if (video != null) {
-                    QuestionVideo(video, stillUri = situation.imageUri)
-                } else {
-                    EnlargeableImage(uri = situation.imageUri, page = pageSize)
-                }
+                QuestionMedia(situation.video, situation.imageUri, pageSize, active)
                 if (situation.questions.size > 1) {
                     SituationTabs(
                         selected = situation.questions.indexOf(question),

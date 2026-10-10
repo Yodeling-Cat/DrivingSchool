@@ -23,6 +23,7 @@ import com.spiraclestudios.autoskola.stats.resumeIndex
 import com.spiraclestudios.autoskola.stats.summary
 import com.spiraclestudios.autoskola.stats.wasAnswered
 import com.spiraclestudios.autoskola.ui.VideoItem
+import com.spiraclestudios.autoskola.ui.videoItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,7 +57,7 @@ data class PracticeQuestion(
 internal fun QuestionBankRepository.practiceQuestion(bank: QuestionBank, question: Question) = PracticeQuestion(
     question = question,
     imageUri = imageUri(bank, question),
-    video = question.video?.let { video -> VideoItem(videoUri(bank, question)!!, video.loops) },
+    video = videoItem(bank, question),
     answerImageUris = answerImageUris(bank, question),
 )
 

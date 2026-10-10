@@ -19,6 +19,7 @@ import com.spiraclestudios.autoskola.situations.situations
 import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.ui.VideoItem
 import com.spiraclestudios.autoskola.ui.displayText
+import com.spiraclestudios.autoskola.ui.videoItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -273,9 +274,7 @@ internal class SituationItems(private val banks: QuestionBankRepository) {
                     questions = situation.questions.map {
                         it.toSituationQuestion(banks.answerImageUris(session.bank, it))
                     },
-                    video = situation.questions.firstNotNullOfOrNull { question ->
-                        question.video?.let { VideoItem(banks.videoUri(session.bank, question)!!, it.loops) }
-                    },
+                    video = situation.questions.firstNotNullOfOrNull { banks.videoItem(session.bank, it) },
                     solved = situation.isSolvedBy(answers),
                 )
             }

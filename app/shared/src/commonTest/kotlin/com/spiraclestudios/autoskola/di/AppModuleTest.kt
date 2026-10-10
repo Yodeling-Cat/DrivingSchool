@@ -4,6 +4,7 @@ import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.content.BundledContent
 import com.spiraclestudios.autoskola.data.ads.AdRepository
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsDataSource
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
@@ -43,6 +44,9 @@ class AppModuleTest : ViewModelTest() {
                 appModule,
                 module {
                     single<Settings> { MapSettings() }
+                    // The country's content an entry point hands in; the data sources below stand in
+                    // for what is read from it.
+                    single<BundledContent> { TestContent }
                     single<QuestionBankDataSource> { FakeQuestionBankDataSource.of(testBank()) }
                     single<SignCatalogDataSource> { FakeSignCatalogDataSource.of(testSignCatalog()) }
                     // The real one never sends without a platform context, but a test should not
@@ -71,4 +75,13 @@ class AppModuleTest : ViewModelTest() {
         koin.get<PremiumSync>()
         koin.get<AdRepository>()
     }
+}
+
+/** A Slovak app's content with no files, which nothing here reads: the data sources are fakes. */
+private object TestContent : BundledContent {
+    override val country = "SK"
+
+    override suspend fun readBytes(path: String): ByteArray = error("no file is read in this test: $path")
+
+    override fun uri(path: String): String = "test://$path"
 }

@@ -7,4 +7,4 @@ package com.spiraclestudios.autoskola.data.ads
  * here. Web ads are a different job with a different vendor and a different consent mechanism,
  * written up as `plans/ads.md` step 15.
  */
-actual fun platformAdDataSource(): AdDataSource = NoOpAdDataSource()
+actual fun platformAdDataSource(country: String): AdDataSource = NoOpAdDataSource()

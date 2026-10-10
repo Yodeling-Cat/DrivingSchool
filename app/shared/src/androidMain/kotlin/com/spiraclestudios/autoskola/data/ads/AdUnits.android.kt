@@ -1,7 +1,5 @@
 package com.spiraclestudios.autoskola.data.ads
 
-import com.spiraclestudios.autoskola.appBuildConfig
-
 /**
  * This account's Android units, from AdMob, under the app "Naj Autoskola".
  *
@@ -16,15 +14,14 @@ import com.spiraclestudios.autoskola.appBuildConfig
  * Czech app has no AdMob app of its own yet, so its release build has no units and shows no ads (see
  * `plans/czech-tests.md`).
  */
-internal actual val ReleaseAdUnits: Map<AdSlot, String>
-    get() = if (appBuildConfig("FLAVOR") == "sk") SlovakAdUnits else emptyMap()
-
-private val SlovakAdUnits: Map<AdSlot, String> = mapOf(
-    AdSlot.HomeBanner to "ca-app-pub-7362127401681337/2361956877",
-    AdSlot.IntersectionsBanner to "ca-app-pub-7362127401681337/5451154646",
-    AdSlot.SituationBanner to "ca-app-pub-7362127401681337/5041014544",
-    AdSlot.SignsBanner to "ca-app-pub-7362127401681337/6777636616",
-    AdSlot.ResultsBanner to "ca-app-pub-7362127401681337/5977534146",
-    AdSlot.ResultsInterstitial to "ca-app-pub-7362127401681337/5718747956",
-    AdSlot.TestOfferInterstitial to "ca-app-pub-7362127401681337/2901936367",
+internal actual val ReleaseAdUnits: Map<String, Map<AdSlot, String>> = mapOf(
+    "SK" to mapOf(
+        AdSlot.HomeBanner to "ca-app-pub-7362127401681337/2361956877",
+        AdSlot.IntersectionsBanner to "ca-app-pub-7362127401681337/5451154646",
+        AdSlot.SituationBanner to "ca-app-pub-7362127401681337/5041014544",
+        AdSlot.SignsBanner to "ca-app-pub-7362127401681337/6777636616",
+        AdSlot.ResultsBanner to "ca-app-pub-7362127401681337/5977534146",
+        AdSlot.ResultsInterstitial to "ca-app-pub-7362127401681337/5718747956",
+        AdSlot.TestOfferInterstitial to "ca-app-pub-7362127401681337/2901936367",
+    ),
 )

@@ -8,4 +8,4 @@ package com.spiraclestudios.autoskola.data.ads
  * be making. When web ads are built they are AdSense, with a different unit type and a different
  * consent flow - see "The web targets" in `plans/ads.md` - and this file is where that starts.
  */
-internal actual val ReleaseAdUnits: Map<AdSlot, String> = emptyMap()
+internal actual val ReleaseAdUnits: Map<String, Map<AdSlot, String>> = emptyMap()

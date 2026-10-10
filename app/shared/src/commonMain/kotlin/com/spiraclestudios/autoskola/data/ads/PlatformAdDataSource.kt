@@ -10,6 +10,7 @@ package com.spiraclestudios.autoskola.data.ads
  * is one.
  *
  * What each one answers is a *source*, not a decision: whether anything is ever asked of it is
- * [AdRepository]'s, and every one of these is behind that.
+ * [AdRepository]'s, and every one of these is behind that. [country] is the one the app is built
+ * for, whose ad units the source asks for.
  */
-expect fun platformAdDataSource(): AdDataSource
+expect fun platformAdDataSource(country: String): AdDataSource

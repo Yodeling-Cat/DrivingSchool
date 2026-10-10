@@ -16,9 +16,11 @@ import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.spiraclestudios.autoskola.content.BundledContent
 import com.spiraclestudios.autoskola.data.ads.adRequest
 import com.spiraclestudios.autoskola.data.ads.adUnitId
 import com.spiraclestudios.autoskola.isDebugBuild
+import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
 /** An [AdView] that has been asked for an ad, as [RetainedBanner] keeps it. */
@@ -46,7 +48,8 @@ private class PlayBanner(val view: AdView) : LoadedBanner {
  */
 @Composable
 internal actual fun PlatformAdBanner(state: AdBannerState, modifier: Modifier) {
-    val unit = adUnitId(state.slot, debug = isDebugBuild()) ?: return
+    val country = koinInject<BundledContent>().country
+    val unit = adUnitId(state.slot, country, debug = isDebugBuild()) ?: return
     val context = LocalContext.current
 
     BoxWithConstraints(modifier.fillMaxWidth()) {

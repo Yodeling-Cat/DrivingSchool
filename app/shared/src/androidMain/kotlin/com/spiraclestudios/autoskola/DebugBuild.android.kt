@@ -9,7 +9,7 @@ actual fun isDebugBuild(): Boolean = appBuildConfig("DEBUG") as? Boolean ?: fals
 
 /**
  * The field [name] of the app's BuildConfig, or `null` where there is none (a host test). The app's
- * flavor (`FLAVOR`, the country it is built for) and its id (`APPLICATION_ID`) are read the same way.
+ * id (`APPLICATION_ID`) and its version (`VERSION_NAME`) are read the same way.
  */
 internal fun appBuildConfig(name: String): Any? = runCatching {
     Class.forName("com.spiraclestudios.autoskola.BuildConfig").getField(name).get(null)

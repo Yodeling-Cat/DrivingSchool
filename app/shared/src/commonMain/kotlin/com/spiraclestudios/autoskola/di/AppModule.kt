@@ -68,7 +68,7 @@ val appModule = module {
     single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
     // Android answers Google's SDK, which falls back to the no-op source until the entry point has
     // handed over an application; iOS and the web answer the no-op one outright.
-    single<AdDataSource> { platformAdDataSource() }
+    single<AdDataSource> { platformAdDataSource(get<BundledContent>().country) }
     // Google's consent form: the first condition on every ad request. Android answers Google's form;
     // iOS and the web answer one that asks for nothing.
     single<AdConsent> { platformAdConsent() }

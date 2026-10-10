@@ -30,15 +30,14 @@ class AdUnitsTest {
     /**
      * A target that cannot serve ads has no release units at all, rather than blank ones - the web
      * build is the case, and an empty map is what lets [adUnitId] answer null instead of failing.
-     * Where the map is not empty it has to be complete, or some placement would quietly resolve
-     * nothing on that platform.
+     * Where a country has units they have to be complete, or some placement would quietly resolve
+     * nothing in that country's app.
      */
     @Test
-    fun theReleaseUnitsAreEitherCompleteOrAbsent() {
-        assertTrue(
-            ReleaseAdUnits.isEmpty() || ReleaseAdUnits.keys == AdSlot.entries.toSet(),
-            "a partly filled release map is worse than an empty one: ${ReleaseAdUnits.keys}",
-        )
+    fun aCountrysReleaseUnitsAreComplete() {
+        for ((country, units) in ReleaseAdUnits) {
+            assertEquals(AdSlot.entries.toSet(), units.keys, "a partly filled map for $country")
+        }
     }
 
     @Test
@@ -50,36 +49,39 @@ class AdUnitsTest {
 
     @Test
     fun noIdIsBlank() {
-        for ((slot, id) in TestAdUnits + ReleaseAdUnits) {
+        for ((slot, id) in TestAdUnits + ReleaseAdUnits.values.flatMap { it.entries.map { e -> e.toPair() } }) {
             assertTrue(id.isNotBlank(), "$slot is blank")
         }
     }
 
     @Test
-    fun aDebugBuildResolvesDemoUnits() {
-        for (slot in AdSlot.entries) {
-            val id = adUnitId(slot, debug = true)
-            assertNotNull(id, "$slot resolved nothing in a debug build")
-            assertTrue(id.startsWith(demoPrefix), "$slot served $id in a debug build")
-        }
-    }
-
-    @Test
-    fun aReleaseBuildResolvesTheAccountsUnitsWhenThereAreAny() {
-        for (slot in AdSlot.entries) {
-            val id = adUnitId(slot, debug = false)
-            if (id == null) {
-                assertTrue(ReleaseAdUnits.isEmpty(), "$slot resolved nothing but the map has entries")
-            } else {
-                assertTrue(id.startsWith(accountPrefix), "$slot is not this account's unit: $id")
+    fun aDebugBuildResolvesDemoUnitsInEveryCountry() {
+        for (country in listOf("SK", "CZ")) {
+            for (slot in AdSlot.entries) {
+                val id = adUnitId(slot, country, debug = true)
+                assertNotNull(id, "$slot resolved nothing in a debug build")
+                assertTrue(id.startsWith(demoPrefix), "$slot served $id in a debug build")
             }
         }
     }
 
-    /** The web targets ask for no unit, and must get a null rather than an exception. */
     @Test
-    fun aTargetWithNoAdsAnswersNullRatherThanFailing() {
-        if (ReleaseAdUnits.isNotEmpty()) return
-        for (slot in AdSlot.entries) assertNull(adUnitId(slot, debug = false), "$slot")
+    fun aReleaseBuildResolvesItsCountrysUnits() {
+        for ((country, units) in ReleaseAdUnits) {
+            for (slot in AdSlot.entries) {
+                val id = adUnitId(slot, country, debug = false)
+                assertEquals(units[slot], id)
+                assertTrue(id!!.startsWith(accountPrefix), "$slot is not this account's unit: $id")
+            }
+        }
+    }
+
+    /**
+     * A unit serves only the app it was made under, so the app of a country without units of its
+     * own - the Czech one, so far - and a target with no ads at all get none, never another's.
+     */
+    @Test
+    fun aCountryWithoutUnitsOfItsOwnResolvesNone() {
+        for (slot in AdSlot.entries) assertNull(adUnitId(slot, "CZ", debug = false), "$slot")
     }
 }

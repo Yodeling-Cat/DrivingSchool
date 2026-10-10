@@ -9,7 +9,7 @@ import com.spiraclestudios.autoskola.applicationContext
  * That is the same shape as [AdRepository]'s other refusals: nothing can be asked of an SDK with no
  * context, so nothing is, and the app behaves as it does on a target with no ads at all.
  */
-actual fun platformAdDataSource(): AdDataSource {
+actual fun platformAdDataSource(country: String): AdDataSource {
     val context = applicationContext() ?: return NoOpAdDataSource()
-    return GoogleMobileAdsDataSource(context)
+    return GoogleMobileAdsDataSource(context, country)
 }

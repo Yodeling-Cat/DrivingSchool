@@ -32,7 +32,7 @@ import kotlin.coroutines.resume
  * test-device list to protect. It would matter if a debug build used the real units, which
  * [adUnitId] is written to make impossible.
  */
-class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
+class GoogleMobileAdsDataSource(private val context: Context, private val country: String) : AdDataSource {
 
     override val available: Boolean = true
 
@@ -43,7 +43,7 @@ class GoogleMobileAdsDataSource(private val context: Context) : AdDataSource {
     private var loaded: Pair<AdSlot, InterstitialAd>? = null
 
     override suspend fun preload(slot: AdSlot) {
-        val unit = adUnitId(slot, debug = isDebugBuild()) ?: return
+        val unit = adUnitId(slot, country, debug = isDebugBuild()) ?: return
         loaded = load(unit)?.let { slot to it }
     }
 

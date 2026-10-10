@@ -10,4 +10,4 @@ package com.spiraclestudios.autoskola.data.ads
  *
  * The Android build is what ships first (see `plans/ads.md`, step 13).
  */
-actual fun platformAdDataSource(): AdDataSource = NoOpAdDataSource()
+actual fun platformAdDataSource(country: String): AdDataSource = NoOpAdDataSource()

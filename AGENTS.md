@@ -4,13 +4,13 @@ This file provides guidance to AI coding agents (Claude Code, Codex, etc.) when 
 
 ## Project overview
 
-NajAutoskola is a Kotlin Multiplatform driving-school app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server. The KMP template's placeholders — a `Greeting`, a `Platform` interface with `getPlatform()`, the generated example tests and the Compose logo drawable — have been removed, so everything in the repo is app code.
+NajAutoskola is a Kotlin Multiplatform driving-theory app (tests + learning resources for new drivers). It targets Android, iOS, Web (JS + Wasm via Compose Multiplatform), and ships a Ktor JVM server.
 
-Root package is `com.spiraclestudios.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `com.spiraclestudios.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. Gradle root project name is `NajAutoskola`.
+Root package is `com.spiraclestudios.autoskola` across every module. The released app's `applicationId` and Gradle `group` are also `com.spiraclestudios.autoskola`; a debug build appends `.dev`, so it installs alongside a released app and keeps its own data. A build targeting Czechia appends `.cz`. Gradle root project name is `NajAutoskola`.
 
 ## Language and spelling
 
-Write **American English** everywhere in this repository — code, identifiers, comments, KDoc, docs, plans, commit messages, and the English strings in `i18n/Strings.kt`. So: color, center, license, catalog, behavior, labeled, canceled, gray, analyze, summarize, personalize, normalize, artifact, neighbor, honor, practice (never "practise" as a verb), learned (never "learnt"), while (never "whilst").
+Write **American English** everywhere in this repository — code, identifiers, comments, KDoc, docs, plans, commit messages, and the English strings in `i18n/Strings.kt`.
 
 The other three tables in `i18n/Strings.kt` are Slovak, Hungarian and Czech, and the question content is the bank's own language — neither is English and neither is affected.
 
@@ -55,7 +55,9 @@ Cross-module rule of thumb: shared **business logic** that the server also needs
 
 `:app:shared` uses the `expect`/`actual` pattern: the declaration goes in `commonMain`, and each target source set provides its own `actual`. The targets are `android`, `iosArm64`, `iosSimulatorArm64`, `js` and `wasmJs`, so those source sets are `androidMain`, `iosMain` and `webMain`, the last shared by `js` and `wasmJs` (a `jsMain` or `wasmJsMain` file is only for something the two cannot share); there is no `jvmMain`, because the module has no desktop target. Examples: `WindowTitle.kt` (`expect fun setWindowTitle(title: String)`), `DebugBuild.kt` (`expect fun isDebugBuild(): Boolean`) and `NavigationState.kt`. Each keeps one file per target, named after the common one (`WindowTitle.ios.kt`, `DebugBuild.web.kt`), and every target has one even where the function does nothing — the apps have no window title, so `setWindowTitle` is empty there. When adding platform APIs, follow this same pattern rather than introducing per-target abstractions.
 
-Compose resources live in `app/shared/src/commonMain/composeResources/` and are accessed via the generated `najautoskola.app.shared.generated.resources.Res` class (e.g. `Res.drawable.grain`, or `Res.getUri` for a question image).
+Compose resources every country uses live in `app/shared/src/commonMain/composeResources/` and are accessed via the generated `najautoskola.app.shared.generated.resources.Res` class (e.g. `Res.drawable.grain`). A question's pictures and videos are a country's content, read through `BundledContent.uri` instead (see "Countries").
+
+**iOS code cannot be compiled on Windows.** Kotlin/Native builds for Apple targets only on a Mac, so an `iosMain` change made here is unverified until the iOS workflow (`.github/workflows/ios.yml`) or a Mac builds it. Write it against the Objective-C headers with care: a method declared in a class's own header is a member in Kotlin, not an extension, so importing it from `platform.<Framework>` breaks the build. Say in the commit or the summary that the iOS side was not built.
 
 ## Screen sizes and languages
 
@@ -76,16 +78,19 @@ Each country is its own app, with its own questions, pictures and videos, so tha
 - **`:app:shared`** holds all the code and the resources every country uses (fonts, drawables, `aboutlibraries.json`). Nothing country-specific goes into its Compose resources.
 - **`:app:content:sk`** and **`:app:content:cz`** (`app/content/<country>/`) hold one country's content each: `banks/`, `images/` (pictures and videos) and, for Slovakia, `signs/`, all written by `tools/import`. Each exposes it as `bundledContent`, a `BundledContent` (`:core`, `content/`) with the same name in every module, so an entry point compiles against whichever one its build includes. A build includes exactly one.
 - **The entry points** pass that content in: `App(bundledContent)`, which hands it to Koin, and `ResourceQuestionBankDataSource` and `ResourceSignCatalogDataSource` read through it.
-- **Android** has a product flavor per country: `sk` ships under `com.spiraclestudios.autoskola`, the id Play has always had, and `cz` under `com.spiraclestudios.autoskola.cz`. Build them as `assembleSkDebug` and `assembleCzDebug`. The shared code reads which one it is from the app's `BuildConfig.FLAVOR` (the ad units, which belong to one app each) and its store page from `APPLICATION_ID`.
+- **Android** has a product flavor per country: `sk` ships under `com.spiraclestudios.autoskola`, the id Play has always had, and `cz` under `com.spiraclestudios.autoskola.cz`. Build them as `assembleSkDebug` and `assembleCzDebug`; every variant task carries the flavor (`lintSkDebug`, `bundleSkRelease`), and a plain `assembleDebug` builds both countries. The flavors' own dependencies (`"skImplementation"(…)`) go in a `dependencies` block after the `android { }` block, which is what creates their configurations. The shared code reads its store page from the app's `BuildConfig.APPLICATION_ID`.
+- **The country at runtime is `BundledContent.country`** ("SK", "CZ"), never the flavor name or the build: it is what picks the ad units (`ReleaseAdUnits`, per country on each platform, since an ad unit belongs to one app) and works the same on Android, iOS and the web. Anything else that differs by country belongs in the content module rather than in a runtime check.
 - **Web and iOS** have no flavors, so the country is a Gradle property: `-Pcountry=cz`, `sk` when left out. It picks the content module `:app:webApp` and the iOS framework bundle.
 - **An app's index lists one country**, so the exam wizard opens on that country's languages, or straight on its license groups when it has one language (`firstStep` in `ExamSelectionViewModel`).
 - **After moving content between modules, clean `:app:shared`.** Compose copies resources into the build without deleting what is no longer there, so a stale build keeps bundling files that moved out. A clean checkout never has them.
 
-To add a country: create `app/content/<code>/` like the existing two (its build file, `BundledContent.<code>.kt` and its resources), register it in `settings.gradle.kts`, give it a flavor and an `<code>Implementation` dependency in `app/androidApp/build.gradle.kts`, allow the code in the `country` checks of `app/shared` and `app/webApp`, and write its importer to `content_files("<code>")`.
+To add a country: create `app/content/<code>/` like the existing two (a copy of their build file, which names its package from the module, `BundledContent.<code>.kt` and its resources), register it in `settings.gradle.kts`, give it a flavor and an `<code>Implementation` dependency in `app/androidApp/build.gradle.kts`, add its importer writing to `content_files("<code>")` and `COUNTRIES` in `tools/import/importer_common.py`, and, once it has AdMob apps of its own, their app ids in `releaseAdMobAppIds` and its units under its code in `AdUnits.android.kt` and `AdUnits.ios.kt`. Until then it shows no ads, rather than another country's.
 
 ## Question data
 
-Question banks, pictures and videos are generated into each country's content module, `app/content/<country>/src/commonMain/composeResources/files/`, by `tools/import/` (run `./tools/import/import.sh`; see "Countries"). Never hand-edit them. Sources, coverage and terms of use are in `docs/data-sources.md`; the importer is documented in `docs/importing-questions.md`. The bank model and practice-test generation live in `:core` (`com.spiraclestudios.autoskola.bank`).
+Question banks, pictures and videos are generated into each country's content module, `app/content/<country>/src/commonMain/composeResources/files/`, by `tools/import/` (run `./tools/import/import.sh`; see "Countries"). Never hand-edit them. Sources, coverage and terms of use are in `docs/data-sources.md`; the importer is documented in `docs/importing-questions.md`.
+
+**Never delete `tools/import/cache/`.** It is gitignored, but it is not disposable: besides the downloads it holds the Czech importer's 4,200 drawn practice exams (which decide each question's license groups) and its encoded videos, about two hours of work against the ministry's server and ffmpeg. With it, an import is a re-run of about a minute; `--refresh` is what fetches again. The Czech import needs ffmpeg on the `PATH`. The bank model and practice-test generation live in `:core` (`com.spiraclestudios.autoskola.bank`).
 
 ## Legal documents
 
@@ -186,7 +191,7 @@ Screen (composable)  --UiEvent-->  ViewModel  --calls-->  Repository  --calls-->
 - `initKoin()` starts Koin once per process. The repositories must outlive activities, because retained ViewModels still use them.
 - `AppModuleTest` checks that every ViewModel can be created, so register new ones there too.
 
-**Images** are loaded with Coil 3. The data source turns a question's image path into a URI (`Res.getUri`), the ViewModel puts it in state, and the screen draws it with `rememberAsyncImagePainter`. Coil caches the images and scales them down to the size they're shown at.
+**Images** are loaded with Coil 3. The data source turns a question's image path into a URI (`BundledContent.uri`), the ViewModel puts it in state, and the screen draws it with `rememberAsyncImagePainter`. Coil caches the images and scales them down to the size they're shown at.
 
 **Testing ViewModels:**
 - Extend `ViewModelTest` (`commonTest/.../testing/`). It swaps `Dispatchers.Main` for an immediate test dispatcher.
@@ -220,6 +225,7 @@ Strong skipping is on, so every composable can skip. It recomposes anyway when a
 - **Keep instances stable across emissions.** Collections in a `UiState`, and classes from `:core`, are compared by identity. A ViewModel that rebuilds an equal list or map on every emission recomposes everything that takes it, so hand back the previous instance while the contents are equal (`PracticeViewModel.shownAnswers`). Cover this with `assertSame` in the ViewModel's test.
 - **`remember` anything that costs something to build:** derived lists, `AnnotatedString`s, draw modifiers (`paperBackground`) and theme objects. A static composition local (`LocalNajType`, `LocalNajColors`) must get the same instance every time, or everything under it recomposes.
 - **Give lazy items a `key`, plus a `contentType` when a list mixes kinds of items**, so a row that scrolls off is reused for another row of the same kind.
+- **Play nothing on a page that is not on screen.** A pager composes the pages beside the current one ahead of time, effects and all, so a video or an animation there starts while nobody sees it. Pass the page an `active` flag (`page == pagerState.settledPage`) and play only while it is set, as `QuestionMedia` does.
 
 When unsure, generate the compiler report by adding `composeCompiler { reportsDestination = layout.buildDirectory.dir("compose_reports") }` to `app/shared/build.gradle.kts` for one build. On Windows the report lands in NTFS streams of a file named `NajAutoskola_app`, because the module's name contains a colon. Read them with `Get-Content -Stream`.
 

@@ -29,12 +29,6 @@ not be accepted. See [docs/question-banks.md](docs/question-banks.md).
 If a question looks wrong, open an issue with its number and say what is wrong. If the mistake is in
 the official text itself, it has to be fixed by the ministry. We can report it to them.
 
-## Security issues
-
-Do **not** open a public issue for a security problem. Report it privately with
-[GitHub's private vulnerability reporting](https://github.com/Yodeling-Cat/DrivingSchool/security/advisories/new) (the **Security** tab of
-this repository, then **Report a vulnerability**).
-
 ## Setting up
 
 You need JDK 21. Android Studio is the easiest way to work on the project. iOS builds need a Mac

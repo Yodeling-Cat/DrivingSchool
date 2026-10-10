@@ -18,12 +18,14 @@ from dataclasses import asdict
 from pathlib import Path
 
 import znacky_pdf
-from importer_common import RESOURCES, ROOT, bank_images, download, log, write_index
+from importer_common import ROOT, bank_images, content_files, download, log, write_index
 
 CACHE = Path(__file__).resolve().parent / "cache" / "znacky"
-SIGNS_OUT = RESOURCES / "signs"
-BANKS = RESOURCES / "banks"
-IMAGES = RESOURCES / "images"
+# The Slovak catalog, beside the Slovak banks whose pictures it shows.
+FILES_OUT = content_files("sk")
+SIGNS_OUT = FILES_OUT / "signs"
+BANKS = FILES_OUT / "banks"
+IMAGES = FILES_OUT / "images"
 
 # Zbierka zákonov Slovenskej republiky, the consolidated text of 30/2020 Z. z. with its annexes.
 # Its príloha č. 1 is the sign catalog. See docs/data-sources.md.

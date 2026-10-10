@@ -6,7 +6,7 @@ import import_znacky
 from importer_common import read_json
 
 SIGNS = import_znacky.SIGNS_OUT
-IMAGES = import_znacky.RESOURCES / "images"
+IMAGES = import_znacky.IMAGES
 
 # The number of signs the current import produced. It moves when the catalog does, which is the
 # point: a re-import that silently loses rows has to be looked at.

@@ -6,7 +6,6 @@ import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
 import com.spiraclestudios.autoskola.appVersion
 import com.spiraclestudios.autoskola.data.banks.readOrNull
-import com.spiraclestudios.autoskola.data.banks.readResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -89,6 +88,12 @@ class AboutViewModel(private val readLibraries: suspend () -> List<Library> = ::
     private suspend fun read(): List<Library> = readOrNull { readLibraries() }.orEmpty()
 }
 
-/** Reads the list the Gradle plugin exported into the app's own resources. */
-private suspend fun bundledLibraries(): List<Library> =
-    readResource(LIBRARIES_RESOURCE) { Libs.Builder().withJson(it).build().libraries }
+/**
+ * Reads the list the Gradle plugin exported into the app's own resources, which every country's
+ * app shares, and parses it off the main thread.
+ */
+@OptIn(ExperimentalResourceApi::class)
+private suspend fun bundledLibraries(): List<Library> {
+    val json = Res.readBytes(LIBRARIES_RESOURCE).decodeToString()
+    return withContext(Dispatchers.Default) { Libs.Builder().withJson(json).build().libraries }
+}

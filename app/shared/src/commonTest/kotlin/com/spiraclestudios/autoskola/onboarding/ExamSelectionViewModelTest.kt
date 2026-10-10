@@ -40,7 +40,17 @@ class ExamSelectionViewModelTest : ViewModelTest() {
         // An adult: the age question decides whether the analytics switch may be answered at all.
         setAgeBand(AgeBand.Adult)
     }
-    private val banks = QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn), emptyList()))
+    private val czCs = QuestionBankInfo("cz-cs", 1, "CZ", "cs", mapOf(LicenseCategory.B to 8))
+
+    /** Both countries, as a build that bundled more than one would list them. */
+    private val banks = QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn, czCs), emptyList()))
+
+    /** The wizard of a build that bundles [bundled] alone, as every country's app does. */
+    private fun viewModelOf(vararg bundled: QuestionBankInfo) = ExamSelectionViewModel(
+        preferences,
+        QuestionBankRepository(FakeQuestionBankDataSource(bundled.toList(), emptyList())),
+        analytics,
+    )
     private val analyticsSink = RecordingAnalyticsDataSource()
     private val analytics = AnalyticsRepository(analyticsSink, preferences)
     private val viewModel by lazy { ExamSelectionViewModel(preferences, banks, analytics) }
@@ -51,18 +61,55 @@ class ExamSelectionViewModelTest : ViewModelTest() {
 
         assertEquals(ExamSelectionStep.ChooseCountry, state.step)
         assertEquals(
-            listOf(CountryOption("SK", available = true), CountryOption("CZ", available = false)),
+            listOf(CountryOption("SK", available = true), CountryOption("CZ", available = true)),
             state.countryOptions,
         )
     }
 
     @Test
     fun choosingAnUnavailableCountryDoesNothing() = runTest {
+        val viewModel = viewModelOf(skSk, skEn)
         val state = observe(viewModel.uiState)
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
 
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
 
-        assertEquals(ExamSelectionStep.ChooseCountry, state.value.step)
+        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
+    }
+
+    @Test
+    fun anAppOfOneCountryOpensOnItsLanguages() = runTest {
+        // Each country's app bundles its own banks alone: there is no country to choose.
+        val state = observe(viewModelOf(skSk, skEn).uiState)
+
+        assertEquals(ExamSelectionStep.ChooseBankLanguage("SK", listOf(skSk, skEn)), state.value.step)
+        assertFalse(state.value.hasPreviousStep)
+    }
+
+    @Test
+    fun anAppOfOneCountryInOneLanguageOpensOnItsCategories() = runTest {
+        val viewModel = viewModelOf(czCs)
+        val state = observe(viewModel.uiState)
+
+        assertEquals(ExamSelectionStep.ChooseCategory(czCs), state.value.step)
+        assertFalse(state.value.hasPreviousStep)
+
+        // Nothing is behind the first step, so back stays on it.
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertEquals(ExamSelectionStep.ChooseCategory(czCs), state.value.step)
+    }
+
+    @Test
+    fun backFromAnAppOfOneCountrysCategoriesGoesToItsLanguagesAndNoFurther() = runTest {
+        val viewModel = viewModelOf(skSk, skEn)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
+
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
+
+        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
+        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
     }
 
     @Test
@@ -128,12 +175,6 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     @Test
     fun aCountryWithOneLanguageSkipsTheLanguageStep() = runTest {
         // Czechia's test is in Czech alone: there is no language to choose between.
-        val czCs = QuestionBankInfo("cz-cs", 1, "CZ", "cs", mapOf(LicenseCategory.B to 8))
-        val viewModel = ExamSelectionViewModel(
-            preferences,
-            QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn, czCs), emptyList())),
-            analytics,
-        )
         val state = observe(viewModel.uiState)
 
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))

@@ -39,8 +39,8 @@ app_id="com.spiraclestudios.autoskola.dev"
 runner="$app_id.test/androidx.test.runner.AndroidJUnitRunner"
 test_class="com.spiraclestudios.autoskola.screenshots.StoreScreenshots"
 device_output="/sdcard/Android/data/$app_id/files/store-screenshots"
-app_apk="$root/app/androidApp/build/outputs/apk/debug/androidApp-debug.apk"
-test_apk="$root/app/androidApp/build/outputs/apk/androidTest/debug/androidApp-debug-androidTest.apk"
+app_apk="$root/app/androidApp/build/outputs/apk/sk/debug/androidApp-sk-debug.apk"
+test_apk="$root/app/androidApp/build/outputs/apk/androidTest/sk/debug/androidApp-sk-debug-androidTest.apk"
 
 # The SDK from local.properties (which escapes ':' and '\' the Java way), else ANDROID_HOME.
 sdk="$(sed -n 's/^[[:space:]]*sdk\.dir[[:space:]]*=[[:space:]]*//p' "$root/local.properties" 2>/dev/null \
@@ -120,7 +120,8 @@ stop_emulator() {
   "$adb" -s "$serial" emu kill >/dev/null || true
   local attempt
   for attempt in $(seq 30); do
-    "$adb" devices | tr -d '' | grep -q "^$serial[[:space:]]" || return 0
+    "$adb" devices | tr -d '
+' | grep -q "^$serial[[:space:]]" || return 0
     sleep 2
   done
 }
@@ -178,7 +179,7 @@ check_store_requirements() {
 if [ "$build" = 1 ]; then
   gradlew="$root/gradlew"
   [ -n "$exe" ] && gradlew="$root/gradlew.bat"
-  (cd "$root" && "$gradlew" :app:androidApp:assembleDebug :app:androidApp:assembleDebugAndroidTest)
+  (cd "$root" && "$gradlew" :app:androidApp:assembleSkDebug :app:androidApp:assembleSkDebugAndroidTest)
 fi
 
 [ "$only" != tablet ] && take_screenshots "$phone" phone

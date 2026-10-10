@@ -103,7 +103,11 @@ dependencies {
  */
 val storeScreenshotAnnotation = "com.spiraclestudios.autoskola.screenshots.StoreScreenshot"
 
-/** The application id a released build ships under. */
+/**
+ * The application id a released build ships under. It is the Slovak app's, which Play has held since
+ * before there were countries; the Czech app is a separate listing under the same id with `.cz` after
+ * it (see the `cz` flavor below).
+ */
 val releaseApplicationId = "com.spiraclestudios.autoskola"
 
 /** The id a debug build ships under, so it installs next to a released app and keeps its own data. */
@@ -122,7 +126,13 @@ val debugApplicationId = releaseApplicationId + debugApplicationIdSuffix
  * way round for a build type to forget.
  */
 val demoAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
-val releaseAdMobAppId = "ca-app-pub-7362127401681337~8243476603"
+
+/**
+ * The AdMob app id of each country's released app. An id belongs to one app, and the Czech app has
+ * none yet: its release build carries the demo id, and its ad units are empty too
+ * (`AdUnits.android.kt`), so it shows no ads rather than another app's.
+ */
+val releaseAdMobAppIds = mapOf("sk" to "ca-app-pub-7362127401681337~8243476603")
 
 android {
     namespace = "com.spiraclestudios.autoskola"
@@ -148,9 +158,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    // The shared code asks this module's BuildConfig whether it is running a debug build.
+    // The shared code asks this module's BuildConfig whether it is running a debug build, and which
+    // country it is built for (`FLAVOR`).
     buildFeatures {
         buildConfig = true
+    }
+    // One app per country, each bundling only its own questions, pictures and videos.
+    flavorDimensions += "country"
+    productFlavors {
+        create("sk") {
+            dimension = "country"
+        }
+        create("cz") {
+            dimension = "country"
+            applicationIdSuffix = ".cz"
+        }
     }
     // The upload key, which Play checks before it re-signs the app with its own. It comes from the
     // environment so the keystore and its passwords never sit in the repo: the release workflow
@@ -178,7 +200,6 @@ android {
         }
         getByName("release") {
             if (canSignRelease) signingConfig = signingConfigs.getByName("release")
-            manifestPlaceholders["admobAppId"] = releaseAdMobAppId
             // Release builds are minified, so the mapping file exists and PostHog's symbol upload
             // has something to send (docs/error-reporting.md). R8 rewrites the app's own frames,
             // which is why proguard-rules.pro exists.
@@ -227,4 +248,19 @@ tasks.register<Exec>("runDebug") {
         "-n",
         "$debugApplicationId/com.spiraclestudios.autoskola.MainActivity",
     )
+}
+
+// Each country's app bundles its own content and no other's (see AGENTS.md, "Countries"). Declared
+// after the `android` block, which is what creates the flavors' configurations.
+dependencies {
+    "skImplementation"(projects.app.content.sk)
+    "czImplementation"(projects.app.content.cz)
+}
+
+// The real AdMob app id goes into a country's release build alone: debug builds, and a country with
+// no AdMob app yet, keep the demo id that `defaultConfig` sets.
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        releaseAdMobAppIds[variant.flavorName]?.let { variant.manifestPlaceholders.put("admobAppId", it) }
+    }
 }

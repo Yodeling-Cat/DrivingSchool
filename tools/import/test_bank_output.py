@@ -3,7 +3,7 @@ import unittest
 
 import import_md_cz
 import import_minv
-from importer_common import BANKS, IMAGES, read_json
+from importer_common import COUNTRIES, content_files, read_json
 
 #: The topic of traffic situations. The app reads its intersections material out of it and nothing
 #: else, in every bank (`SITUATIONS_SECTION` in :core's situations/Situations.kt).
@@ -21,8 +21,24 @@ EXAMS = {
 class BankOutputTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.index = read_json(BANKS / "index.json")
-        cls.banks = {path.stem: read_json(path) for path in BANKS.glob("*-v*.json")}
+        # Every country's content module: each has its own index, banks and images.
+        cls.index, cls.banks, cls.images = [], {}, {}
+        for country in COUNTRIES:
+            files = content_files(country)
+            cls.index += read_json(files / "banks" / "index.json")
+            for path in (files / "banks").glob("*-v*.json"):
+                cls.banks[path.stem] = read_json(path)
+                cls.images[path.stem] = files / "images"
+
+    def test_each_country_bundles_its_own_banks_and_no_other(self):
+        # An app bundles one country's module: anything of another country's in it is weight its
+        # users install for nothing (see AGENTS.md, "Countries").
+        for country in COUNTRIES:
+            files = content_files(country)
+            for entry in read_json(files / "banks" / "index.json"):
+                self.assertEqual(country.upper(), entry["country"], (country, entry["id"]))
+            for path in (files / "banks").glob("*-v*.json"):
+                self.assertEqual(country.upper(), read_json(path)["country"], path.name)
 
     def test_every_index_entry_has_its_bank_file(self):
         for entry in self.index:
@@ -87,7 +103,7 @@ class BankOutputTest(unittest.TestCase):
                     files.append(q["video"]["file"])
                 files += q.get("answerImages") or []
                 for file in files:
-                    self.assertTrue((IMAGES / bank["imageDir"] / file).is_file(), f"{name}: {file}")
+                    self.assertTrue((self.images[name] / bank["imageDir"] / file).is_file(), f"{name}: {file}")
 
     def test_the_situations_the_app_reads_are_the_topic_of_that_name(self):
         # The app builds its intersections material from one topic and nothing else, so the topic

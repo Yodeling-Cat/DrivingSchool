@@ -20,12 +20,13 @@ from pathlib import Path
 
 import minv_pdf
 from importer_common import (
-    BANKS, IMAGES, ROOT, bank_images, clean, download, log, remove_stale_images, write_bank, write_index,
+    ROOT, bank_images, clean, content_files, download, log, remove_stale_images, write_bank, write_index,
 )
 
 CACHE = Path(__file__).resolve().parent / "cache" / "minv-sk"
-BANKS_OUT = BANKS
-IMAGES_OUT = IMAGES / "minv-sk"
+FILES_OUT = content_files("sk")
+BANKS_OUT = FILES_OUT / "banks"
+IMAGES_OUT = FILES_OUT / "images/minv-sk"
 
 BASE_URL = "https://www.minv.sk/egovinet02/PCPZobrazFile?fileName="
 DATA_URL = BASE_URL + "pcpfiles/data5.js"
@@ -190,7 +191,7 @@ def write_banks(banks, groups_by_id, version):
     for lang in LANGUAGES:
         bank = banks[lang]
         document = bank_document(lang, bank, groups_by_id, version)
-        entry = write_bank(document, GROUPS)
+        entry = write_bank(document, GROUPS, BANKS_OUT)
         questions = document["questions"]
         images.update(q["image"] for q in questions if q["image"])
         manifest.append(entry)
@@ -208,7 +209,7 @@ def sync_images(new_images, refresh):
     log(f"Fetching images: {len(bundled)} referenced, {len(to_download)} to download")
     for image in to_download:
         download(IMAGE_URL + image, IMAGES_OUT / image, refresh, quiet=True)
-    remove_stale_images(IMAGES_OUT.name)
+    remove_stale_images(FILES_OUT, IMAGES_OUT.name)
 
 
 def main():

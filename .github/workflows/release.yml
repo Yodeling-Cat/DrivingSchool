@@ -96,7 +96,8 @@ jobs:
           POSTHOG_CLI_HOST: ${{ vars.POSTHOG_CLI_HOST }}
           POSTHOG_CLI_PROJECT_ID: ${{ vars.POSTHOG_CLI_PROJECT_ID }}
           POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
-        run: ./gradlew :app:androidApp:bundleRelease :app:androidApp:assembleRelease
+        # The Slovak app alone: the Czech one has no Play listing or AdMob app yet (plans/czech-tests.md).
+        run: ./gradlew :app:androidApp:bundleSkRelease :app:androidApp:assembleSkRelease
 
       - name: Remove the keystore
         if: always()
@@ -105,22 +106,22 @@ jobs:
       - name: Check the APK is signed
         run: |
           apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
-          "$apksigner" verify --print-certs app/androidApp/build/outputs/apk/release/*.apk
+          "$apksigner" verify --print-certs app/androidApp/build/outputs/apk/sk/release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: release-bundle
-          path: app/androidApp/build/outputs/bundle/release/*.aab
+          path: app/androidApp/build/outputs/bundle/skRelease/*.aab
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: app/androidApp/build/outputs/apk/release/*.apk
+          path: app/androidApp/build/outputs/apk/sk/release/*.apk
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         with:
           name: release-mapping
-          path: app/androidApp/build/outputs/mapping/release/mapping.txt
+          path: app/androidApp/build/outputs/mapping/skRelease/mapping.txt
           if-no-files-found: warn

@@ -1,5 +1,7 @@
 package com.spiraclestudios.autoskola.data.ads
 
+import com.spiraclestudios.autoskola.appBuildConfig
+
 /**
  * This account's Android units, from AdMob, under the app "Naj Autoskola".
  *
@@ -9,8 +11,15 @@ package com.spiraclestudios.autoskola.data.ads
  *
  * These are not secrets: every one of them ships inside the APK and can be read out of it. What keeps
  * them out of a developer's build is [adUnitId]'s debug flag, not their being hidden.
+ *
+ * They belong to the Slovak app, the `sk` flavor: a unit serves only the app it was made under. The
+ * Czech app has no AdMob app of its own yet, so its release build has no units and shows no ads (see
+ * `plans/czech-tests.md`).
  */
-internal actual val ReleaseAdUnits: Map<AdSlot, String> = mapOf(
+internal actual val ReleaseAdUnits: Map<AdSlot, String>
+    get() = if (appBuildConfig("FLAVOR") == "sk") SlovakAdUnits else emptyMap()
+
+private val SlovakAdUnits: Map<AdSlot, String> = mapOf(
     AdSlot.HomeBanner to "ca-app-pub-7362127401681337/2361956877",
     AdSlot.IntersectionsBanner to "ca-app-pub-7362127401681337/5451154646",
     AdSlot.SituationBanner to "ca-app-pub-7362127401681337/5041014544",

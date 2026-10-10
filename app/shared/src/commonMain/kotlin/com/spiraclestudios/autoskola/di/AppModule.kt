@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.di
 import com.russhwolf.settings.Settings
 import com.spiraclestudios.autoskola.AppViewModel
 import com.spiraclestudios.autoskola.about.AboutViewModel
+import com.spiraclestudios.autoskola.content.BundledContent
 import com.spiraclestudios.autoskola.data.ads.AdConsent
 import com.spiraclestudios.autoskola.data.ads.AdDataSource
 import com.spiraclestudios.autoskola.data.ads.AdRepository
@@ -61,8 +62,8 @@ val appModule = module {
     // Data sources
     single<Settings> { Settings() }
     single<AttemptDataSource> { SettingsAttemptDataSource(get()) }
-    single<QuestionBankDataSource> { ResourceQuestionBankDataSource() }
-    single<SignCatalogDataSource> { ResourceSignCatalogDataSource() }
+    single<QuestionBankDataSource> { ResourceQuestionBankDataSource(get()) }
+    single<SignCatalogDataSource> { ResourceSignCatalogDataSource(get()) }
     single<PracticeAnswerDataSource> { SettingsPracticeAnswerDataSource(get()) }
     single<AnalyticsDataSource> { PostHogAnalyticsDataSource(postHogContext(), debug = isDebugBuild()) }
     // Android answers Google's SDK, which falls back to the no-op source until the entry point has
@@ -117,9 +118,12 @@ val appModule = module {
 }
 
 /**
- * Starts Koin once per process. Safe to call again, e.g. when Android recreates the activity:
- * the repositories must outlive it, because retained ViewModels still use them.
+ * Starts Koin once per process, over the [content] of the country the app is built for. Safe to
+ * call again, e.g. when Android recreates the activity: the repositories must outlive it, because
+ * retained ViewModels still use them.
  */
-fun initKoin() {
-    if (KoinPlatform.getKoinOrNull() == null) startKoin { modules(appModule) }
+fun initKoin(content: BundledContent) {
+    if (KoinPlatform.getKoinOrNull() == null) {
+        startKoin { modules(appModule, module { single { content } }) }
+    }
 }

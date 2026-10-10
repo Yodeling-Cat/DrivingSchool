@@ -31,15 +31,15 @@ Downloads are cached in `tools/import/cache/`, which is gitignored. Without `--r
 
 ## What it writes
 
-The output goes to `app/shared/src/commonMain/composeResources/files/`, and it is committed:
+Each country's output goes to its own content module, `app/content/<country>/src/commonMain/composeResources/files/` (`sk` or `cz`), which only that country's app bundles (see "Countries" in `AGENTS.md`). It is committed:
 
 | Path | Contents |
 |---|---|
-| `banks/index.json` | The latest version of every bank, with its question count per license group. The exam-selection screen reads this. |
+| `banks/index.json` | The latest version of every bank of the country, with its question count per license group. The exam-selection screen reads this. |
 | `banks/<bank>-v<version>.json` | One version of one bank, such as `sk-sk-v1.json`: its topics (`sections`) and questions. It is decoded by `QuestionBank` in `:core`. |
 | `images/minv-sk/...` | The images the Slovak questions reference, with the same paths as on minv.sk. Images that no bundled bank version references are deleted. |
 | `images/md-cz/...` | The pictures the Czech questions reference, named as on etesty.md.gov.cz. Photos are bundled as lighter JPEGs; see below. |
-| `signs/index.json` | The latest version of every sign catalog, with its sign count. |
+| `signs/index.json` | The latest version of every sign catalog, with its sign count. Slovakia only, so far. |
 | `signs/<id>-v<version>.json` | One version of one sign catalog, such as `sk-v1.json`: every sign with its number, name, meaning, the kind and heading of the annex it is listed under, and its picture. It is decoded by `SignCatalog` in `:core`. |
 
 The app loads these files with `QuestionBankRepository` and `SignCatalogRepository`, in

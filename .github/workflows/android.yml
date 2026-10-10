@@ -46,7 +46,7 @@ jobs:
         run: ./gradlew ktlintCheck
 
       - name: Android Lint
-        run: ./gradlew :app:androidApp:lintDebug
+        run: ./gradlew :app:androidApp:lintSkDebug :app:androidApp:lintCzDebug
 
   build:
     name: Compile
@@ -71,4 +71,4 @@ jobs:
           yes | "$sdkmanager" --install "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Assemble the debug build
-        run: ./gradlew :app:androidApp:assembleDebug
+        run: ./gradlew :app:androidApp:assembleSkDebug :app:androidApp:assembleCzDebug

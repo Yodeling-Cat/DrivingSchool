@@ -52,8 +52,30 @@ data class ExamSelectionUiState(
      * leaving it; on the first step there is nothing to undo, so back means leaving the screen.
      */
     val hasPreviousStep: Boolean
-        get() = step != ExamSelectionStep.ChooseCountry
+        get() = step != firstStep(banks.orEmpty())
 }
+
+/**
+ * The step the wizard opens on. An app bundles one country's banks (see AGENTS.md, "Countries"), so
+ * it has no country to choose and opens on that country's next step.
+ */
+internal fun firstStep(banks: List<QuestionBankInfo>): ExamSelectionStep {
+    val country = banks.map { it.country }.distinct().singleOrNull() ?: return ExamSelectionStep.ChooseCountry
+    return stepAfterCountry(country, banks) ?: ExamSelectionStep.ChooseCountry
+}
+
+/** What choosing [country] leads to: its languages, or straight to its categories when it has one. */
+private fun stepAfterCountry(country: String, banks: List<QuestionBankInfo>): ExamSelectionStep? =
+    banks.filter { it.country == country }.let { banksForCountry ->
+        when (banksForCountry.size) {
+            0 -> null
+
+            // A test in one language alone leaves no language to choose.
+            1 -> ExamSelectionStep.ChooseCategory(banksForCountry.single())
+
+            else -> ExamSelectionStep.ChooseBankLanguage(country, banksForCountry)
+        }
+    }
 
 sealed interface ExamSelectionUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ExamSelectionUiEvent
@@ -76,7 +98,11 @@ class ExamSelectionViewModel(
     private val done = MutableStateFlow(false)
 
     init {
-        viewModelScope.launch { banksState.value = banks.index() }
+        viewModelScope.launch {
+            val index = banks.index()
+            banksState.value = index
+            step.value = firstStep(index)
+        }
     }
 
     val uiState: StateFlow<ExamSelectionUiState> =
@@ -96,15 +122,8 @@ class ExamSelectionViewModel(
             }
 
             is ExamSelectionUiEvent.ChooseCountry -> {
-                val banksForCountry = banksOf(event.country)
-                step.value = when (banksForCountry.size) {
-                    0 -> return
-
-                    // A test in one language alone leaves no language to choose.
-                    1 -> ExamSelectionStep.ChooseCategory(banksForCountry.single())
-
-                    else -> ExamSelectionStep.ChooseBankLanguage(event.country, banksForCountry)
-                }
+                if (step.value != ExamSelectionStep.ChooseCountry) return
+                step.value = stepAfterCountry(event.country, banksState.value.orEmpty()) ?: return
             }
 
             is ExamSelectionUiEvent.ChooseBank -> step.value = ExamSelectionStep.ChooseCategory(event.bank)
@@ -122,7 +141,10 @@ class ExamSelectionViewModel(
                 done.value = true
             }
 
-            ExamSelectionUiEvent.StepBack -> step.value = stepBack(step.value)
+            ExamSelectionUiEvent.StepBack -> {
+                // Nothing is behind the step the wizard opened on.
+                if (step.value != firstStep(banksState.value.orEmpty())) step.value = stepBack(step.value)
+            }
         }
     }
 

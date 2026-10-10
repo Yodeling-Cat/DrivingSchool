@@ -1,0 +1,17 @@
+[
+  {
+    "id": "cz-cs",
+    "version": 1,
+    "country": "CZ",
+    "language": "cs",
+    "questionCounts": {
+      "A": 995,
+      "B": 1011,
+      "BE": 993,
+      "C": 1043,
+      "CE": 980,
+      "D": 1007,
+      "DE": 980
+    }
+  }
+]

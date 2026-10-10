@@ -128,14 +128,15 @@ desktop and landscape sizes.
 
 | Target | Command |
 |---|---|
-| Android | `./gradlew :app:androidApp:assembleDebug` |
-| Web (Wasm) | `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun` |
+| Android (Slovak / Czech) | `./gradlew :app:androidApp:assembleSkDebug` / `assembleCzDebug` |
+| Web (Wasm) | `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`, with `-Pcountry=cz` for the Czech app |
 | Web (JS, for older browsers) | `./gradlew :app:webApp:jsBrowserDevelopmentRun` |
 | Server | `./gradlew :server:run` |
 | iOS | Open [`app/iosApp`](app/iosApp) in Xcode and run. |
 
-On Windows, use `gradlew.bat`. A debug build of the Android app has the application ID suffix
-`.dev`, so it installs next to a release build.
+On Windows, use `gradlew.bat`. Each country is its own app with only its own questions, pictures and
+videos (see "Countries" in [AGENTS.md](AGENTS.md)). A debug build of the Android app has the
+application ID suffix `.dev`, so it installs next to a release build.
 
 ### Release builds
 

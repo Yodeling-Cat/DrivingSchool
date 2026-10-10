@@ -6,6 +6,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+/**
+ * The country a web build is for: `sk` unless `-Pcountry=cz` says otherwise. A page is built for
+ * one country, as each Android flavor is (see AGENTS.md, "Countries").
+ */
+val country = providers.gradleProperty("country").getOrElse("sk")
+require(country in setOf("sk", "cz")) { "country must be sk or cz, not $country" }
+
 kotlin {
     js {
         browser()
@@ -21,6 +28,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.app.shared)
+            implementation(project(":app:content:$country"))
 
             implementation(libs.compose.ui)
         }

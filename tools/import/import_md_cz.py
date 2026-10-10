@@ -27,11 +27,13 @@ from pathlib import Path
 import pymupdf
 
 from importer_common import (
-    BANKS, IMAGES, clean, download, log, read_json, remove_stale_images, write_bank, write_index,
+    clean, content_files, download, log, read_json, remove_stale_images, write_bank, write_index,
 )
 
 CACHE = Path(__file__).resolve().parent / "cache" / "md-cz"
-IMAGES_OUT = IMAGES / "md-cz"
+FILES_OUT = content_files("cz")
+BANKS_OUT = FILES_OUT / "banks"
+IMAGES_OUT = FILES_OUT / "images/md-cz"
 
 BASE_URL = "https://etesty.md.gov.cz"
 #: The practice area that holds every question ("Soubor všech otázek").
@@ -408,11 +410,11 @@ def main():
     log("Parsing")
     document = build_bank(raw_questions, exams, args.version)
     write_media(document, args.refresh)
-    entry = write_bank(document, GROUPS)
+    entry = write_bank(document, GROUPS, BANKS_OUT)
     log(f"  {document['id']}: {len(document['questions'])} questions, {entry['questionCounts']}")
     # Keep other importers' banks in the shared index.
-    write_index(BANKS / "index.json", [entry], COUNTRY)
-    remove_stale_images(IMAGES_OUT.name)
+    write_index(BANKS_OUT / "index.json", [entry], COUNTRY)
+    remove_stale_images(FILES_OUT, IMAGES_OUT.name)
     log("Done")
 
 

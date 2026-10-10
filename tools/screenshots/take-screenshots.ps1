@@ -42,8 +42,8 @@ $testClass = "com.spiraclestudios.autoskola.screenshots.StoreScreenshots"
 # Where the test saves them: the app's external files directory, which adb can read.
 $deviceOutput = "/sdcard/Android/data/$appId/files/store-screenshots"
 
-$appApk = Join-Path $root "app/androidApp/build/outputs/apk/debug/androidApp-debug.apk"
-$testApk = Join-Path $root "app/androidApp/build/outputs/apk/androidTest/debug/androidApp-debug-androidTest.apk"
+$appApk = Join-Path $root "app/androidApp/build/outputs/apk/sk/debug/androidApp-sk-debug.apk"
+$testApk = Join-Path $root "app/androidApp/build/outputs/apk/androidTest/sk/debug/androidApp-sk-debug-androidTest.apk"
 
 function Get-SdkDirectory {
     $properties = Join-Path $root "local.properties"
@@ -206,7 +206,7 @@ function Test-StoreRequirements([string] $Folder, [int] $MinSide, [int] $MaxSide
 }
 
 if (-not $SkipBuild) {
-    & (Join-Path $root "gradlew.bat") -p $root :app:androidApp:assembleDebug :app:androidApp:assembleDebugAndroidTest
+    & (Join-Path $root "gradlew.bat") -p $root :app:androidApp:assembleSkDebug :app:androidApp:assembleSkDebugAndroidTest
     if ($LASTEXITCODE -ne 0) { throw "The build failed." }
 }
 

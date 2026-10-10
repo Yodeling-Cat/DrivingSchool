@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.spiraclestudios.autoskola.content.bundledContent
 import com.spiraclestudios.autoskola.provideApplication
 
 class MainActivity : ComponentActivity() {
@@ -31,7 +32,7 @@ class MainActivity : ComponentActivity() {
         provideApplication(application)
 
         setContent {
-            App()
+            App(bundledContent)
         }
     }
 }
@@ -39,5 +40,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    App(bundledContent)
 }

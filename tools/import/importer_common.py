@@ -1,5 +1,5 @@
-"""What the importers share: where the app's resources are, how a source is fetched, and how a
-bank, its index entry and its images are written. See docs/importing-questions.md."""
+"""What the importers share: where each country's content goes, how a source is fetched, and how
+a bank, its index entry and its images are written. See docs/importing-questions.md."""
 import json
 import re
 import sys
@@ -7,9 +7,16 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RESOURCES = ROOT / "app/shared/src/commonMain/composeResources/files"
-BANKS = RESOURCES / "banks"
-IMAGES = RESOURCES / "images"
+
+
+def content_files(country):
+    """The Compose resources of [country]'s content module, which its app alone bundles (see
+    AGENTS.md, "Countries"): `banks/`, `images/` and, where it has one, `signs/`."""
+    return ROOT / f"app/content/{country}/src/commonMain/composeResources/files"
+
+
+#: Every country's content, by the code of its module.
+COUNTRIES = ["sk", "cz"]
 
 
 def log(*args):
@@ -70,19 +77,20 @@ def index_entry(document, groups):
     }
 
 
-def write_bank(document, groups):
-    """Writes the bank [document] as `banks/<id>-v<version>.json`, and returns its index entry."""
-    BANKS.mkdir(parents=True, exist_ok=True)
-    (BANKS / f"{document['id']}-v{document['version']}.json").write_text(
+def write_bank(document, groups, banks_dir):
+    """Writes the bank [document] as `<id>-v<version>.json` in [banks_dir], and returns its index
+    entry."""
+    banks_dir.mkdir(parents=True, exist_ok=True)
+    (banks_dir / f"{document['id']}-v{document['version']}.json").write_text(
         json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return index_entry(document, groups)
 
 
-def remove_stale_images(image_dir):
-    """Deletes the files of `images/<image_dir>/` that no bundled bank references. Older versions
-    stay bundled, so their images stay too."""
-    bundled = bank_images(BANKS, image_dir)
-    images = IMAGES / image_dir
+def remove_stale_images(files_dir, image_dir):
+    """Deletes the files of `images/<image_dir>/` in [files_dir] that no bank there references.
+    Older versions stay bundled, so their images stay too."""
+    bundled = bank_images(files_dir / "banks", image_dir)
+    images = files_dir / "images" / image_dir
     stale = [p for p in images.rglob("*") if p.is_file() and p.relative_to(images).as_posix() not in bundled]
     for path in stale:
         path.unlink()

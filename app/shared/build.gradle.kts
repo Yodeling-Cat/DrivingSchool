@@ -24,6 +24,13 @@ aboutLibraries {
     }
 }
 
+/**
+ * The country an iOS framework is built for, since Xcode has no Android-style flavors: `sk` unless
+ * `-Pcountry=cz` says otherwise (see AGENTS.md, "Countries").
+ */
+val country = providers.gradleProperty("country").getOrElse("sk")
+require(country in setOf("sk", "cz")) { "country must be sk or cz, not $country" }
+
 kotlin {
     listOf(
         iosArm64(),
@@ -96,6 +103,10 @@ kotlin {
             implementation(libs.multiplatformSettings.noArg)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.aboutlibraries.compose.m3)
+        }
+        iosMain.dependencies {
+            // The framework is the iOS app, so it bundles the one country it is built for.
+            implementation(project(":app:content:$country"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

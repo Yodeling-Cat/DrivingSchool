@@ -118,6 +118,12 @@ class ExamSession(
         )
     }
 
+    /**
+     * The takes of [testNumber] that can be opened again, newest first: the finished ones and the
+     * one under way (see [Statistics.history]).
+     */
+    fun history(testNumber: Int): Flow<List<TestAttempt>> = statistics.map { it.history(testNumber) }
+
     /** The attempt [id] while it's open and belongs to this exam, otherwise `null`. */
     fun openAttempt(id: String?): Flow<TestAttempt?> = attempt(id).map { it?.takeIf(TestAttempt::isOpen) }
 

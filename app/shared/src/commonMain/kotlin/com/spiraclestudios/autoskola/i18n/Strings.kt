@@ -203,6 +203,24 @@ class Strings(
 
     /** The quiet answer to it: keep the score the test already has. */
     val keepScore: String,
+
+    /** The title of the sheet a long press on a test's tile opens, listing that test's takes. */
+    val testHistoryTitle: (number: Int) -> String,
+
+    /** What the same sheet says for a test that has no take to list. */
+    val testHistoryEmpty: String,
+
+    /** One take in it, counted from the first: "Attempt 2". */
+    val testHistoryTake: (take: Int) -> String,
+
+    /** How long the take ran, given as a clock: "Time 12:34". */
+    val testHistoryTime: (clock: String) -> String,
+
+    /** How one finished take went, alone on its line: "Passed", in the singular of one test. */
+    val testHistoryVerdict: (passed: Boolean) -> String,
+
+    /** What opening a finished take does: it is only looked at again. */
+    val reviewTest: String,
     val inProgress: String,
     val practiceMistakes: String,
     val mistakesToReview: (count: Int) -> String,
@@ -502,6 +520,12 @@ private val EnglishStrings = Strings(
             "beginning, and you lose this score."
     },
     keepScore = "Keep my score",
+    testHistoryTitle = { "History of test $it" },
+    testHistoryEmpty = "You haven't taken this test yet.",
+    testHistoryTake = { "Attempt $it" },
+    testHistoryTime = { "Time $it" },
+    testHistoryVerdict = { if (it) "Passed" else "Failed" },
+    reviewTest = "Review",
     inProgress = "In progress",
     practiceMistakes = "Practice mistakes",
     mistakesToReview = { if (it == 0) "No mistakes to review" else "$it to review" },
@@ -736,6 +760,12 @@ private val SlovakStrings = Strings(
             "a o toto skóre prídete."
     },
     keepScore = "Ponechať skóre",
+    testHistoryTitle = { "História testu $it" },
+    testHistoryEmpty = "Tento test ste ešte neabsolvovali.",
+    testHistoryTake = { "Pokus $it" },
+    testHistoryTime = { "Čas $it" },
+    testHistoryVerdict = { if (it) "Úspešný" else "Neúspešný" },
+    reviewTest = "Prezrieť",
     inProgress = "Rozpracovaný",
     practiceMistakes = "Precvičiť chyby",
     mistakesToReview = { if (it == 0) "Žiadne chyby na zopakovanie" else "Na zopakovanie: $it" },
@@ -973,6 +1003,12 @@ private val HungarianStrings = Strings(
             "kezdődik, és elveszíti ezt az eredményt."
     },
     keepScore = "Pontszám megtartása",
+    testHistoryTitle = { "$it. teszt – előzmények" },
+    testHistoryEmpty = "Ezt a tesztet még nem töltötte ki.",
+    testHistoryTake = { "$it. próbálkozás" },
+    testHistoryTime = { "Idő: $it" },
+    testHistoryVerdict = { if (it) "Sikeres" else "Sikertelen" },
+    reviewTest = "Áttekintés",
     inProgress = "Folyamatban",
     practiceMistakes = "Hibák gyakorlása",
     mistakesToReview = { if (it == 0) "Nincs ismétlendő hiba" else "Ismétlendő: $it" },
@@ -1209,6 +1245,12 @@ private val CzechStrings = Strings(
             "a o toto skóre přijdete."
     },
     keepScore = "Ponechat skóre",
+    testHistoryTitle = { "Historie testu $it" },
+    testHistoryEmpty = "Tento test jste ještě neabsolvovali.",
+    testHistoryTake = { "Pokus $it" },
+    testHistoryTime = { "Čas $it" },
+    testHistoryVerdict = { if (it) "Úspěšný" else "Neúspěšný" },
+    reviewTest = "Prohlédnout",
     inProgress = "Rozpracovaný",
     practiceMistakes = "Procvičit chyby",
     mistakesToReview = { if (it == 0) "Žádné chyby k zopakování" else "K zopakování: $it" },

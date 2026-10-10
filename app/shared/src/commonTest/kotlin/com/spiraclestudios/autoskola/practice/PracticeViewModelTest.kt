@@ -713,6 +713,35 @@ class PracticeViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun aFinishedTestOpenedAgainIsLockedForReview() = runTest {
+        // The history on the home screen opens a finished take again: it is there to be read, so it
+        // opens finished and an answer given to it changes nothing.
+        val attempt = startTest()
+        val session = repositories.exams.currentSession()
+        session.answer(attempt.id, session.questionsOf(attempt).first(), chosen = 0)
+        session.finish(attempt.id)
+        val (viewModel, state) = open(attempt)
+
+        assertTrue(state.ready.finished)
+        viewModel.onEvent(PracticeUiEvent.Answer(questionIndex = 1, answerIndex = 0))
+
+        assertEquals(mapOf(0 to 0), state.ready.answers)
+    }
+
+    @Test
+    fun leavingAFinishedTestWithNoAnswersClosesIt() = runTest {
+        // A finished take can't be thrown away, so leaving one nobody answered a question of has to
+        // close the screen rather than wait for the discard that never happens.
+        val attempt = startTest()
+        repositories.exams.currentSession().finish(attempt.id)
+        val (viewModel, state) = open(attempt)
+
+        viewModel.onEvent(PracticeUiEvent.Leave)
+
+        assertTrue(state.ready.close)
+    }
+
+    @Test
     fun aQuestionImageThatFailsToLoadIsRecorded() = runTest {
         repositories.preferences.setAnalyticsEnabled(true)
         val attempt = startTest()

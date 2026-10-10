@@ -55,6 +55,24 @@ data class ResumePrompt(
  */
 data class PassedPrompt(val testNumber: Int, val score: Int, val maxScore: Int)
 
+/** One take of a test, as its history lists it. */
+data class HistoryEntry(
+    val attemptId: String,
+    /** Which take of the test this is, counting from 1 for the oldest one listed. */
+    val take: Int,
+    /** The score it finished with, or `null` while it is still under way. */
+    val result: TestResult?,
+    val answered: Int,
+    val total: Int,
+    val elapsedSeconds: Long,
+) {
+    /** Whether opening it continues the test; every other take only opens to be reviewed. */
+    val resumable: Boolean get() = result == null
+}
+
+/** The takes of test [testNumber], newest first, which a long press on its tile lists. */
+data class TestHistory(val testNumber: Int, val entries: List<HistoryEntry>)
+
 /** Everything the home screen shows about the user's progress. */
 data class HomeProgress(
     val results: Map<Int, TestResult>,
@@ -115,6 +133,8 @@ sealed interface HomeUiState {
          * dialog leaves it unstarted rather than starting it for free.
          */
         val pendingTestNumber: Int? = null,
+        /** The history of the test the user long-pressed, or `null` while none is shown. */
+        val history: TestHistory? = null,
     ) : HomeUiState
 }
 
@@ -139,6 +159,19 @@ sealed interface HomeUiEvent {
 
     /** The user closed the passed prompt, leaving the score the test has. */
     data object DismissPassedPrompt : HomeUiEvent
+
+    /** Lists the takes of test [testNumber], so one can be opened again. */
+    data class ShowHistory(val testNumber: Int) : HomeUiEvent
+
+    /**
+     * Opens a take from the [HomeUiState.Ready.history]: the one under way is continued, and a
+     * finished one opens to be reviewed, its answers locked.
+     */
+    data class OpenHistoryEntry(val attemptId: String) : HomeUiEvent
+
+    /** The user closed the history without opening anything. */
+    data object DismissHistory : HomeUiEvent
+
     data object PracticeMistakes : HomeUiEvent
     data object AttemptOpened : HomeUiEvent
 
@@ -156,10 +189,15 @@ sealed interface HomeUiEvent {
 }
 
 /**
- * The three things the home screen can be part-way through asking. Combined into one source so that
- * [HomeViewModel.uiState] can follow the ads answer as well: there is no `combine` that takes six.
+ * The things the home screen can be part-way through asking or showing. Combined into one source so
+ * that [HomeViewModel.uiState] can follow the ads answer as well: there is no `combine` that takes six.
  */
-private data class Prompts(val openAttemptId: String?, val resume: ResumePrompt?, val passed: PassedPrompt?)
+private data class Prompts(
+    val openAttemptId: String?,
+    val resume: ResumePrompt?,
+    val passed: PassedPrompt?,
+    val history: TestHistory? = null,
+)
 
 /**
  * A start the gate is standing in front of: what to begin once the user is through, the test it is
@@ -185,6 +223,9 @@ class HomeViewModel(
     private val resumePrompt = MutableStateFlow<ResumePrompt?>(null)
     private val passedPrompt = MutableStateFlow<PassedPrompt?>(null)
 
+    /** The test whose history is shown, if any. The takes themselves follow the attempts. */
+    private val historyTestNumber = MutableStateFlow<Int?>(null)
+
     /** What the gate is holding, if anything. Cleared only by the two answers to the dialog. */
     private val gated = MutableStateFlow<GatedStart?>(null)
 
@@ -198,7 +239,7 @@ class HomeViewModel(
                 // Mapped on its own, so the progress keeps its instance while only a prompt, the
                 // rating card or the ads change, and the tiles drawn from it are left alone.
                 session.progress.map { it.toHomeProgress() },
-                prompts,
+                combine(prompts, history(session)) { prompts, history -> prompts.copy(history = history) },
                 review.request,
                 ads.adsAllowed,
                 gated,
@@ -219,6 +260,7 @@ class HomeViewModel(
                     passedPrompt = prompts.passed,
                     showAds = showAds,
                     pendingTestNumber = gated?.testNumber,
+                    history = prompts.history,
                 )
             }
         }
@@ -290,6 +332,20 @@ class HomeViewModel(
 
             HomeUiEvent.DismissPassedPrompt -> passedPrompt.value = null
 
+            is HomeUiEvent.ShowHistory -> historyTestNumber.value = event.testNumber
+
+            HomeUiEvent.DismissHistory -> historyTestNumber.value = null
+
+            // Only a take the sheet lists is opened, and what it is decides how: the one under way is
+            // continued, as the resume card would, and a finished one is only looked at again, which
+            // starts nothing.
+            is HomeUiEvent.OpenHistoryEntry -> {
+                val entry = shown?.history?.entries?.firstOrNull { it.attemptId == event.attemptId } ?: return
+                historyTestNumber.value = null
+                openAttemptId.value = entry.attemptId
+                if (entry.resumable) started(AttemptKind.PracticeTest, resumed = true)
+            }
+
             HomeUiEvent.PracticeMistakes -> viewModelScope.launch {
                 session.startMistakes()?.let {
                     openAttemptId.value = it.id
@@ -357,6 +413,27 @@ class HomeViewModel(
         gate(progress, test.number) {
             openAttemptId.value = session.restart(test).id
             started(AttemptKind.PracticeTest, resumed = false)
+        }
+    }
+
+    /** The history of the test [historyTestNumber] names, following its attempts as they change. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun history(session: ExamSession) = historyTestNumber.flatMapLatest { testNumber ->
+        if (testNumber == null) return@flatMapLatest flowOf(null)
+        session.history(testNumber).map { takes ->
+            TestHistory(
+                testNumber = testNumber,
+                entries = takes.mapIndexed { index, attempt ->
+                    HistoryEntry(
+                        attemptId = attempt.id,
+                        take = takes.size - index,
+                        result = attempt.result,
+                        answered = attempt.answers.size,
+                        total = attempt.questionIds.size,
+                        elapsedSeconds = attempt.elapsedSeconds,
+                    )
+                },
+            )
         }
     }
 

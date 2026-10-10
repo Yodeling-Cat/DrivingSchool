@@ -60,6 +60,20 @@ class Statistics private constructor(val attempts: List<TestAttempt>, val questi
     fun openAttemptFor(testNumber: Int): TestAttempt? =
         openAttempts(AttemptKind.PracticeTest).firstOrNull { it.testNumber == testNumber }
 
+    /**
+     * The takes of practice test [testNumber] that can be opened again, the most recently started
+     * first: every finished one, to be reviewed, and the one under way that [openAttemptFor] would
+     * continue. A discarded take is gone, and an older one left open is neither reviewable nor the
+     * one to continue, so neither is listed.
+     */
+    fun history(testNumber: Int): List<TestAttempt> {
+        val underWay = openAttemptFor(testNumber)
+        return attempts
+            .filter { it.kind == AttemptKind.PracticeTest && it.testNumber == testNumber }
+            .filter { it.isFinished || it == underWay }
+            .sortedByDescending { it.startedAt }
+    }
+
     /** Attempts of [kind] that are neither finished nor discarded, the most recently touched first. */
     fun openAttempts(kind: AttemptKind): List<TestAttempt> =
         attempts.filter { it.isOpen && it.kind == kind }.sortedByDescending { it.updatedAt }

@@ -308,6 +308,103 @@ class HomeViewModelTest : ViewModelTest() {
         assertNull(repositories.attempts.get(started)!!.discardedAt)
     }
 
+    // ── A test's history ─────────────────────────────────────────────────────
+
+    /** Takes test [testNumber] once and finishes it, then starts it again and leaves it under way. */
+    private suspend fun finishedThenUnderWay(testNumber: Int): Pair<String, String> {
+        val session = repositories.exams.currentSession()
+        val test = session.tests.first { it.number == testNumber }
+        val finished = session.restart(test)
+        session.finish(finished.id)
+        val underWay = session.restart(test)
+        session.answer(underWay.id, session.questionsOf(underWay).first(), chosen = 0)
+        return finished.id to underWay.id
+    }
+
+    @Test
+    fun showingATestsHistoryListsItsTakesNewestFirst() = runTest {
+        val (finished, underWay) = finishedThenUnderWay(testNumber = 1)
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+
+        val history = assertNotNull(state.ready.history)
+        assertEquals(1, history.testNumber)
+        assertEquals(listOf(underWay, finished), history.entries.map { it.attemptId })
+        assertEquals(listOf(2, 1), history.entries.map { it.take })
+        assertEquals(listOf(true, false), history.entries.map { it.resumable })
+        assertEquals(1, history.entries.first().answered)
+        assertNotNull(history.entries.last().result)
+    }
+
+    @Test
+    fun aTestNeverTakenHasAnEmptyHistory() = runTest {
+        val state = observe(viewModel.uiState)
+
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+
+        assertEquals(emptyList(), assertNotNull(state.ready.history).entries)
+    }
+
+    @Test
+    fun dismissingTheHistoryClosesIt() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.DismissHistory)
+
+        assertNull(state.ready.history)
+    }
+
+    @Test
+    fun openingAFinishedTakeOpensItForReviewWithoutRecordingAStart() = runTest {
+        // A finished take is only looked at again: the practice screen shows it locked, and nothing
+        // was started or continued, so nothing is recorded as such.
+        repositories.preferences.setAnalyticsEnabled(true)
+        val (finished, _) = finishedThenUnderWay(testNumber = 1)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+        repositories.analyticsSink.events.clear()
+
+        viewModel.onEvent(HomeUiEvent.OpenHistoryEntry(finished))
+
+        assertEquals(finished, state.ready.openAttemptId)
+        assertNull(state.ready.history)
+        assertEquals(emptyList(), repositories.analyticsSink.events)
+        // Opening it is not taking the test again: the take under way is still the one to continue.
+        assertNotNull(repositories.exams.currentSession().openAttemptFor(state.ready.tests.first()))
+    }
+
+    @Test
+    fun openingTheTakeUnderWayContinuesIt() = runTest {
+        repositories.preferences.setAnalyticsEnabled(true)
+        val (_, underWay) = finishedThenUnderWay(testNumber = 1)
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+        repositories.analyticsSink.events.clear()
+        repositories.analyticsSink.properties.clear()
+
+        viewModel.onEvent(HomeUiEvent.OpenHistoryEntry(underWay))
+
+        assertEquals(underWay, state.ready.openAttemptId)
+        assertNull(state.ready.history)
+        assertEquals(listOf(AnalyticsEvent.TestStarted), repositories.analyticsSink.events)
+        assertEquals(
+            mapOf("kind" to "practice_test", "resumed" to true),
+            repositories.analyticsSink.properties.single(),
+        )
+    }
+
+    @Test
+    fun anAttemptNotInTheHistoryIsNotOpened() = runTest {
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(HomeUiEvent.ShowHistory(testNumber = 1))
+
+        viewModel.onEvent(HomeUiEvent.OpenHistoryEntry("not-listed"))
+
+        assertNull(state.ready.openAttemptId)
+    }
+
     @Test
     fun practisingMistakesOpensARetestOnlyWhenThereAreMistakes() = runTest {
         val state = observe(viewModel.uiState)

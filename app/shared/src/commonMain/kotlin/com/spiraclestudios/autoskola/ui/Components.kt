@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -424,6 +425,8 @@ fun TestTile(
     statusLabel: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What a long press does - on the home screen, list the test's takes - or `null` for nothing. */
+    onLongClick: (() -> Unit)? = null,
 ) {
     val colors = Naj.colors
     val tint = statusTint(colors, status)
@@ -432,7 +435,7 @@ fun TestTile(
             .height(76.dp)
             .clip(RoundedCornerShape(TileRadius))
             .background(Brush.linearGradient(listOf(tint.top, tint.bottom)))
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.SpaceBetween) {

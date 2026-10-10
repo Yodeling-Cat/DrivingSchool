@@ -205,6 +205,28 @@ class StatisticsTest {
     }
 
     @Test
+    fun aTestsHistoryIsItsFinishedTakesAndTheOneUnderWayNewestFirst() {
+        // The history lists what can be opened again: every take that was finished, and the one take
+        // that is under way. A thrown-away take is gone, another test's takes are not this test's, and
+        // an older take left open that is not the one the home screen would continue is not offered:
+        // it can neither be continued nor reviewed as a finished test.
+        val stats = Statistics.of(
+            listOf(
+                attempt("first", startedAt = 1, finishedAt = 2),
+                attempt("thrown-away", startedAt = 3, discardedAt = 4),
+                attempt("stale-open", startedAt = 5),
+                attempt("second", startedAt = 6, finishedAt = 7),
+                attempt("other-test", testNumber = 2, startedAt = 8, finishedAt = 9),
+                attempt("under-way", startedAt = 10, answers = arrayOf(answer(1, true, 11))),
+            ),
+            checkImmediately = false,
+        )
+
+        assertEquals(listOf("under-way", "second", "first"), stats.history(1).map { it.id })
+        assertEquals(emptyList(), stats.history(3))
+    }
+
+    @Test
     fun attemptsSurviveEncoding() {
         val original = attempt("x", finishedAt = 10, answers = arrayOf(answer(1, true, 5)))
         assertEquals(original, TestAttempt.decode(original.encode()))

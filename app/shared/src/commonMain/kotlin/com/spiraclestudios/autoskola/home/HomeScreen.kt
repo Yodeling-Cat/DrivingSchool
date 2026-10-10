@@ -214,6 +214,13 @@ fun HomeScreen(state: HomeUiState.Ready, onEvent: (HomeUiEvent) -> Unit, onChang
     state.resumePrompt?.let { ResumePromptDialog(it, onEvent) }
     state.passedPrompt?.let { PassedPromptDialog(it, onEvent) }
     state.pendingTestNumber?.let { AdGatePromptDialog(it, onEvent) }
+    state.history?.let { history ->
+        TestHistorySheet(
+            history = history,
+            onOpen = { onEvent(HomeUiEvent.OpenHistoryEntry(it)) },
+            onDismiss = { onEvent(HomeUiEvent.DismissHistory) },
+        )
+    }
 }
 
 /** The phone and medium layout: the cards in one scrolling column, then the tests as a grid. */
@@ -907,6 +914,7 @@ private fun TestTileItem(
         status = status,
         statusLabel = label,
         onClick = { onEvent(HomeUiEvent.StartTest(test.number)) },
+        onLongClick = { onEvent(HomeUiEvent.ShowHistory(test.number)) },
         modifier = modifier.inkShadow(6.dp, RoundedCornerShape(TileRadius), colors.ink, 0.25f),
     )
 }
@@ -986,6 +994,7 @@ private fun homeState(
     passedPrompt: PassedPrompt? = null,
     exam: ExamLabel = previewExam,
     showAds: Boolean = false,
+    history: TestHistory? = null,
 ): HomeUiState.Ready {
     val tests = previewTests()
     return HomeUiState.Ready(
@@ -997,6 +1006,7 @@ private fun homeState(
         resumePrompt = resumePrompt,
         passedPrompt = passedPrompt,
         showAds = showAds,
+        history = history,
     )
 }
 
@@ -1153,6 +1163,29 @@ private fun HomeScreenResumePromptPreview() {
 private fun HomeScreenPassedPromptPreview() {
     AppPreview {
         HomeScreen(homeState(passedPrompt = previewPassedPrompt()), onEvent = {}, onChangeExam = {})
+    }
+}
+
+/** The sheet a long press on a test opens: its take under way, then the finished ones. */
+@Preview(widthDp = 400, heightDp = 860)
+@Composable
+private fun HomeScreenHistoryPreview() {
+    AppPreview {
+        val history = TestHistory(
+            testNumber = 7,
+            entries = listOf(
+                HistoryEntry("preview-2", take = 2, result = null, answered = 12, total = 40, elapsedSeconds = 431),
+                HistoryEntry(
+                    attemptId = "preview-1",
+                    take = 1,
+                    result = TestResult(31, 40),
+                    answered = 40,
+                    total = 40,
+                    elapsedSeconds = 1312,
+                ),
+            ),
+        )
+        HomeScreen(homeState(history = history), onEvent = {}, onChangeExam = {})
     }
 }
 

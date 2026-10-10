@@ -330,11 +330,12 @@ class PracticeViewModel(
 
             // Leaving a test nobody answered a question of: there is nothing in it to come back to,
             // so the attempt goes rather than waiting to be picked up again. One that was answered
-            // stays as it is, and the screen closes.
+            // stays as it is, and the screen closes - as it does for a finished one, which can't be
+            // thrown away whatever it holds.
             PracticeUiEvent.Leave -> viewModelScope.launch {
                 val attempt = session.attempt(attemptId).first() ?: return@launch
                 recordAbandoned(attempt)
-                if (attempt.wasAnswered) {
+                if (attempt.wasAnswered || attempt.isFinished) {
                     close.value = true
                 } else {
                     session.discard(attemptId)

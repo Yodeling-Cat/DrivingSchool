@@ -18,21 +18,19 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Countries we know about, in display order. Not all have a question bank yet (docs/data-sources.md). */
-private val KNOWN_COUNTRIES = listOf("SK", "CZ")
-
-/** One country to choose from, shown even before it has a question bank (grayed out). */
-data class CountryOption(val country: String, val available: Boolean)
-
 /**
- * The exam-selection wizard has three steps, each narrowing the choice made in the last one. A country
- * whose test is in one language alone skips the language step.
+ * The exam-selection wizard: the language to take the test in, then the license category. Each app
+ * bundles one country's banks (see AGENTS.md, "Countries"), so there is no country to choose, and a
+ * test in one language alone has no language to choose either: it opens on the categories.
  */
 sealed interface ExamSelectionStep {
-    data object ChooseCountry : ExamSelectionStep
-    data class ChooseBankLanguage(val country: String, val banks: List<QuestionBankInfo>) : ExamSelectionStep
+    data class ChooseBankLanguage(val banks: List<QuestionBankInfo>) : ExamSelectionStep
     data class ChooseCategory(val bank: QuestionBankInfo) : ExamSelectionStep
 }
+
+/** The step the wizard opens on for [banks]: their languages, or the categories of the only one. */
+internal fun firstStep(banks: List<QuestionBankInfo>): ExamSelectionStep =
+    banks.singleOrNull()?.let(ExamSelectionStep::ChooseCategory) ?: ExamSelectionStep.ChooseBankLanguage(banks)
 
 data class ExamSelectionUiState(
     /** `null` while loading. */
@@ -42,11 +40,6 @@ data class ExamSelectionUiState(
     /** An exam was picked, so the screen can close. */
     val done: Boolean = false,
 ) {
-    val countryOptions: List<CountryOption>
-        get() = KNOWN_COUNTRIES.map { country ->
-            CountryOption(country, available = banks.orEmpty().any { it.country == country })
-        }
-
     /**
      * True while there is a step behind the one on screen. Back then walks the wizard instead of
      * leaving it; on the first step there is nothing to undo, so back means leaving the screen.
@@ -55,57 +48,21 @@ data class ExamSelectionUiState(
         get() = step != firstStep(banks.orEmpty())
 
     /**
-     * How far through the wizard the step on screen is, counting only the steps it walks: a step
-     * with nothing to choose is skipped, so it has no bar of its own. Before a country is chosen,
-     * whether it will have a language to choose is not known yet, and it is counted as having one.
+     * How far through the wizard the step on screen is: two steps when there is a language to
+     * choose, and one when there is not.
      */
     val progress: StepProgress
         get() {
-            val banks = banks.orEmpty()
-            val countryStep = banks.map { it.country }.distinct().size > 1
-            val languageStep = when (val step = step) {
-                ExamSelectionStep.ChooseCountry -> true
-                is ExamSelectionStep.ChooseBankLanguage -> true
-                is ExamSelectionStep.ChooseCategory -> banks.count { it.country == step.bank.country } > 1
-            }
-            val total = listOf(countryStep, languageStep, true).count { it }
-            val current = when (step) {
-                ExamSelectionStep.ChooseCountry -> 1
-                is ExamSelectionStep.ChooseBankLanguage -> if (countryStep) 2 else 1
-                is ExamSelectionStep.ChooseCategory -> total
-            }
-            return StepProgress(current, total)
+            val total = if (banks.orEmpty().size > 1) 2 else 1
+            return StepProgress(current = if (step is ExamSelectionStep.ChooseCategory) total else 1, total = total)
         }
 }
 
 /** The step on screen, counted from 1, out of the [total] steps the wizard walks. */
 data class StepProgress(val current: Int, val total: Int)
 
-/**
- * The step the wizard opens on. An app bundles one country's banks (see AGENTS.md, "Countries"), so
- * it has no country to choose and opens on that country's next step.
- */
-internal fun firstStep(banks: List<QuestionBankInfo>): ExamSelectionStep {
-    val country = banks.map { it.country }.distinct().singleOrNull() ?: return ExamSelectionStep.ChooseCountry
-    return stepAfterCountry(country, banks) ?: ExamSelectionStep.ChooseCountry
-}
-
-/** What choosing [country] leads to: its languages, or straight to its categories when it has one. */
-private fun stepAfterCountry(country: String, banks: List<QuestionBankInfo>): ExamSelectionStep? =
-    banks.filter { it.country == country }.let { banksForCountry ->
-        when (banksForCountry.size) {
-            0 -> null
-
-            // A test in one language alone leaves no language to choose.
-            1 -> ExamSelectionStep.ChooseCategory(banksForCountry.single())
-
-            else -> ExamSelectionStep.ChooseBankLanguage(country, banksForCountry)
-        }
-    }
-
 sealed interface ExamSelectionUiEvent {
     data class SelectLanguage(val language: AppLanguage) : ExamSelectionUiEvent
-    data class ChooseCountry(val country: String) : ExamSelectionUiEvent
     data class ChooseBank(val bank: QuestionBankInfo) : ExamSelectionUiEvent
     data class ChooseCategory(val category: LicenseCategory) : ExamSelectionUiEvent
 
@@ -120,7 +77,7 @@ class ExamSelectionViewModel(
 ) : ViewModel() {
 
     private val banksState = MutableStateFlow<List<QuestionBankInfo>?>(null)
-    private val step = MutableStateFlow<ExamSelectionStep>(ExamSelectionStep.ChooseCountry)
+    private val step = MutableStateFlow(firstStep(emptyList()))
     private val done = MutableStateFlow(false)
 
     init {
@@ -137,7 +94,7 @@ class ExamSelectionViewModel(
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            ExamSelectionUiState(null, ExamSelectionStep.ChooseCountry, preferences.preferences.value.language),
+            ExamSelectionUiState(null, step.value, preferences.preferences.value.language),
         )
 
     fun onEvent(event: ExamSelectionUiEvent) {
@@ -145,11 +102,6 @@ class ExamSelectionViewModel(
             is ExamSelectionUiEvent.SelectLanguage -> {
                 analytics.languageChanged(preferences.preferences.value.language, event.language)
                 preferences.selectLanguage(event.language)
-            }
-
-            is ExamSelectionUiEvent.ChooseCountry -> {
-                if (step.value != ExamSelectionStep.ChooseCountry) return
-                step.value = stepAfterCountry(event.country, banksState.value.orEmpty()) ?: return
             }
 
             is ExamSelectionUiEvent.ChooseBank -> step.value = ExamSelectionStep.ChooseCategory(event.bank)
@@ -167,28 +119,8 @@ class ExamSelectionViewModel(
                 done.value = true
             }
 
-            ExamSelectionUiEvent.StepBack -> {
-                // Nothing is behind the step the wizard opened on.
-                if (step.value != firstStep(banksState.value.orEmpty())) step.value = stepBack(step.value)
-            }
+            // The only step that can be behind another is the first one.
+            ExamSelectionUiEvent.StepBack -> step.value = firstStep(banksState.value.orEmpty())
         }
-    }
-
-    private fun banksOf(country: String) = banksState.value.orEmpty().filter { it.country == country }
-
-    private fun stepBack(current: ExamSelectionStep): ExamSelectionStep = when (current) {
-        is ExamSelectionStep.ChooseCategory -> {
-            val banksForCountry = banksOf(current.bank.country)
-            // Back past a language step that was skipped, as there was only one language.
-            if (banksForCountry.size > 1) {
-                ExamSelectionStep.ChooseBankLanguage(current.bank.country, banksForCountry)
-            } else {
-                ExamSelectionStep.ChooseCountry
-            }
-        }
-
-        is ExamSelectionStep.ChooseBankLanguage -> ExamSelectionStep.ChooseCountry
-
-        ExamSelectionStep.ChooseCountry -> ExamSelectionStep.ChooseCountry
     }
 }

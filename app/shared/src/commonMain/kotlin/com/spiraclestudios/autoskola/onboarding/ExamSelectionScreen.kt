@@ -67,8 +67,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private val StepBarWidth = 28.dp
 private val StepBarHeight = 6.dp
-private val CountryCardHeight = 150.dp
-private val FlagHeight = 42.dp
 
 /**
  * Connects [ExamSelectionScreen] to its [ExamSelectionViewModel]. Calls [onDone] once an exam
@@ -86,8 +84,8 @@ fun ExamSelectionRoute(
 }
 
 /**
- * A three-step wizard for the exam to prepare for: country, then the language to take it in (when
- * there is more than one), then the license category. [onBack] is `null` during onboarding, where a choice is required.
+ * A wizard for the exam to prepare for: the language to take it in (when there is more than one),
+ * then the license category. [onBack] is `null` during onboarding, where a choice is required.
  * Its back button and the system's walk the same steps, and both only leave the screen from the
  * first one.
  */
@@ -132,7 +130,6 @@ fun ExamSelectionScreen(
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 val progress = state.progress
                 when (val step = state.step) {
-                    is ExamSelectionStep.ChooseCountry -> CountryStep(state.countryOptions, progress, onEvent)
                     is ExamSelectionStep.ChooseBankLanguage -> LanguageStep(step.banks, progress, onEvent)
                     is ExamSelectionStep.ChooseCategory -> CategoryStep(step.bank, progress, onEvent)
                 }
@@ -201,89 +198,6 @@ private fun StepTitle(
                 color = colors.muted,
                 modifier = Modifier.padding(top = 10.dp),
             )
-        }
-    }
-}
-
-@Composable
-private fun CountryStep(options: List<CountryOption>, progress: StepProgress, onEvent: (ExamSelectionUiEvent) -> Unit) {
-    Column(
-        modifier = Modifier
-            .widthIn(max = ContentWidth.Narrow)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 24.dp),
-    ) {
-        StepTitle(
-            progress = progress,
-            before = strings.examSelectionCountryTitleBefore,
-            accent = strings.examSelectionCountryTitleAccent,
-            subtitle = strings.examSelectionCountrySubtitle,
-        )
-        Column(Modifier.padding(top = 32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            options.chunked(2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    row.forEach { option ->
-                        CountryCard(
-                            option,
-                            modifier = Modifier.weight(1f),
-                            onClick = { onEvent(ExamSelectionUiEvent.ChooseCountry(option.country)) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -> Unit) {
-    val colors = Naj.colors
-    val shape = RoundedCornerShape(22.dp)
-    Column(
-        modifier = modifier
-            .height(CountryCardHeight)
-            .clip(shape)
-            .background(if (option.available) colors.card else colors.card.copy(alpha = 0.45f))
-            .then(
-                if (option.available) Modifier else Modifier.border(1.5.dp, colors.emptyOutline, shape),
-            )
-            .clickable(enabled = option.available, onClick = onClick)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        val flag = countryFlag(option.country)
-        if (flag != null) {
-            Image(
-                painter = rememberVectorPainter(flag),
-                contentDescription = null,
-                colorFilter = if (option.available) {
-                    null
-                } else {
-                    // The design washes a country without a bank out to gray.
-                    ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.35f) })
-                },
-                // A flag is drawn as it is: square to its own edges, with no rounded corner and no
-                // shadow under it. Flags differ in proportion - Hungary's is 2:1, Poland's 8:5 - so
-                // the vector's own shape decides the width; every flag comes out [FlagHeight] tall.
-                modifier = Modifier
-                    .height(FlagHeight)
-                    .width(FlagHeight * (flag.defaultWidth / flag.defaultHeight))
-                    .graphicsLayer { alpha = if (option.available) 1f else 0.55f },
-            )
-        } else {
-            Text(option.country, style = Naj.type.cardHero, color = colors.muted)
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            strings.countryName(option.country),
-            style = Naj.type.countryName,
-            color = if (option.available) colors.ink else colors.disabledOn,
-        )
-        if (!option.available) {
-            Spacer(Modifier.height(2.dp))
-            Text(strings.examSelectionCountryComingSoon, style = Naj.type.secondary, color = colors.disabledOn)
         }
     }
 }
@@ -399,29 +313,16 @@ private fun selectionState(step: ExamSelectionStep, banks: List<QuestionBankInfo
     )
 
 /**
- * The wizard's three steps as a build of more than one country walks them, the steps each country's
- * app walks, and the flash of the spinner while the banks are read.
+ * The wizard's two steps as the Slovak app walks them, the one step of the Czech app, and the flash
+ * of the spinner while the banks are read.
  */
-
-@Preview(widthDp = 400, heightDp = 800)
-@Composable
-private fun ExamSelectionCountryStepPreview() {
-    AppPreview {
-        ExamSelectionScreen(
-            state = selectionState(ExamSelectionStep.ChooseCountry),
-            onEvent = {},
-            // Onboarding: there is nothing behind this screen, and the language is picked here.
-            onBack = null,
-        )
-    }
-}
 
 @Preview(widthDp = 400, heightDp = 800)
 @Composable
 private fun ExamSelectionLanguageStepPreview() {
     AppPreview {
         ExamSelectionScreen(
-            state = selectionState(ExamSelectionStep.ChooseBankLanguage("SK", previewBanks())),
+            state = selectionState(ExamSelectionStep.ChooseBankLanguage(previewBanks())),
             onEvent = {},
             onBack = null,
         )
@@ -434,23 +335,6 @@ private fun ExamSelectionCategoryStepPreview() {
     AppPreview {
         ExamSelectionScreen(
             state = selectionState(ExamSelectionStep.ChooseCategory(previewBankInfo("sk-sk"))),
-            onEvent = {},
-            onBack = null,
-        )
-    }
-}
-
-/**
- * The Slovak app, which has no country to choose: two steps, so two bars, and the languages are the
- * first of them.
- */
-@Preview(widthDp = 400, heightDp = 800)
-@Composable
-private fun ExamSelectionSlovakAppLanguageStepPreview() {
-    val slovak = previewBanks().filter { it.country == "SK" }
-    AppPreview {
-        ExamSelectionScreen(
-            state = selectionState(ExamSelectionStep.ChooseBankLanguage("SK", slovak), banks = slovak),
             onEvent = {},
             onBack = null,
         )
@@ -482,7 +366,7 @@ private fun ExamSelectionCzechCategoryStepPreview() {
 private fun ExamSelectionChangeExamPreview() {
     AppPreview {
         ExamSelectionScreen(
-            state = selectionState(ExamSelectionStep.ChooseCountry),
+            state = selectionState(ExamSelectionStep.ChooseBankLanguage(previewBanks())),
             onEvent = {},
             onBack = {},
         )
@@ -496,7 +380,7 @@ private fun ExamSelectionLoadingPreview() {
         ExamSelectionScreen(
             state = ExamSelectionUiState(
                 banks = null,
-                step = ExamSelectionStep.ChooseCountry,
+                step = ExamSelectionStep.ChooseBankLanguage(emptyList()),
                 language = AppLanguage.English,
             ),
             onEvent = {},

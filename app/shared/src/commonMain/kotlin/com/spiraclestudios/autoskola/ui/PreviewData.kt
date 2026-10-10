@@ -219,12 +219,11 @@ internal fun previewTest(number: Int, questionCount: Int = 4) = PracticeTest(
 /** The tests the home screen lists, numbered 1..[count] so a grid has something to fill. */
 internal fun previewTests(count: Int = 8) = (1..count).map { previewTest(it) }
 
-/** The exam banks the wizard offers, as `banks/index.json` lists them. */
+/** The exam banks the Slovak app's wizard offers, as its `banks/index.json` lists them. */
 internal fun previewBanks() = listOf(
     previewBankInfo("sk-sk", "SK", "sk"),
     previewBankInfo("sk-hu", "SK", "hu"),
     previewBankInfo("sk-en", "SK", "en"),
-    previewCzechBankInfo(),
 )
 
 /** The Czech exam's entry: no tractor group, which the Czech ministry has no practice exam for. */

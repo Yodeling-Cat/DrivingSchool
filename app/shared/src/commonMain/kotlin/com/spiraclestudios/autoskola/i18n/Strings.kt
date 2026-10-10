@@ -95,10 +95,6 @@ class Strings(
     val settingsPrivacy: String,
     // Exam selection. Titles carry the word that the design sets in coral italic separately, so a
     // translation can put it wherever its grammar wants instead of guessing from the sentence.
-    val examSelectionCountryTitleBefore: String,
-    val examSelectionCountryTitleAccent: String,
-    val examSelectionCountrySubtitle: String,
-    val examSelectionCountryComingSoon: String,
     val examSelectionLanguageTitleBefore: String,
     val examSelectionLanguageTitleAccent: String,
     val examSelectionLanguageSubtitle: String,
@@ -434,10 +430,6 @@ private val EnglishStrings = Strings(
     consentAcceptAll = "Accept all",
     consentAcceptChosen = "Accept chosen",
     settingsPrivacy = "Privacy",
-    examSelectionCountryTitleBefore = "Which country's test are you",
-    examSelectionCountryTitleAccent = "taking?",
-    examSelectionCountrySubtitle = "You can change this later.",
-    examSelectionCountryComingSoon = "Coming soon",
     examSelectionLanguageTitleBefore = "Which",
     examSelectionLanguageTitleAccent = "language?",
     examSelectionLanguageSubtitle = "The test is available in several languages. A translated version " +
@@ -672,10 +664,6 @@ private val SlovakStrings = Strings(
     consentAcceptAll = "Prijať všetko",
     consentAcceptChosen = "Prijať vybrané",
     settingsPrivacy = "Súkromie",
-    examSelectionCountryTitleBefore = "Na skúšku ktorej krajiny sa",
-    examSelectionCountryTitleAccent = "pripravujete?",
-    examSelectionCountrySubtitle = "Neskôr to môžete zmeniť.",
-    examSelectionCountryComingSoon = "Čoskoro",
     examSelectionLanguageTitleBefore = "V akom",
     examSelectionLanguageTitleAccent = "jazyku?",
     examSelectionLanguageSubtitle = "Test je dostupný vo viacerých jazykoch. V preloženej verzii môže " +
@@ -913,10 +901,6 @@ private val HungarianStrings = Strings(
     consentAcceptAll = "Összes elfogadása",
     consentAcceptChosen = "Kiválasztottak elfogadása",
     settingsPrivacy = "Adatvédelem",
-    examSelectionCountryTitleBefore = "Melyik ország vizsgájára",
-    examSelectionCountryTitleAccent = "készül?",
-    examSelectionCountrySubtitle = "Ezt később módosíthatja.",
-    examSelectionCountryComingSoon = "Hamarosan",
     examSelectionLanguageTitleBefore = "Milyen",
     examSelectionLanguageTitleAccent = "nyelven?",
     examSelectionLanguageSubtitle = "A teszt több nyelven elérhető. A lefordított változatból hiányozhat " +
@@ -1153,10 +1137,6 @@ private val CzechStrings = Strings(
     consentAcceptAll = "Přijmout vše",
     consentAcceptChosen = "Přijmout vybrané",
     settingsPrivacy = "Soukromí",
-    examSelectionCountryTitleBefore = "Na zkoušku které země se",
-    examSelectionCountryTitleAccent = "připravujete?",
-    examSelectionCountrySubtitle = "Později to můžete změnit.",
-    examSelectionCountryComingSoon = "Již brzy",
     examSelectionLanguageTitleBefore = "V jakém",
     examSelectionLanguageTitleAccent = "jazyce?",
     examSelectionLanguageSubtitle = "Test je dostupný ve více jazycích. V přeložené verzi může chybět " +

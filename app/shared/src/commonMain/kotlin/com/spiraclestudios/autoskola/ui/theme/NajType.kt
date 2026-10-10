@@ -10,7 +10,6 @@ import najautoskola.app.shared.generated.resources.Res
 import najautoskola.app.shared.generated.resources.bricolage_bold
 import najautoskola.app.shared.generated.resources.bricolage_extrabold
 import najautoskola.app.shared.generated.resources.dm_sans_bold
-import najautoskola.app.shared.generated.resources.dm_sans_extrabold
 import najautoskola.app.shared.generated.resources.dm_sans_medium
 import najautoskola.app.shared.generated.resources.dm_sans_regular
 import najautoskola.app.shared.generated.resources.fraunces_extrabold
@@ -31,7 +30,6 @@ class NajFonts(
     val dmSans: FontFamily,
     val dmSansMedium: FontFamily,
     val dmSansBold: FontFamily,
-    val dmSansExtraBold: FontFamily,
 )
 
 /** The design system's type scale: titles, numbers, body copy and the small caps labels. */
@@ -93,7 +91,6 @@ class NajType(fonts: NajFonts) {
     val button = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 15.sp)
     val primaryButton = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 16.sp)
     val rowTitle = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 16.sp)
-    val countryName = TextStyle(fontFamily = fonts.dmSansExtraBold, fontSize = 17.sp)
     val rowSubtitle = TextStyle(fontFamily = fonts.dmSans, fontSize = 13.sp, lineHeight = 18.sp)
     val secondary = TextStyle(fontFamily = fonts.dmSansMedium, fontSize = 12.5.sp)
     val tileStatus = TextStyle(fontFamily = fonts.dmSansBold, fontSize = 12.sp)
@@ -123,7 +120,6 @@ fun najFonts(): NajFonts {
     val dmSans = Font(Res.font.dm_sans_regular)
     val dmSansMedium = Font(Res.font.dm_sans_medium)
     val dmSansBold = Font(Res.font.dm_sans_bold)
-    val dmSansExtraBold = Font(Res.font.dm_sans_extrabold)
     return remember(
         fraunces,
         frauncesItalic,
@@ -132,7 +128,6 @@ fun najFonts(): NajFonts {
         dmSans,
         dmSansMedium,
         dmSansBold,
-        dmSansExtraBold,
     ) {
         NajFonts(
             fraunces = FontFamily(fraunces),
@@ -142,7 +137,6 @@ fun najFonts(): NajFonts {
             dmSans = FontFamily(dmSans),
             dmSansMedium = FontFamily(dmSansMedium),
             dmSansBold = FontFamily(dmSansBold),
-            dmSansExtraBold = FontFamily(dmSansExtraBold),
         )
     }
 }

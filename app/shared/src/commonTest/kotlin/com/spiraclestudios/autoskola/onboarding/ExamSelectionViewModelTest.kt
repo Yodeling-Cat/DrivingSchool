@@ -17,7 +17,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ExamSelectionViewModelTest : ViewModelTest() {
@@ -36,58 +35,36 @@ class ExamSelectionViewModelTest : ViewModelTest() {
         language = "en",
         questionCounts = mapOf(LicenseCategory.B to 9),
     )
+    private val czCs = QuestionBankInfo("cz-cs", 1, "CZ", "cs", mapOf(LicenseCategory.B to 8))
+
     private val preferences = PreferencesRepository(MapSettings()).apply {
         // An adult: the age question decides whether the analytics switch may be answered at all.
         setAgeBand(AgeBand.Adult)
     }
-    private val czCs = QuestionBankInfo("cz-cs", 1, "CZ", "cs", mapOf(LicenseCategory.B to 8))
+    private val analyticsSink = RecordingAnalyticsDataSource()
+    private val analytics = AnalyticsRepository(analyticsSink, preferences)
 
-    /** Both countries, as a build that bundled more than one would list them. */
-    private val banks = QuestionBankRepository(FakeQuestionBankDataSource(listOf(skSk, skEn, czCs), emptyList()))
-
-    /** The wizard of a build that bundles [bundled] alone, as every country's app does. */
+    /** The wizard of an app that bundles [bundled]: one country's banks, as every app does. */
     private fun viewModelOf(vararg bundled: QuestionBankInfo) = ExamSelectionViewModel(
         preferences,
         QuestionBankRepository(FakeQuestionBankDataSource(bundled.toList(), emptyList())),
         analytics,
     )
-    private val analyticsSink = RecordingAnalyticsDataSource()
-    private val analytics = AnalyticsRepository(analyticsSink, preferences)
-    private val viewModel by lazy { ExamSelectionViewModel(preferences, banks, analytics) }
+
+    /** The Slovak app: its test in two languages. */
+    private val viewModel by lazy { viewModelOf(skSk, skEn) }
 
     @Test
-    fun startsOnTheCountryStep() = runTest {
-        val state = observe(viewModel.uiState).value
-
-        assertEquals(ExamSelectionStep.ChooseCountry, state.step)
-        assertEquals(
-            listOf(CountryOption("SK", available = true), CountryOption("CZ", available = true)),
-            state.countryOptions,
-        )
-    }
-
-    @Test
-    fun choosingAnUnavailableCountryDoesNothing() = runTest {
-        val viewModel = viewModelOf(skSk, skEn)
+    fun aTestInSeveralLanguagesOpensOnTheLanguages() = runTest {
         val state = observe(viewModel.uiState)
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
 
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
-
-        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
-    }
-
-    @Test
-    fun anAppOfOneCountryOpensOnItsLanguages() = runTest {
-        // Each country's app bundles its own banks alone: there is no country to choose.
-        val state = observe(viewModelOf(skSk, skEn).uiState)
-
-        assertEquals(ExamSelectionStep.ChooseBankLanguage("SK", listOf(skSk, skEn)), state.value.step)
+        assertEquals(ExamSelectionStep.ChooseBankLanguage(listOf(skSk, skEn)), state.value.step)
         assertFalse(state.value.hasPreviousStep)
     }
 
     @Test
-    fun anAppOfOneCountryInOneLanguageOpensOnItsCategories() = runTest {
+    fun aTestInOneLanguageOpensOnItsCategories() = runTest {
+        // The Czech app: its test is in Czech alone, so there is no language to choose.
         val viewModel = viewModelOf(czCs)
         val state = observe(viewModel.uiState)
 
@@ -100,45 +77,22 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun backFromAnAppOfOneCountrysCategoriesGoesToItsLanguagesAndNoFurther() = runTest {
-        val viewModel = viewModelOf(skSk, skEn)
+    fun choosingALanguageOffersItsCategoriesAndBackReturnsToTheLanguages() = runTest {
         val state = observe(viewModel.uiState)
+
         viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
+        assertEquals(ExamSelectionStep.ChooseCategory(skSk), state.value.step)
+        assertTrue(state.value.hasPreviousStep)
 
         viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
-    }
-
-    @Test
-    fun choosingACountryOffersItsLanguages() = runTest {
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
-
-        val step = assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
-        assertEquals("SK", step.country)
-        assertEquals(listOf(skSk, skEn), step.banks)
-    }
-
-    @Test
-    fun choosingALanguageOffersItsCategories() = runTest {
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
-
-        val step = assertIs<ExamSelectionStep.ChooseCategory>(state.value.step)
-        assertEquals(skSk, step.bank)
+        assertEquals(ExamSelectionStep.ChooseBankLanguage(listOf(skSk, skEn)), state.value.step)
+        assertFalse(state.value.done)
     }
 
     @Test
     fun choosingACategorySavesTheSelectionAndFinishes() = runTest {
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCategory(LicenseCategory.C))
 
@@ -152,7 +106,6 @@ class ExamSelectionViewModelTest : ViewModelTest() {
         analytics.syncConsent()
         val state = observe(viewModel.uiState)
 
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCategory(LicenseCategory.C))
 
@@ -165,7 +118,6 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     fun choosingACategoryRecordsNothingWithoutConsent() = runTest {
         observe(viewModel.uiState)
 
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCategory(LicenseCategory.C))
 
@@ -173,43 +125,7 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun aCountryWithOneLanguageSkipsTheLanguageStep() = runTest {
-        // Czechia's test is in Czech alone: there is no language to choose between.
-        val state = observe(viewModel.uiState)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
-        assertEquals(ExamSelectionStep.ChooseCategory(czCs), state.value.step)
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertEquals(ExamSelectionStep.ChooseCountry, state.value.step)
-    }
-
-    @Test
     fun theProgressCountsTheStepsTheWizardWalks() = runTest {
-        // Two countries: country, language and category, as long as the country has languages.
-        val state = observe(viewModel.uiState)
-        assertEquals(StepProgress(current = 1, total = 3), state.value.progress)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
-        assertEquals(StepProgress(current = 2, total = 3), state.value.progress)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
-        assertEquals(StepProgress(current = 3, total = 3), state.value.progress)
-    }
-
-    @Test
-    fun theProgressLeavesOutTheStepsThatAreSkipped() = runTest {
-        // A country with one language goes from the country straight to the category.
-        val state = observe(viewModel.uiState)
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
-
-        assertEquals(StepProgress(current = 2, total = 2), state.value.progress)
-    }
-
-    @Test
-    fun theProgressOfAnAppOfOneCountryStartsAtItsLanguages() = runTest {
-        // The Slovak app has no country to choose: language, then category.
-        val viewModel = viewModelOf(skSk, skEn)
         val state = observe(viewModel.uiState)
         assertEquals(StepProgress(current = 1, total = 2), state.value.progress)
 
@@ -218,43 +134,10 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun anAppWithOneStepHasNoProgressToShow() = runTest {
-        // The Czech app: one country in one language leaves the category alone.
+    fun aWizardOfOneStepHasNoProgressToShow() = runTest {
         val state = observe(viewModelOf(czCs).uiState)
 
         assertEquals(StepProgress(current = 1, total = 1), state.value.progress)
-    }
-
-    @Test
-    fun stepBackRetracesTheWizard() = runTest {
-        val state = observe(viewModel.uiState)
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertIs<ExamSelectionStep.ChooseBankLanguage>(state.value.step)
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertEquals(ExamSelectionStep.ChooseCountry, state.value.step)
-        assertFalse(state.value.done)
-    }
-
-    @Test
-    fun everyStepButTheFirstHasOneBehindIt() = runTest {
-        val state = observe(viewModel.uiState)
-        assertFalse(state.value.hasPreviousStep)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
-        assertTrue(state.value.hasPreviousStep)
-
-        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
-        assertTrue(state.value.hasPreviousStep)
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertTrue(state.value.hasPreviousStep)
-
-        viewModel.onEvent(ExamSelectionUiEvent.StepBack)
-        assertFalse(state.value.hasPreviousStep)
     }
 
     @Test

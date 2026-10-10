@@ -50,7 +50,7 @@ jobs:
           # newer is required.
           xcode-version: "16.4"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: corretto
           # The Xcode build phase shells out to ./gradlew, and the Gradle daemon is pinned to

@@ -17,6 +17,7 @@ import com.spiraclestudios.autoskola.situations.Situation
 import com.spiraclestudios.autoskola.situations.isSolvedBy
 import com.spiraclestudios.autoskola.situations.situations
 import com.spiraclestudios.autoskola.stats.AttemptKind
+import com.spiraclestudios.autoskola.ui.VideoItem
 import com.spiraclestudios.autoskola.ui.displayText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -38,14 +39,19 @@ data class SituationQuestion(
     val answers: List<String>,
     /** Index into [answers]. */
     val correct: Int,
+    /** The pictures the answers are, one per answer, when they are pictures rather than words. */
+    val answerImageUris: List<String>? = null,
 )
 
 /** One situation as the screens draw it. */
 data class SituationItem(
     /** Where it sits in the material, counted from 1, which is what the screens call it. */
     val number: Int,
+    /** Its drawing, or for a situation to watch, the still that stands for its [video]. */
     val imageUri: String,
     val questions: List<SituationQuestion>,
+    /** The video the situation is, for the ones that are filmed rather than drawn. */
+    val video: VideoItem? = null,
     /** Every question answered, and answered right, so there is nothing left to practice here. */
     val solved: Boolean = false,
 )
@@ -264,7 +270,12 @@ internal class SituationItems(private val banks: QuestionBankRepository) {
                 SituationItem(
                     number = index + 1,
                     imageUri = banks.imageUri(session.bank, situation.image),
-                    questions = situation.questions.map { it.toSituationQuestion() },
+                    questions = situation.questions.map {
+                        it.toSituationQuestion(banks.answerImageUris(session.bank, it))
+                    },
+                    video = situation.questions.firstNotNullOfOrNull { question ->
+                        question.video?.let { VideoItem(banks.videoUri(session.bank, question)!!, it.loops) }
+                    },
                     solved = situation.isSolvedBy(answers),
                 )
             }
@@ -285,9 +296,10 @@ internal class SituationItems(private val banks: QuestionBankRepository) {
     }
 }
 
-private fun Question.toSituationQuestion() = SituationQuestion(
+private fun Question.toSituationQuestion(answerImageUris: List<String>?) = SituationQuestion(
     questionId = id,
     text = displayText(text),
     answers = answers.map(::displayText),
     correct = correct,
+    answerImageUris = answerImageUris,
 )

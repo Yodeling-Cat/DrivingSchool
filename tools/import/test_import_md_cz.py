@@ -114,8 +114,34 @@ class ParseQuestionTest(unittest.TestCase):
     def test_a_question_with_a_picture_uses_the_picture(self):
         self.assertEqual("Q_W_1863.jpg", self.parse(raw_question(1863))["image"])
 
-    def test_a_video_question_uses_the_still_of_the_paper_test(self):
-        self.assertEqual("Q_P_1022.jpg", self.parse(raw_question(1022))["image"])
+    def test_a_text_or_picture_question_has_no_video_and_no_answer_pictures(self):
+        q = self.parse(raw_question(1863))
+
+        self.assertNotIn("video", q)
+        self.assertNotIn("answerImages", q)
+
+    def test_a_looping_clip_is_kept_with_the_paper_tests_still(self):
+        q = self.parse(raw_question(1022))
+
+        self.assertEqual({"file": "Q_W_1022.mp4", "loops": True}, q["video"])
+        self.assertEqual("Q_P_1022.jpg", q["image"])
+
+    def test_a_situation_to_watch_plays_once(self):
+        # The new traffic-situation videos are played once, full screen; their still shows the
+        # road before anything happens, so it only stands in for the video until it plays.
+        q = self.parse(raw_question(105487))
+
+        self.assertEqual({"file": "4ba4925427a640ee9fce987c010a5f20.mp4", "loops": False}, q["video"])
+        self.assertEqual("389115941dcf4bb494e60678369f2527.png", q["image"])
+        self.assertEqual(1, q["correct"])
+
+    def test_answers_that_are_pictures_have_no_text(self):
+        q = self.parse(raw_question(1408))
+
+        self.assertEqual(["", "", ""], q["answers"])
+        self.assertEqual(["A_W_1408_27623.jpg", "A_W_1408_27624.jpg", "A_W_1408_27625.jpg"], q["answerImages"])
+        self.assertEqual(2, q["correct"])
+        self.assertIsNone(q["image"])
 
     def test_a_yes_or_no_question_has_two_answers(self):
         q = self.parse(raw_question(1469))
@@ -138,14 +164,29 @@ class ParseQuestionTest(unittest.TestCase):
             self.parse(raw)
 
 
-class SkipReasonTest(unittest.TestCase):
-    def test_names_why_a_question_cannot_be_imported(self):
-        self.assertEqual("picture answers", import_md_cz.skip_reason(raw_question(1408)))
-        # The new traffic-situation videos are played once, and their still shows the road before
-        # anything happens, so the paper test's still cannot stand in for them.
-        self.assertEqual("video to watch", import_md_cz.skip_reason(raw_question(105487)))
-        self.assertIsNone(import_md_cz.skip_reason(raw_question(1022)))
-        self.assertIsNone(import_md_cz.skip_reason(raw_question(180)))
+class MediaFilesTest(unittest.TestCase):
+    SECTION_OF_SCOPE = {9: 1, 11: 2, 12: 3}
+
+    def test_lists_every_file_a_question_is_shown_with(self):
+        def files(qid):
+            return import_md_cz.media_files(import_md_cz.parse_question(raw_question(qid), self.SECTION_OF_SCOPE))
+
+        self.assertEqual([], files(180))
+        self.assertEqual(["Q_W_1863.jpg"], files(1863))
+        self.assertEqual(["Q_P_1022.jpg", "Q_W_1022.mp4"], files(1022))
+        self.assertEqual(["A_W_1408_27623.jpg", "A_W_1408_27624.jpg", "A_W_1408_27625.jpg"], files(1408))
+
+
+class EncodeVideoTest(unittest.TestCase):
+    def test_a_situation_to_watch_is_made_small_enough_to_bundle(self):
+        # The site's are 1080p at 8 Mbit/s, about 18 MB each; at 480p they are about 1 MB.
+        args = import_md_cz.encode_video_args(Path("in.mp4"), Path("out.mp4"))
+
+        self.assertEqual("ffmpeg", args[0])
+        self.assertIn("scale=-2:480", args)
+        self.assertIn("-an", args)
+        self.assertEqual(["-i", "in.mp4"], args[args.index("-i"):args.index("-i") + 2])
+        self.assertEqual("out.mp4", args[-1])
 
 
 class CompressTest(unittest.TestCase):

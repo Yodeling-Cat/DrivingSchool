@@ -87,6 +87,7 @@ import com.spiraclestudios.autoskola.ui.PagerSideArrows
 import com.spiraclestudios.autoskola.ui.PinnedAdBanner
 import com.spiraclestudios.autoskola.ui.PreviewBoard
 import com.spiraclestudios.autoskola.ui.PreviewLabel
+import com.spiraclestudios.autoskola.ui.QuestionVideo
 import com.spiraclestudios.autoskola.ui.RoundButton
 import com.spiraclestudios.autoskola.ui.contentGutter
 import com.spiraclestudios.autoskola.ui.previewSituations
@@ -259,7 +260,12 @@ private fun SituationPage(situation: SituationItem, answers: Map<Int, Int>, onEv
                     .padding(start = 16.dp, end = 16.dp, bottom = 24.dp + LocalNavBarInset.current),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                EnlargeableImage(uri = situation.imageUri, page = pageSize)
+                val video = situation.video
+                if (video != null) {
+                    QuestionVideo(video, stillUri = situation.imageUri)
+                } else {
+                    EnlargeableImage(uri = situation.imageUri, page = pageSize)
+                }
                 if (situation.questions.size > 1) {
                     SituationTabs(
                         selected = situation.questions.indexOf(question),
@@ -430,6 +436,7 @@ private fun SituationQuestionBlock(
             // Answered is marked, unanswered is not: there is nothing to check separately.
             revealed = chosen != null,
             onSelect = onSelect,
+            images = question.answerImageUris,
         )
     }
 }

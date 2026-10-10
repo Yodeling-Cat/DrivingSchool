@@ -48,7 +48,16 @@ class BankOutputTest(unittest.TestCase):
             for q in bank["questions"]:
                 where = f"{name} question {q['id']}"
                 self.assertIn(len(q["answers"]), exam["answers"], where)
-                self.assertTrue(all(a.strip() for a in q["answers"]), where)
+                pictures = q.get("answerImages")
+                if pictures is None:
+                    self.assertTrue(all(a.strip() for a in q["answers"]), where)
+                else:
+                    # Answers that are pictures: one picture each, and no text beside it.
+                    self.assertEqual(len(q["answers"]), len(pictures), where)
+                    self.assertTrue(all(p.strip() for p in pictures), where)
+                if q.get("video"):
+                    # A video always has a still to stand for it until it plays.
+                    self.assertTrue(q["image"], where)
                 self.assertIn(q["correct"], range(len(q["answers"])), where)
                 self.assertTrue(q["text"].strip(), where)
                 self.assertIn(q["section"], sections, where)
@@ -70,11 +79,15 @@ class BankOutputTest(unittest.TestCase):
             self.assertEqual(bank["passMark"]["outOf"], total, name)
             self.assertLess(bank["passMark"]["points"], total, name)
 
-    def test_every_referenced_image_is_bundled(self):
+    def test_every_referenced_picture_and_video_is_bundled(self):
         for name, bank in self.banks.items():
             for q in bank["questions"]:
-                if q["image"]:
-                    self.assertTrue((IMAGES / bank["imageDir"] / q["image"]).is_file(), f"{name}: {q['image']}")
+                files = [q["image"]] if q["image"] else []
+                if q.get("video"):
+                    files.append(q["video"]["file"])
+                files += q.get("answerImages") or []
+                for file in files:
+                    self.assertTrue((IMAGES / bank["imageDir"] / file).is_file(), f"{name}: {file}")
 
     def test_the_situations_the_app_reads_are_the_topic_of_that_name(self):
         # The app builds its intersections material from one topic and nothing else, so the topic

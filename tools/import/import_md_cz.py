@@ -19,6 +19,8 @@ import argparse
 import json
 import math
 import re
+import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -63,6 +65,15 @@ JPEG_QUALITY = 80
 #: The widest a picture is bundled. The app never shows one wider, and a few of the site's are
 #: over 2,000 pixels.
 MAX_WIDTH = 1280
+
+#: The height a situation to watch is bundled at. The site's are 1080p at 8 Mbit/s, about 18 MB
+#: each and 1.4 GB for the 77; at 480p they come to about 1 MB each, 83 MB for the 77, and the
+#: speedometer and the road users are still clear.
+VIDEO_HEIGHT = 480
+
+#: The x264 quality the situations to watch are encoded at: higher is smaller and blurrier. 30 made
+#: them 125 MB; 33 takes a third off that and still reads well.
+VIDEO_CRF = 33
 
 #: The share of see-through pixels up to which a picture counts as a photo with clipped corners,
 #: and is bundled as a JPEG on white. Every transparent PNG on the site is one, at 1.5% or less.
@@ -183,49 +194,66 @@ def assign_groups(pools, draws):
     return result, parts
 
 
-def media_path(media):
-    """Where on the site the picture a question is shown with lives, or None for a text question.
-
-    A video is replaced by the still the paper test prints in its place, which sits next to it.
-    """
-    if not media:
-        return None
-    url = media["mediaUrl"]
-    if url.endswith(".mp4"):
-        return url.rsplit("/", 1)[0] + "/" + media["printMediaName"]
-    return url
-
-
-def skip_reason(raw):
-    """Why a question cannot be imported into the bank's format, or None when it can."""
-    if any(answer["mediaContent"] for answer in raw["questionAnswers"]):
-        return "picture answers"
-    media = raw["mediaContent"]
-    # The site plays these once, full screen, and the question is about what happens in them.
-    if media and media.get("isFullScreen"):
-        return "video to watch"
-    return None
+def file_name(url):
+    """The file a media URL of the site names, which is the name the app bundles it under."""
+    return url.rsplit("/", 1)[1]
 
 
 def parse_question(raw, section_of_scope):
-    """One question from the API, in the shape the bank file uses. Only for a question that
-    skip_reason lets in."""
+    """One question from the API, in the shape the bank file uses.
+
+    A video is kept with the still the paper test prints in its place, which the app shows until the
+    video plays. Answers that are pictures have no text, and their pictures go in `answerImages`.
+    """
     if raw["basketScopeId"] not in section_of_scope:
         raise ValueError(f"question {raw['id']} is in topic {raw['basketScopeId']}, which the exam does not have")
     answers = sorted(raw["questionAnswers"], key=lambda answer: answer["sortOrder"])
     ids = [answer["answerId"] for answer in answers]
     if raw["correctAnswerId"] not in ids:
         raise ValueError(f"question {raw['id']}: the correct answer is not among its answers")
-    path = media_path(raw["mediaContent"])
-    return {
+    question = {
         "id": raw["id"],
         "section": section_of_scope[raw["basketScopeId"]],
         "text": clean(raw["questionText"]),
         "answers": [clean(answer["multilingualAnswerTexts"][LANGUAGE]) for answer in answers],
         "correct": ids.index(raw["correctAnswerId"]),
         "points": raw["pointsCount"],
-        "image": path.rsplit("/", 1)[1] if path else None,
+        "image": None,
     }
+    media = raw["mediaContent"]
+    if media and media["mediaUrl"].endswith(".mp4"):
+        question["image"] = media["printMediaName"]
+        # The site plays a clip on a loop beside the question, and a situation to watch once, full
+        # screen, when asked to.
+        question["video"] = {"file": file_name(media["mediaUrl"]), "loops": not media.get("isFullScreen")}
+    elif media:
+        question["image"] = file_name(media["mediaUrl"])
+    if any(answer["mediaContent"] for answer in answers):
+        # The site gives a picture answer a "." for its text.
+        question["answers"] = ["" for _ in answers]
+        question["answerImages"] = [file_name(answer["mediaContent"]["mediaUrl"]) for answer in answers]
+    return question
+
+
+def media_files(question):
+    """Every file [question] is shown with: its picture, its video and its answers' pictures."""
+    files = [question["image"]] if question["image"] else []
+    if "video" in question:
+        files.append(question["video"]["file"])
+    return files + question.get("answerImages", [])
+
+
+def encode_video_args(source, target):
+    """The ffmpeg command that makes a situation to watch small enough to bundle: VIDEO_HEIGHT
+    tall, H.264 that every platform's player reads, no sound, and the index at the start of the file
+    so it starts playing at once."""
+    return [
+        "ffmpeg", "-v", "error", "-y", "-i", str(source),
+        "-vf", f"scale=-2:{VIDEO_HEIGHT}",
+        "-c:v", "libx264", "-preset", "slow", "-crf", str(VIDEO_CRF), "-profile:v", "main", "-pix_fmt", "yuv420p",
+        "-an", "-movflags", "+faststart",
+        str(target),
+    ]
 
 
 def flatten_on_white(pixmap, alpha):
@@ -315,7 +343,7 @@ def fetch_exams(group, count, refresh):
 
 
 def build_bank(raw_questions, exams, version):
-    """The bank document, logging what was left out and why, and which topics are split by group."""
+    """The bank document, logging which topics are split by group and what was left out."""
     sections, section_of_scope = common_sections([exam for group_exams in exams.values() for exam in group_exams])
     pools = {}
     for raw in raw_questions:
@@ -323,38 +351,47 @@ def build_bank(raw_questions, exams, version):
     groups_by_id, parts = assign_groups(pools, {g: draws_by_scope(e) for g, e in exams.items()})
     for (group, scope), size in sorted(parts.items(), key=lambda p: (p[0][1], GROUPS.index(p[0][0]))):
         log(f"  topic {section_of_scope[scope]}: {group} draws {size} of its {len(pools[scope])} questions")
-    questions, skipped = [], {}
-    for raw in raw_questions:
-        reason = skip_reason(raw)
-        if reason is None:
-            questions.append(parse_question(raw, section_of_scope))
-        else:
-            skipped.setdefault(reason, []).append(raw["id"])
-    for reason, ids in sorted(skipped.items()):
-        log(f"  left out {len(ids)} questions with {reason}")
+    questions = [parse_question(raw, section_of_scope) for raw in raw_questions]
     document = bank_document(questions, sections, groups_by_id, version)
     unused = sorted({q["id"] for q in questions} - {q["id"] for q in document["questions"]})
     if unused:
         log(f"  left out {len(unused)} questions no group's exams drew: {unused}")
     return document
 
+def write_media(document, refresh):
+    """Writes the pictures and videos [document] references, and points its questions at the names
+    they were written under (a photo saved as a PNG is bundled as a JPEG).
 
-def write_images(document, refresh):
-    """Writes the pictures [document] references, and points its questions at the names they were
-    written under (a photo saved as a PNG is bundled as a JPEG)."""
-    images = sorted({q["image"] for q in document["questions"] if q["image"]})
-    log(f"Writing images: {len(images)} referenced")
+    A clip that loops is small and bundled as it is; a situation to watch is encoded smaller first,
+    once, into the cache, which needs ffmpeg on the PATH.
+    """
+    questions = document["questions"]
+    plays_once = {q["video"]["file"] for q in questions if "video" in q and not q["video"]["loops"]}
+    files = sorted({name for q in questions for name in media_files(q)})
+    log(f"Writing media: {len(files)} files, {len(plays_once)} of them videos to encode")
     IMAGES_OUT.mkdir(parents=True, exist_ok=True)
     bundled_as = {}
-    for image in images:
-        source = download(f"{BASE_URL}/binary_content_storage/{image}", CACHE / "media" / image, refresh, quiet=True)
-        name, data = compress(image, source.read_bytes())
-        (IMAGES_OUT / name).write_bytes(data)
-        bundled_as[image] = name
-    for q in document["questions"]:
+    for name in files:
+        source = download(f"{BASE_URL}/binary_content_storage/{name}", CACHE / "media" / name, refresh, quiet=True)
+        if name in plays_once:
+            encoded = CACHE / "encoded" / name
+            if refresh or not encoded.exists():
+                encoded.parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run(encode_video_args(source, encoded), check=True)
+            shutil.copyfile(encoded, IMAGES_OUT / name)
+            bundled_as[name] = name
+        elif name.endswith(".mp4"):
+            shutil.copyfile(source, IMAGES_OUT / name)
+            bundled_as[name] = name
+        else:
+            bundled, data = compress(name, source.read_bytes())
+            (IMAGES_OUT / bundled).write_bytes(data)
+            bundled_as[name] = bundled
+    for q in questions:
         if q["image"]:
             q["image"] = bundled_as[q["image"]]
-
+        if "answerImages" in q:
+            q["answerImages"] = [bundled_as[name] for name in q["answerImages"]]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -370,7 +407,7 @@ def main():
 
     log("Parsing")
     document = build_bank(raw_questions, exams, args.version)
-    write_images(document, args.refresh)
+    write_media(document, args.refresh)
     entry = write_bank(document, GROUPS)
     log(f"  {document['id']}: {len(document['questions'])} questions, {entry['questionCounts']}")
     # Keep other importers' banks in the shared index.

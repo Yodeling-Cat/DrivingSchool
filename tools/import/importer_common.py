@@ -39,16 +39,22 @@ def clean(text):
 
 
 def bank_images(banks_dir, image_dir):
-    """Every image the bundled banks whose pictures are in [image_dir] reference.
+    """Every file in [image_dir] that the bundled banks whose media is there reference: pictures,
+    videos and the pictures that answers are.
 
-    Older versions stay bundled, so their images count too.
+    Older versions stay bundled, so their files count too.
     """
     images = set()
     for path in banks_dir.glob("*-v*.json"):
         bank = read_json(path)
         if bank["imageDir"] != image_dir:
             continue
-        images.update(q["image"] for q in bank["questions"] if q["image"])
+        for q in bank["questions"]:
+            if q["image"]:
+                images.add(q["image"])
+            if q.get("video"):
+                images.add(q["video"]["file"])
+            images.update(q.get("answerImages") or [])
     return images
 
 

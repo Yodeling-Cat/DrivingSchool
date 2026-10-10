@@ -49,9 +49,19 @@ data class Question(
     /** Index into [answers]. */
     val correct: Int,
     val points: Int,
-    /** Path relative to the bank's image directory, or `null` for text-only questions. */
+    /**
+     * Path relative to the bank's image directory, or `null` for text-only questions. For a
+     * question about a [video], the still that stands for it until it plays.
+     */
     val image: String? = null,
     val groups: List<LicenseCategory>,
+    /** The video the question is about, or `null` when it has none. */
+    val video: QuestionVideo? = null,
+    /**
+     * The pictures the answers are, one per answer and in the same order, when the answers are
+     * pictures rather than words ("which of these signs…"). Their text is then empty.
+     */
+    val answerImages: List<String>? = null,
 ) {
     /**
      * Whether the exam for [category] can ask this question: the question is in that exam's
@@ -60,6 +70,17 @@ data class Question(
      */
     fun isAskedIn(category: LicenseCategory): Boolean = category in groups && answers.size > 1
 }
+
+/** A video a question is about, in the bank's image directory. */
+@Serializable
+data class QuestionVideo(
+    val file: String,
+    /**
+     * Whether it is a short clip that plays over and over beside the question. One that does not
+     * loop is a situation to watch from start to end before answering, so it plays when asked to.
+     */
+    val loops: Boolean,
+)
 
 /** Entry of `banks/index.json`: what a bank contains without loading the whole bank. */
 @Serializable

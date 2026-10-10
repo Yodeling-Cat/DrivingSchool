@@ -4,7 +4,7 @@ The app bundles its questions and images as Compose resources. They are generate
 
 ## Run it
 
-You need Python 3.10 or newer on your `PATH`. The script creates a virtualenv in `tools/import/.venv` on first run and installs `requirements.txt` into it.
+You need Python 3.10 or newer on your `PATH`, and for the Czech bank, ffmpeg too (`winget install ffmpeg` on Windows, `brew install ffmpeg` on a Mac). The script creates a virtualenv in `tools/import/.venv` on first run and installs `requirements.txt` into it.
 
 ```bash
 ./tools/import/import.sh
@@ -74,10 +74,12 @@ Both are run by `import.sh`, and both can be run on their own.
    the group whole, a topic whose draws keep to part of it gives the group that part. Only what each
    exam drew is cached, in `cache/md-cz/exams/<group>/`. Drawing them takes about two hours, so it is
    done once and cached like everything else.
-3. **Convert** each question. Answers follow the site's order. A looping video is replaced by the
-   still the paper test prints. Questions with picture answers, and the dynamic videos that have to
-   be watched, are left out.
-4. **Write** the pictures, then the bank and its index entry. The site saves its photos for print,
+3. **Convert** each question. Answers follow the site's order. A video is kept with the still the
+   paper test prints in its place (`video`: its file and whether it `loops`), and answers that are
+   pictures get empty text and their pictures in `answerImages`.
+4. **Write** the pictures and videos, then the bank and its index entry. A clip that loops is copied
+   as it is. A situation to watch is encoded with ffmpeg to 480p at CRF 33 without sound, once: the
+   result is cached in `cache/md-cz/encoded/`, since the 77 take about a quarter of an hour. The site saves its photos for print,
    and many as PNGs, which would make the Czech pictures 58 MB. So a photo is bundled as a JPEG at
    quality 80 and at most 1,280 pixels wide (a PNG photo is renamed `.jpg`), a photo with a few
    see-through corner pixels is put on white first, and line art, real transparency and GIFs stay as

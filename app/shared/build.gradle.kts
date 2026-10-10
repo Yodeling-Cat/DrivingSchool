@@ -70,6 +70,8 @@ kotlin {
             implementation(libs.play.billing)
             // Google Play's in-app review sheet, which the home screen's rating card opens.
             implementation(libs.play.review)
+            // The player for the Czech bank's videos (`ui/VideoSurface.android.kt`).
+            implementation(libs.androidx.media3.exoplayer)
         }
         commonMain.dependencies {
             api(projects.core)

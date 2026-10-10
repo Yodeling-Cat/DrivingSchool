@@ -3,13 +3,16 @@ package com.spiraclestudios.autoskola.practice
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.TestResult
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.bank.QuestionVideo
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
+import com.spiraclestudios.autoskola.data.banks.testBank
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
 import com.spiraclestudios.autoskola.data.preferences.TestSelection
 import com.spiraclestudios.autoskola.stats.TestAttempt
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import com.spiraclestudios.autoskola.testing.currentSession
+import com.spiraclestudios.autoskola.ui.VideoItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
@@ -123,6 +126,39 @@ class PracticeViewModelTest : ViewModelTest() {
         val withImages = state.questions.filter { it.question.image != null }
         assertEquals(withImages.map { "test://minv-sk/${it.question.image}" }, withImages.map { it.imageUri })
         assertEquals(listOf(null), state.questions.filter { it.question.image == null }.map { it.imageUri }.distinct())
+    }
+
+    @Test
+    fun aQuestionsVideoAndAnswerPicturesComeWithIt() = runTest {
+        // A Czech question about a situation to watch, and one whose answers are pictures of signs.
+        val bank = testBank().let { bank ->
+            // Questions 1 and 2 fill the first section of test 1, and 4 the second.
+            bank.copy(
+                questions = bank.questions.filter { it.id in setOf(1, 2, 4) }.map {
+                    when (it.id) {
+                        1 -> it.copy(video = QuestionVideo(file = "situation.mp4", loops = false))
+                        2 -> it.copy(answers = listOf("", "", ""), answerImages = listOf("a.jpg", "b.jpg", "c.jpg"))
+                        else -> it
+                    }
+                },
+            )
+        }
+        val repositories = TestRepositories(bank).apply {
+            preferences.select(TestSelection("sk-sk", LicenseCategory.B))
+        }
+        val session = repositories.exams.currentSession()
+        val attempt = session.startOrResume(session.tests.first())
+
+        val questions = open(attempt, repositories).second.ready.questions.associateBy { it.question.id }
+
+        assertEquals(VideoItem("test://minv-sk/situation.mp4", loops = false), questions.getValue(1).video)
+        assertEquals("test://minv-sk/q1.png", questions.getValue(1).imageUri)
+        assertEquals(
+            listOf("test://minv-sk/a.jpg", "test://minv-sk/b.jpg", "test://minv-sk/c.jpg"),
+            questions.getValue(2).answerImageUris,
+        )
+        assertNull(questions.getValue(4).video)
+        assertNull(questions.getValue(4).answerImageUris)
     }
 
     @Test

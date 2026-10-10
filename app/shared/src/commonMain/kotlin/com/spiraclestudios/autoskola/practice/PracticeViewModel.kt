@@ -3,6 +3,7 @@ package com.spiraclestudios.autoskola.practice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spiraclestudios.autoskola.bank.Question
+import com.spiraclestudios.autoskola.bank.QuestionBank
 import com.spiraclestudios.autoskola.bank.Section
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsRepository
@@ -21,6 +22,7 @@ import com.spiraclestudios.autoskola.stats.isFullyAnswered
 import com.spiraclestudios.autoskola.stats.resumeIndex
 import com.spiraclestudios.autoskola.stats.summary
 import com.spiraclestudios.autoskola.stats.wasAnswered
+import com.spiraclestudios.autoskola.ui.VideoItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -42,8 +44,20 @@ import kotlin.random.Random
 
 data class PracticeQuestion(
     val question: Question,
-    /** For the image loader; `null` for text-only questions. */
+    /** For the image loader; `null` for text-only questions. A video's still, when it has one. */
     val imageUri: String?,
+    /** The video the question is about, drawn in place of its picture; `null` for most questions. */
+    val video: VideoItem? = null,
+    /** The pictures the answers are, one per answer, when they are pictures rather than words. */
+    val answerImageUris: List<String>? = null,
+)
+
+/** [question] as the practice screen draws it, with the URIs of everything it is shown with. */
+internal fun QuestionBankRepository.practiceQuestion(bank: QuestionBank, question: Question) = PracticeQuestion(
+    question = question,
+    imageUri = imageUri(bank, question),
+    video = question.video?.let { video -> VideoItem(videoUri(bank, question)!!, video.loops) },
+    answerImageUris = answerImageUris(bank, question),
 )
 
 sealed interface PracticeUiState {
@@ -447,7 +461,7 @@ class PracticeViewModel(
         showTimeLimitToast: Boolean,
     ): PracticeUiState.Ready {
         val questions = questions ?: session.questionsOf(attempt)
-            .map { PracticeQuestion(it, banks.imageUri(session.bank, it)) }
+            .map { banks.practiceQuestion(session.bank, it) }
             .also { questions = it }
         val initialPage = initialPage ?: attempt.resumeIndex().also { initialPage = it }
         if (attempt !== shownAttempt) {

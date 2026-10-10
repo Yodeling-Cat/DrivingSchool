@@ -134,7 +134,9 @@ import com.spiraclestudios.autoskola.ui.PreviewLabel
 import com.spiraclestudios.autoskola.ui.PreviewRow
 import com.spiraclestudios.autoskola.ui.ProgressBar
 import com.spiraclestudios.autoskola.ui.QuestionChip
+import com.spiraclestudios.autoskola.ui.QuestionVideo
 import com.spiraclestudios.autoskola.ui.RoundButton
+import com.spiraclestudios.autoskola.ui.VideoItem
 import com.spiraclestudios.autoskola.ui.WhitePill
 import com.spiraclestudios.autoskola.ui.WidthClass
 import com.spiraclestudios.autoskola.ui.contentGutter
@@ -462,6 +464,8 @@ fun PracticeScreen(state: PracticeUiState.Ready, onEvent: (PracticeUiEvent) -> U
                     QuestionPage(
                         question = questions[page],
                         imageUri = practiceQuestions[page].imageUri,
+                        video = practiceQuestions[page].video,
+                        answerImageUris = practiceQuestions[page].answerImageUris,
                         selectedIndex = selectedAnswers[page],
                         locked = isAnswerLocked(checkImmediately, finished, selectedAnswers[page]),
                         skipped = questionSkipped(selectedAnswers[page], finished),
@@ -1140,6 +1144,9 @@ private fun QuestionListToggle(expanded: Boolean, cover: () -> Float, onClick: (
 private fun QuestionPage(
     question: Question,
     imageUri: String?,
+    /** Drawn in place of the picture, which is then its still. */
+    video: VideoItem?,
+    answerImageUris: List<String>?,
     selectedIndex: Int?,
     /** A locked answer is final, so it's shown as right or wrong. */
     locked: Boolean,
@@ -1164,6 +1171,7 @@ private fun QuestionPage(
             revealed = revealed,
             // Once checked, the answer is final.
             onSelect = if (revealed) null else onSelect,
+            images = answerImageUris,
         )
     }
     val questionText: @Composable () -> Unit = {
@@ -1208,12 +1216,16 @@ private fun QuestionPage(
                         Spacer(Modifier.height(16.dp))
                     }
                     Box(Modifier.weight(2f)) {
-                        EnlargeableImage(
-                            uri = imageUri,
-                            page = page,
-                            maxHeight = ImageSideBySideMaxHeight,
-                            onError = onImageError,
-                        )
+                        if (video != null) {
+                            QuestionVideo(video, stillUri = imageUri)
+                        } else {
+                            EnlargeableImage(
+                                uri = imageUri,
+                                page = page,
+                                maxHeight = ImageSideBySideMaxHeight,
+                                onError = onImageError,
+                            )
+                        }
                     }
                 }
             } else {
@@ -1224,8 +1236,12 @@ private fun QuestionPage(
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomRoom),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    imageUri?.let { uri ->
-                        EnlargeableImage(uri = uri, page = page, onError = onImageError)
+                    if (video != null) {
+                        QuestionVideo(video, stillUri = imageUri)
+                    } else {
+                        imageUri?.let { uri ->
+                            EnlargeableImage(uri = uri, page = page, onError = onImageError)
+                        }
                     }
                     questionText()
                     if (skipped) SkippedNotice()

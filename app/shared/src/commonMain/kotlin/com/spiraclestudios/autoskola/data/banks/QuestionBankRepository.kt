@@ -40,4 +40,11 @@ class QuestionBankRepository(private val dataSource: QuestionBankDataSource) {
      * question's picture and a situation's drawing are addressed the same way.
      */
     fun imageUri(bank: QuestionBank, image: String): String = dataSource.imageUri(bank.imageDir, image)
+
+    /** URI of the video [question] is about, for the platform's player, or `null` when it has none. */
+    fun videoUri(bank: QuestionBank, question: Question): String? = question.video?.let { imageUri(bank, it.file) }
+
+    /** URIs of the pictures [question]'s answers are, in their order, or `null` when they are words. */
+    fun answerImageUris(bank: QuestionBank, question: Question): List<String>? =
+        question.answerImages?.map { imageUri(bank, it) }
 }

@@ -1,5 +1,6 @@
 package com.spiraclestudios.autoskola.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,8 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.rememberAsyncImagePainter
 import com.spiraclestudios.autoskola.i18n.strings
 import com.spiraclestudios.autoskola.practice.AnswerState
 import com.spiraclestudios.autoskola.practice.answerState
@@ -36,6 +41,9 @@ import com.spiraclestudios.autoskola.ui.theme.Naj
  *
  * The card is shared: the practice screen draws a question of a test with it, the intersections
  * material draws the questions about a situation, and both must mark an answer the same way.
+ *
+ * [images] are the pictures the answers are, one per option, for a question whose answers are
+ * pictures rather than words ("which of these signs…"); each is drawn where its text would be.
  */
 @Composable
 internal fun AnswerCard(
@@ -45,6 +53,7 @@ internal fun AnswerCard(
     revealed: Boolean,
     onSelect: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
+    images: List<String>? = null,
 ) {
     val colors = Naj.colors
     NajCard(modifier, shadow = 0.3f) {
@@ -56,6 +65,7 @@ internal fun AnswerCard(
                 AnswerRow(
                     letter = ('A' + index).toString(),
                     text = option,
+                    imageUri = images?.getOrNull(index),
                     state = answerState(index, selectedIndex, correct, revealed),
                     isUserAnswer = selectedIndex == index,
                     onClick = onSelect?.let { { it(index) } },
@@ -69,6 +79,7 @@ internal fun AnswerCard(
 private fun AnswerRow(
     letter: String,
     text: String,
+    imageUri: String?,
     state: AnswerState,
     isUserAnswer: Boolean,
     onClick: (() -> Unit)?,
@@ -119,15 +130,34 @@ private fun AnswerRow(
                 Text(label, style = Naj.type.eyebrowTight, color = accent)
                 Spacer(Modifier.height(2.dp))
             }
-            Text(text, style = Naj.type.option, color = colors.ink)
+            if (imageUri != null) {
+                AnswerPicture(imageUri)
+            }
+            if (text.isNotEmpty()) {
+                Text(text, style = Naj.type.option, color = colors.ink)
+            }
         }
     }
 }
 
+/** An answer that is a picture: drawn at the size a sign can be told apart at, on its own. */
+@Composable
+private fun AnswerPicture(uri: String) {
+    Image(
+        painter = rememberAsyncImagePainter(uri, filterQuality = FilterQuality.High),
+        contentDescription = null,
+        modifier = Modifier.height(AnswerPictureHeight).widthIn(max = AnswerPictureHeight * 2),
+        contentScale = ContentScale.Fit,
+        alignment = Alignment.CenterStart,
+    )
+}
+
+private val AnswerPictureHeight = 88.dp
+
 // ── Previews ──
 
 /** The states an answer can be in, on a question the driver has and hasn't answered. */
-@Preview(widthDp = 400, heightDp = 900)
+@Preview(widthDp = 400, heightDp = 1300)
 @Composable
 private fun AnswerCardPreview() {
     AppPreview {
@@ -143,6 +173,19 @@ private fun AnswerCardPreview() {
             AnswerCard(options, selectedIndex = 2, correct = 2, revealed = true, onSelect = null)
             PreviewLabel("a yes-or-no question, as the Czech bank asks: two answers")
             AnswerCard(listOf("Ano.", "Ne."), selectedIndex = 1, correct = 0, revealed = true, onSelect = {})
+            PreviewLabel("answers that are pictures, as some Czech questions are")
+            AnswerCard(
+                options = listOf("", "", ""),
+                selectedIndex = 0,
+                correct = 2,
+                revealed = true,
+                onSelect = {},
+                images = listOf(
+                    "preview://minv-sk/obr3/dz/140.jpg",
+                    "preview://minv-sk/obr3/dz/142.jpg",
+                    "preview://minv-sk/obr3/dz/601.jpg",
+                ),
+            )
         }
     }
 }

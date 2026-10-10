@@ -173,15 +173,21 @@ publishes every exam question in the Věstník dopravy. Its eTesty site states t
     importer bundles each photo as a JPEG at quality 80 and at most 1,280 pixels wide, which looks
     the same, and keeps line art, transparency and GIFs as they are: about 25 MB in all.
   - a video (`.mp4`, 202 questions), in two kinds:
-    - **looping clips** (125 questions): the site plays them on a loop beside the question. Each one
-      names the still that the paper test prints in its place (`printMediaName`, `Q_P_<id>.jpg`),
-      and that still is what the app shows.
-    - **dynamic situations** (77 questions, 75 of them in topic 4, new since 2025-09-21): the site plays
-      them once, full screen (`isFullScreen`), and the question is about what happens in them. The
-      still shows the road before anything happens, so these are **left out** until the app can
-      play video.
-  - pictures as answers (25 questions, such as "which of these signs…"). The bank format has text
-    answers only, so these are **left out** too.
+    - **looping clips** (125 questions): the site plays them on a loop beside the question, and so
+      does the app. They are small (960×488, 27 MB for all) and bundled as they are. Each one names
+      the still the paper test prints in its place (`printMediaName`, `Q_P_<id>.jpg`), which the app
+      shows until the clip's first frame is drawn.
+    - **situations to watch** (77 questions, 75 of them in topic 4, new since 2025-09-21): the site
+      plays them once, full screen (`isFullScreen`), and the question is about what happens in them.
+      The app shows the still with a play button, plays the video once when it is pressed, and then
+      offers to play it again. The site's are 1080p at 8 Mbit/s with sound, 1.4 GB for the 77, so the
+      importer encodes them with ffmpeg to 480p H.264 at CRF 33 without sound: 84 MB for the 77,
+      with the speedometer and the road users still clear.
+  - pictures as answers (25 questions, such as "which of these signs…"). Their text on the site is a
+    ".", so the bank gives them empty text and lists the pictures in `answerImages`.
+- Every video plays without sound: the situations to watch are about what is seen, and the app
+  plays them where people may not expect sound. In all, the Czech pictures and videos take 143 MB
+  (111 MB of it video).
 - The online bulletin (<https://etesty.md.gov.cz/ro/Bulletin/List?id=99>) and the Věstník PDF
   (`binary_content_storage/Vestnik\etesty_za_<date>.pdf`, 265 MB, 470 pages) list the same
   questions with their answers and points, by topic.
@@ -237,27 +243,26 @@ by no group, so it is left out.
 
 ### Coverage
 
-What the bank holds, per topic and group, once the questions it cannot show are left out (25 with
-picture answers, 77 dynamic videos, and question 2885):
+What the bank holds, per topic and group: every question of the complete set but 2885, which no
+group's exams drew:
 
 | # | Questions | A | B | B+E | C | C+E | D | D+E |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 444 | 422 | 427 | 417 | 425 | 417 | 417 | 417 |
-| 2 | 148 | 91 | 71 | 87 | 103 | 74 | 92 | 74 |
-| 3 | 203 | 203 | 203 | 203 | 203 | 203 | 203 | 203 |
-| 4 | 79 | 66 | 79 | 76 | 79 | 76 | 66 | 76 |
+| 2 | 156 | 93 | 77 | 88 | 107 | 74 | 93 | 74 |
+| 3 | 222 | 222 | 222 | 222 | 222 | 222 | 222 | 222 |
+| 4 | 154 | 141 | 154 | 151 | 154 | 151 | 141 | 151 |
 | 5 | 45 | 32 | 42 | 30 | 41 | 30 | 42 | 30 |
 | 6 | 79 | 50 | 54 | 50 | 59 | 51 | 57 | 51 |
 | 7 | 35 | 35 | 35 | 35 | 35 | 35 | 35 | 35 |
-| **`cz-cs`** | **1,033** | **899** | **911** | **898** | **945** | **886** | **912** | **886** |
+| **`cz-cs`** | **1,135** | **995** | **1,011** | **993** | **1,043** | **980** | **1,007** | **980** |
 
-427 of the questions have a picture, and 48 are yes-or-no questions with two answers.
+302 of the questions have a picture and 202 a video, 25 have pictures for answers, and 48 are
+yes-or-no questions with two answers.
 
 **Known gaps:**
-- The 77 dynamic videos and the 25 picture-answer questions, until the app can show them. Topic 4
-  loses half its questions to the first: every group still has more than enough for its 3 a test,
-  but a real exam asks dynamic situations too.
 - The groups are inferred, not published.
+- The videos play without sound.
 
 ### Terms of use
 

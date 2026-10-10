@@ -1,6 +1,7 @@
 package com.spiraclestudios.autoskola.learn
 
 import com.spiraclestudios.autoskola.bank.LicenseCategory
+import com.spiraclestudios.autoskola.bank.QuestionVideo
 import com.spiraclestudios.autoskola.data.analytics.AnalyticsEvent
 import com.spiraclestudios.autoskola.data.banks.testQuestion
 import com.spiraclestudios.autoskola.data.banks.testSituationsBank
@@ -11,6 +12,7 @@ import com.spiraclestudios.autoskola.stats.AttemptKind
 import com.spiraclestudios.autoskola.testing.TestRepositories
 import com.spiraclestudios.autoskola.testing.ViewModelTest
 import com.spiraclestudios.autoskola.testing.currentSession
+import com.spiraclestudios.autoskola.ui.VideoItem
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -85,6 +87,25 @@ class IntersectionsViewModelTest : ViewModelTest() {
         assertEquals("Q1813", question.text)
         assertEquals(listOf("right", "wrong", "wrong"), question.answers)
         assertEquals(0, question.correct)
+    }
+
+    @Test
+    fun aSituationToWatchComesWithItsVideo() = runTest {
+        // The Czech situations are videos, each with the still that stands for it until it plays.
+        val bank = testSituationsBank().let { bank ->
+            bank.copy(
+                questions = bank.questions.map {
+                    if (it.id == 1815) it.copy(video = QuestionVideo(file = "situation.mp4", loops = false)) else it
+                },
+            )
+        }
+
+        val state = observe(viewModel(TestRepositories(bank)).uiState)
+
+        val situations = assertIs<IntersectionsUiState.Ready>(state.value).situations
+        assertNull(situations[0].video)
+        assertEquals(VideoItem("test://minv-sk/situation.mp4", loops = false), situations[1].video)
+        assertEquals("test://minv-sk/obr3/ds/02.png", situations[1].imageUri)
     }
 
     @Test

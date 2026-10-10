@@ -81,7 +81,9 @@ jobs:
       # Swift target and links the Kotlin framework into it.
       #
       # Signing is off: Configuration/Config.xcconfig leaves TEAM_ID empty, and nothing here is
-      # installed on a device. Both warning flags make a new compiler warning fail the job.
+      # installed on a device. The iosApp target's own build settings turn warnings into errors.
+      # They are not passed here: a command-line setting also reaches the PostHog package, which
+      # suppresses its own warnings and so fails with conflicting options.
       - name: Build the app
         run: |
           xcodebuild build \
@@ -92,9 +94,7 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/derived-data" \
             -quiet \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
-            GCC_TREAT_WARNINGS_AS_ERRORS=YES
+            CODE_SIGNING_REQUIRED=NO
 
       # The Clang static analyzer. Xcode itself has no linter beyond the compiler's warnings, and
       # this is the closest thing to one. It reuses the build above, so it only re-analyzes.

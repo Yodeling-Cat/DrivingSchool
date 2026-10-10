@@ -25,6 +25,10 @@ node_modules/
 .env.*
 !.env.example
 
+# Private plans, kept outside the repository and linked in locally (AGENTS.md, "Plans"). No trailing
+# slash, so the pattern also matches a symlink or junction, which git does not treat as a directory.
+/plans
+
 # Question-bank importer
 tools/import/.venv/
 tools/import/cache/

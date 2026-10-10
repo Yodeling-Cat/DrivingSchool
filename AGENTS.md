@@ -27,6 +27,15 @@ Code and plans cite these as `docs/<file>.md`, "<section>".
 - **[docs/app-icon.md](docs/app-icon.md)** — before changing the launcher icon.
 - **[docs/store-screenshots.md](docs/store-screenshots.md)**, **[docs/release-builds.md](docs/release-builds.md)**, **[docs/error-reporting.md](docs/error-reporting.md)** — store screenshots, release builds and crash-report symbols.
 
+## Plans
+
+`plans/` holds the owner's plans: decisions, open work and launch checklists, one Markdown file per topic. Code and docs cite them as `plans/<file>.md`. They are private, so they are **not in the repository**: `plans/` is a git-ignored link to a folder outside it.
+
+- Read the plan for a topic before working on it, and update the plan when the work changes what it says.
+- If `plans/` is missing, the plans are not on this machine. Say so. Do not create the folder or write a plan from memory.
+- Plans hold private details: accounts, revenue, legal questions. Never copy them into committed files, commit messages or anything else that is published. Cite the plan instead.
+- To link the folder on a new machine, run from the repository root. On Windows (no admin rights needed): `New-Item -ItemType Junction -Path plans -Target "<private plans folder>"`. On macOS or Linux: `ln -s "<private plans folder>" plans`.
+
 ## Language and spelling
 
 Write **American English** everywhere in this repository — code, identifiers, comments, KDoc, docs, plans, commit messages, and the English strings in `i18n/Strings.kt`.

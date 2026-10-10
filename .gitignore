@@ -34,7 +34,7 @@ __pycache__/
 /store-screenshots/
 
 # SwiftPM's own state inside the generated linkage package; the package itself is committed
-# (AGENTS.md, "SwiftPM linkage package").
+# (docs/dependencies.md, "SwiftPM linkage package").
 app/iosApp/KotlinMultiplatformLinkedPackage/**/.build/
 app/iosApp/KotlinMultiplatformLinkedPackage/**/.swiftpm/
 app/iosApp/KotlinMultiplatformLinkedPackage/**/Package.resolved

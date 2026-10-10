@@ -60,7 +60,7 @@ completion even when the screen that started them is gone.
 | iOS | Open [`app/iosApp`](app/iosApp) in Xcode and run. |
 
 On Windows, use `gradlew.bat`. Each country is its own app with only its own questions, pictures and
-videos (see "Countries" in [AGENTS.md](AGENTS.md)).
+videos (see [docs/countries.md](docs/countries.md)).
 
 ### Testing
 

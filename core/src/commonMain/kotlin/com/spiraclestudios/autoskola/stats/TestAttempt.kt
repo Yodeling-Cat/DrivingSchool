@@ -76,7 +76,8 @@ data class TestAttempt(
      * checked answer can't be changed once it's given).
      *
      * [checkImmediately] is the user's setting, read as it stands now: an attempt keeps no mode of
-     * its own, so a test that is continued goes by what the user has chosen since (see AGENTS.md).
+     * its own, so a test that is continued goes by what the user has chosen since (see
+     * docs/architecture.md, "Statistics").
      */
     fun finalAnswers(checkImmediately: Boolean): List<AnswerRecord> =
         if (isFinished || checkImmediately) answers else emptyList()

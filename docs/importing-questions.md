@@ -31,7 +31,7 @@ Downloads are cached in `tools/import/cache/`, which is gitignored. Without `--r
 
 ## What it writes
 
-Each country's output goes to its own content module, `app/content/<country>/src/commonMain/composeResources/files/` (`sk` or `cz`), which only that country's app bundles (see "Countries" in `AGENTS.md`). It is committed:
+Each country's output goes to its own content module, `app/content/<country>/src/commonMain/composeResources/files/` (`sk` or `cz`), which only that country's app bundles (see [countries.md](countries.md)). It is committed:
 
 | Path | Contents |
 |---|---|
@@ -92,7 +92,7 @@ why. Compare them with the tables in `data-sources.md`.
 
 There are two kinds of update:
 - **Fixes to the current question set** (typos, reformatting, parser fixes): re-import the **same** version. Question ids stay the same, so recorded attempts still match.
-- **A new official question set** (the ministry publishes new or changed questions): import it as a **new version**, e.g. `--version 2`. Keep the old `-v1.json` files; the importer leaves them, and their images, in place. The app starts new tests on the new version, and old attempts keep pointing at v1. See "Question bank versions" in `AGENTS.md`.
+- **A new official question set** (the ministry publishes new or changed questions): import it as a **new version**, e.g. `--version 2`. Keep the old `-v1.json` files; the importer leaves them, and their images, in place. The app starts new tests on the new version, and old attempts keep pointing at v1. See "Versions" in [question-banks.md](question-banks.md).
 
 Steps:
 

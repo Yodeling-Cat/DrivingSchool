@@ -250,7 +250,7 @@ tasks.register<Exec>("runDebug") {
     )
 }
 
-// Each country's app bundles its own content and no other's (see AGENTS.md, "Countries"). Declared
+// Each country's app bundles its own content and no other's (see docs/countries.md). Declared
 // after the `android` block, which is what creates the flavors' configurations.
 dependencies {
     "skImplementation"(projects.app.content.sk)

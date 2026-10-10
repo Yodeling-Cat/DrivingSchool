@@ -27,7 +27,7 @@ class SignCatalogRepository(private val dataSource: SignCatalogDataSource) {
 
     /**
      * The road-sign catalog the app bundles, or `null` when it has none. An app bundles its own
-     * country's content and no other's (see AGENTS.md, "Countries"), so this is the catalog of the
+     * country's content and no other's (see docs/countries.md), so this is the catalog of the
      * country whose exam the driver takes.
      */
     suspend fun bundled(): SignCatalog? = index().firstOrNull()?.let { catalog(it.id, it.version) }

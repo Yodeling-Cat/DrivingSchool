@@ -36,7 +36,7 @@ class BankOutputTest(unittest.TestCase):
 
     def test_each_country_bundles_its_own_banks_and_no_other(self):
         # An app bundles one country's module: anything of another country's in it is weight its
-        # users install for nothing (see AGENTS.md, "Countries").
+        # users install for nothing (see docs/countries.md).
         for entry in self.index:
             self.assertEqual(self.module[entry["id"]], entry["country"], entry["id"])
         for name, bank in self.banks.items():

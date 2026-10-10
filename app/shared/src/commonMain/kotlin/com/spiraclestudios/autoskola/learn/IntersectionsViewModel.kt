@@ -256,7 +256,7 @@ class IntersectionsViewModel(
  *
  * Built once per session: only whether a situation is solved follows the answers, and the list and
  * every item that did not change are handed back as the same instances, so a screen redraws only the
- * situation an answer changed (see AGENTS.md, "Compose performance").
+ * situation an answer changed (see docs/compose-performance.md).
  */
 internal class SituationItems(private val banks: QuestionBankRepository) {
     private var session: ExamSession? = null

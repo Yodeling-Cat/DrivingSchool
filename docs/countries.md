@@ -1,0 +1,16 @@
+# Countries
+
+Each country is its own app, with its own questions, pictures and videos, so that an app installs only what its drivers need and the countries cannot leak into each other. The code is shared; the content is not:
+
+- **`:app:shared`** holds all the code and the resources every country uses (fonts, drawables, `aboutlibraries.json`). Nothing country-specific goes into its Compose resources.
+- **`:app:content:sk`** and **`:app:content:cz`** (`app/content/<country>/`) hold one country's content each: `banks/`, `images/` (pictures and videos) and, for Slovakia, `signs/`, all written by `tools/import`. Each exposes it as `bundledContent`, a `BundledContent` (`:core`, `content/`) with the same name in every module, so an entry point compiles against whichever one its build includes. A build includes exactly one.
+- **The entry points** pass that content in: `App(bundledContent)`, which hands it to Koin, and `ResourceQuestionBankDataSource` and `ResourceSignCatalogDataSource` read through it.
+- **Android** has a product flavor per country: `sk` ships under `com.spiraclestudios.autoskola`, the id Play has always had, and `cz` under `com.spiraclestudios.autoskola.cz`. Build them as `assembleSkDebug` and `assembleCzDebug`; every variant task carries the flavor (`lintSkDebug`, `bundleSkRelease`), and a plain `assembleDebug` builds both countries. The flavors' own dependencies (`"skImplementation"(…)`) go in a `dependencies` block after the `android { }` block, which is what creates their configurations. The shared code reads its store page from the app's `BuildConfig.APPLICATION_ID`.
+- **The country at runtime is `BundledContent.country`** ("SK", "CZ"), never the flavor name or the build: it is what picks the ad units (`ReleaseAdUnits`, per country on each platform, since an ad unit belongs to one app) and works the same on Android, iOS and the web. Anything else that differs by country belongs in the content module rather than in a runtime check.
+- **Web and iOS** have no flavors, so the country is a Gradle property: `-Pcountry=cz`, `sk` when left out. It picks the content module `:app:webApp` and the iOS framework bundle.
+- **An app's index lists one country**, so the exam wizard opens on that country's languages, or straight on its license groups when it has one language (`firstStep` in `ExamSelectionViewModel`).
+- **After moving content between modules, clean `:app:shared`.** Compose copies resources into the build without deleting what is no longer there, so a stale build keeps bundling files that moved out. A clean checkout never has them.
+
+## Adding a country
+
+Create `app/content/<code>/` like the existing two (a copy of their build file, which names its package from the module, `BundledContent.<code>.kt` and its resources), register it in `settings.gradle.kts`, give it a flavor and an `<code>Implementation` dependency in `app/androidApp/build.gradle.kts`, add its importer writing to `content_files("<code>")` and `COUNTRIES` in `tools/import/importer_common.py`, and, once it has AdMob apps of its own, their app ids in `releaseAdMobAppIds` and its units under its code in `AdUnits.android.kt` and `AdUnits.ios.kt`. Until then it shows no ads, rather than another country's.

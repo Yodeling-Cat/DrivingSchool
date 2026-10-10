@@ -65,7 +65,7 @@ sealed interface TestPick {
  * is continued - whether answers are checked as they are picked, whether they count towards
  * statistics yet - follows the user's settings as they stand now.
  *
- * Reads are flows that follow changes to the attempts; writes suspend. See AGENTS.md, "Data access".
+ * Reads are flows that follow changes to the attempts; writes suspend. See docs/architecture.md, "Data access".
  */
 class ExamSession(
     val bank: QuestionBank,

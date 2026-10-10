@@ -73,7 +73,7 @@ data class Preferences(
 
 /**
  * The user's choices, stored in [Settings]. Unlike attempts, these are read synchronously
- * ([preferences] is a [StateFlow]), because the first frame needs them (see AGENTS.md).
+ * ([preferences] is a [StateFlow]), because the first frame needs them (see docs/architecture.md, "Data access").
  */
 class PreferencesRepository(private val settings: Settings) {
 

@@ -8,7 +8,7 @@ plugins {
 
 /**
  * The country a web build is for: `sk` unless `-Pcountry=cz` says otherwise. A page is built for
- * one country, as each Android flavor is (see AGENTS.md, "Countries").
+ * one country, as each Android flavor is (see docs/countries.md).
  */
 val country = providers.gradleProperty("country").getOrElse("sk")
 

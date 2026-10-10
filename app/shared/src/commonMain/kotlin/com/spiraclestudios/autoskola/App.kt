@@ -27,7 +27,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * The whole app, over the [content] of the country it is built for: each country's app passes its
- * own (see AGENTS.md, "Countries").
+ * own (see docs/countries.md).
  */
 @Composable
 fun App(content: BundledContent) {

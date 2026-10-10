@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The exam-selection wizard: the language to take the test in, then the license category. Each app
- * bundles one country's banks (see AGENTS.md, "Countries"), so there is no country to choose, and a
+ * bundles one country's banks (see docs/countries.md), so there is no country to choose, and a
  * test in one language alone has no language to choose either: it opens on the categories.
  */
 sealed interface ExamSelectionStep {

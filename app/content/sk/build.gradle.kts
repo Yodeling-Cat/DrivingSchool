@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // One country's content: its question banks, sign catalog, pictures and videos, as Compose
-// resources that `tools/import` writes. An app bundles exactly one of these modules (see AGENTS.md,
-// "Countries"), and `:app:shared` reads it through `BundledContent`.
+// resources that `tools/import` writes. An app bundles exactly one of these modules (see
+// docs/countries.md), and `:app:shared` reads it through `BundledContent`.
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)

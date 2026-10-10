@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def content_files(country):
     """The Compose resources of [country]'s content module, which its app alone bundles (see
-    AGENTS.md, "Countries"): `banks/`, `images/` and, where it has one, `signs/`."""
+    docs/countries.md): `banks/`, `images/` and, where it has one, `signs/`."""
     return ROOT / f"app/content/{country}/src/commonMain/composeResources/files"
 
 

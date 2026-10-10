@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
  * The answers given while reading, kept per version of a bank.
  *
  * Writes are serialized and run to the end even if the screen that asked for them goes away, so two
- * answers picked in quick succession can't lose one another. See AGENTS.md, "Data access".
+ * answers picked in quick succession can't lose one another. See docs/architecture.md, "Data access".
  */
 class PracticeAnswerRepository(private val dataSource: PracticeAnswerDataSource) {
 

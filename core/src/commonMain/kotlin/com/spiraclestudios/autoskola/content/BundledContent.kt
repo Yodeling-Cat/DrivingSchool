@@ -4,7 +4,7 @@ package com.spiraclestudios.autoskola.content
  * One country's content as an app ships it: its question banks, its sign catalog, and their
  * pictures and videos, which `tools/import` writes into the Compose resources of that country's
  * module (`app/content/<country>`). Each country's app bundles its own and no other's, so it
- * installs no larger than it has to (see AGENTS.md, "Countries").
+ * installs no larger than it has to (see docs/countries.md).
  *
  * Paths are relative to the module's Compose resources, as in `files/banks/index.json`.
  */

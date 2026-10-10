@@ -1,7 +1,7 @@
 """Derives the launcher icon variants a system recolors from the full-color design sources.
 
 Run it after replacing the sources in assets/design/app-icon/ (an IconKitchen export), then copy
-the results into the platforms as AGENTS.md "App icon sources" describes:
+the results into the platforms as docs/app-icon.md describes:
 
     python tools/app-icon/derive_variants.py
 

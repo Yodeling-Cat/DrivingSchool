@@ -26,7 +26,7 @@ aboutLibraries {
 
 /**
  * The country an iOS framework is built for, since Xcode has no Android-style flavors: `sk` unless
- * `-Pcountry=cz` says otherwise (see AGENTS.md, "Countries").
+ * `-Pcountry=cz` says otherwise (see docs/countries.md).
  */
 val country = providers.gradleProperty("country").getOrElse("sk")
 

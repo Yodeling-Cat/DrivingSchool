@@ -130,10 +130,11 @@ fun ExamSelectionScreen(
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             StepHeader(onStepBack, pickerLanguage, onEvent)
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                val progress = state.progress
                 when (val step = state.step) {
-                    is ExamSelectionStep.ChooseCountry -> CountryStep(state.countryOptions, onEvent)
-                    is ExamSelectionStep.ChooseBankLanguage -> LanguageStep(step.banks, onEvent)
-                    is ExamSelectionStep.ChooseCategory -> CategoryStep(step.bank, onEvent)
+                    is ExamSelectionStep.ChooseCountry -> CountryStep(state.countryOptions, progress, onEvent)
+                    is ExamSelectionStep.ChooseBankLanguage -> LanguageStep(step.banks, progress, onEvent)
+                    is ExamSelectionStep.ChooseCategory -> CategoryStep(step.bank, progress, onEvent)
                 }
             }
         }
@@ -161,30 +162,37 @@ private fun StepHeader(onBack: (() -> Unit)?, language: AppLanguage?, onEvent: (
     }
 }
 
-/** The step's title, the coral italic word included, and the wizard's progress bars above it. */
+/**
+ * The step's title, the coral italic word included, and the wizard's progress bars above it: one
+ * bar per step the wizard walks. A wizard of one step has no progress to show, so it draws none.
+ */
 @Composable
 private fun StepTitle(
-    filled: Int,
+    progress: StepProgress,
     before: String,
     accent: String,
     subtitle: String?,
 ) {
     val colors = Naj.colors
     Column(Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            repeat(3) { index ->
-                Box(
-                    Modifier
-                        .size(StepBarWidth, StepBarHeight)
-                        .clip(RoundedCornerShape(StepBarHeight / 2))
-                        .background(if (index < filled) colors.primaryDeep else colors.emptyOutline),
-                )
+        if (progress.total > 1) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(bottom = 18.dp),
+            ) {
+                repeat(progress.total) { index ->
+                    Box(
+                        Modifier
+                            .size(StepBarWidth, StepBarHeight)
+                            .clip(RoundedCornerShape(StepBarHeight / 2))
+                            .background(if (index < progress.current) colors.primaryDeep else colors.emptyOutline),
+                    )
+                }
             }
         }
         AccentedText(
             accentWord(before, accent),
             style = Naj.type.stepTitle,
-            modifier = Modifier.padding(top = 18.dp),
         )
         if (subtitle != null) {
             Text(
@@ -198,7 +206,7 @@ private fun StepTitle(
 }
 
 @Composable
-private fun CountryStep(options: List<CountryOption>, onEvent: (ExamSelectionUiEvent) -> Unit) {
+private fun CountryStep(options: List<CountryOption>, progress: StepProgress, onEvent: (ExamSelectionUiEvent) -> Unit) {
     Column(
         modifier = Modifier
             .widthIn(max = ContentWidth.Narrow)
@@ -207,7 +215,7 @@ private fun CountryStep(options: List<CountryOption>, onEvent: (ExamSelectionUiE
             .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
         StepTitle(
-            filled = 1,
+            progress = progress,
             before = strings.examSelectionCountryTitleBefore,
             accent = strings.examSelectionCountryTitleAccent,
             subtitle = strings.examSelectionCountrySubtitle,
@@ -281,7 +289,11 @@ private fun CountryCard(option: CountryOption, modifier: Modifier, onClick: () -
 }
 
 @Composable
-private fun LanguageStep(banks: List<QuestionBankInfo>, onEvent: (ExamSelectionUiEvent) -> Unit) {
+private fun LanguageStep(
+    banks: List<QuestionBankInfo>,
+    progress: StepProgress,
+    onEvent: (ExamSelectionUiEvent) -> Unit,
+) {
     Column(
         modifier = Modifier
             .widthIn(max = ContentWidth.Narrow)
@@ -290,7 +302,7 @@ private fun LanguageStep(banks: List<QuestionBankInfo>, onEvent: (ExamSelectionU
             .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
         StepTitle(
-            filled = 2,
+            progress = progress,
             before = strings.examSelectionLanguageTitleBefore,
             accent = strings.examSelectionLanguageTitleAccent,
             subtitle = strings.examSelectionLanguageSubtitle,
@@ -309,7 +321,7 @@ private fun LanguageStep(banks: List<QuestionBankInfo>, onEvent: (ExamSelectionU
 }
 
 @Composable
-private fun CategoryStep(bank: QuestionBankInfo, onEvent: (ExamSelectionUiEvent) -> Unit) {
+private fun CategoryStep(bank: QuestionBankInfo, progress: StepProgress, onEvent: (ExamSelectionUiEvent) -> Unit) {
     val bankLanguage = AppLanguage.fromCode(bank.language)?.nativeName ?: bank.language
     Column(
         modifier = Modifier
@@ -319,7 +331,7 @@ private fun CategoryStep(bank: QuestionBankInfo, onEvent: (ExamSelectionUiEvent)
             .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
         StepTitle(
-            filled = 3,
+            progress = progress,
             before = strings.examSelectionCategoryTitleBefore,
             accent = strings.examSelectionCategoryTitleAccent,
             subtitle = "${strings.countryName(bank.country)} \u00b7 $bankLanguage",
@@ -379,13 +391,17 @@ private fun CategoryRow(label: String, category: LicenseCategory, onClick: () ->
 // ── Previews ──
 
 /** A step of the wizard with the sample banks behind it. */
-private fun selectionState(step: ExamSelectionStep) = ExamSelectionUiState(
-    banks = previewBanks(),
-    step = step,
-    language = AppLanguage.English,
-)
+private fun selectionState(step: ExamSelectionStep, banks: List<QuestionBankInfo> = previewBanks()) =
+    ExamSelectionUiState(
+        banks = banks,
+        step = step,
+        language = AppLanguage.English,
+    )
 
-/** The wizard's three steps, plus the flash of the spinner while the banks are read. */
+/**
+ * The wizard's three steps as a build of more than one country walks them, the steps each country's
+ * app walks, and the flash of the spinner while the banks are read.
+ */
 
 @Preview(widthDp = 400, heightDp = 800)
 @Composable
@@ -424,13 +440,36 @@ private fun ExamSelectionCategoryStepPreview() {
     }
 }
 
-/** The Czech exam's groups, named in Czech as its bank is written. */
+/**
+ * The Slovak app, which has no country to choose: two steps, so two bars, and the languages are the
+ * first of them.
+ */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun ExamSelectionSlovakAppLanguageStepPreview() {
+    val slovak = previewBanks().filter { it.country == "SK" }
+    AppPreview {
+        ExamSelectionScreen(
+            state = selectionState(ExamSelectionStep.ChooseBankLanguage("SK", slovak), banks = slovak),
+            onEvent = {},
+            onBack = null,
+        )
+    }
+}
+
+/**
+ * The Czech app: one country in one language leaves the groups as the only step, so there is no
+ * progress to show. They are named in Czech, as its bank is written.
+ */
 @Preview(widthDp = 400, heightDp = 800)
 @Composable
 private fun ExamSelectionCzechCategoryStepPreview() {
     AppPreview {
         ExamSelectionScreen(
-            state = selectionState(ExamSelectionStep.ChooseCategory(previewCzechBankInfo())),
+            state = selectionState(
+                ExamSelectionStep.ChooseCategory(previewCzechBankInfo()),
+                banks = listOf(previewCzechBankInfo()),
+            ),
             onEvent = {},
             onBack = null,
         )

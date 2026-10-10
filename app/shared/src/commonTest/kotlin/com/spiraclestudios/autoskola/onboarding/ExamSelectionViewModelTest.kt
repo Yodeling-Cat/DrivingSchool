@@ -185,6 +185,47 @@ class ExamSelectionViewModelTest : ViewModelTest() {
     }
 
     @Test
+    fun theProgressCountsTheStepsTheWizardWalks() = runTest {
+        // Two countries: country, language and category, as long as the country has languages.
+        val state = observe(viewModel.uiState)
+        assertEquals(StepProgress(current = 1, total = 3), state.value.progress)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))
+        assertEquals(StepProgress(current = 2, total = 3), state.value.progress)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
+        assertEquals(StepProgress(current = 3, total = 3), state.value.progress)
+    }
+
+    @Test
+    fun theProgressLeavesOutTheStepsThatAreSkipped() = runTest {
+        // A country with one language goes from the country straight to the category.
+        val state = observe(viewModel.uiState)
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("CZ"))
+
+        assertEquals(StepProgress(current = 2, total = 2), state.value.progress)
+    }
+
+    @Test
+    fun theProgressOfAnAppOfOneCountryStartsAtItsLanguages() = runTest {
+        // The Slovak app has no country to choose: language, then category.
+        val viewModel = viewModelOf(skSk, skEn)
+        val state = observe(viewModel.uiState)
+        assertEquals(StepProgress(current = 1, total = 2), state.value.progress)
+
+        viewModel.onEvent(ExamSelectionUiEvent.ChooseBank(skSk))
+        assertEquals(StepProgress(current = 2, total = 2), state.value.progress)
+    }
+
+    @Test
+    fun anAppWithOneStepHasNoProgressToShow() = runTest {
+        // The Czech app: one country in one language leaves the category alone.
+        val state = observe(viewModelOf(czCs).uiState)
+
+        assertEquals(StepProgress(current = 1, total = 1), state.value.progress)
+    }
+
+    @Test
     fun stepBackRetracesTheWizard() = runTest {
         val state = observe(viewModel.uiState)
         viewModel.onEvent(ExamSelectionUiEvent.ChooseCountry("SK"))

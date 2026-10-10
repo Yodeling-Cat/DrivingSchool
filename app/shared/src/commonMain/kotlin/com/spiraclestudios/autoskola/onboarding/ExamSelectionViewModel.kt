@@ -53,7 +53,33 @@ data class ExamSelectionUiState(
      */
     val hasPreviousStep: Boolean
         get() = step != firstStep(banks.orEmpty())
+
+    /**
+     * How far through the wizard the step on screen is, counting only the steps it walks: a step
+     * with nothing to choose is skipped, so it has no bar of its own. Before a country is chosen,
+     * whether it will have a language to choose is not known yet, and it is counted as having one.
+     */
+    val progress: StepProgress
+        get() {
+            val banks = banks.orEmpty()
+            val countryStep = banks.map { it.country }.distinct().size > 1
+            val languageStep = when (val step = step) {
+                ExamSelectionStep.ChooseCountry -> true
+                is ExamSelectionStep.ChooseBankLanguage -> true
+                is ExamSelectionStep.ChooseCategory -> banks.count { it.country == step.bank.country } > 1
+            }
+            val total = listOf(countryStep, languageStep, true).count { it }
+            val current = when (step) {
+                ExamSelectionStep.ChooseCountry -> 1
+                is ExamSelectionStep.ChooseBankLanguage -> if (countryStep) 2 else 1
+                is ExamSelectionStep.ChooseCategory -> total
+            }
+            return StepProgress(current, total)
+        }
 }
+
+/** The step on screen, counted from 1, out of the [total] steps the wizard walks. */
+data class StepProgress(val current: Int, val total: Int)
 
 /**
  * The step the wizard opens on. An app bundles one country's banks (see AGENTS.md, "Countries"), so

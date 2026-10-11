@@ -168,6 +168,8 @@ android {
     productFlavors {
         create("sk") {
             dimension = "country"
+            // What Android Studio selects on a fresh sync, rather than the first flavor alphabetically.
+            isDefault = true
         }
         create("cz") {
             dimension = "country"

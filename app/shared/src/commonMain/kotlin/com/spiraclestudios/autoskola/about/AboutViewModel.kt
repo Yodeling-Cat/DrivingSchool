@@ -28,6 +28,8 @@ data class AboutUiState(
     val all: List<Library>,
     /** Until the generated list has been read there is nothing to show, not an empty list. */
     val loading: Boolean,
+    /** The country the app is built for, whose ministry the questions are credited to. */
+    val country: String,
 ) {
     /** The libraries the search is showing - all of them until something is searched for. */
     val shown: List<Library> = librariesMatching(all, query)
@@ -48,7 +50,10 @@ sealed interface AboutUiEvent {
  * parses it with `org.json`, which a host test has no implementation of, and a ViewModel whose
  * constructor cannot run under test is one whose decisions cannot be tested at all.
  */
-class AboutViewModel(private val readLibraries: suspend () -> List<Library> = ::bundledLibraries) : ViewModel() {
+class AboutViewModel(
+    private val country: String,
+    private val readLibraries: suspend () -> List<Library> = ::bundledLibraries,
+) : ViewModel() {
 
     /** Read once: it is the same build for as long as the screen is up. */
     private val version = appVersion()
@@ -64,11 +69,12 @@ class AboutViewModel(private val readLibraries: suspend () -> List<Library> = ::
             query = query,
             all = libraries.orEmpty(),
             loading = libraries == null,
+            country = country,
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        AboutUiState(version = version, query = "", all = emptyList(), loading = true),
+        AboutUiState(version = version, query = "", all = emptyList(), loading = true, country = country),
     )
 
     init {

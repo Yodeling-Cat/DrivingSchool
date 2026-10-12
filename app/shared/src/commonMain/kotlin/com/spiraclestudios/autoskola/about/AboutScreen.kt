@@ -110,7 +110,7 @@ private fun LibraryList(state: AboutUiState, modifier: Modifier = Modifier) {
         actionMode = LibraryActionMode.Chips,
         contentPadding = PaddingValues(bottom = 24.dp + LocalNavBarInset.current),
         header = {
-            item { AboutIntro() }
+            item { AboutIntro(state.country) }
             // A search that found nothing leaves the page as it is and says so where the rows
             // would have been, so what the app is and what it is built from stay readable.
             if (state.nothingFound) item { EmptyMessage(strings.aboutLibrariesNothingFound) }
@@ -123,14 +123,14 @@ private fun LibraryList(state: AboutUiState, modifier: Modifier = Modifier) {
  * opened by the same heading the design gives a group of content.
  */
 @Composable
-private fun AboutIntro(modifier: Modifier = Modifier) {
+private fun AboutIntro(country: String, modifier: Modifier = Modifier) {
     val colors = Naj.colors
     Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(strings.aboutApp, style = Naj.type.sectionHeading, color = colors.ink)
         Spacer(Modifier.height(10.dp))
         Text(strings.disclaimerIndependent, style = Naj.type.body, color = colors.muted)
         Spacer(Modifier.height(12.dp))
-        Text(strings.disclaimerSource, style = Naj.type.body, color = colors.muted)
+        Text(strings.disclaimerSource(country), style = Naj.type.body, color = colors.muted)
         Spacer(Modifier.height(22.dp))
         Text(strings.aboutLibraries, style = Naj.type.sectionHeading, color = colors.ink)
         Spacer(Modifier.height(8.dp))
@@ -141,13 +141,18 @@ private fun AboutIntro(modifier: Modifier = Modifier) {
 // ── Previews ──
 
 /** A state of the screen with the libraries a preview can hold, and the search as it opens. */
-private fun previewState(query: String = "", version: String? = "1.0", loading: Boolean = false): AboutUiState =
-    AboutUiState(
-        version = version,
-        query = query,
-        all = previewLibraries.libraries,
-        loading = loading,
-    )
+private fun previewState(
+    query: String = "",
+    version: String? = "1.0",
+    loading: Boolean = false,
+    country: String = "SK",
+): AboutUiState = AboutUiState(
+    version = version,
+    query = query,
+    all = previewLibraries.libraries,
+    loading = loading,
+    country = country,
+)
 
 /** The screen on a phone: the open source libraries, in English. */
 @Preview(widthDp = 400, heightDp = 860)
@@ -198,7 +203,19 @@ private fun AboutIntroPreview() {
     AppPreview {
         PreviewBoard {
             PreviewLabel("WHAT THE APP IS, AND WHAT IT IS BUILT FROM")
-            AboutIntro()
+            AboutIntro(country = "SK")
+        }
+    }
+}
+
+/** The same words in the Czech app, which credits its questions to the Czech ministry. */
+@Preview(widthDp = 400, heightDp = 320)
+@Composable
+private fun AboutIntroCzechPreview() {
+    AppPreview(language = AppLanguage.Czech) {
+        PreviewBoard {
+            PreviewLabel("WHAT THE APP IS, IN THE CZECH APP")
+            AboutIntro(country = "CZ")
         }
     }
 }

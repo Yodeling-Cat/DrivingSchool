@@ -41,7 +41,8 @@ class Strings(
     val disclaimerTitleBefore: String,
     val disclaimerTitleAccent: String,
     val disclaimerIndependent: String,
-    val disclaimerSource: String,
+    /** Where the questions come from: the ministry of the country (`BundledContent.country`) the app is built for. */
+    val disclaimerSource: (country: String) -> String,
     val disclaimerAccept: String,
     // Consent. The three switches are separate answers, and the documents are linked rather than
     // summarized: a user cannot agree to what they cannot read.
@@ -400,10 +401,14 @@ private val EnglishStrings = Strings(
     disclaimerTitleAccent = "start",
     disclaimerIndependent = "Naj Autoškola is an independent app. It is not made by, affiliated with, " +
         "or endorsed by any government authority.",
-    disclaimerSource = "The questions and pictures come from the official question banks published by " +
-        "the Ministry of Interior of the Slovak Republic (minv.sk) and the Ministry of Transport of the " +
-        "Czech Republic (etesty.md.gov.cz). We copy them as published, but if anything differs, the " +
-        "official exam and current law apply.",
+    disclaimerSource = { country ->
+        val ministry = when (country) {
+            "CZ" -> "the Ministry of Transport of the Czech Republic (etesty.md.gov.cz)"
+            else -> "the Ministry of Interior of the Slovak Republic (https://www.minv.sk/?elektronicke-testy)"
+        }
+        "The questions and pictures come from the official question bank published by $ministry. " +
+            "We copy them as published, but if anything differs, the official exam and current law apply."
+    },
     disclaimerAccept = "I understand",
     consentTitle = "Your data, your choice",
     consentSubtitle = "This app shows ads. You decide whether they are personalized, and whether it sends " +
@@ -639,10 +644,14 @@ private val SlovakStrings = Strings(
     disclaimerTitleAccent = "začnete",
     disclaimerIndependent = "Naj Autoškola je nezávislá aplikácia. Nevytvoril ju žiadny štátny orgán, " +
         "nie je s ním prepojená ani ním nie je schválená.",
-    disclaimerSource = "Otázky a obrázky pochádzajú z oficiálnych databáz otázok, ktoré zverejňujú " +
-        "Ministerstvo vnútra Slovenskej republiky (minv.sk) a Ministerstvo dopravy Českej republiky " +
-        "(etesty.md.gov.cz). Preberáme ich v zverejnenom znení, ale ak sa niečo líši, platí oficiálna " +
-        "skúška a aktuálne predpisy.",
+    disclaimerSource = { country ->
+        val ministry = when (country) {
+            "CZ" -> "Ministerstvo dopravy Českej republiky (etesty.md.gov.cz)"
+            else -> "Ministerstvo vnútra Slovenskej republiky (https://www.minv.sk/?elektronicke-testy)"
+        }
+        "Otázky a obrázky pochádzajú z oficiálnej databázy otázok, ktorú zverejňuje $ministry. " +
+            "Preberáme ich v zverejnenom znení, ale ak sa niečo líši, platí oficiálna skúška a aktuálne predpisy."
+    },
     disclaimerAccept = "Rozumiem",
     consentTitle = "Vaše dáta, vaša voľba",
     consentSubtitle = "Aplikácia zobrazuje reklamy. Vy rozhodujete, či budú personalizované a či odosiela " +
@@ -881,10 +890,14 @@ private val HungarianStrings = Strings(
     disclaimerTitleAccent = "elkezdené",
     disclaimerIndependent = "A Legjobb Autósiskola független alkalmazás. Nem állami szerv készítette, " +
         "nem áll kapcsolatban egyetlen hatósággal sem, és egyetlen hatóság sem hagyta jóvá.",
-    disclaimerSource = "A kérdések és a képek a Szlovák Köztársaság Belügyminisztériuma (minv.sk) és a " +
-        "Cseh Köztársaság Közlekedési Minisztériuma (etesty.md.gov.cz) által közzétett hivatalos " +
-        "kérdésbankokból származnak. A közzétett formában vesszük át őket, de eltérés esetén a hivatalos " +
-        "vizsga és a hatályos jogszabályok az irányadók.",
+    disclaimerSource = { country ->
+        val ministry = when (country) {
+            "CZ" -> "a Cseh Köztársaság Közlekedési Minisztériuma (etesty.md.gov.cz)"
+            else -> "a Szlovák Köztársaság Belügyminisztériuma (https://www.minv.sk/?elektronicke-testy)"
+        }
+        "A kérdések és a képek $ministry által közzétett hivatalos kérdésbankból származnak. A közzétett " +
+            "formában vesszük át őket, de eltérés esetén a hivatalos vizsga és a hatályos jogszabályok az irányadók."
+    },
     disclaimerAccept = "Értem",
     consentTitle = "Az Ön adatai, az Ön döntése",
     consentSubtitle = "Az alkalmazás reklámokat jelenít meg. Ön dönti el, hogy személyre szabottak " +
@@ -1125,10 +1138,14 @@ private val CzechStrings = Strings(
     disclaimerTitleAccent = "začnete",
     disclaimerIndependent = "Nej Autoškola je nezávislá aplikace. Nevytvořil ji žádný státní orgán, " +
         "není s ním spojena ani jím není schválena.",
-    disclaimerSource = "Otázky a obrázky pocházejí z oficiálních databází otázek, které zveřejňují " +
-        "Ministerstvo vnitra Slovenské republiky (minv.sk) a Ministerstvo dopravy České republiky " +
-        "(etesty.md.gov.cz). Přebíráme je ve zveřejněném znění, ale pokud se něco liší, platí oficiální " +
-        "zkouška a aktuální předpisy.",
+    disclaimerSource = { country ->
+        val ministry = when (country) {
+            "CZ" -> "Ministerstvo dopravy České republiky (etesty.md.gov.cz)"
+            else -> "Ministerstvo vnitra Slovenské republiky (https://www.minv.sk/?elektronicke-testy)"
+        }
+        "Otázky a obrázky pocházejí z oficiální databáze otázek, kterou zveřejňuje $ministry. " +
+            "Přebíráme je ve zveřejněném znění, ale pokud se něco liší, platí oficiální zkouška a aktuální předpisy."
+    },
     disclaimerAccept = "Rozumím",
     consentTitle = "Vaše data, vaše volba",
     consentSubtitle = "Aplikace zobrazuje reklamy. Vy rozhodujete, zda budou personalizované a zda " +

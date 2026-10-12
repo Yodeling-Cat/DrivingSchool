@@ -12,7 +12,8 @@ import kotlin.test.assertTrue
 
 class AboutViewModelTest : ViewModelTest() {
 
-    private fun viewModel(libraries: List<Library> = testLibraries) = AboutViewModel(readLibraries = { libraries })
+    private fun viewModel(libraries: List<Library> = testLibraries, country: String = "SK") =
+        AboutViewModel(country, readLibraries = { libraries })
 
     /** The screen once the list has been read, which in the app is a blink. */
     private suspend fun StateFlow<AboutUiState>.opened(): AboutUiState = first { !it.loading }
@@ -24,6 +25,14 @@ class AboutViewModelTest : ViewModelTest() {
         assertEquals(listOf("Koin", "coil", "Compose UI"), state.all.map { it.name })
         assertEquals(state.all, state.shown)
         assertFalse(state.nothingFound)
+    }
+
+    @Test
+    fun theScreenNamesTheCountryTheAppIsBuiltFor() = runTest {
+        val state = observe(viewModel(country = "CZ").uiState)
+
+        assertEquals("CZ", state.value.country)
+        assertEquals("CZ", state.opened().country)
     }
 
     @Test
@@ -67,7 +76,7 @@ class AboutViewModelTest : ViewModelTest() {
 
     @Test
     fun aBuildWhoseListCannotBeReadShowsNothingAndIsNotAFailedSearch() = runTest {
-        val viewModel = AboutViewModel(readLibraries = { throw IllegalStateException("no list bundled") })
+        val viewModel = AboutViewModel("SK", readLibraries = { throw IllegalStateException("no list bundled") })
         val state = observe(viewModel.uiState).opened()
 
         assertTrue(state.all.isEmpty())

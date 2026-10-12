@@ -11,7 +11,9 @@ import kotlin.test.assertEquals
 class DisclaimerViewModelTest : ViewModelTest() {
 
     private val repositories = TestRepositories()
-    private val viewModel by lazy { DisclaimerViewModel(repositories.preferences, repositories.analytics) }
+    private val viewModel by lazy {
+        DisclaimerViewModel(repositories.preferences, repositories.analytics, country = "CZ")
+    }
 
     @Test
     fun languageCanBeChangedBeforeContinuing() = runTest {
@@ -21,6 +23,11 @@ class DisclaimerViewModelTest : ViewModelTest() {
 
         assertEquals(AppLanguage.Czech, state.value.language)
         assertEquals(AppLanguage.Czech, repositories.preferences.preferences.value.language)
+    }
+
+    @Test
+    fun stateNamesTheCountryTheAppIsBuiltFor() = runTest {
+        assertEquals("CZ", observe(viewModel.uiState).value.country)
     }
 
     @Test

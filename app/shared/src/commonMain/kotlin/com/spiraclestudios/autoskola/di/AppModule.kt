@@ -100,7 +100,7 @@ val appModule = module {
 
     // ViewModels
     viewModelOf(::AppViewModel)
-    viewModelOf(::DisclaimerViewModel)
+    viewModel { DisclaimerViewModel(get(), get(), get<BundledContent>().country) }
     viewModelOf(::ConsentViewModel)
     viewModelOf(::ExamSelectionViewModel)
     viewModel { HomeViewModel(get(), get(), get(), get()) }
@@ -109,7 +109,7 @@ val appModule = module {
     viewModelOf(::IntersectionsViewModel)
     viewModel { (number: Int) -> SituationViewModel(number, get(), get(), get(), get()) }
     viewModelOf(::SettingsViewModel)
-    viewModel { AboutViewModel() }
+    viewModel { AboutViewModel(get<BundledContent>().country) }
     // Feedback reads the platform's own answers as its defaults, which Koin must not resolve for it;
     // the analytics repository it also needs comes from here.
     viewModel { FeedbackViewModel(get()) }

@@ -131,4 +131,13 @@ class StringsTest {
             assert(strings.appName in strings.disclaimerIndependent) { "${language.name} disclaimer" }
         }
     }
+
+    @Test
+    fun disclaimerSourceNamesOnlyTheCountrysOwnMinistry() {
+        AppLanguage.entries.forEach { language ->
+            val source = language.strings.disclaimerSource
+            assert("minv.sk" in source("SK") && "md.gov.cz" !in source("SK")) { "${language.name} SK" }
+            assert("etesty.md.gov.cz" in source("CZ") && "minv.sk" !in source("CZ")) { "${language.name} CZ" }
+        }
+    }
 }

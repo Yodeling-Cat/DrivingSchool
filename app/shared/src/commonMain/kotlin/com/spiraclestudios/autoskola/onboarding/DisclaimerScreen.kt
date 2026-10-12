@@ -94,7 +94,7 @@ fun DisclaimerScreen(state: DisclaimerUiState, onEvent: (DisclaimerUiEvent) -> U
                     Spacer(Modifier.height(16.dp))
                     Paragraph(strings.disclaimerIndependent)
                     Spacer(Modifier.height(12.dp))
-                    Paragraph(strings.disclaimerSource)
+                    Paragraph(strings.disclaimerSource(state.country))
                 }
             }
             Box(
@@ -156,7 +156,7 @@ private fun Paragraph(text: String) {
 @Composable
 private fun DisclaimerScreenPreview() {
     AppPreview {
-        DisclaimerScreen(DisclaimerUiState(AppLanguage.English), onEvent = {}, onContinue = {})
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.English, country = "SK"), onEvent = {}, onContinue = {})
     }
 }
 
@@ -165,6 +165,15 @@ private fun DisclaimerScreenPreview() {
 @Composable
 private fun DisclaimerScreenSlovakPreview() {
     AppPreview(language = AppLanguage.Slovak) {
-        DisclaimerScreen(DisclaimerUiState(AppLanguage.Slovak), onEvent = {}, onContinue = {})
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.Slovak, country = "SK"), onEvent = {}, onContinue = {})
+    }
+}
+
+/** The Czech app, which credits its questions to the Czech ministry. */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+private fun DisclaimerScreenCzechPreview() {
+    AppPreview(language = AppLanguage.Czech) {
+        DisclaimerScreen(DisclaimerUiState(AppLanguage.Czech, country = "CZ"), onEvent = {}, onContinue = {})
     }
 }

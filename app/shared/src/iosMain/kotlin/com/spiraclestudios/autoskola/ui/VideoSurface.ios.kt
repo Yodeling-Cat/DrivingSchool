@@ -12,6 +12,11 @@ import platform.AVFoundation.AVLayerVideoGravityResizeAspect
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
 import platform.AVFoundation.AVPlayerLayer
+import platform.AVFoundation.currentItem
+import platform.AVFoundation.muted
+import platform.AVFoundation.pause
+import platform.AVFoundation.play
+import platform.AVFoundation.seekToTime
 import platform.CoreGraphics.CGRectMake
 import platform.CoreMedia.CMTimeMake
 import platform.Foundation.NSNotificationCenter

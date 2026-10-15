@@ -1,4 +1,5 @@
-# Codemagic builds the signed iOS release and uploads it to TestFlight. Nothing on Windows can
+# Codemagic builds an unsigned simulator app for App Preview (ios-simulator), and the signed iOS
+# release for TestFlight (ios-release). Nothing on Windows can
 # build or sign for Apple, so this is the release path for iOS; the Android release is the GitHub
 # Release workflow (.github/workflows/release.yml), and the iOS compile check on every push is
 # .github/workflows/ios.yml. Start a build from the Codemagic dashboard; nothing triggers it
@@ -13,6 +14,40 @@
 #     build's dSYMs reach PostHog (app/iosApp/upload-symbols.sh, docs/error-reporting.md).
 
 workflows:
+  # An unsigned Debug build for the iOS Simulator, for trying the app in Codemagic's App Preview
+  # (the "Quick launch" button on the finished build's page). Needs no Apple account.
+  ios-simulator:
+    name: iOS simulator preview
+    # Arm64: the shared module declares iosSimulatorArm64, not the Intel simulator target.
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: 16.4
+      java: 21
+    cache:
+      cache_paths:
+        - $HOME/.konan
+        - $HOME/.gradle/caches
+    scripts:
+      # The same build as the GitHub iOS workflow: the first build phase runs ./gradlew, so this
+      # compiles the Kotlin framework too, with the Slovak content.
+      - name: Build the simulator app
+        script: |
+          xcodebuild build \
+            -project app/iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/derived-data \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+          mkdir -p build/ios/iphonesimulator
+          cp -R build/derived-data/Build/Products/Debug-iphonesimulator/*.app build/ios/iphonesimulator/
+    artifacts:
+      - build/ios/iphonesimulator/*.app
+
   ios-release:
     name: iOS release
     # Arm64, like the GitHub iOS workflow: the shared module declares iosArm64 and

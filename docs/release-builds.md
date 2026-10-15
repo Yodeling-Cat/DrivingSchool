@@ -42,3 +42,7 @@ It needs two things set up in Codemagic first:
   profile and the TestFlight upload.
 - An environment variable group named `posthog` with `POSTHOG_CLI_API_KEY` (secret),
   `POSTHOG_CLI_PROJECT_ID` and `POSTHOG_CLI_HOST`, for the dSYM upload.
+
+To try the app without an Apple account, run the **iOS simulator preview** workflow instead. It
+builds an unsigned Debug app for the simulator; open it with **Quick launch** on the finished build's
+page (Codemagic's App Preview).

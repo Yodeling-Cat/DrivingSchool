@@ -1,10 +1,17 @@
-# Codemagic builds an unsigned Debug app for the iOS Simulator, to try in Codemagic's App Preview.
-# Nothing on Windows can build for Apple. The iOS compile check on every push is
+# Codemagic builds an unsigned simulator app for App Preview (ios-simulator), and the signed iOS
+# release for TestFlight (ios-release). Nothing on Windows can
+# build or sign for Apple, so this is the release path for iOS; the Android release is the GitHub
+# Release workflow (.github/workflows/release.yml), and the iOS compile check on every push is
 # .github/workflows/ios.yml. Start a build from the Codemagic dashboard; nothing triggers it
 # automatically.
 #
-# A signed release workflow for TestFlight was here before; it was removed until there is a paid
-# Apple Developer account (see docs/release-builds.md, "iOS").
+# Set up once in Codemagic (see docs/release-builds.md, "iOS release"):
+#   - Team settings > Integrations > Developer Portal: an App Store Connect API key named
+#     "NajAutoskola" (App Manager role). Codemagic uses it to create the distribution certificate
+#     and provisioning profile, and to upload to TestFlight.
+#   - Application settings > Environment variables: a group named "posthog" with
+#     POSTHOG_CLI_API_KEY (secret), POSTHOG_CLI_PROJECT_ID and POSTHOG_CLI_HOST, so the Release
+#     build's dSYMs reach PostHog (app/iosApp/upload-symbols.sh, docs/error-reporting.md).
 
 workflows:
   # An unsigned Debug build for the iOS Simulator, for trying the app in Codemagic's App Preview
@@ -40,3 +47,61 @@ workflows:
           cp -R build/derived-data/Build/Products/Debug-iphonesimulator/*.app build/ios/iphonesimulator/
     artifacts:
       - build/ios/iphonesimulator/*.app
+
+  ios-release:
+    name: iOS release
+    # Arm64, like the GitHub iOS workflow: the shared module declares iosArm64 and
+    # iosSimulatorArm64 only.
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: NajAutoskola
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.spiraclestudios.autoskola
+      groups:
+        - posthog
+      # IPHONEOS_DEPLOYMENT_TARGET is 18.2 and the project is objectVersion 77, so 16.2 or newer.
+      xcode: 16.4
+      # The Xcode build phase runs ./gradlew, whose daemon is pinned to Corretto 21
+      # (gradle/gradle-daemon-jvm.properties).
+      java: 21
+    cache:
+      cache_paths:
+        - $HOME/.konan
+        - $HOME/.gradle/caches
+    scripts:
+      # Pinned so a release build does not change under us when PostHog publishes a new CLI.
+      - name: Install posthog-cli
+        script: npm install -g @posthog/cli@0.18.10
+
+      # Fetches or creates the App Store certificate and profile through the integration, and
+      # writes them into the Xcode project in place of the empty TEAM_ID.
+      - name: Set up code signing
+        script: xcode-project use-profiles
+
+      # App Store Connect rejects a build number it has seen before, so each build takes
+      # Codemagic's own counter. MARKETING_VERSION stays as committed.
+      - name: Set the build number
+        script: |
+          sed -i '' "s/^CURRENT_PROJECT_VERSION=.*/CURRENT_PROJECT_VERSION=$BUILD_NUMBER/" \
+            app/iosApp/Configuration/Config.xcconfig
+          grep VERSION app/iosApp/Configuration/Config.xcconfig
+
+      # The first build phase runs ./gradlew :app:shared:embedAndSignAppleFrameworkForXcode, so
+      # this compiles the Kotlin framework too. It bundles the Slovak content, the default country.
+      - name: Build the IPA
+        script: |
+          xcode-project build-ipa \
+            --project app/iosApp/iosApp.xcodeproj \
+            --scheme iosApp \
+            --config Release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

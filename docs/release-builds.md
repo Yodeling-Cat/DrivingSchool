@@ -27,3 +27,18 @@ The **Release** workflow (Actions tab, or push a `v*` tag) does this with reposi
 `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_KEYSTORE_PASSWORD` and optionally `UPLOAD_KEY_PASSWORD`, and
 leaves the signed `.aab` (what Play takes), a signed `.apk` and the R8 `mapping.txt` on the run page.
 Raise `versionCode` in `app/androidApp/build.gradle.kts` before each upload.
+## iOS release
+
+Codemagic builds the signed iOS app and uploads it to TestFlight, from
+[`codemagic.yaml`](../codemagic.yaml) at the repository root. Start the **iOS release** workflow from
+the Codemagic dashboard; nothing triggers it automatically. Each build takes Codemagic's build
+counter as `CURRENT_PROJECT_VERSION`; raise `MARKETING_VERSION` in
+`app/iosApp/Configuration/Config.xcconfig` by hand.
+
+It needs two things set up in Codemagic first:
+
+- An App Store Connect API key (App Manager role) added under Team settings > Integrations >
+  Developer Portal, named `NajAutoskola`. Codemagic uses it for the certificate, the provisioning
+  profile and the TestFlight upload.
+- An environment variable group named `posthog` with `POSTHOG_CLI_API_KEY` (secret),
+  `POSTHOG_CLI_PROJECT_ID` and `POSTHOG_CLI_HOST`, for the dSYM upload.

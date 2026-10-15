@@ -5,8 +5,9 @@
 # .github/workflows/ios.yml. Start a build from the Codemagic dashboard; nothing triggers it
 # automatically.
 #
-# Neither workflow caches anything: saving ~/.konan and the Gradle cache at the end of a build took
-# about 20 minutes, longer than downloading and compiling them again.
+# Neither workflow caches anything. Caching ~/.konan and the Gradle cache made the simulator build
+# slower, not faster: 1m 20s to restore and 8m 49s to build, against 4m 12s to build without it,
+# and creating the 920 MB cache took another 7 minutes.
 #
 # Set up once in Codemagic (see docs/release-builds.md, "iOS release"):
 #   - Team settings > Integrations > Developer Portal: an App Store Connect API key named

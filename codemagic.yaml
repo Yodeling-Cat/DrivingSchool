@@ -5,6 +5,9 @@
 # .github/workflows/ios.yml. Start a build from the Codemagic dashboard; nothing triggers it
 # automatically.
 #
+# Neither workflow caches anything: saving ~/.konan and the Gradle cache at the end of a build took
+# about 20 minutes, longer than downloading and compiling them again.
+#
 # Set up once in Codemagic (see docs/release-builds.md, "iOS release"):
 #   - Team settings > Integrations > Developer Portal: an App Store Connect API key named
 #     "NajAutoskola" (App Manager role). Codemagic uses it to create the distribution certificate
@@ -24,10 +27,6 @@ workflows:
     environment:
       xcode: 16.4
       java: 21
-    cache:
-      cache_paths:
-        - $HOME/.konan
-        - $HOME/.gradle/caches
     scripts:
       # The same build as the GitHub iOS workflow: the first build phase runs ./gradlew, so this
       # compiles the Kotlin framework too, with the Slovak content.
@@ -67,10 +66,6 @@ workflows:
       # The Xcode build phase runs ./gradlew, whose daemon is pinned to Corretto 21
       # (gradle/gradle-daemon-jvm.properties).
       java: 21
-    cache:
-      cache_paths:
-        - $HOME/.konan
-        - $HOME/.gradle/caches
     scripts:
       # Pinned so a release build does not change under us when PostHog publishes a new CLI.
       - name: Install posthog-cli

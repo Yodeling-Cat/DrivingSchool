@@ -41,7 +41,7 @@ fun licenseWaveQuarters(width: Dp): Int = ceil(width / LicenseWaveQuarter).toInt
  * The ten white wave lines over whatever this draws on - a license card, or the results poster -
  * each a crest then a mirrored trough, carried across its whole width.
  */
-fun DrawScope.drawLicenseWaves() {
+internal fun DrawScope.drawLicenseWaves() {
     val quarter = LicenseWaveQuarter.toPx()
     val offset = LicenseWaveOffset.toPx()
     val amplitude = LicenseWaveAmplitude.toPx()
@@ -72,7 +72,7 @@ private const val LICENSE_GLOW_ALPHA = 0.55f
  * one of its edges, centerd on [center]. Scaling the canvas is what turns the gradient's circle into
  * the design's ellipse, and [center] sits off the edge it bleeds in from.
  */
-fun DrawScope.drawLicenseGlow(center: DpOffset) {
+internal fun DrawScope.drawLicenseGlow(center: DpOffset) {
     translate(center.x.toPx(), center.y.toPx()) {
         // Scaling the canvas turns the circular gradient into the design's ellipse.
         scale(LicenseGlowRadiusX.toPx(), LicenseGlowRadiusY.toPx(), pivot = Offset.Zero) {
